@@ -1,0 +1,8 @@
+
+.amplify-button[data-variation='primary'] {
+  background: #028CFF;
+}
+
+.amplify-button[data-variation='primary']:hover{
+  background: black;
+}
