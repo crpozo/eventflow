@@ -1,10 +1,170 @@
 import { ModelInit, MutableModel, __modelMeta__, ManagedIdentifier } from "@aws-amplify/datastore";
 // @ts-ignore
-import { LazyLoading, LazyLoadingDisabled, AsyncCollection } from "@aws-amplify/datastore";
+import { LazyLoading, LazyLoadingDisabled, AsyncCollection, AsyncItem } from "@aws-amplify/datastore";
 
 
 
 
+
+type EagerForm = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Form, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyForm = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Form, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type Form = LazyLoading extends LazyLoadingDisabled ? EagerForm : LazyForm
+
+export declare const Form: (new (init: ModelInit<Form>) => Form) & {
+  copyOf(source: Form, mutator: (draft: MutableModel<Form>) => MutableModel<Form> | void): Form;
+}
+
+type EagerLanding = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Landing, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyLanding = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Landing, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type Landing = LazyLoading extends LazyLoadingDisabled ? EagerLanding : LazyLanding
+
+export declare const Landing: (new (init: ModelInit<Landing>) => Landing) & {
+  copyOf(source: Landing, mutator: (draft: MutableModel<Landing>) => MutableModel<Landing> | void): Landing;
+}
+
+type EagerAttendee = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Attendee, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly name?: string | null;
+  readonly eventID: string;
+  readonly authorized?: boolean | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyAttendee = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Attendee, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly name?: string | null;
+  readonly eventID: string;
+  readonly authorized?: boolean | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type Attendee = LazyLoading extends LazyLoadingDisabled ? EagerAttendee : LazyAttendee
+
+export declare const Attendee: (new (init: ModelInit<Attendee>) => Attendee) & {
+  copyOf(source: Attendee, mutator: (draft: MutableModel<Attendee>) => MutableModel<Attendee> | void): Attendee;
+}
+
+type EagerEvent = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Event, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly careerID: string;
+  readonly Participants?: (Attendee | null)[] | null;
+  readonly Landing?: Landing | null;
+  readonly Form?: Form | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+  readonly eventLandingId?: string | null;
+  readonly eventFormId?: string | null;
+}
+
+type LazyEvent = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Event, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly careerID: string;
+  readonly Participants: AsyncCollection<Attendee>;
+  readonly Landing: AsyncItem<Landing | undefined>;
+  readonly Form: AsyncItem<Form | undefined>;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+  readonly eventLandingId?: string | null;
+  readonly eventFormId?: string | null;
+}
+
+export declare type Event = LazyLoading extends LazyLoadingDisabled ? EagerEvent : LazyEvent
+
+export declare const Event: (new (init: ModelInit<Event>) => Event) & {
+  copyOf(source: Event, mutator: (draft: MutableModel<Event>) => MutableModel<Event> | void): Event;
+}
+
+type EagerCareer = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Career, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly areaID: string;
+  readonly Events?: (Event | null)[] | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyCareer = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Career, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly title?: string | null;
+  readonly areaID: string;
+  readonly Events: AsyncCollection<Event>;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type Career = LazyLoading extends LazyLoadingDisabled ? EagerCareer : LazyCareer
+
+export declare const Career: (new (init: ModelInit<Career>) => Career) & {
+  copyOf(source: Career, mutator: (draft: MutableModel<Career>) => MutableModel<Career> | void): Career;
+}
 
 type EagerArea = {
   readonly [__modelMeta__]: {
@@ -14,6 +174,7 @@ type EagerArea = {
   readonly id: string;
   readonly title?: string | null;
   readonly campusID: string;
+  readonly Carreras?: (Career | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -26,6 +187,7 @@ type LazyArea = {
   readonly id: string;
   readonly title?: string | null;
   readonly campusID: string;
+  readonly Carreras: AsyncCollection<Career>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }

@@ -2,6 +2,7 @@ import React from "react";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
+import Campus from "views/campus";
 import NFTMarketplace from "views/admin/marketplace";
 import Profile from "views/admin/profile";
 import DataTables from "views/admin/tables";
@@ -17,6 +18,7 @@ import {
   MdBarChart,
   MdPerson,
   MdLock,
+  MdAccountBalance,
 } from "react-icons/md";
 
 const routes = [
@@ -34,6 +36,13 @@ const routes = [
     icon: <MdOutlineShoppingCart className="h-6 w-6" />,
     component: <NFTMarketplace />,
     secondary: true,
+  },
+  {
+    name: "Campus",
+    layout: "/page",
+    path: "campus",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <Campus />,
   },
   {
     name: "Data Tables",

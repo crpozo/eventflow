@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import RtlLayout from "layouts/rtl";
 import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
+import PageLayout from "layouts/page";
 
 import { I18n } from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
@@ -21,6 +22,7 @@ function App() {
         <Route path="auth/*" element={<AuthLayout />} />
         <Route path="admin/*" element={<AdminLayout />} />
         <Route path="rtl/*" element={<RtlLayout />} />
+        <Route path="page/*" element={<PageLayout />} />
         <Route path="/" element={<Navigate to="/admin" replace />} />
       </Routes>
       )

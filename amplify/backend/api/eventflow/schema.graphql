@@ -1,7 +1,41 @@
+type Form @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String
+}
+
+type Landing @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String
+}
+
+type Attendee @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  name: String
+  eventID: ID! @index(name: "byEvent")
+  authorized: Boolean
+}
+
+type Event @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String
+  careerID: ID! @index(name: "byCareer")
+  Participants: [Attendee] @hasMany(indexName: "byEvent", fields: ["id"])
+  Landing: Landing @hasOne
+  Form: Form @hasOne
+}
+
+type Career @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String
+  areaID: ID! @index(name: "byArea")
+  Events: [Event] @hasMany(indexName: "byCareer", fields: ["id"])
+}
+
 type Area @model @auth(rules: [{allow: public}]) {
   id: ID!
   title: String
   campusID: ID! @index(name: "byCampus")
+  Carreras: [Career] @hasMany(indexName: "byArea", fields: ["id"])
 }
 
 type Campus @model @auth(rules: [{allow: public}]) {
@@ -9,3 +43,4 @@ type Campus @model @auth(rules: [{allow: public}]) {
   title: String
   CampusArea: [Area] @hasMany(indexName: "byCampus", fields: ["id"])
 }
+ 

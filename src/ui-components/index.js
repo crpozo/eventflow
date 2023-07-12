@@ -5,5 +5,9 @@
  **************************************************************************/
 
 export { default as studioTheme } from "./studioTheme";
+export { default as FormCreateForm } from "./FormCreateForm";
+export { default as FormUpdateForm } from "./FormUpdateForm";
+export { default as LandingCreateForm } from "./LandingCreateForm";
+export { default as LandingUpdateForm } from "./LandingUpdateForm";
 export { default as CampusCreateForm } from "./CampusCreateForm";
 export { default as CampusUpdateForm } from "./CampusUpdateForm";
