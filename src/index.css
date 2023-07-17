@@ -41,3 +41,14 @@ input:checked.defaultCheckbox::before {
 	background: #028CFF;
 	border: none;
 }
+
+button.amplify-button--link{
+	color: #028CFF;
+}
+
+button.amplify-button--link:focus, button.amplify-button--link:hover{
+	color: black;
+	background-color: transparent;
+	border: none;
+	box-shadow: none;
+}

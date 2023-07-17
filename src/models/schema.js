@@ -217,11 +217,11 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "careerID": {
-                    "name": "careerID",
+                "description": {
+                    "name": "description",
                     "isArray": false,
-                    "type": "ID",
-                    "isRequired": true,
+                    "type": "String",
+                    "isRequired": false,
                     "attributes": []
                 },
                 "Participants": {
@@ -275,6 +275,13 @@ export const schema = {
                             "eventFormId"
                         ]
                     }
+                },
+                "careerID": {
+                    "name": "careerID",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -602,5 +609,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "7af799ffd999ddf61977d06fd5474d5c"
+    "version": "dd9c2f68036fe21a0b862e03eab1d336"
 };

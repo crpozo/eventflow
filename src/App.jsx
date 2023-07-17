@@ -15,6 +15,10 @@ function App() {
 
   const { route } = useAuthenticator(context => [context.route]);
 
+  if(!route){
+    return <p>Loading...</p>
+  }
+
   // Use the value of route to decide which page to render
   return route === 'authenticated' 
     ? (

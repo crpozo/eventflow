@@ -24,6 +24,8 @@ export function SidebarLinks(props) {
         route.layout === "/page"
       ) {
         return (
+          <>
+          { route.path != 'eventos/detalle'  && route.path != 'campus/area' && route.path != 'campus/area/subarea' && 
           <Link key={index} to={route.layout + "/" + route.path}>
             <div className="relative mb-3 flex hover:cursor-pointer">
               <li
@@ -54,6 +56,8 @@ export function SidebarLinks(props) {
               ) : null}
             </div>
           </Link>
+          }
+          </>
         );
       }
     });

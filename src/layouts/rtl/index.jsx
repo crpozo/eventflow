@@ -70,7 +70,7 @@ export default function RTL(props) {
           <div className="h-full">
             <Navbar
               onOpenSidenav={() => setOpen(true)}
-              logoText={"Horizon UI Tailwind React"}
+              logoText={"Eventflow Tailwind React"}
               brandText={currentRoute}
               secondary={getActiveNavbar(routes)}
               {...rest}
@@ -81,7 +81,7 @@ export default function RTL(props) {
 
                 <Route
                   path="/"
-                  element={<Navigate to="/admin/default" replace />}
+                  element={<Navigate to="/admin/dashboard" replace />}
                 />
               </Routes>
             </div>

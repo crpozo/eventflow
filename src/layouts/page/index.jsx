@@ -7,14 +7,8 @@ import routes from "routes.js";
 export default function Admin(props) {
   const { ...rest } = props;
   const location = useLocation();
-  const [open, setOpen] = React.useState(true);
   const [currentRoute, setCurrentRoute] = React.useState("Campus");
 
-  React.useEffect(() => {
-    window.addEventListener("resize", () =>
-      window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
-    );
-  }, []);
   React.useEffect(() => {
     getActiveRoute(routes);
   }, [location.pathname]);
@@ -62,13 +56,12 @@ export default function Admin(props) {
       <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
         {/* Main Content */}
         <main
-          className={`mx-[12px] h-full flex-none transition-all md:pr-2 xl:ml-[313px]`}
+          className={`mx-[12px] h-full flex-none transition-all md:pr-2`}
         >
           {/* Routes */}
           <div className="h-full">
             <Navbar
-              onOpenSidenav={() => setOpen(true)}
-              logoText={"Horizon UI Tailwind React"}
+              logoText={"Eventflow Tailwind React"}
               brandText={currentRoute}
               secondary={getActiveNavbar(routes)}
               {...rest}

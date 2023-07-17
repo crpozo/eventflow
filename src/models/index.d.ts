@@ -101,10 +101,11 @@ type EagerEvent = {
   };
   readonly id: string;
   readonly title?: string | null;
-  readonly careerID: string;
+  readonly description?: string | null;
   readonly Participants?: (Attendee | null)[] | null;
   readonly Landing?: Landing | null;
   readonly Form?: Form | null;
+  readonly careerID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
@@ -118,10 +119,11 @@ type LazyEvent = {
   };
   readonly id: string;
   readonly title?: string | null;
-  readonly careerID: string;
+  readonly description?: string | null;
   readonly Participants: AsyncCollection<Attendee>;
   readonly Landing: AsyncItem<Landing | undefined>;
   readonly Form: AsyncItem<Form | undefined>;
+  readonly careerID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;

@@ -2,7 +2,11 @@ import React from "react";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
+import Eventos from "views/admin/eventos";
+import EventoDetalle from "views/admin/eventos/detalle";
 import Campus from "views/campus";
+import Area from "views/area";
+import Carrera from "views/carrera";
 import NFTMarketplace from "views/admin/marketplace";
 import Profile from "views/admin/profile";
 import DataTables from "views/admin/tables";
@@ -19,15 +23,51 @@ import {
   MdPerson,
   MdLock,
   MdAccountBalance,
+  MdCalendarToday,
 } from "react-icons/md";
 
 const routes = [
   {
-    name: "Main Dashboard",
+    name: "Dashboard",
     layout: "/admin",
-    path: "default",
+    path: "dashboard",
     icon: <MdHome className="h-6 w-6" />,
     component: <MainDashboard />,
+  },
+  {
+    name: "Campus",
+    layout: "/page",
+    path: "campus",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <Campus />,
+  },
+  {
+    name: "Area",
+    layout: "/page",
+    path: "campus/area",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <Area />,
+  },
+  {
+    name: "Subarea",
+    layout: "/page",
+    path: "campus/area/subarea",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <Carrera />,
+  },
+  {
+    name: "Eventos",
+    layout: "/admin",
+    path: "eventos",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <Eventos />,
+  },
+  {
+    name: "Evento detalles",
+    layout: "/admin",
+    path: "eventos/detalle",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <EventoDetalle />,
   },
   {
     name: "NFT Marketplace",
@@ -36,13 +76,6 @@ const routes = [
     icon: <MdOutlineShoppingCart className="h-6 w-6" />,
     component: <NFTMarketplace />,
     secondary: true,
-  },
-  {
-    name: "Campus",
-    layout: "/page",
-    path: "campus",
-    icon: <MdAccountBalance className="h-6 w-6" />,
-    component: <Campus />,
   },
   {
     name: "Data Tables",

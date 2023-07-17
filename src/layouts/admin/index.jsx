@@ -4,25 +4,17 @@ import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
 import Footer from "components/footer/Footer";
 import routes from "routes.js";
-import { DataStore } from "aws-amplify";
-import { Campus } from "models"
  
 export default function Admin(props) {
   const { ...rest } = props;
   const location = useLocation();
   const [open, setOpen] = React.useState(true);
   const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
-  // const [campus, setCampus] = React.useState([]);
 
   React.useEffect(() => {
     window.addEventListener("resize", () =>
       window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
     );
-    // AWS amplify data 
-    // DataStore.query(Campus).then( (results) => {
-    //   setCampus(results);
-    //   console.log(results)
-    // });
   }, []);
   React.useEffect(() => {
     getActiveRoute(routes);
@@ -78,22 +70,18 @@ export default function Admin(props) {
           <div className="h-full">
             <Navbar
               onOpenSidenav={() => setOpen(true)}
-              logoText={"Horizon UI Tailwind React"}
+              logoText={"Eventflow Tailwind React"}
               brandText={currentRoute}
               secondary={getActiveNavbar(routes)}
               {...rest}
             />
             <div className="pt-5s mx-auto mb-auto h-full min-h-[84vh] p-2 md:pr-2">
-              {/* <ul>{campus && campus.map( (item,i) => {
-                return <li key={i}>{item.title}</li>
-              })}
-              </ul> */}
               <Routes>
                 {getRoutes(routes)}
 
                 <Route
                   path="/"
-                  element={<Navigate to="/admin/default" replace />}
+                  element={<Navigate to="/admin/dashboard" replace />}
                 />
               </Routes>
             </div>

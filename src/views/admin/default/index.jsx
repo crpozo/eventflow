@@ -1,3 +1,4 @@
+import React from "react";
 import MiniCalendar from "components/calendar/MiniCalendar";
 import WeeklyRevenue from "views/admin/default/components/WeeklyRevenue";
 import TotalSpent from "views/admin/default/components/TotalSpent";
@@ -15,8 +16,19 @@ import DailyTraffic from "views/admin/default/components/DailyTraffic";
 import TaskCard from "views/admin/default/components/TaskCard";
 import tableDataCheck from "./variables/tableDataCheck.json";
 import tableDataComplex from "./variables/tableDataComplex.json";
+import { useNavigate} from "react-router-dom";
 
 const Dashboard = () => {
+
+  const navigate = useNavigate();
+
+  React.useEffect( () => {
+    const subAreaId = localStorage.getItem('subAreaId');
+    if(!subAreaId){
+      navigate(`/page/campus`);
+    }
+  }, [navigate]);
+
   return (
     <div>
       {/* Card widget */}
