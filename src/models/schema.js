@@ -1,5 +1,89 @@
 export const schema = {
     "models": {
+        "EventAttendee": {
+            "name": "EventAttendee",
+            "fields": {
+                "id": {
+                    "name": "id",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "eventID": {
+                    "name": "eventID",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "attendeeID": {
+                    "name": "attendeeID",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "createdAt": {
+                    "name": "createdAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                },
+                "updatedAt": {
+                    "name": "updatedAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                }
+            },
+            "syncable": true,
+            "pluralName": "EventAttendees",
+            "attributes": [
+                {
+                    "type": "model",
+                    "properties": {}
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "byEvent",
+                        "fields": [
+                            "eventID"
+                        ]
+                    }
+                },
+                {
+                    "type": "key",
+                    "properties": {
+                        "name": "byAttendee",
+                        "fields": [
+                            "attendeeID"
+                        ]
+                    }
+                },
+                {
+                    "type": "auth",
+                    "properties": {
+                        "rules": [
+                            {
+                                "allow": "public",
+                                "operations": [
+                                    "create",
+                                    "update",
+                                    "delete",
+                                    "read"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
         "Form": {
             "name": "Form",
             "fields": {
@@ -135,19 +219,28 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "eventID": {
-                    "name": "eventID",
-                    "isArray": false,
-                    "type": "ID",
-                    "isRequired": true,
-                    "attributes": []
-                },
                 "authorized": {
                     "name": "authorized",
                     "isArray": false,
                     "type": "Boolean",
                     "isRequired": false,
                     "attributes": []
+                },
+                "EventAttendees": {
+                    "name": "EventAttendees",
+                    "isArray": true,
+                    "type": {
+                        "model": "EventAttendee"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": [
+                            "attendeeID"
+                        ]
+                    }
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -172,15 +265,6 @@ export const schema = {
                 {
                     "type": "model",
                     "properties": {}
-                },
-                {
-                    "type": "key",
-                    "properties": {
-                        "name": "byEvent",
-                        "fields": [
-                            "eventID"
-                        ]
-                    }
                 },
                 {
                     "type": "auth",
@@ -224,22 +308,6 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "Participants": {
-                    "name": "Participants",
-                    "isArray": true,
-                    "type": {
-                        "model": "Attendee"
-                    },
-                    "isRequired": false,
-                    "attributes": [],
-                    "isArrayNullable": true,
-                    "association": {
-                        "connectionType": "HAS_MANY",
-                        "associatedWith": [
-                            "eventID"
-                        ]
-                    }
-                },
                 "Landing": {
                     "name": "Landing",
                     "isArray": false,
@@ -255,6 +323,29 @@ export const schema = {
                         ],
                         "targetNames": [
                             "eventLandingId"
+                        ]
+                    }
+                },
+                "careerID": {
+                    "name": "careerID",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "EventAttendees": {
+                    "name": "EventAttendees",
+                    "isArray": true,
+                    "type": {
+                        "model": "EventAttendee"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true,
+                    "association": {
+                        "connectionType": "HAS_MANY",
+                        "associatedWith": [
+                            "eventID"
                         ]
                     }
                 },
@@ -275,13 +366,6 @@ export const schema = {
                             "eventFormId"
                         ]
                     }
-                },
-                "careerID": {
-                    "name": "careerID",
-                    "isArray": false,
-                    "type": "ID",
-                    "isRequired": true,
-                    "attributes": []
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -609,5 +693,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "dd9c2f68036fe21a0b862e03eab1d336"
+    "version": "a053955e3ef136ac1e7743e3afc583c6"
 };

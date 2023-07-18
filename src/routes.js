@@ -4,6 +4,7 @@ import React from "react";
 import MainDashboard from "views/admin/default";
 import Eventos from "views/admin/eventos";
 import EventoDetalle from "views/admin/eventos/detalle";
+import EventoCrear from "views/admin/eventos/crear";
 import Campus from "views/campus";
 import Area from "views/area";
 import Carrera from "views/carrera";
@@ -63,11 +64,18 @@ const routes = [
     component: <Eventos />,
   },
   {
-    name: "Evento detalles",
+    name: "Evento detalle",
     layout: "/admin",
     path: "eventos/detalle",
     icon: <MdCalendarToday className="h-6 w-6" />,
     component: <EventoDetalle />,
+  },
+  {
+    name: "Evento crear",
+    layout: "/admin",
+    path: "eventos/crear",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <EventoCrear />,
   },
   {
     name: "NFT Marketplace",

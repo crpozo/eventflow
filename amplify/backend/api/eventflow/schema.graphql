@@ -1,3 +1,9 @@
+type EventAttendee @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  eventID: ID! @index(name: "byEvent")
+  attendeeID: ID! @index(name: "byAttendee")
+}
+
 type Form @model @auth(rules: [{allow: public}]) {
   id: ID!
   title: String
@@ -11,18 +17,18 @@ type Landing @model @auth(rules: [{allow: public}]) {
 type Attendee @model @auth(rules: [{allow: public}]) {
   id: ID!
   name: String
-  eventID: ID! @index(name: "byEvent")
   authorized: Boolean
+  EventAttendees: [EventAttendee] @hasMany(indexName: "byAttendee", fields: ["id"])
 }
 
 type Event @model @auth(rules: [{allow: public}]) {
   id: ID!
   title: String
   description: String
-  Participants: [Attendee] @hasMany(indexName: "byEvent", fields: ["id"])
   Landing: Landing @hasOne
-  Form: Form @hasOne
   careerID: ID! @index(name: "byCareer")
+  EventAttendees: [EventAttendee] @hasMany(indexName: "byEvent", fields: ["id"])
+  Form: Form @hasOne
 }
 
 type Career @model @auth(rules: [{allow: public}]) {

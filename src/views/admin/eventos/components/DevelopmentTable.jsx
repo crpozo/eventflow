@@ -1,7 +1,6 @@
-import CardMenu from "components/card/CardMenu";
 import Card from "components/card";
 import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   useGlobalFilter,
   usePagination,
@@ -48,7 +47,11 @@ const DevelopmentTable = (props) => {
         <div className="text-xl font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
         </div>
-        <CardMenu />
+        <Link className="w-1/12" to="crear">
+          <button className="linear mt-2 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+            Crear Evento
+          </button>
+        </Link>
       </div>
 
       <div className="h-full overflow-x-scroll xl:overflow-x-hidden">
@@ -96,7 +99,7 @@ const DevelopmentTable = (props) => {
                         </p>
                       );
                     }
-                    else if (cell.column.Header === "ACCION") {
+                    else if (cell.column.Header === "") {
                       data = (
                         <MdEditCalendar onClick={() => navigate(`detalle/`, { state: { id: cell.value} }) } className="h-6 w-6" />
                       );
