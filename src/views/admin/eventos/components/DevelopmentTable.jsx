@@ -47,8 +47,8 @@ const DevelopmentTable = (props) => {
         <div className="text-xl font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
         </div>
-        <Link className="w-1/12" to="crear">
-          <button className="linear mt-2 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+        <Link className="" to="crear">
+          <button className="linear mt-2 pr-4 pl-4 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
             Crear Evento
           </button>
         </Link>
@@ -101,7 +101,7 @@ const DevelopmentTable = (props) => {
                     }
                     else if (cell.column.Header === "") {
                       data = (
-                        <MdEditCalendar onClick={() => navigate(`detalle/`, { state: { id: cell.value} }) } className="h-6 w-6" />
+                        <MdEditCalendar onClick={() => navigate(`detalle/`, { state: { id: cell.value} }) } className="h-6 w-6 cursor-pointer" />
                       );
                     }
                     return (
