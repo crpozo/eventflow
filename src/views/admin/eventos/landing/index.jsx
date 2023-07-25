@@ -23,22 +23,16 @@ const Dashboard = () => {
       updateEvent(event.id, formData);
     }
   }
-  
+
   React.useEffect(() => {
+    console.log(id)
     if(!id || id === "no-id"){
       navigate(`/admin/eventos`);
       return 
-    }
-
-    DataStore.query(Event, (c) => c.id.eq(id)).then( results => {
-      setEvent(results[0]);
-      console.log("Event: ", results)
-      setValue("title", results[0].title);
-      setValue("description", results[0].description);
-    });
+    }    
   }, [id,setValue, navigate]);
 
-  async function updateEvent(formData) {
+  async function updateEvent(id, formData) {
     const updatedEvent= await DataStore.save(
       Event.copyOf(event, updated => {
         updated.title = formData.title;
@@ -48,13 +42,7 @@ const Dashboard = () => {
     setEvent(updatedEvent);
     alert("Evento actualizado con éxito");
   }
-
-  const deleteEvent = () => {
-    DataStore.delete(event);
-    alert("Evento eliminado con éxito")
-  }
-
-
+  
   if(!event){
     return <p>Loading...</p>
   }
@@ -76,9 +64,6 @@ const Dashboard = () => {
             <input className="linear mt-2 rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200" value="Guardar" type="submit" />
             </div>
           </form>
-          <button onClick={deleteEvent} className="linear mt-2 rounded-xl bg-red-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
-            Eliminar Evento
-          </button>
         </>
       }
     </div>

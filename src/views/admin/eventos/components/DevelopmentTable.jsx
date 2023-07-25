@@ -101,7 +101,7 @@ const DevelopmentTable = (props) => {
                     }
                     else if (cell.column.Header === "") {
                       data = (
-                        <MdEditCalendar onClick={() => navigate(`detalle/`, { state: { id: cell.value} }) } className="h-6 w-6 cursor-pointer" />
+                        <MdEditCalendar onClick={() => navigate(`${cell.value}/detalle/`) } className="h-6 w-6 cursor-pointer" />
                       );
                     }
                     return (

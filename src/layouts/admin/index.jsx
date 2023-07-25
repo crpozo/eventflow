@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
 import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
 import Footer from "components/footer/Footer";
@@ -10,14 +10,23 @@ export default function Admin(props) {
   const location = useLocation();
   const [open, setOpen] = React.useState(true);
   const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
+  const [subAreaId, setSubAreaId] = React.useState('no-id');
 
   React.useEffect(() => {
     window.addEventListener("resize", () =>
       window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
     );
   }, []);
+
   React.useEffect(() => {
     getActiveRoute(routes);
+    const segments = location.pathname.split('/');
+    const id = segments[segments.length - 3]; // Assuming the ID is before the '/detalle/' segment
+    if(id){
+      setSubAreaId(id);
+    } else {
+      setSubAreaId("no-id");
+    }
   }, [location.pathname]);
 
   const getActiveRoute = (routes) => {
@@ -60,6 +69,14 @@ export default function Admin(props) {
   return (
     <div className="flex h-full w-full">
       <Sidebar open={open} onClose={() => setOpen(false)} />
+      <div
+      className={`sm:none duration-175 linear fixed !z-50 flex min-h-full flex-col bg-gray pb-10 shadow-2xl shadow-white/5 transition-all dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-56`}
+      >
+        <Link to={ `eventos/${subAreaId}/detalle/`} >Detalle Evento</Link>
+        <Link to={ `eventos/${subAreaId}/landing/`}>Landing Page</Link>
+        <Link to={ `eventos/${subAreaId}/formulario/`}>Formulario</Link>
+        <Link to={ `eventos/${subAreaId}/usuarios/`}>Usuarios</Link>
+      </div>
       {/* Navbar & Main Content */}
       <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
         {/* Main Content */}

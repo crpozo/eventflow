@@ -25,8 +25,9 @@ export function SidebarLinks(props) {
       ) {
         return (
           <>
-          { route.path != 'eventos/detalle'  && route.path != 'campus/area' && route.path != 'campus/area/subarea' 
-          && route.path != 'eventos/crear' && 
+          { route.path != 'campus/area' && route.path != 'campus/area/subarea' 
+          && route.path != 'eventos/crear' && route.path != 'eventos/:id/landing' && route.path != 'eventos/:id/detalle' &&
+          route.path != 'eventos/:id/formulario' &&
           <Link key={index} to={route.layout + "/" + route.path}>
             <div className="relative mb-3 flex hover:cursor-pointer">
               <li

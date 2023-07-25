@@ -50,6 +50,7 @@ const Marketplace = () => {
       }
       setRows(rows)
     });
+    
   }, []);
 
   if(!eventos){

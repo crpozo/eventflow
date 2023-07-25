@@ -1,8 +1,10 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import RtlLayout from "layouts/rtl";
 import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
 import PageLayout from "layouts/page";
+import LandingLayout from "layouts/landing";
+
 
 import { I18n } from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
@@ -14,6 +16,8 @@ I18n.setLanguage('es');
 function App() {
 
   const { route } = useAuthenticator(context => [context.route]);
+  const location = useLocation();
+  const isLandingRoute = location.pathname.includes('/landing');
 
   if(!route){
     return <p>Loading...</p>
@@ -27,21 +31,30 @@ function App() {
         <Route path="admin/*" element={<AdminLayout />} />
         <Route path="rtl/*" element={<RtlLayout />} />
         <Route path="page/*" element={<PageLayout />} />
+        <Route path="landing/*" element={<LandingLayout />} />
         <Route path="/" element={<Navigate to="/admin" replace />} />
       </Routes>
       )
     :
-      <div>
-        <div className="container">
-          <div className="login-left">
-            <h1>La forma más fácil de gestionar tus eventos</h1>
+      <>
+      {isLandingRoute ? (
+        <Routes>
+          <Route path="landing/*" element={<LandingLayout />} />
+        </Routes>
+      ) : (
+        <div>
+          <div className="container">
+            <div className="login-left">
+              <h1>La forma más fácil de gestionar tus eventos</h1>
+            </div>
+            <div className="login-right">
+              <h1>Eventflow</h1>
+            </div>
           </div>
-          <div className="login-right">
-            <h1>Eventflow</h1>
-          </div>
+          <Authenticator hideSignUp={true}/> 
         </div>
-        <Authenticator hideSignUp={true}/> 
-      </div>;
+      )}
+      </>
 }
 
 export default App;
