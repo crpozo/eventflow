@@ -6,7 +6,7 @@
 
 /* eslint-disable */
 import * as React from "react";
-import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
+import { Button, Flex, Grid, TextAreaField } from "@aws-amplify/ui-react";
 import { getOverrideProps } from "@aws-amplify/ui-react/internal";
 import { Form } from "../models";
 import { fetchByPath, validateField } from "./utils";
@@ -24,15 +24,19 @@ export default function FormUpdateForm(props) {
     ...rest
   } = props;
   const initialValues = {
-    title: "",
+    questions: "",
   };
-  const [title, setTitle] = React.useState(initialValues.title);
+  const [questions, setQuestions] = React.useState(initialValues.questions);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = formRecord
       ? { ...initialValues, ...formRecord }
       : initialValues;
-    setTitle(cleanValues.title);
+    setQuestions(
+      typeof cleanValues.questions === "string"
+        ? cleanValues.questions
+        : JSON.stringify(cleanValues.questions)
+    );
     setErrors({});
   };
   const [formRecord, setFormRecord] = React.useState(formModelProp);
@@ -47,7 +51,7 @@ export default function FormUpdateForm(props) {
   }, [idProp, formModelProp]);
   React.useEffect(resetStateValues, [formRecord]);
   const validations = {
-    title: [],
+    questions: [{ type: "JSON" }],
   };
   const runValidationTasks = async (
     fieldName,
@@ -75,7 +79,7 @@ export default function FormUpdateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          title,
+          questions,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -122,30 +126,30 @@ export default function FormUpdateForm(props) {
       {...getOverrideProps(overrides, "FormUpdateForm")}
       {...rest}
     >
-      <TextField
-        label="Title"
+      <TextAreaField
+        label="Questions"
         isRequired={false}
         isReadOnly={false}
-        value={title}
+        value={questions}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
-              title: value,
+              questions: value,
             };
             const result = onChange(modelFields);
-            value = result?.title ?? value;
+            value = result?.questions ?? value;
           }
-          if (errors.title?.hasError) {
-            runValidationTasks("title", value);
+          if (errors.questions?.hasError) {
+            runValidationTasks("questions", value);
           }
-          setTitle(value);
+          setQuestions(value);
         }}
-        onBlur={() => runValidationTasks("title", title)}
-        errorMessage={errors.title?.errorMessage}
-        hasError={errors.title?.hasError}
-        {...getOverrideProps(overrides, "title")}
-      ></TextField>
+        onBlur={() => runValidationTasks("questions", questions)}
+        errorMessage={errors.questions?.errorMessage}
+        hasError={errors.questions?.hasError}
+        {...getOverrideProps(overrides, "questions")}
+      ></TextAreaField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

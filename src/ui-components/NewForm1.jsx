@@ -6,33 +6,26 @@
 
 /* eslint-disable */
 import * as React from "react";
-import { Button, Flex, Grid, TextAreaField } from "@aws-amplify/ui-react";
+import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
 import { getOverrideProps } from "@aws-amplify/ui-react/internal";
-import { Form } from "../models";
 import { fetchByPath, validateField } from "./utils";
-import { DataStore } from "aws-amplify";
-export default function FormCreateForm(props) {
-  const {
-    clearOnSuccess = true,
-    onSuccess,
-    onError,
-    onSubmit,
-    onValidate,
-    onChange,
-    overrides,
-    ...rest
-  } = props;
+export default function NewForm1(props) {
+  const { onSubmit, onValidate, onChange, overrides, ...rest } = props;
   const initialValues = {
-    questions: "",
+    Field1: "",
+    Field2: "",
   };
-  const [questions, setQuestions] = React.useState(initialValues.questions);
+  const [Field1, setField1] = React.useState(initialValues.Field1);
+  const [Field2, setField2] = React.useState(initialValues.Field2);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
-    setQuestions(initialValues.questions);
+    setField1(initialValues.Field1);
+    setField2(initialValues.Field2);
     setErrors({});
   };
   const validations = {
-    questions: [{ type: "JSON" }],
+    Field1: [],
+    Field2: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -59,8 +52,9 @@ export default function FormCreateForm(props) {
       padding="20px"
       onSubmit={async (event) => {
         event.preventDefault();
-        let modelFields = {
-          questions,
+        const modelFields = {
+          Field1,
+          Field2,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -81,54 +75,67 @@ export default function FormCreateForm(props) {
         if (validationResponses.some((r) => r.hasError)) {
           return;
         }
-        if (onSubmit) {
-          modelFields = onSubmit(modelFields);
-        }
-        try {
-          Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() === "") {
-              modelFields[key] = undefined;
-            }
-          });
-          await DataStore.save(new Form(modelFields));
-          if (onSuccess) {
-            onSuccess(modelFields);
-          }
-          if (clearOnSuccess) {
-            resetStateValues();
-          }
-        } catch (err) {
-          if (onError) {
-            onError(modelFields, err.message);
-          }
-        }
+        await onSubmit(modelFields);
       }}
-      {...getOverrideProps(overrides, "FormCreateForm")}
+      {...getOverrideProps(overrides, "NewForm1")}
       {...rest}
     >
-      <TextAreaField
-        label="Questions"
-        isRequired={false}
-        isReadOnly={false}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              questions: value,
-            };
-            const result = onChange(modelFields);
-            value = result?.questions ?? value;
-          }
-          if (errors.questions?.hasError) {
-            runValidationTasks("questions", value);
-          }
-          setQuestions(value);
-        }}
-        onBlur={() => runValidationTasks("questions", questions)}
-        errorMessage={errors.questions?.errorMessage}
-        hasError={errors.questions?.hasError}
-        {...getOverrideProps(overrides, "questions")}
-      ></TextAreaField>
+      <Grid
+        columnGap="inherit"
+        rowGap="inherit"
+        templateColumns="repeat(2, auto)"
+        {...getOverrideProps(overrides, "RowGrid0")}
+      >
+        <TextField
+          label="Ticket"
+          value={Field1}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (onChange) {
+              const modelFields = {
+                Field1: value,
+                Field2,
+              };
+              const result = onChange(modelFields);
+              value = result?.Field1 ?? value;
+            }
+            if (errors.Field1?.hasError) {
+              runValidationTasks("Field1", value);
+            }
+            setField1(value);
+          }}
+          onBlur={() => runValidationTasks("Field1", Field1)}
+          errorMessage={errors.Field1?.errorMessage}
+          hasError={errors.Field1?.hasError}
+          {...getOverrideProps(overrides, "Field1")}
+        ></TextField>
+        <TextField
+          label="Price"
+          descriptiveText=""
+          type="number"
+          step="any"
+          value={Field2}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (onChange) {
+              const modelFields = {
+                Field1,
+                Field2: value,
+              };
+              const result = onChange(modelFields);
+              value = result?.Field2 ?? value;
+            }
+            if (errors.Field2?.hasError) {
+              runValidationTasks("Field2", value);
+            }
+            setField2(value);
+          }}
+          onBlur={() => runValidationTasks("Field2", Field2)}
+          errorMessage={errors.Field2?.errorMessage}
+          hasError={errors.Field2?.hasError}
+          {...getOverrideProps(overrides, "Field2")}
+        ></TextField>
+      </Grid>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextAreaFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 import { Form } from "../models";
 export declare type ValidationResponse = {
@@ -14,15 +14,15 @@ export declare type ValidationResponse = {
 };
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type FormUpdateFormInputValues = {
-    title?: string;
+    questions?: string;
 };
 export declare type FormUpdateFormValidationValues = {
-    title?: ValidationFunction<string>;
+    questions?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type FormUpdateFormOverridesProps = {
     FormUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
-    title?: PrimitiveOverrideProps<TextFieldProps>;
+    questions?: PrimitiveOverrideProps<TextAreaFieldProps>;
 } & EscapeHatchProps;
 export declare type FormUpdateFormProps = React.PropsWithChildren<{
     overrides?: FormUpdateFormOverridesProps | undefined | null;

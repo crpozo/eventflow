@@ -17,8 +17,9 @@ import Eventos from "views/admin/eventos";
 import EventoDetalle from "views/admin/eventos/detalle";
 import EventoCrear from "views/admin/eventos/crear";
 import EventoLanding from "views/admin/eventos/landing";
-import Landing from "views/landing/SignIn";
 import EventoFormulario from "views/admin/eventos/formulario";
+import Landing from "views/landing/SignIn";
+import LandingRegistro from "views/landing/registro";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -104,6 +105,13 @@ const routes = [
     path: ":id",
     icon: <MdCalendarToday className="h-6 w-6" />,
     component: <Landing />,
+  },
+  {
+    name: "Registro",
+    layout: "/landing",
+    path: ":id/registro",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <LandingRegistro />,
   },
   {
     name: "NFT Marketplace",

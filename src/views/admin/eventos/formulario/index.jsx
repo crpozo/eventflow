@@ -2,30 +2,63 @@ import React,{ Component, createRef} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
-import { Event } from "models"
+import { Form } from "models"
 import $ from "jquery";
 window.jQuery = $;
 window.$ = $;
 require('jquery-ui-sortable');
 require('formBuilder');
 
-  // Obtener json de las preguntas creadas y guardar en la base de datos: guardar en base de datos.
   // Al cargar de nuevo la página obtener el JSON de preguntas y cargar el form builder
-  // En la landing cargar el json de la base de datos y mostrarlo listo para responderse.
+  // En la landing cargar el json de la base de datos y mostrarlo listo para responderse
 
 const Dashboard = () => {
 
-  const formData = [
-    {
-      type: "header",
-      subtype: "h1",
-      label: "formBuilder in React"
-    },
-    {
-      type: "paragraph",
-      label: "This is a demonstration of formBuilder running in a React project."
+  const [form, setForm] = React.useState();
+  const [formData, setFormData] = React.useState([]);
+  const [formExist, setFormExist] = React.useState(false);
+  const id = useParams().id;
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    
+    if(!id || id === "no-id"){
+      navigate(`/admin/eventos`);
+      return 
     }
-  ];
+
+    DataStore.query(Form, (c) => c.formEventId.eq(id)).then( results => {
+      if(results.length > 0){
+        setForm(results[0])
+        setFormData(results[0].questions);
+        setFormExist(true);
+        console.log(results[0])
+      } else {
+        console.log("No form data found");
+      }
+    });
+
+  }, [id, navigate]);
+
+  async function createEvent(formData) {
+    await DataStore.save(
+      new Form({
+        "formEventId": id,
+        "questions": formData,
+      })
+    );
+    alert("Form creado con éxito");
+  }
+
+  async function updateForm(form, formData) {
+    const updatedEvent= await DataStore.save(
+      Form.copyOf(form, updated => {
+        updated.questions = formData;
+      })
+    );
+    setFormData(updatedEvent.questions);
+    alert("Form actualizado con éxito");
+  }
 
   class FormBuilder extends Component {
 
@@ -40,30 +73,23 @@ const Dashboard = () => {
     }
 
     handleFormChange = () => {
+
       const formData = $(this.fb.current).formBuilder('getData', 'json');
-      console.log("formData: ",formData);
+      if(formExist){
+        if(formData){
+          updateForm(form, JSON.parse(formData));
+        }
+      } else {
+        createEvent(JSON.parse(formData));
+      }
+      
     };
 
     render() {
       return <div id="fb-editor" ref={this.fb} />;
     }
+
   }
-
-  const id = useParams().id;
-  const navigate = useNavigate();
-
-  React.useEffect(() => {
-    console.log(id)
-    if(!id || id === "no-id"){
-      navigate(`/admin/eventos`);
-      return 
-    }    
-  }, [id, navigate]);
-
-  const handleSaveClick = () => {
-    const formBuilder = $(document.getElementById("build-wrap")).formBuilder();
-    formBuilder.actions.getData('json', true)
-  };
 
   return (
     <div className="campus-page">
@@ -73,15 +99,6 @@ const Dashboard = () => {
 
       <FormBuilder />
 
-      <button id="saveData" onClick={handleSaveClick}>
-        Guardar
-      </button>
-
-      {/* <DemoBar />
-      <ReactFormBuilder
-        toolbarItems={items}
-      /> */}
-      
     </div>
   );
 };

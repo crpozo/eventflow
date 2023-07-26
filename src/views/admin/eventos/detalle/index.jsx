@@ -20,7 +20,7 @@ const Dashboard = () => {
 
   const onSubmit = ( formData ) => {
     if(event){
-      updateEvent(event.id, formData);
+      updateEvent(formData);
     }
   }
   

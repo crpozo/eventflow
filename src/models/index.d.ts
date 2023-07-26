@@ -1,6 +1,6 @@
 import { ModelInit, MutableModel, __modelMeta__, ManagedIdentifier } from "@aws-amplify/datastore";
 // @ts-ignore
-import { LazyLoading, LazyLoadingDisabled, AsyncCollection, AsyncItem } from "@aws-amplify/datastore";
+import { LazyLoading, LazyLoadingDisabled, AsyncItem, AsyncCollection } from "@aws-amplify/datastore";
 
 
 
@@ -42,9 +42,11 @@ type EagerForm = {
     readOnlyFields: 'createdAt' | 'updatedAt';
   };
   readonly id: string;
-  readonly title?: string | null;
+  readonly questions?: string | null;
+  readonly Event?: Event | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
+  readonly formEventId?: string | null;
 }
 
 type LazyForm = {
@@ -53,9 +55,11 @@ type LazyForm = {
     readOnlyFields: 'createdAt' | 'updatedAt';
   };
   readonly id: string;
-  readonly title?: string | null;
+  readonly questions?: string | null;
+  readonly Event: AsyncItem<Event | undefined>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
+  readonly formEventId?: string | null;
 }
 
 export declare type Form = LazyLoading extends LazyLoadingDisabled ? EagerForm : LazyForm
