@@ -14,17 +14,29 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type AttendeeCreateFormInputValues = {
     name?: string;
+    type?: string;
+    age?: number;
+    position?: string;
     authorized?: boolean;
+    checkIn?: boolean;
 };
 export declare type AttendeeCreateFormValidationValues = {
     name?: ValidationFunction<string>;
+    type?: ValidationFunction<string>;
+    age?: ValidationFunction<number>;
+    position?: ValidationFunction<string>;
     authorized?: ValidationFunction<boolean>;
+    checkIn?: ValidationFunction<boolean>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type AttendeeCreateFormOverridesProps = {
     AttendeeCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
     name?: PrimitiveOverrideProps<TextFieldProps>;
+    type?: PrimitiveOverrideProps<TextFieldProps>;
+    age?: PrimitiveOverrideProps<TextFieldProps>;
+    position?: PrimitiveOverrideProps<TextFieldProps>;
     authorized?: PrimitiveOverrideProps<SwitchFieldProps>;
+    checkIn?: PrimitiveOverrideProps<SwitchFieldProps>;
 } & EscapeHatchProps;
 export declare type AttendeeCreateFormProps = React.PropsWithChildren<{
     overrides?: AttendeeCreateFormOverridesProps | undefined | null;

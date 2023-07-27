@@ -2,10 +2,10 @@ import React from "react";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
+import Reports from "views/admin/reportes";
 import NFTMarketplace from "views/admin/marketplace";
 import Profile from "views/admin/profile";
 import DataTables from "views/admin/tables";
-import RTLDefault from "views/rtl/default";
 
 // Area Imports
 import Campus from "views/campus";
@@ -18,6 +18,8 @@ import EventoDetalle from "views/admin/eventos/detalle";
 import EventoCrear from "views/admin/eventos/crear";
 import EventoLanding from "views/admin/eventos/landing";
 import EventoFormulario from "views/admin/eventos/formulario";
+import EventoUsuarios from "views/admin/eventos/usuarios";
+import EventoUsuariosCrear from "views/admin/eventos/usuarios/crear";
 import Landing from "views/landing/SignIn";
 import LandingRegistro from "views/landing/registro";
 
@@ -72,6 +74,13 @@ const routes = [
     component: <Eventos />,
   },
   {
+    name: "Reportes",
+    layout: "/admin",
+    path: "reportes",
+    icon: <MdHome className="h-6 w-6" />,
+    component: <Reports />,
+  },
+  {
     name: "Evento crear",
     layout: "/admin",
     path: "eventos/crear",
@@ -98,6 +107,20 @@ const routes = [
     path: "eventos/:id/formulario",
     icon: <MdCalendarToday className="h-6 w-6" />,
     component: <EventoFormulario />,
+  },
+  {
+    name: "Evento Usuarios",
+    layout: "/admin",
+    path: "eventos/:id/usuarios",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <EventoUsuarios />,
+  },
+  {
+    name: "Evento Usuarios Crear",
+    layout: "/admin",
+    path: "eventos/:id/usuarios/crear",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <EventoUsuariosCrear />,
   },
   {
     name: "Landing",
@@ -141,13 +164,6 @@ const routes = [
     path: "sign-in",
     icon: <MdLock className="h-6 w-6" />,
     component: <SignIn />,
-  },
-  {
-    name: "RTL Admin",
-    layout: "/rtl",
-    path: "rtl",
-    icon: <MdHome className="h-6 w-6" />,
-    component: <RTLDefault />,
-  },
+  }
 ];
 export default routes;

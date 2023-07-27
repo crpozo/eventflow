@@ -1,9 +1,3 @@
-type EventAttendee @model @auth(rules: [{allow: public}]) {
-  id: ID!
-  eventID: ID! @index(name: "byEvent")
-  attendeeID: ID! @index(name: "byAttendee")
-}
-
 type Form @model @auth(rules: [{allow: public}]) {
   id: ID!
   questions: AWSJSON
@@ -18,8 +12,12 @@ type Landing @model @auth(rules: [{allow: public}]) {
 type Attendee @model @auth(rules: [{allow: public}]) {
   id: ID!
   name: String
+  type: String
+  age: Int
+  position: String
   authorized: Boolean
-  EventAttendees: [EventAttendee] @hasMany(indexName: "byAttendee", fields: ["id"])
+  checkIn: Boolean
+  events: [Event] @manyToMany(relationName: "EventAttendee")
 }
 
 type Event @model @auth(rules: [{allow: public}]) {
@@ -28,8 +26,8 @@ type Event @model @auth(rules: [{allow: public}]) {
   description: String
   Landing: Landing @hasOne
   careerID: ID! @index(name: "byCareer")
-  EventAttendees: [EventAttendee] @hasMany(indexName: "byEvent", fields: ["id"])
   Form: Form @hasOne
+  Attendees: [Attendee] @manyToMany(relationName: "EventAttendee")
 }
 
 type Career @model @auth(rules: [{allow: public}]) {

@@ -30,19 +30,35 @@ export default function AttendeeCreateForm(props) {
   } = props;
   const initialValues = {
     name: "",
+    type: "",
+    age: "",
+    position: "",
     authorized: false,
+    checkIn: false,
   };
   const [name, setName] = React.useState(initialValues.name);
+  const [type, setType] = React.useState(initialValues.type);
+  const [age, setAge] = React.useState(initialValues.age);
+  const [position, setPosition] = React.useState(initialValues.position);
   const [authorized, setAuthorized] = React.useState(initialValues.authorized);
+  const [checkIn, setCheckIn] = React.useState(initialValues.checkIn);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setName(initialValues.name);
+    setType(initialValues.type);
+    setAge(initialValues.age);
+    setPosition(initialValues.position);
     setAuthorized(initialValues.authorized);
+    setCheckIn(initialValues.checkIn);
     setErrors({});
   };
   const validations = {
     name: [],
+    type: [],
+    age: [],
+    position: [],
     authorized: [],
+    checkIn: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -71,7 +87,11 @@ export default function AttendeeCreateForm(props) {
         event.preventDefault();
         let modelFields = {
           name,
+          type,
+          age,
+          position,
           authorized,
+          checkIn,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -127,7 +147,11 @@ export default function AttendeeCreateForm(props) {
           if (onChange) {
             const modelFields = {
               name: value,
+              type,
+              age,
+              position,
               authorized,
+              checkIn,
             };
             const result = onChange(modelFields);
             value = result?.name ?? value;
@@ -142,6 +166,97 @@ export default function AttendeeCreateForm(props) {
         hasError={errors.name?.hasError}
         {...getOverrideProps(overrides, "name")}
       ></TextField>
+      <TextField
+        label="Type"
+        isRequired={false}
+        isReadOnly={false}
+        value={type}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              name,
+              type: value,
+              age,
+              position,
+              authorized,
+              checkIn,
+            };
+            const result = onChange(modelFields);
+            value = result?.type ?? value;
+          }
+          if (errors.type?.hasError) {
+            runValidationTasks("type", value);
+          }
+          setType(value);
+        }}
+        onBlur={() => runValidationTasks("type", type)}
+        errorMessage={errors.type?.errorMessage}
+        hasError={errors.type?.hasError}
+        {...getOverrideProps(overrides, "type")}
+      ></TextField>
+      <TextField
+        label="Age"
+        isRequired={false}
+        isReadOnly={false}
+        type="number"
+        step="any"
+        value={age}
+        onChange={(e) => {
+          let value = isNaN(parseInt(e.target.value))
+            ? e.target.value
+            : parseInt(e.target.value);
+          if (onChange) {
+            const modelFields = {
+              name,
+              type,
+              age: value,
+              position,
+              authorized,
+              checkIn,
+            };
+            const result = onChange(modelFields);
+            value = result?.age ?? value;
+          }
+          if (errors.age?.hasError) {
+            runValidationTasks("age", value);
+          }
+          setAge(value);
+        }}
+        onBlur={() => runValidationTasks("age", age)}
+        errorMessage={errors.age?.errorMessage}
+        hasError={errors.age?.hasError}
+        {...getOverrideProps(overrides, "age")}
+      ></TextField>
+      <TextField
+        label="Position"
+        isRequired={false}
+        isReadOnly={false}
+        value={position}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              name,
+              type,
+              age,
+              position: value,
+              authorized,
+              checkIn,
+            };
+            const result = onChange(modelFields);
+            value = result?.position ?? value;
+          }
+          if (errors.position?.hasError) {
+            runValidationTasks("position", value);
+          }
+          setPosition(value);
+        }}
+        onBlur={() => runValidationTasks("position", position)}
+        errorMessage={errors.position?.errorMessage}
+        hasError={errors.position?.hasError}
+        {...getOverrideProps(overrides, "position")}
+      ></TextField>
       <SwitchField
         label="Authorized"
         defaultChecked={false}
@@ -152,7 +267,11 @@ export default function AttendeeCreateForm(props) {
           if (onChange) {
             const modelFields = {
               name,
+              type,
+              age,
+              position,
               authorized: value,
+              checkIn,
             };
             const result = onChange(modelFields);
             value = result?.authorized ?? value;
@@ -166,6 +285,35 @@ export default function AttendeeCreateForm(props) {
         errorMessage={errors.authorized?.errorMessage}
         hasError={errors.authorized?.hasError}
         {...getOverrideProps(overrides, "authorized")}
+      ></SwitchField>
+      <SwitchField
+        label="Check in"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={checkIn}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              name,
+              type,
+              age,
+              position,
+              authorized,
+              checkIn: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.checkIn ?? value;
+          }
+          if (errors.checkIn?.hasError) {
+            runValidationTasks("checkIn", value);
+          }
+          setCheckIn(value);
+        }}
+        onBlur={() => runValidationTasks("checkIn", checkIn)}
+        errorMessage={errors.checkIn?.errorMessage}
+        hasError={errors.checkIn?.hasError}
+        {...getOverrideProps(overrides, "checkIn")}
       ></SwitchField>
       <Flex
         justifyContent="space-between"

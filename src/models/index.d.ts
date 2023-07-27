@@ -6,36 +6,6 @@ import { LazyLoading, LazyLoadingDisabled, AsyncItem, AsyncCollection } from "@a
 
 
 
-type EagerEventAttendee = {
-  readonly [__modelMeta__]: {
-    identifier: ManagedIdentifier<EventAttendee, 'id'>;
-    readOnlyFields: 'createdAt' | 'updatedAt';
-  };
-  readonly id: string;
-  readonly eventID: string;
-  readonly attendeeID: string;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-type LazyEventAttendee = {
-  readonly [__modelMeta__]: {
-    identifier: ManagedIdentifier<EventAttendee, 'id'>;
-    readOnlyFields: 'createdAt' | 'updatedAt';
-  };
-  readonly id: string;
-  readonly eventID: string;
-  readonly attendeeID: string;
-  readonly createdAt?: string | null;
-  readonly updatedAt?: string | null;
-}
-
-export declare type EventAttendee = LazyLoading extends LazyLoadingDisabled ? EagerEventAttendee : LazyEventAttendee
-
-export declare const EventAttendee: (new (init: ModelInit<EventAttendee>) => EventAttendee) & {
-  copyOf(source: EventAttendee, mutator: (draft: MutableModel<EventAttendee>) => MutableModel<EventAttendee> | void): EventAttendee;
-}
-
 type EagerForm = {
   readonly [__modelMeta__]: {
     identifier: ManagedIdentifier<Form, 'id'>;
@@ -103,8 +73,12 @@ type EagerAttendee = {
   };
   readonly id: string;
   readonly name?: string | null;
+  readonly type?: string | null;
+  readonly age?: number | null;
+  readonly position?: string | null;
   readonly authorized?: boolean | null;
-  readonly EventAttendees?: (EventAttendee | null)[] | null;
+  readonly checkIn?: boolean | null;
+  readonly events?: (EventAttendee | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -116,8 +90,12 @@ type LazyAttendee = {
   };
   readonly id: string;
   readonly name?: string | null;
+  readonly type?: string | null;
+  readonly age?: number | null;
+  readonly position?: string | null;
   readonly authorized?: boolean | null;
-  readonly EventAttendees: AsyncCollection<EventAttendee>;
+  readonly checkIn?: boolean | null;
+  readonly events: AsyncCollection<EventAttendee>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -138,8 +116,8 @@ type EagerEvent = {
   readonly description?: string | null;
   readonly Landing?: Landing | null;
   readonly careerID: string;
-  readonly EventAttendees?: (EventAttendee | null)[] | null;
   readonly Form?: Form | null;
+  readonly Attendees?: (EventAttendee | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
@@ -156,8 +134,8 @@ type LazyEvent = {
   readonly description?: string | null;
   readonly Landing: AsyncItem<Landing | undefined>;
   readonly careerID: string;
-  readonly EventAttendees: AsyncCollection<EventAttendee>;
   readonly Form: AsyncItem<Form | undefined>;
+  readonly Attendees: AsyncCollection<EventAttendee>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
@@ -262,4 +240,38 @@ export declare type Campus = LazyLoading extends LazyLoadingDisabled ? EagerCamp
 
 export declare const Campus: (new (init: ModelInit<Campus>) => Campus) & {
   copyOf(source: Campus, mutator: (draft: MutableModel<Campus>) => MutableModel<Campus> | void): Campus;
+}
+
+type EagerEventAttendee = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<EventAttendee, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly attendeeId?: string | null;
+  readonly eventId?: string | null;
+  readonly attendee: Attendee;
+  readonly event: Event;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyEventAttendee = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<EventAttendee, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly attendeeId?: string | null;
+  readonly eventId?: string | null;
+  readonly attendee: AsyncItem<Attendee>;
+  readonly event: AsyncItem<Event>;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type EventAttendee = LazyLoading extends LazyLoadingDisabled ? EagerEventAttendee : LazyEventAttendee
+
+export declare const EventAttendee: (new (init: ModelInit<EventAttendee>) => EventAttendee) & {
+  copyOf(source: EventAttendee, mutator: (draft: MutableModel<EventAttendee>) => MutableModel<EventAttendee> | void): EventAttendee;
 }
