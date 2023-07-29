@@ -16,42 +16,41 @@ const Marketplace = () => {
     const subAreaId = localStorage.getItem('subAreaId');
     if(!subAreaId){
       navigate(`/page/campus`);
+    } else {
+      DataStore.query(Event, (e) => e.careerID.eq(subAreaId)).then( results => {
+        let columns = [];
+        let rows = [];
+        setEventos(results);
+        console.log("Eventos: ",results)
+        columns = [
+          {
+            Header: "TITULO",
+            accessor: "title",
+          },
+          {
+            Header: "CREACION",
+            accessor: "create_date",
+          },
+          {
+            Header: "",
+            accessor: "action",
+          },
+        ];
+        setColumns(columns);
+  
+        for( let event of results ){
+          rows.push({
+            "title": event.title,
+            "create_date": event.createdAt,
+            "action": event.id
+          })
+        }
+        setRows(rows)
+      });
     }
+
+
   }, [navigate]);
-
-  React.useEffect(() => {
-    DataStore.query(Event).then( (results) => {
-      let columns = [];
-      let rows = [];
-      setEventos(results);
-      console.log("Eventos: ",results)
-      columns = [
-        {
-          Header: "TITULO",
-          accessor: "title",
-        },
-        {
-          Header: "CREACION",
-          accessor: "create_date",
-        },
-        {
-          Header: "",
-          accessor: "action",
-        },
-      ];
-      setColumns(columns);
-
-      for( let event of results ){
-        rows.push({
-          "title": event.title,
-          "create_date": event.createdAt,
-          "action": event.id
-        })
-      }
-      setRows(rows)
-    });
-    
-  }, []);
 
   if(!eventos){
     return <p>Loading...</p>

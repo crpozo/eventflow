@@ -12,26 +12,25 @@ export declare type ValidationResponse = {
     errorMessage?: string;
 };
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
-export declare type CampusCreateFormInputValues = {
+export declare type CreateCampusInputValues = {
     title?: string;
 };
-export declare type CampusCreateFormValidationValues = {
+export declare type CreateCampusValidationValues = {
     title?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
-export declare type CampusCreateFormOverridesProps = {
-    CampusCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
+export declare type CreateCampusOverridesProps = {
+    CreateCampusGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
-export declare type CampusCreateFormProps = React.PropsWithChildren<{
-    overrides?: CampusCreateFormOverridesProps | undefined | null;
+export declare type CreateCampusProps = React.PropsWithChildren<{
+    overrides?: CreateCampusOverridesProps | undefined | null;
 } & {
     clearOnSuccess?: boolean;
-    onSubmit?: (fields: CampusCreateFormInputValues) => CampusCreateFormInputValues;
-    onSuccess?: (fields: CampusCreateFormInputValues) => void;
-    onError?: (fields: CampusCreateFormInputValues, errorMessage: string) => void;
-    onCancel?: () => void;
-    onChange?: (fields: CampusCreateFormInputValues) => CampusCreateFormInputValues;
-    onValidate?: CampusCreateFormValidationValues;
+    onSubmit?: (fields: CreateCampusInputValues) => CreateCampusInputValues;
+    onSuccess?: (fields: CreateCampusInputValues) => void;
+    onError?: (fields: CreateCampusInputValues, errorMessage: string) => void;
+    onChange?: (fields: CreateCampusInputValues) => CreateCampusInputValues;
+    onValidate?: CreateCampusValidationValues;
 } & React.CSSProperties>;
-export default function CampusCreateForm(props: CampusCreateFormProps): React.ReactElement;
+export default function CreateCampus(props: CreateCampusProps): React.ReactElement;

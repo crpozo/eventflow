@@ -9,6 +9,7 @@ import DataTables from "views/admin/tables";
 
 // Area Imports
 import Campus from "views/campus";
+import CampusCrear from "views/campus/crear";
 import Area from "views/area";
 import Carrera from "views/carrera";
 
@@ -51,6 +52,13 @@ const routes = [
     path: "campus",
     icon: <MdAccountBalance className="h-6 w-6" />,
     component: <Campus />,
+  },
+  {
+    name: "Campus Crear",
+    layout: "/page",
+    path: "campus/crear",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <CampusCrear />,
   },
   {
     name: "Area",

@@ -48,5 +48,4 @@ type Campus @model @auth(rules: [{allow: public}]) {
   id: ID!
   title: String
   CampusArea: [Area] @hasMany(indexName: "byCampus", fields: ["id"])
-}
- 
+} 

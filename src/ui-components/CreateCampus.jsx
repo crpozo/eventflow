@@ -11,13 +11,12 @@ import { getOverrideProps } from "@aws-amplify/ui-react/internal";
 import { Campus } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
-export default function CampusCreateForm(props) {
+export default function CreateCampus(props) {
   const {
     clearOnSuccess = true,
     onSuccess,
     onError,
     onSubmit,
-    onCancel,
     onValidate,
     onChange,
     overrides,
@@ -33,7 +32,7 @@ export default function CampusCreateForm(props) {
     setErrors({});
   };
   const validations = {
-    title: [{ type: "Required" }],
+    title: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -104,18 +103,12 @@ export default function CampusCreateForm(props) {
           }
         }
       }}
-      {...getOverrideProps(overrides, "CampusCreateForm")}
+      {...getOverrideProps(overrides, "CreateCampus")}
       {...rest}
     >
       <TextField
-        label={
-          <span style={{ display: "inline-flex" }}>
-            <span>Title</span>
-            <span style={{ color: "red" }}>*</span>
-          </span>
-        }
-        descriptiveText="Añadir titulo del evento"
-        isRequired={true}
+        label="Title"
+        isRequired={false}
         isReadOnly={false}
         value={title}
         onChange={(e) => {
@@ -142,7 +135,7 @@ export default function CampusCreateForm(props) {
         {...getOverrideProps(overrides, "CTAFlex")}
       >
         <Button
-          children="Vaciar"
+          children="Clear"
           type="reset"
           onClick={(event) => {
             event.preventDefault();
@@ -154,14 +147,6 @@ export default function CampusCreateForm(props) {
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
-          <Button
-            children="Cancelar"
-            type="button"
-            onClick={() => {
-              onCancel && onCancel();
-            }}
-            {...getOverrideProps(overrides, "CancelButton")}
-          ></Button>
           <Button
             children="Guardar"
             type="submit"
