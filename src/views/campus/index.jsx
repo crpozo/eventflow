@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Banner from "./components/Banner";
 import NftCard from "components/card/NftCard";
 import { DataStore } from "aws-amplify";
@@ -8,8 +8,6 @@ import { Campus } from "models"
 const Dashboard = () => {
 
   const [campus, setCampus] = React.useState([]);
-
-  const navigate = useNavigate();
 
   React.useEffect(() => {
     // AWS amplify data 
@@ -44,6 +42,8 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-4 mb-4">
           {campus && campus.map(campus => (
              <NftCard
+              propId={campus.id}
+              path="area/"
               key={campus.id}
               color="bg-pinkPrimary"
               title={campus.title}

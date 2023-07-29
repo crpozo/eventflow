@@ -13,6 +13,7 @@ const Dashboard = () => {
   const id = state?.id;
 
   React.useEffect(() => {
+    console.log(state)
     // AWS amplify data 
     DataStore.query(Area, (c) => c.campusID.eq(id)).then( results => {
       setArea(results);

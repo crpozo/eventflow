@@ -1,9 +1,12 @@
-import { IoHeart, IoHeartOutline } from "react-icons/io5";
-import { useState } from "react";
 import Card from "components/card";
+import { useLocation, useNavigate } from "react-router-dom";
 
-const NftCard = ({ title, author, cat, color}) => {
-  const [heart, setHeart] = useState(true);
+const NftCard = ({ propId, path, title, author, cat, color}) => {
+
+  const { state } = useLocation();
+  const id = state?.id;
+  const navigate = useNavigate();
+
   return (
     <Card
       extra={`flex flex-col w-full h-full p-0 bg-white  border border-gray-600`}
@@ -32,7 +35,9 @@ const NftCard = ({ title, author, cat, color}) => {
 
             </div>
             <button
-              href=""
+              onClick={() => {
+              navigate(`${path}`, { state: { id: propId} });
+              }}
               className="linear rounded-md bg-transparent px-4 py-2 text-base font-medium transition duration-200 border border-gray-600  hover:!bg-brand-500 hover:text-white active:bg-brand-700 dark:bg-brand-400 dark:hover:bg-brand-300 dark:active:opacity-90"
             >
               {cat}

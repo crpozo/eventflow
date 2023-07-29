@@ -51,9 +51,6 @@ const Dashboard = () => {
           }
         }}
 
-        onSubmit={(fields) => {
-          console.log("guardar")
-        }}
         onCancel={() => {
           console.log("cancelar")
         }}
