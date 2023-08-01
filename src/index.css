@@ -13,20 +13,7 @@
 	}
 }
 
-input.defaultCheckbox::before {
-	content: url(../src/assets/svg/checked.svg); 
-	color: white;
-	opacity: 0; 
-	height: 16px; 
-	width: 16px;
-	position: absolute; 
-	left: 50%;
-	transform: translate(-50%, 0px);
-} 
-
-input:checked.defaultCheckbox::before { 
-	opacity: 1;
-}
+/* Amplify */
 
 .amplify-button[data-variation='primary'] {
   background: #028CFF;
@@ -42,6 +29,40 @@ input:checked.defaultCheckbox::before {
 	border: none;
 }
 
+button.amplify-button{
+	border-radius: 8px;
+	padding: 10px 30px;
+}
+
+button.amplify-button:hover{
+	background: black;
+	color: white;
+	border-color: black;
+}
+
+.amplify-grid > .amplify-flex:last-child{
+	margin-top: 50px;
+	padding-top: 20px;
+	border-top: 1px solid #EEEDF2;
+}
+
+@media (min-width: 1300px){
+	.amplify-grid .amplify-field{
+		max-width: 50%;
+	}
+}
+
+.amplify-grid .amplify-field .amplify-input{
+	background: #F8F9FB;
+	border-color: #EEEDF2;
+}
+
+@media (min-width:500px){
+	.amplify-flex{
+		justify-content: end!important;
+	}
+}
+
 button.amplify-button--link{
 	color: #028CFF;
 }
@@ -51,6 +72,23 @@ button.amplify-button--link:focus, button.amplify-button--link:hover{
 	background-color: transparent;
 	border: none;
 	box-shadow: none;
+}
+
+/* Dashboard */
+
+input.defaultCheckbox::before {
+	content: url(../src/assets/svg/checked.svg); 
+	color: white;
+	opacity: 0; 
+	height: 16px; 
+	width: 16px;
+	position: absolute; 
+	left: 50%;
+	transform: translate(-50%, 0px);
+} 
+
+input:checked.defaultCheckbox::before { 
+	opacity: 1;
 }
 
 .select-arrow::-ms-expand {
@@ -65,4 +103,8 @@ button.amplify-button--link:focus, button.amplify-button--link:hover{
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
+}
+
+button:focus, button:active, button:focus-visible{
+	outline-color: black;
 }

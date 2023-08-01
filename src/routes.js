@@ -10,6 +10,7 @@ import DataTables from "views/admin/tables";
 // Area Imports
 import Campus from "views/campus";
 import CampusCrear from "views/campus/crear";
+import CampusEditar from "views/campus/detalle";
 import Area from "views/area";
 import Carrera from "views/carrera";
 
@@ -61,6 +62,13 @@ const routes = [
     component: <CampusCrear />,
   },
   {
+    name: "Campus Editar",
+    layout: "/page",
+    path: "campus/editar",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <CampusEditar />,
+  },
+  {
     name: "Area",
     layout: "/page",
     path: "campus/area",
@@ -85,7 +93,7 @@ const routes = [
     name: "Reportes",
     layout: "/admin",
     path: "reportes",
-    icon: <MdHome className="h-6 w-6" />,
+    icon: <MdBarChart className="h-6 w-6" />,
     component: <Reports />,
   },
   {
@@ -145,7 +153,7 @@ const routes = [
     component: <LandingRegistro />,
   },
   {
-    name: "NFT Marketplace",
+    name: "NFT",
     layout: "/admin",
     path: "nft-marketplace",
     icon: <MdOutlineShoppingCart className="h-6 w-6" />,

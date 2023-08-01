@@ -18,6 +18,7 @@ export default function CampusUpdateForm(props) {
     onSuccess,
     onError,
     onSubmit,
+    onCancel,
     onValidate,
     onChange,
     overrides,
@@ -47,7 +48,7 @@ export default function CampusUpdateForm(props) {
   }, [idProp, campusModelProp]);
   React.useEffect(resetStateValues, [campusRecord]);
   const validations = {
-    title: [],
+    title: [{ type: "Required" }],
   };
   const runValidationTasks = async (
     fieldName,
@@ -123,9 +124,15 @@ export default function CampusUpdateForm(props) {
       {...rest}
     >
       <TextField
-        label="Title"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Indica a los usuarios que campus organiza los eventos</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
+        placeholder="Nombre Campus"
         value={title}
         onChange={(e) => {
           let { value } = e.target;
@@ -150,22 +157,20 @@ export default function CampusUpdateForm(props) {
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
       >
-        <Button
-          children="Reset"
-          type="reset"
-          onClick={(event) => {
-            event.preventDefault();
-            resetStateValues();
-          }}
-          isDisabled={!(idProp || campusModelProp)}
-          {...getOverrideProps(overrides, "ResetButton")}
-        ></Button>
         <Flex
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
           <Button
-            children="Submit"
+            children="Cancelar"
+            type="button"
+            onClick={() => {
+              onCancel && onCancel();
+            }}
+            {...getOverrideProps(overrides, "CancelButton")}
+          ></Button>
+          <Button
+            children="Actualizar"
             type="submit"
             variation="primary"
             isDisabled={

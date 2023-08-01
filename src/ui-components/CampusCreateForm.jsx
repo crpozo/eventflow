@@ -110,13 +110,14 @@ export default function CampusCreateForm(props) {
       <TextField
         label={
           <span style={{ display: "inline-flex" }}>
-            <span>Title</span>
+            <span>Indica a los usuarios que campus organiza los eventos</span>
             <span style={{ color: "red" }}>*</span>
           </span>
         }
-        descriptiveText="Añadir titulo del evento"
+        descriptiveText=""
         isRequired={true}
         isReadOnly={false}
+        placeholder="Nombre campus"
         value={title}
         onChange={(e) => {
           let { value } = e.target;
@@ -141,15 +142,6 @@ export default function CampusCreateForm(props) {
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
       >
-        <Button
-          children="Vaciar"
-          type="reset"
-          onClick={(event) => {
-            event.preventDefault();
-            resetStateValues();
-          }}
-          {...getOverrideProps(overrides, "ClearButton")}
-        ></Button>
         <Flex
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}

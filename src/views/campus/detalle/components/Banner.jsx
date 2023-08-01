@@ -7,7 +7,7 @@ const Banner1 = () => {
     >
       <div className="w-full">
         <h4 className="max-w-full text-xl font-black text-navy-700 md:w-[64%] md:text-5xl md:leading-[42px] lg:w-[46%] xl:w-[85%] 2xl:w-[75%] 3xl:w-[52%]">
-          Crear Campus
+          Editar Campus
         </h4>
       </div>
     </div>

@@ -10,8 +10,8 @@ import {
 
 import {
   MdEditCalendar,
+  MdAdd,
 } from "react-icons/md";
-
 
 const DevelopmentTable = (props) => {
   const { columnsData, tableData } = props;
@@ -47,9 +47,9 @@ const DevelopmentTable = (props) => {
         <div className="text-xl font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
         </div>
-        <Link className="" to="crear">
-          <button className="linear mt-2 pr-4 pl-4 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
-            Crear Evento
+        <Link className="hover:no-underline" to="crear">
+          <button className="linear flex items-center gap-1 mt-2 pr-4 pl-4 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+            Crear Evento <MdAdd className="h-5 w-5" />
           </button>
         </Link>
       </div>

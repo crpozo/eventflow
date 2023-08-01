@@ -1,10 +1,12 @@
 import React from "react";
 import Banner from "./components/Banner";
 import NftCard from "components/card/NftCard";
-import { useNavigate} from "react-router-dom";
-
+import { useNavigate, Link } from "react-router-dom";
 import { DataStore } from "aws-amplify";
 import { Event } from "models"
+import {
+  MdEast
+} from "react-icons/md";
 
 const Dashboard = () => {
 
@@ -43,16 +45,24 @@ const Dashboard = () => {
         </div>
 
         {/* Recently Add NFTs */}
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-4 mb-4">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 mb-5">
           {events && events.map(event => (
              <NftCard
               key={event.id}
               color="bg-purplePrimary"
+              pathSelect={`/admin/eventos/${event.id}/detalle`}
+              date={event.updatedAt}
               title={event.title}
-              cat="Ver detalle"
+              cat="Ver Detalle"
             />
           ))}
         </div>
+
+        <Link className="hover:no-underline" to="/admin/eventos"> 
+            <button href="crear" className="linear flex items-center gap-1 pr-4 pl-4 rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+              Todos los eventos <MdEast className="h-5 w-5" />
+            </button>
+          </Link>
 
       </div>
 

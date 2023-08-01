@@ -7,10 +7,10 @@
 export { default as studioTheme } from "./studioTheme";
 export { default as CampusCreateForm } from "./CampusCreateForm";
 export { default as NewForm1 } from "./NewForm1";
+export { default as CampusUpdateForm } from "./CampusUpdateForm";
 export { default as FormCreateForm } from "./FormCreateForm";
 export { default as FormUpdateForm } from "./FormUpdateForm";
 export { default as LandingCreateForm } from "./LandingCreateForm";
 export { default as LandingUpdateForm } from "./LandingUpdateForm";
 export { default as AttendeeCreateForm } from "./AttendeeCreateForm";
 export { default as AttendeeUpdateForm } from "./AttendeeUpdateForm";
-export { default as CampusUpdateForm } from "./CampusUpdateForm";

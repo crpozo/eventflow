@@ -10,7 +10,7 @@ export default function Admin(props) {
   const location = useLocation();
   const [open, setOpen] = React.useState(true);
   const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
-  const [subAreaId, setSubAreaId] = React.useState('no-id');
+  const [eventId, setEventId] = React.useState('');
 
   React.useEffect(() => {
     window.addEventListener("resize", () =>
@@ -19,14 +19,10 @@ export default function Admin(props) {
   }, []);
 
   React.useEffect(() => {
-    getActiveRoute(routes);
-    const segments = location.pathname.split('/');
-    const id = segments[segments.length - 3]; // Assuming the ID is before the '/detalle/' segment
-    if(id){
-      setSubAreaId(id);
-    } else {
-      setSubAreaId("no-id");
-    }
+    const eventId = localStorage.getItem('eventId');
+    if(eventId){
+      setEventId(eventId);
+    } 
   }, [location.pathname]);
 
   const getActiveRoute = (routes) => {
@@ -72,11 +68,11 @@ export default function Admin(props) {
       <div
       className={`sm:none duration-175 linear fixed !z-50 flex min-h-full flex-col bg-gray pb-10 shadow-2xl shadow-white/5 transition-all dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-56`}
       >
-        <Link to={ `/landing/${subAreaId}/`} >Link del evento</Link>
-        <Link to={ `eventos/${subAreaId}/detalle/`} >Detalle Evento</Link>
-        <Link to={ `eventos/${subAreaId}/landing/`}>Landing Page</Link>
-        <Link to={ `eventos/${subAreaId}/formulario/`}>Formulario</Link>
-        <Link to={ `eventos/${subAreaId}/usuarios/`}>Usuarios</Link>
+        <Link to={ `/landing/${eventId}`} >Link del evento</Link>
+        <Link to={ `eventos/${eventId}/detalle/`} >Detalle Evento</Link>
+        <Link to={ `eventos/${eventId}/landing/`}>Landing Page</Link>
+        <Link to={ `eventos/${eventId}/formulario/`}>Formulario</Link>
+        <Link to={ `eventos/${eventId}/usuarios/`}>Usuarios</Link>
       </div>
       {/* Navbar & Main Content */}
       <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">

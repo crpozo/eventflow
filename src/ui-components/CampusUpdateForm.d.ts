@@ -32,6 +32,7 @@ export declare type CampusUpdateFormProps = React.PropsWithChildren<{
     onSubmit?: (fields: CampusUpdateFormInputValues) => CampusUpdateFormInputValues;
     onSuccess?: (fields: CampusUpdateFormInputValues) => void;
     onError?: (fields: CampusUpdateFormInputValues, errorMessage: string) => void;
+    onCancel?: () => void;
     onChange?: (fields: CampusUpdateFormInputValues) => CampusUpdateFormInputValues;
     onValidate?: CampusUpdateFormValidationValues;
 } & React.CSSProperties>;

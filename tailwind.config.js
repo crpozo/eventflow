@@ -142,9 +142,9 @@ module.exports = {
       purplePrimary: "#A79FFE",
       pinkPrimary: "#FFB4B4",
       brandLinear: "#868CFF",
-      black: "#000",
+      black: "#1A1A1A",
       gray: {
-        50: "#f8f9fa",
+        50: "#EEEDF2",
         100: "#edf2f7",
         200: "#e9ecef",
         300: "#cbd5e0",
@@ -153,7 +153,7 @@ module.exports = {
         600: "#a3aed0",
         700: "#707eae",
         800: "#252f40",
-        900: "#1b2559",
+        900: "#777777",
       },
       navy: {
         50: "#d0dcfb",
