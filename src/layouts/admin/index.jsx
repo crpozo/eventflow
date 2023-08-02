@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
+import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
 import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
 import Footer from "components/footer/Footer";
@@ -7,10 +7,11 @@ import routes from "routes.js";
  
 export default function Admin(props) {
   const { ...rest } = props;
-  const location = useLocation();
   const [open, setOpen] = React.useState(true);
   const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
+  const [activePath, setActivePath] = React.useState('');
   const [eventId, setEventId] = React.useState('');
+  const routeResult = useRoutes(routes);
 
   React.useEffect(() => {
     window.addEventListener("resize", () =>
@@ -23,16 +24,31 @@ export default function Admin(props) {
     if(eventId){
       setEventId(eventId);
     } 
-  }, [location.pathname]);
+  }, []);
+
+  // Show secondary Sidebar 
+  React.useEffect(() => {
+    if(routeResult?.props.match.route.path == 'eventos/:id/landing' ||
+      routeResult?.props.match.route.path == 'eventos/:id/detalle' ||
+      routeResult?.props.match.route.path == 'eventos/:id/formulario' ||
+      routeResult?.props.match.route.path == 'eventos/:id/usuarios'){
+      setActivePath(routeResult?.props.match.route.path)
+    } else {
+      setActivePath('')
+    }
+  }, [routeResult]);
 
   const getActiveRoute = (routes) => {
     let activeRoute = "Main Dashboard";
     for (let i = 0; i < routes.length; i++) {
+      console.log(routeResult)
+      console.log(routeResult.props.match.route.path, routes[i].path)
       if (
         window.location.href.indexOf(
           routes[i].layout + "/" + routes[i].path
         ) !== -1
       ) {
+        console.log("routes[i].name: ",routes[i])
         setCurrentRoute(routes[i].name);
       }
     }
@@ -64,21 +80,13 @@ export default function Admin(props) {
   document.documentElement.dir = "ltr";
   return (
     <div className="flex h-full w-full">
-      <Sidebar open={open} onClose={() => setOpen(false)} />
-      <div
-      className={`sm:none duration-175 linear fixed !z-50 flex min-h-full flex-col bg-gray pb-10 shadow-2xl shadow-white/5 transition-all dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-56`}
-      >
-        <Link to={ `/landing/${eventId}`} >Link del evento</Link>
-        <Link to={ `eventos/${eventId}/detalle/`} >Detalle Evento</Link>
-        <Link to={ `eventos/${eventId}/landing/`}>Landing Page</Link>
-        <Link to={ `eventos/${eventId}/formulario/`}>Formulario</Link>
-        <Link to={ `eventos/${eventId}/usuarios/`}>Usuarios</Link>
-      </div>
+      <Sidebar open={open} onClose={() => setOpen(false)} eventId={eventId} activePath={activePath} />
       {/* Navbar & Main Content */}
       <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
         {/* Main Content */}
         <main
-          className={`mx-[12px] h-full flex-none transition-all md:pr-2 xl:ml-[313px]`}
+          className={`mx-[12px] h-full flex-none transition-all md:pr-2 
+          ${ activePath != '' ? "xl:ml-[455px]" : "xl:ml-[280px]"} `}
         >
           {/* Routes */}
           <div className="h-full">

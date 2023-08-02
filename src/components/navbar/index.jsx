@@ -26,7 +26,7 @@ const Navbar = (props) => {
         <p className="shrink text-[33px] capitalize text-navy-700 dark:text-white">
           <Link
             to="/"
-            className="font-black capitalize hover:no-underline hover:text-navy-700 dark:hover:text-white"
+            className="font-black capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
           >
             Eventflow
           </Link>
