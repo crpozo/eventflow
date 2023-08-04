@@ -31,7 +31,8 @@
 
 button.amplify-button{
 	border-radius: 8px;
-	padding: 10px 30px;
+	padding: 10px 20px;
+	font-size: 14px;
 }
 
 button.amplify-button:hover{
@@ -47,9 +48,13 @@ button.amplify-button:hover{
 }
 
 @media (min-width: 1300px){
-	.amplify-grid .amplify-field{
+	/* .amplify-grid .amplify-field, .amplify-button.amplify-field-group__control{
 		max-width: 50%;
-	}
+	} */
+}
+
+hr.amplify-divider--horizontal{
+	display: none;
 }
 
 .amplify-grid .amplify-field .amplify-input{
@@ -107,4 +112,21 @@ input:checked.defaultCheckbox::before {
 
 button:focus, button:active, button:focus-visible{
 	outline-color: black;
+}
+
+.pill{
+	top: 12px;
+	position: absolute;
+	right: -20px;
+	height: 180px;
+	width: 180px;
+	padding: 10px 20px;
+	/* animation: spin 90s linear infinite alternate; */
+}
+
+@keyframes spin { 
+  100% { 
+    -webkit-transform: rotate(360deg); 
+    transform:rotate(360deg); 
+  }
 }

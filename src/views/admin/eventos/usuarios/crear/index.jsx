@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [subAreaId, setSubAreaId ] = React.useState();
 
   React.useEffect( () => {
-    setSubAreaId(localStorage.getItem('subAreaId'));
+    setSubAreaId(localStorage.getItem('subAreaID'));
   }, []);
 
   const onSubmit = ( formData ) => {

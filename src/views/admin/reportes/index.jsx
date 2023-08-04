@@ -19,7 +19,7 @@ const Dashboard = () => {
   const id = "caede638-3700-4231-aaf5-71596b78a35f";
 
   React.useEffect( () => {
-    const subAreaId = localStorage.getItem('subAreaId');
+    const subAreaId = localStorage.getItem('subAreaID');
     if(!subAreaId){
       navigate(`/page/campus`);
     }

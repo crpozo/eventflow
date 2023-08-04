@@ -30,7 +30,7 @@ const Dashboard = () => {
       return 
     }
 
-    localStorage.setItem("eventId", id)
+    localStorage.setItem("eventID", id)
 
     DataStore.query(Event, (c) => c.id.eq(id)).then( results => {
       setEvent(results[0]);

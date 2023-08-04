@@ -21,19 +21,19 @@ const Navbar = (props) => {
   const { onOpenSidenav } = props;
 
   return (
-    <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 px-2 py-4 backdrop-blur-xl dark:bg-[#0b14374d] gap-5 mb-3 md:gap-0">
+    <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 px-2 py-2 backdrop-blur-xl dark:bg-[#0b14374d] gap-5 mb-4 md:gap-0">
       <div className="ml-[6px]">
         <p className="shrink text-[33px] capitalize text-navy-700 dark:text-white">
           <Link
             to="/"
-            className="font-black capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
+            className="font-black text-3xl	capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
           >
             Eventflow
           </Link>
         </p>
       </div>
 
-      <div className="relative mt-[3px] flex h-[50px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:flex-grow-0 md:gap-1 sm:w-[200px] xl:w-[50px] xl:gap-2 xl:!bg-yellowPrimary">
+      <div className="relative mt-[3px] flex h-[45px] flex-grow items-center justify-around gap-2 rounded-full bg-white px-2 py-2 shadow-xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none md:flex-grow-0 md:gap-1 max-w-[200px] sm:w-[200px] xl:w-[45px] xl:gap-2 xl:!bg-yellowPrimary">
         {/* <div className="flex h-full items-center rounded-full bg-lightPrimary text-navy-700 dark:bg-navy-900 dark:text-white xl:w-[225px]">
           <p className="pl-3 pr-2 text-xl">
             <FiSearch className="h-4 w-4 text-gray-400 dark:text-white" />
@@ -165,7 +165,7 @@ const Navbar = (props) => {
         {/* Profile & Dropdown */}
         <Dropdown
           button={
-            <MdPerson className="h-6 w-6 fill-dark cursor-pointer"/>
+            <MdPerson className="h-[22px] w-[22px] fill-dark cursor-pointer"/>
           }
           children={
             <div className="flex  w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">

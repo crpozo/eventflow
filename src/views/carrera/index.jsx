@@ -7,25 +7,23 @@ import { Career } from "models"
 const Dashboard = () => {
 
   const [subArea, setSubArea] = React.useState([]);
-
   const navigate = useNavigate();
-  const { state } = useLocation();
-  const id = state?.id;
+  const areaID = localStorage.getItem('areaID');
 
   React.useEffect(() => {
     // AWS amplify data 
-    DataStore.query(Career, (a) => a.areaID.eq(id)).then( results => {
+    DataStore.query(Career, (a) => a.areaID.eq(areaID)).then( results => {
       setSubArea(results);
       console.log("SubArea: ",results)
     });
-  }, [id]);
+  }, []);
 
   if(!subArea){
     return <p>Loading...</p>
   }
 
-  if(!id){
-    navigate('/');
+  if(!areaID){
+    navigate('/page/campus');
   }
 
   return (
@@ -37,7 +35,7 @@ const Dashboard = () => {
       <ul>
         {subArea && subArea.map( (subArea,i) => {
           return <li onClick={() => {
-            localStorage.setItem("subAreaId", subArea.id)
+            localStorage.setItem("subAreaID", subArea.id)
             navigate(`/`, { state: { id: subArea.id} });
            }} key={i}>{subArea.title}</li>
         })}

@@ -5,7 +5,6 @@ import AuthLayout from "layouts/auth";
 import PageLayout from "layouts/page";
 import LandingLayout from "layouts/landing";
 
-
 import { I18n } from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';

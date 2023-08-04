@@ -25,7 +25,7 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
           Eventflow
         </div>
       </div> */}
-      <div className="mt-[58px] mb-7 h-px dark:bg-white/30" />
+      <div className="mt-[15px] mb-7 h-px dark:bg-white/30" />
       {/* Nav item */}
 
       <ul className="mb-auto pt-1">

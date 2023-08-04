@@ -5,8 +5,9 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, TextAreaFieldProps } from "@aws-amplify/ui-react";
+import { AutocompleteProps, GridProps, TextAreaFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
+import { Event as Event0 } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -14,14 +15,17 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type FormCreateFormInputValues = {
     questions?: string;
+    Event?: Event0;
 };
 export declare type FormCreateFormValidationValues = {
     questions?: ValidationFunction<string>;
+    Event?: ValidationFunction<Event0>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type FormCreateFormOverridesProps = {
     FormCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
     questions?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    Event?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type FormCreateFormProps = React.PropsWithChildren<{
     overrides?: FormCreateFormOverridesProps | undefined | null;

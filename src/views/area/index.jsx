@@ -1,45 +1,84 @@
 import React from "react";
-import { useNavigate, useLocation} from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Banner from "./components/Banner";
+import NftCard from "components/card/NftCard";
 import { DataStore } from "aws-amplify";
 import { Area } from "models"
+import {
+  MdAdd,
+  MdChevronLeft
+} from "react-icons/md";
 
 const Dashboard = () => {
 
   const [area, setArea] = React.useState([]);
-
   const navigate = useNavigate();
-  const { state } = useLocation();
-  const id = state?.id;
+  const campusID = localStorage.getItem('campusID');
 
   React.useEffect(() => {
-    console.log(state)
-    // AWS amplify data 
-    DataStore.query(Area, (c) => c.campusID.eq(id)).then( results => {
+    DataStore.query(Area, (a) => a.campusID.eq(campusID)).then( results => {
       setArea(results);
       console.log("Area: ",results)
     });
-  }, [id]);
+  }, [campusID]);
 
   if(!area){
     return <p>Loading...</p>
   }
 
-  if(!id){
-    navigate('/');
+  if(!campusID){
+    navigate('/page/campus');
   }
 
   return (
-    <div className="area-page">
-      <div className="mt-3 grid h-full">
-        {/* NFt Banner */}
+    <div className="campus-page">
+  
+      <div className="grid h-full">
         <Banner />
       </div>
-      <ul>
-        {area && area.map( (area,i) => {
-          return <li onClick={() => navigate(`subarea/`, { state: { id: area.id} }) } key={i}>{area.title}</li>
-        })}
-      </ul>
+
+      <Link
+        to="/page/campus"
+        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
+      >
+        <MdChevronLeft className="h-7 w-7" /> Lista de campus
+      </Link>
+
+      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+
+        <div className="flex flex-col items-center justify-between gap-3 mb-4 sm:flex-row sm:gap-0">
+          <p className="text-2xl font-bold text-navy-700 dark:text-white">
+            Selecciona un área
+          </p>
+          <Link className="hover:no-underline" to="crear"> 
+            <button href="crear" className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+              Crear Área <MdAdd className="h-4 w-4" />
+            </button>
+          </Link>
+        </div>
+
+        {area.length !== 0 ?  
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 mb-4">
+            {area && area.map(area => (
+              <NftCard
+                modelName="area"
+                modelID={area.id}
+                pathSelect="subarea/"
+                pathEdit="editar/"
+                key={area.id}
+                color="bg-purplePrimary"
+                date={area.updatedAt}
+                title={area.title}
+                cat="Seleccionar"
+              />
+            ))}
+          </div>
+        :
+         <p>No existen areas para el campus seleccionado...</p>
+        }
+
+      </div>
+
     </div>
   );
 };

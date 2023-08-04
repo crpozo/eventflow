@@ -15,7 +15,6 @@ import {
   Grid,
   Icon,
   ScrollView,
-  SwitchField,
   Text,
   TextField,
   useTheme,
@@ -24,7 +23,7 @@ import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import { Attendee, Event, EventAttendee } from "../models";
+import { Career, Event, Area } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -185,10 +184,10 @@ function ArrayField({
     </React.Fragment>
   );
 }
-export default function AttendeeUpdateForm(props) {
+export default function CareerUpdateForm(props) {
   const {
     id: idProp,
-    attendee: attendeeModelProp,
+    career: careerModelProp,
     onSuccess,
     onError,
     onSubmit,
@@ -198,87 +197,76 @@ export default function AttendeeUpdateForm(props) {
     ...rest
   } = props;
   const initialValues = {
-    name: "",
-    type: "",
-    age: "",
-    position: "",
-    authorized: false,
-    checkIn: false,
-    events: [],
+    title: "",
+    areaID: undefined,
+    Events: [],
   };
-  const [name, setName] = React.useState(initialValues.name);
-  const [type, setType] = React.useState(initialValues.type);
-  const [age, setAge] = React.useState(initialValues.age);
-  const [position, setPosition] = React.useState(initialValues.position);
-  const [authorized, setAuthorized] = React.useState(initialValues.authorized);
-  const [checkIn, setCheckIn] = React.useState(initialValues.checkIn);
-  const [events, setEvents] = React.useState(initialValues.events);
+  const [title, setTitle] = React.useState(initialValues.title);
+  const [areaID, setAreaID] = React.useState(initialValues.areaID);
+  const [Events, setEvents] = React.useState(initialValues.Events);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
-    const cleanValues = attendeeRecord
-      ? { ...initialValues, ...attendeeRecord, events: linkedEvents }
+    const cleanValues = careerRecord
+      ? { ...initialValues, ...careerRecord, areaID, Events: linkedEvents }
       : initialValues;
-    setName(cleanValues.name);
-    setType(cleanValues.type);
-    setAge(cleanValues.age);
-    setPosition(cleanValues.position);
-    setAuthorized(cleanValues.authorized);
-    setCheckIn(cleanValues.checkIn);
-    setEvents(cleanValues.events ?? []);
+    setTitle(cleanValues.title);
+    setAreaID(cleanValues.areaID);
+    setCurrentAreaIDValue(undefined);
+    setCurrentAreaIDDisplayValue("");
+    setEvents(cleanValues.Events ?? []);
     setCurrentEventsValue(undefined);
     setCurrentEventsDisplayValue("");
     setErrors({});
   };
-  const [attendeeRecord, setAttendeeRecord] = React.useState(attendeeModelProp);
+  const [careerRecord, setCareerRecord] = React.useState(careerModelProp);
   const [linkedEvents, setLinkedEvents] = React.useState([]);
   const canUnlinkEvents = false;
   React.useEffect(() => {
     const queryData = async () => {
       const record = idProp
-        ? await DataStore.query(Attendee, idProp)
-        : attendeeModelProp;
-      setAttendeeRecord(record);
-      const linkedEvents = record
-        ? await Promise.all(
-            (
-              await record.events.toArray()
-            ).map((r) => {
-              return r.event;
-            })
-          )
-        : [];
+        ? await DataStore.query(Career, idProp)
+        : careerModelProp;
+      setCareerRecord(record);
+      const areaIDRecord = record ? await record.areaID : undefined;
+      setAreaID(areaIDRecord);
+      const linkedEvents = record ? await record.Events.toArray() : [];
       setLinkedEvents(linkedEvents);
     };
     queryData();
-  }, [idProp, attendeeModelProp]);
-  React.useEffect(resetStateValues, [attendeeRecord, linkedEvents]);
+  }, [idProp, careerModelProp]);
+  React.useEffect(resetStateValues, [careerRecord, areaID, linkedEvents]);
+  const [currentAreaIDDisplayValue, setCurrentAreaIDDisplayValue] =
+    React.useState("");
+  const [currentAreaIDValue, setCurrentAreaIDValue] = React.useState(undefined);
+  const areaIDRef = React.createRef();
   const [currentEventsDisplayValue, setCurrentEventsDisplayValue] =
     React.useState("");
   const [currentEventsValue, setCurrentEventsValue] = React.useState(undefined);
-  const eventsRef = React.createRef();
+  const EventsRef = React.createRef();
   const getIDValue = {
-    events: (r) => JSON.stringify({ id: r?.id }),
+    Events: (r) => JSON.stringify({ id: r?.id }),
   };
-  const eventsIdSet = new Set(
-    Array.isArray(events)
-      ? events.map((r) => getIDValue.events?.(r))
-      : getIDValue.events?.(events)
+  const EventsIdSet = new Set(
+    Array.isArray(Events)
+      ? Events.map((r) => getIDValue.Events?.(r))
+      : getIDValue.Events?.(Events)
   );
+  const areaRecords = useDataStoreBinding({
+    type: "collection",
+    model: Area,
+  }).items;
   const eventRecords = useDataStoreBinding({
     type: "collection",
     model: Event,
   }).items;
   const getDisplayValue = {
-    events: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    areaID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    Events: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
   };
   const validations = {
-    name: [],
-    type: [],
-    age: [],
-    position: [],
-    authorized: [],
-    checkIn: [],
-    events: [],
+    title: [],
+    areaID: [{ type: "Required" }],
+    Events: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -306,13 +294,9 @@ export default function AttendeeUpdateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          name,
-          type,
-          age,
-          position,
-          authorized,
-          checkIn,
-          events,
+          title,
+          areaID,
+          Events,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -351,85 +335,54 @@ export default function AttendeeUpdateForm(props) {
             }
           });
           const promises = [];
-          const eventsToLinkMap = new Map();
-          const eventsToUnLinkMap = new Map();
-          const eventsMap = new Map();
-          const linkedEventsMap = new Map();
-          events.forEach((r) => {
-            const count = eventsMap.get(getIDValue.events?.(r));
-            const newCount = count ? count + 1 : 1;
-            eventsMap.set(getIDValue.events?.(r), newCount);
-          });
+          const eventsToLink = [];
+          const eventsToUnLink = [];
+          const eventsSet = new Set();
+          const linkedEventsSet = new Set();
+          Events.forEach((r) => eventsSet.add(getIDValue.Events?.(r)));
+          linkedEvents.forEach((r) =>
+            linkedEventsSet.add(getIDValue.Events?.(r))
+          );
           linkedEvents.forEach((r) => {
-            const count = linkedEventsMap.get(getIDValue.events?.(r));
-            const newCount = count ? count + 1 : 1;
-            linkedEventsMap.set(getIDValue.events?.(r), newCount);
-          });
-          linkedEventsMap.forEach((count, id) => {
-            const newCount = eventsMap.get(id);
-            if (newCount) {
-              const diffCount = count - newCount;
-              if (diffCount > 0) {
-                eventsToUnLinkMap.set(id, diffCount);
-              }
-            } else {
-              eventsToUnLinkMap.set(id, count);
+            if (!eventsSet.has(getIDValue.Events?.(r))) {
+              eventsToUnLink.push(r);
             }
           });
-          eventsMap.forEach((count, id) => {
-            const originalCount = linkedEventsMap.get(id);
-            if (originalCount) {
-              const diffCount = count - originalCount;
-              if (diffCount > 0) {
-                eventsToLinkMap.set(id, diffCount);
-              }
-            } else {
-              eventsToLinkMap.set(id, count);
+          Events.forEach((r) => {
+            if (!linkedEventsSet.has(getIDValue.Events?.(r))) {
+              eventsToLink.push(r);
             }
           });
-          eventsToUnLinkMap.forEach(async (count, id) => {
-            const eventAttendeeRecords = await DataStore.query(
-              EventAttendee,
-              (r) =>
-                r.and((r) => {
-                  const recordKeys = JSON.parse(id);
-                  return [
-                    r.eventId.eq(recordKeys.id),
-                    r.attendeeId.eq(attendeeRecord.id),
-                  ];
-                })
-            );
-            for (let i = 0; i < count; i++) {
-              promises.push(DataStore.delete(eventAttendeeRecords[i]));
-            }
-          });
-          eventsToLinkMap.forEach((count, id) => {
-            for (let i = count; i > 0; i--) {
-              promises.push(
-                DataStore.save(
-                  new EventAttendee({
-                    attendee: attendeeRecord,
-                    event: eventRecords.find((r) =>
-                      Object.entries(JSON.parse(id)).every(
-                        ([key, value]) => r[key] === value
-                      )
-                    ),
-                  })
-                )
+          eventsToUnLink.forEach((original) => {
+            if (!canUnlinkEvents) {
+              throw Error(
+                `Event ${original.id} cannot be unlinked from Career because careerID is a required field.`
               );
             }
+            promises.push(
+              DataStore.save(
+                Event.copyOf(original, (updated) => {
+                  updated.careerID = null;
+                })
+              )
+            );
+          });
+          eventsToLink.forEach((original) => {
+            promises.push(
+              DataStore.save(
+                Event.copyOf(original, (updated) => {
+                  updated.careerID = careerRecord.id;
+                })
+              )
+            );
           });
           const modelFieldsToSave = {
-            name: modelFields.name,
-            type: modelFields.type,
-            age: modelFields.age,
-            position: modelFields.position,
-            authorized: modelFields.authorized,
-            checkIn: modelFields.checkIn,
+            title: modelFields.title,
+            areaID: modelFields.areaID,
           };
           promises.push(
             DataStore.save(
-              Attendee.copyOf(attendeeRecord, (updated) => {
+              Career.copyOf(careerRecord, (updated) => {
                 Object.assign(updated, modelFieldsToSave);
               })
             )
@@ -444,208 +397,123 @@ export default function AttendeeUpdateForm(props) {
           }
         }
       }}
-      {...getOverrideProps(overrides, "AttendeeUpdateForm")}
+      {...getOverrideProps(overrides, "CareerUpdateForm")}
       {...rest}
     >
       <TextField
-        label="Name"
+        label="Title"
         isRequired={false}
         isReadOnly={false}
-        value={name}
+        value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
-              name: value,
-              type,
-              age,
-              position,
-              authorized,
-              checkIn,
-              events,
+              title: value,
+              areaID,
+              Events,
             };
             const result = onChange(modelFields);
-            value = result?.name ?? value;
+            value = result?.title ?? value;
           }
-          if (errors.name?.hasError) {
-            runValidationTasks("name", value);
+          if (errors.title?.hasError) {
+            runValidationTasks("title", value);
           }
-          setName(value);
+          setTitle(value);
         }}
-        onBlur={() => runValidationTasks("name", name)}
-        errorMessage={errors.name?.errorMessage}
-        hasError={errors.name?.hasError}
-        {...getOverrideProps(overrides, "name")}
+        onBlur={() => runValidationTasks("title", title)}
+        errorMessage={errors.title?.errorMessage}
+        hasError={errors.title?.hasError}
+        {...getOverrideProps(overrides, "title")}
       ></TextField>
-      <TextField
-        label="Type"
-        isRequired={false}
-        isReadOnly={false}
-        value={type}
-        onChange={(e) => {
-          let { value } = e.target;
+      <ArrayField
+        lengthLimit={1}
+        onChange={async (items) => {
+          let value = items[0];
           if (onChange) {
             const modelFields = {
-              name,
-              type: value,
-              age,
-              position,
-              authorized,
-              checkIn,
-              events,
+              title,
+              areaID: value,
+              Events,
             };
             const result = onChange(modelFields);
-            value = result?.type ?? value;
+            value = result?.areaID ?? value;
           }
-          if (errors.type?.hasError) {
-            runValidationTasks("type", value);
-          }
-          setType(value);
+          setAreaID(value);
+          setCurrentAreaIDValue(undefined);
         }}
-        onBlur={() => runValidationTasks("type", type)}
-        errorMessage={errors.type?.errorMessage}
-        hasError={errors.type?.hasError}
-        {...getOverrideProps(overrides, "type")}
-      ></TextField>
-      <TextField
-        label="Age"
-        isRequired={false}
-        isReadOnly={false}
-        type="number"
-        step="any"
-        value={age}
-        onChange={(e) => {
-          let value = isNaN(parseInt(e.target.value))
-            ? e.target.value
-            : parseInt(e.target.value);
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age: value,
-              position,
-              authorized,
-              checkIn,
-              events,
-            };
-            const result = onChange(modelFields);
-            value = result?.age ?? value;
-          }
-          if (errors.age?.hasError) {
-            runValidationTasks("age", value);
-          }
-          setAge(value);
+        currentFieldValue={currentAreaIDValue}
+        label={"Area id"}
+        items={areaID ? [areaID] : []}
+        hasError={errors?.areaID?.hasError}
+        errorMessage={errors?.areaID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.areaID(areaRecords.find((r) => r.id === value))
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentAreaIDDisplayValue(
+            value
+              ? getDisplayValue.areaID(areaRecords.find((r) => r.id === value))
+              : ""
+          );
+          setCurrentAreaIDValue(value);
         }}
-        onBlur={() => runValidationTasks("age", age)}
-        errorMessage={errors.age?.errorMessage}
-        hasError={errors.age?.hasError}
-        {...getOverrideProps(overrides, "age")}
-      ></TextField>
-      <TextField
-        label="Position"
-        isRequired={false}
-        isReadOnly={false}
-        value={position}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age,
-              position: value,
-              authorized,
-              checkIn,
-              events,
-            };
-            const result = onChange(modelFields);
-            value = result?.position ?? value;
-          }
-          if (errors.position?.hasError) {
-            runValidationTasks("position", value);
-          }
-          setPosition(value);
-        }}
-        onBlur={() => runValidationTasks("position", position)}
-        errorMessage={errors.position?.errorMessage}
-        hasError={errors.position?.hasError}
-        {...getOverrideProps(overrides, "position")}
-      ></TextField>
-      <SwitchField
-        label="Authorized"
-        defaultChecked={false}
-        isDisabled={false}
-        isChecked={authorized}
-        onChange={(e) => {
-          let value = e.target.checked;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age,
-              position,
-              authorized: value,
-              checkIn,
-              events,
-            };
-            const result = onChange(modelFields);
-            value = result?.authorized ?? value;
-          }
-          if (errors.authorized?.hasError) {
-            runValidationTasks("authorized", value);
-          }
-          setAuthorized(value);
-        }}
-        onBlur={() => runValidationTasks("authorized", authorized)}
-        errorMessage={errors.authorized?.errorMessage}
-        hasError={errors.authorized?.hasError}
-        {...getOverrideProps(overrides, "authorized")}
-      ></SwitchField>
-      <SwitchField
-        label="Check in"
-        defaultChecked={false}
-        isDisabled={false}
-        isChecked={checkIn}
-        onChange={(e) => {
-          let value = e.target.checked;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age,
-              position,
-              authorized,
-              checkIn: value,
-              events,
-            };
-            const result = onChange(modelFields);
-            value = result?.checkIn ?? value;
-          }
-          if (errors.checkIn?.hasError) {
-            runValidationTasks("checkIn", value);
-          }
-          setCheckIn(value);
-        }}
-        onBlur={() => runValidationTasks("checkIn", checkIn)}
-        errorMessage={errors.checkIn?.errorMessage}
-        hasError={errors.checkIn?.hasError}
-        {...getOverrideProps(overrides, "checkIn")}
-      ></SwitchField>
+        inputFieldRef={areaIDRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label="Area id"
+          isRequired={true}
+          isReadOnly={false}
+          placeholder="Search Area"
+          value={currentAreaIDDisplayValue}
+          options={areaRecords
+            .filter(
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
+            )
+            .map((r) => ({
+              id: r?.id,
+              label: getDisplayValue.areaID?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentAreaIDValue(id);
+            setCurrentAreaIDDisplayValue(label);
+            runValidationTasks("areaID", label);
+          }}
+          onClear={() => {
+            setCurrentAreaIDDisplayValue("");
+          }}
+          defaultValue={areaID}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.areaID?.hasError) {
+              runValidationTasks("areaID", value);
+            }
+            setCurrentAreaIDDisplayValue(value);
+            setCurrentAreaIDValue(undefined);
+          }}
+          onBlur={() => runValidationTasks("areaID", currentAreaIDValue)}
+          errorMessage={errors.areaID?.errorMessage}
+          hasError={errors.areaID?.hasError}
+          ref={areaIDRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "areaID")}
+        ></Autocomplete>
+      </ArrayField>
       <ArrayField
         onChange={async (items) => {
           let values = items;
           if (onChange) {
             const modelFields = {
-              name,
-              type,
-              age,
-              position,
-              authorized,
-              checkIn,
-              events: values,
+              title,
+              areaID,
+              Events: values,
             };
             const result = onChange(modelFields);
-            values = result?.events ?? values;
+            values = result?.Events ?? values;
           }
           setEvents(values);
           setCurrentEventsValue(undefined);
@@ -653,17 +521,17 @@ export default function AttendeeUpdateForm(props) {
         }}
         currentFieldValue={currentEventsValue}
         label={"Events"}
-        items={events}
-        hasError={errors?.events?.hasError}
-        errorMessage={errors?.events?.errorMessage}
-        getBadgeText={getDisplayValue.events}
+        items={Events}
+        hasError={errors?.Events?.hasError}
+        errorMessage={errors?.Events?.errorMessage}
+        getBadgeText={getDisplayValue.Events}
         setFieldValue={(model) => {
           setCurrentEventsDisplayValue(
-            model ? getDisplayValue.events(model) : ""
+            model ? getDisplayValue.Events(model) : ""
           );
           setCurrentEventsValue(model);
         }}
-        inputFieldRef={eventsRef}
+        inputFieldRef={EventsRef}
         defaultFieldValue={""}
       >
         <Autocomplete
@@ -673,10 +541,10 @@ export default function AttendeeUpdateForm(props) {
           placeholder="Search Event"
           value={currentEventsDisplayValue}
           options={eventRecords
-            .filter((r) => !eventsIdSet.has(getIDValue.events?.(r)))
+            .filter((r) => !EventsIdSet.has(getIDValue.Events?.(r)))
             .map((r) => ({
-              id: getIDValue.events?.(r),
-              label: getDisplayValue.events?.(r),
+              id: getIDValue.Events?.(r),
+              label: getDisplayValue.Events?.(r),
             }))}
           onSelect={({ id, label }) => {
             setCurrentEventsValue(
@@ -687,25 +555,25 @@ export default function AttendeeUpdateForm(props) {
               )
             );
             setCurrentEventsDisplayValue(label);
-            runValidationTasks("events", label);
+            runValidationTasks("Events", label);
           }}
           onClear={() => {
             setCurrentEventsDisplayValue("");
           }}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.events?.hasError) {
-              runValidationTasks("events", value);
+            if (errors.Events?.hasError) {
+              runValidationTasks("Events", value);
             }
             setCurrentEventsDisplayValue(value);
             setCurrentEventsValue(undefined);
           }}
-          onBlur={() => runValidationTasks("events", currentEventsDisplayValue)}
-          errorMessage={errors.events?.errorMessage}
-          hasError={errors.events?.hasError}
-          ref={eventsRef}
+          onBlur={() => runValidationTasks("Events", currentEventsDisplayValue)}
+          errorMessage={errors.Events?.errorMessage}
+          hasError={errors.Events?.hasError}
+          ref={EventsRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "events")}
+          {...getOverrideProps(overrides, "Events")}
         ></Autocomplete>
       </ArrayField>
       <Flex
@@ -719,7 +587,7 @@ export default function AttendeeUpdateForm(props) {
             event.preventDefault();
             resetStateValues();
           }}
-          isDisabled={!(idProp || attendeeModelProp)}
+          isDisabled={!(idProp || careerModelProp)}
           {...getOverrideProps(overrides, "ResetButton")}
         ></Button>
         <Flex
@@ -731,7 +599,7 @@ export default function AttendeeUpdateForm(props) {
             type="submit"
             variation="primary"
             isDisabled={
-              !(idProp || attendeeModelProp) ||
+              !(idProp || careerModelProp) ||
               Object.values(errors).some((e) => e?.hasError)
             }
             {...getOverrideProps(overrides, "SubmitButton")}

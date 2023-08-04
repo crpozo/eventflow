@@ -20,7 +20,7 @@ export default function Admin(props) {
   }, []);
 
   React.useEffect(() => {
-    const eventId = localStorage.getItem('eventId');
+    const eventId = localStorage.getItem('eventID');
     if(eventId){
       setEventId(eventId);
     } 
@@ -86,7 +86,7 @@ export default function Admin(props) {
         {/* Main Content */}
         <main
           className={`mx-[12px] h-full flex-none transition-all md:pr-2 
-          ${ activePath != '' ? "xl:ml-[455px]" : "xl:ml-[280px]"} `}
+          ${ activePath != '' ? "xl:ml-[425px]" : "xl:ml-[250px]"} `}
         >
           {/* Routes */}
           <div className="h-full">

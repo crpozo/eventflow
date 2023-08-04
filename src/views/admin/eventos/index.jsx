@@ -13,7 +13,7 @@ const Marketplace = () => {
   const [rows, setRows] = React.useState([])
 
   React.useEffect( () => {
-    const subAreaId = localStorage.getItem('subAreaId');
+    const subAreaId = localStorage.getItem('subAreaID');
     if(!subAreaId){
       navigate(`/page/campus`);
     } else {

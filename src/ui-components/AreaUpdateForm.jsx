@@ -16,14 +16,14 @@ import {
   Icon,
   ScrollView,
   Text,
-  TextAreaField,
+  TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
 import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import { Form, Event as Event0 } from "../models";
+import { Area, Career, Campus } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -184,74 +184,92 @@ function ArrayField({
     </React.Fragment>
   );
 }
-export default function FormUpdateForm(props) {
+export default function AreaUpdateForm(props) {
   const {
     id: idProp,
-    form: formModelProp,
+    area: areaModelProp,
     onSuccess,
     onError,
     onSubmit,
+    onCancel,
     onValidate,
     onChange,
     overrides,
     ...rest
   } = props;
   const initialValues = {
-    questions: "",
-    Event: undefined,
+    title: "",
+    campusID: undefined,
+    Carreras: [],
   };
-  const [questions, setQuestions] = React.useState(initialValues.questions);
-  const [Event, setEvent] = React.useState(initialValues.Event);
+  const [title, setTitle] = React.useState(initialValues.title);
+  const [campusID, setCampusID] = React.useState(initialValues.campusID);
+  const [Carreras, setCarreras] = React.useState(initialValues.Carreras);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
-    const cleanValues = formRecord
-      ? { ...initialValues, ...formRecord, Event }
+    const cleanValues = areaRecord
+      ? { ...initialValues, ...areaRecord, campusID, Carreras: linkedCarreras }
       : initialValues;
-    setQuestions(
-      typeof cleanValues.questions === "string"
-        ? cleanValues.questions
-        : JSON.stringify(cleanValues.questions)
-    );
-    setEvent(cleanValues.Event);
-    setCurrentEventValue(undefined);
-    setCurrentEventDisplayValue("");
+    setTitle(cleanValues.title);
+    setCampusID(cleanValues.campusID);
+    setCurrentCampusIDValue(undefined);
+    setCurrentCampusIDDisplayValue("");
+    setCarreras(cleanValues.Carreras ?? []);
+    setCurrentCarrerasValue(undefined);
+    setCurrentCarrerasDisplayValue("");
     setErrors({});
   };
-  const [formRecord, setFormRecord] = React.useState(formModelProp);
+  const [areaRecord, setAreaRecord] = React.useState(areaModelProp);
+  const [linkedCarreras, setLinkedCarreras] = React.useState([]);
+  const canUnlinkCarreras = false;
   React.useEffect(() => {
     const queryData = async () => {
       const record = idProp
-        ? await DataStore.query(Form, idProp)
-        : formModelProp;
-      setFormRecord(record);
-      const EventRecord = record ? await record.Event : undefined;
-      setEvent(EventRecord);
+        ? await DataStore.query(Area, idProp)
+        : areaModelProp;
+      setAreaRecord(record);
+      const campusIDRecord = record ? await record.campusID : undefined;
+      setCampusID(campusIDRecord);
+      const linkedCarreras = record ? await record.Carreras.toArray() : [];
+      setLinkedCarreras(linkedCarreras);
     };
     queryData();
-  }, [idProp, formModelProp]);
-  React.useEffect(resetStateValues, [formRecord, Event]);
-  const [currentEventDisplayValue, setCurrentEventDisplayValue] =
+  }, [idProp, areaModelProp]);
+  React.useEffect(resetStateValues, [areaRecord, campusID, linkedCarreras]);
+  const [currentCampusIDDisplayValue, setCurrentCampusIDDisplayValue] =
     React.useState("");
-  const [currentEventValue, setCurrentEventValue] = React.useState(undefined);
-  const EventRef = React.createRef();
+  const [currentCampusIDValue, setCurrentCampusIDValue] =
+    React.useState(undefined);
+  const campusIDRef = React.createRef();
+  const [currentCarrerasDisplayValue, setCurrentCarrerasDisplayValue] =
+    React.useState("");
+  const [currentCarrerasValue, setCurrentCarrerasValue] =
+    React.useState(undefined);
+  const CarrerasRef = React.createRef();
   const getIDValue = {
-    Event: (r) => JSON.stringify({ id: r?.id }),
+    Carreras: (r) => JSON.stringify({ id: r?.id }),
   };
-  const EventIdSet = new Set(
-    Array.isArray(Event)
-      ? Event.map((r) => getIDValue.Event?.(r))
-      : getIDValue.Event?.(Event)
+  const CarrerasIdSet = new Set(
+    Array.isArray(Carreras)
+      ? Carreras.map((r) => getIDValue.Carreras?.(r))
+      : getIDValue.Carreras?.(Carreras)
   );
-  const eventRecords = useDataStoreBinding({
+  const campusRecords = useDataStoreBinding({
     type: "collection",
-    model: Event0,
+    model: Campus,
+  }).items;
+  const careerRecords = useDataStoreBinding({
+    type: "collection",
+    model: Career,
   }).items;
   const getDisplayValue = {
-    Event: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    campusID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    Carreras: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
   };
   const validations = {
-    questions: [{ type: "JSON" }],
-    Event: [],
+    title: [],
+    campusID: [{ type: "Required" }],
+    Carreras: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -279,8 +297,9 @@ export default function FormUpdateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          questions,
-          Event,
+          title,
+          campusID,
+          Carreras,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -319,45 +338,55 @@ export default function FormUpdateForm(props) {
             }
           });
           const promises = [];
-          const eventToUnlink = await formRecord.Event;
-          if (eventToUnlink) {
-            promises.push(
-              DataStore.save(
-                Event0.copyOf(eventToUnlink, (updated) => {
-                  updated.Form = undefined;
-                  updated.eventFormId = undefined;
-                })
-              )
-            );
-          }
-          const eventToLink = modelFields.Event;
-          if (eventToLink) {
-            promises.push(
-              DataStore.save(
-                Event0.copyOf(eventToLink, (updated) => {
-                  updated.Form = formRecord;
-                })
-              )
-            );
-            const formToUnlink = await eventToLink.Form;
-            if (formToUnlink) {
-              promises.push(
-                DataStore.save(
-                  Form.copyOf(formToUnlink, (updated) => {
-                    updated.Event = undefined;
-                    updated.formEventId = undefined;
-                  })
-                )
+          const carrerasToLink = [];
+          const carrerasToUnLink = [];
+          const carrerasSet = new Set();
+          const linkedCarrerasSet = new Set();
+          Carreras.forEach((r) => carrerasSet.add(getIDValue.Carreras?.(r)));
+          linkedCarreras.forEach((r) =>
+            linkedCarrerasSet.add(getIDValue.Carreras?.(r))
+          );
+          linkedCarreras.forEach((r) => {
+            if (!carrerasSet.has(getIDValue.Carreras?.(r))) {
+              carrerasToUnLink.push(r);
+            }
+          });
+          Carreras.forEach((r) => {
+            if (!linkedCarrerasSet.has(getIDValue.Carreras?.(r))) {
+              carrerasToLink.push(r);
+            }
+          });
+          carrerasToUnLink.forEach((original) => {
+            if (!canUnlinkCarreras) {
+              throw Error(
+                `Career ${original.id} cannot be unlinked from Area because areaID is a required field.`
               );
             }
-          }
+            promises.push(
+              DataStore.save(
+                Career.copyOf(original, (updated) => {
+                  updated.areaID = null;
+                })
+              )
+            );
+          });
+          carrerasToLink.forEach((original) => {
+            promises.push(
+              DataStore.save(
+                Career.copyOf(original, (updated) => {
+                  updated.areaID = areaRecord.id;
+                })
+              )
+            );
+          });
+          const modelFieldsToSave = {
+            title: modelFields.title,
+            campusID: modelFields.campusID,
+          };
           promises.push(
             DataStore.save(
-              Form.copyOf(formRecord, (updated) => {
-                Object.assign(updated, modelFields);
-                if (!modelFields.Event) {
-                  updated.formEventId = undefined;
-                }
+              Area.copyOf(areaRecord, (updated) => {
+                Object.assign(updated, modelFieldsToSave);
               })
             )
           );
@@ -371,132 +400,213 @@ export default function FormUpdateForm(props) {
           }
         }
       }}
-      {...getOverrideProps(overrides, "FormUpdateForm")}
+      {...getOverrideProps(overrides, "AreaUpdateForm")}
       {...rest}
     >
-      <TextAreaField
-        label="Questions"
+      <TextField
+        label="Title"
         isRequired={false}
         isReadOnly={false}
-        value={questions}
+        value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
-              questions: value,
-              Event,
+              title: value,
+              campusID,
+              Carreras,
             };
             const result = onChange(modelFields);
-            value = result?.questions ?? value;
+            value = result?.title ?? value;
           }
-          if (errors.questions?.hasError) {
-            runValidationTasks("questions", value);
+          if (errors.title?.hasError) {
+            runValidationTasks("title", value);
           }
-          setQuestions(value);
+          setTitle(value);
         }}
-        onBlur={() => runValidationTasks("questions", questions)}
-        errorMessage={errors.questions?.errorMessage}
-        hasError={errors.questions?.hasError}
-        {...getOverrideProps(overrides, "questions")}
-      ></TextAreaField>
+        onBlur={() => runValidationTasks("title", title)}
+        errorMessage={errors.title?.errorMessage}
+        hasError={errors.title?.hasError}
+        {...getOverrideProps(overrides, "title")}
+      ></TextField>
       <ArrayField
         lengthLimit={1}
         onChange={async (items) => {
           let value = items[0];
           if (onChange) {
             const modelFields = {
-              questions,
-              Event: value,
+              title,
+              campusID: value,
+              Carreras,
             };
             const result = onChange(modelFields);
-            value = result?.Event ?? value;
+            value = result?.campusID ?? value;
           }
-          setEvent(value);
-          setCurrentEventValue(undefined);
-          setCurrentEventDisplayValue("");
+          setCampusID(value);
+          setCurrentCampusIDValue(undefined);
         }}
-        currentFieldValue={currentEventValue}
-        label={"Event"}
-        items={Event ? [Event] : []}
-        hasError={errors?.Event?.hasError}
-        errorMessage={errors?.Event?.errorMessage}
-        getBadgeText={getDisplayValue.Event}
-        setFieldValue={(model) => {
-          setCurrentEventDisplayValue(
-            model ? getDisplayValue.Event(model) : ""
+        currentFieldValue={currentCampusIDValue}
+        label={"Campus id"}
+        items={campusID ? [campusID] : []}
+        hasError={errors?.campusID?.hasError}
+        errorMessage={errors?.campusID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.campusID(
+                campusRecords.find((r) => r.id === value)
+              )
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentCampusIDDisplayValue(
+            value
+              ? getDisplayValue.campusID(
+                  campusRecords.find((r) => r.id === value)
+                )
+              : ""
           );
-          setCurrentEventValue(model);
+          setCurrentCampusIDValue(value);
         }}
-        inputFieldRef={EventRef}
+        inputFieldRef={campusIDRef}
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Event"
-          isRequired={false}
+          label="Campus id"
+          isRequired={true}
           isReadOnly={false}
-          placeholder="Search Event"
-          value={currentEventDisplayValue}
-          options={eventRecords
-            .filter((r) => !EventIdSet.has(getIDValue.Event?.(r)))
+          placeholder="Buscar Campus"
+          value={currentCampusIDDisplayValue}
+          options={campusRecords
+            .filter(
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
+            )
             .map((r) => ({
-              id: getIDValue.Event?.(r),
-              label: getDisplayValue.Event?.(r),
+              id: r?.id,
+              label: getDisplayValue.campusID?.(r),
             }))}
           onSelect={({ id, label }) => {
-            setCurrentEventValue(
-              eventRecords.find((r) =>
+            setCurrentCampusIDValue(id);
+            setCurrentCampusIDDisplayValue(label);
+            runValidationTasks("campusID", label);
+          }}
+          onClear={() => {
+            setCurrentCampusIDDisplayValue("");
+          }}
+          defaultValue={campusID}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.campusID?.hasError) {
+              runValidationTasks("campusID", value);
+            }
+            setCurrentCampusIDDisplayValue(value);
+            setCurrentCampusIDValue(undefined);
+          }}
+          onBlur={() => runValidationTasks("campusID", currentCampusIDValue)}
+          errorMessage={errors.campusID?.errorMessage}
+          hasError={errors.campusID?.hasError}
+          ref={campusIDRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "campusID")}
+        ></Autocomplete>
+      </ArrayField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              title,
+              campusID,
+              Carreras: values,
+            };
+            const result = onChange(modelFields);
+            values = result?.Carreras ?? values;
+          }
+          setCarreras(values);
+          setCurrentCarrerasValue(undefined);
+          setCurrentCarrerasDisplayValue("");
+        }}
+        currentFieldValue={currentCarrerasValue}
+        label={"Subareas"}
+        items={Carreras}
+        hasError={errors?.Carreras?.hasError}
+        errorMessage={errors?.Carreras?.errorMessage}
+        getBadgeText={getDisplayValue.Carreras}
+        setFieldValue={(model) => {
+          setCurrentCarrerasDisplayValue(
+            model ? getDisplayValue.Carreras(model) : ""
+          );
+          setCurrentCarrerasValue(model);
+        }}
+        inputFieldRef={CarrerasRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label="Subareas"
+          isRequired={false}
+          isReadOnly={false}
+          placeholder="Buscar Subareas"
+          value={currentCarrerasDisplayValue}
+          options={careerRecords
+            .filter((r) => !CarrerasIdSet.has(getIDValue.Carreras?.(r)))
+            .map((r) => ({
+              id: getIDValue.Carreras?.(r),
+              label: getDisplayValue.Carreras?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentCarrerasValue(
+              careerRecords.find((r) =>
                 Object.entries(JSON.parse(id)).every(
                   ([key, value]) => r[key] === value
                 )
               )
             );
-            setCurrentEventDisplayValue(label);
-            runValidationTasks("Event", label);
+            setCurrentCarrerasDisplayValue(label);
+            runValidationTasks("Carreras", label);
           }}
           onClear={() => {
-            setCurrentEventDisplayValue("");
+            setCurrentCarrerasDisplayValue("");
           }}
-          defaultValue={Event}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.Event?.hasError) {
-              runValidationTasks("Event", value);
+            if (errors.Carreras?.hasError) {
+              runValidationTasks("Carreras", value);
             }
-            setCurrentEventDisplayValue(value);
-            setCurrentEventValue(undefined);
+            setCurrentCarrerasDisplayValue(value);
+            setCurrentCarrerasValue(undefined);
           }}
-          onBlur={() => runValidationTasks("Event", currentEventDisplayValue)}
-          errorMessage={errors.Event?.errorMessage}
-          hasError={errors.Event?.hasError}
-          ref={EventRef}
+          onBlur={() =>
+            runValidationTasks("Carreras", currentCarrerasDisplayValue)
+          }
+          errorMessage={errors.Carreras?.errorMessage}
+          hasError={errors.Carreras?.hasError}
+          ref={CarrerasRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "Event")}
+          {...getOverrideProps(overrides, "Carreras")}
         ></Autocomplete>
       </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
       >
-        <Button
-          children="Reset"
-          type="reset"
-          onClick={(event) => {
-            event.preventDefault();
-            resetStateValues();
-          }}
-          isDisabled={!(idProp || formModelProp)}
-          {...getOverrideProps(overrides, "ResetButton")}
-        ></Button>
         <Flex
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
           <Button
-            children="Submit"
+            children="Cancelar"
+            type="button"
+            onClick={() => {
+              onCancel && onCancel();
+            }}
+            {...getOverrideProps(overrides, "CancelButton")}
+          ></Button>
+          <Button
+            children="Actualizar"
             type="submit"
             variation="primary"
             isDisabled={
-              !(idProp || formModelProp) ||
+              !(idProp || areaModelProp) ||
               Object.values(errors).some((e) => e?.hasError)
             }
             {...getOverrideProps(overrides, "SubmitButton")}

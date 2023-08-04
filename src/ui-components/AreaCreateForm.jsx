@@ -16,14 +16,14 @@ import {
   Icon,
   ScrollView,
   Text,
-  TextAreaField,
+  TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
 import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import { Form, Event as Event0 } from "../models";
+import { Area, Campus } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -184,53 +184,47 @@ function ArrayField({
     </React.Fragment>
   );
 }
-export default function FormCreateForm(props) {
+export default function AreaCreateForm(props) {
   const {
     clearOnSuccess = true,
     onSuccess,
     onError,
     onSubmit,
+    onCancel,
     onValidate,
     onChange,
     overrides,
     ...rest
   } = props;
   const initialValues = {
-    questions: "",
-    Event: undefined,
+    title: "",
+    campusID: undefined,
   };
-  const [questions, setQuestions] = React.useState(initialValues.questions);
-  const [Event, setEvent] = React.useState(initialValues.Event);
+  const [title, setTitle] = React.useState(initialValues.title);
+  const [campusID, setCampusID] = React.useState(initialValues.campusID);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
-    setQuestions(initialValues.questions);
-    setEvent(initialValues.Event);
-    setCurrentEventValue(undefined);
-    setCurrentEventDisplayValue("");
+    setTitle(initialValues.title);
+    setCampusID(initialValues.campusID);
+    setCurrentCampusIDValue(undefined);
+    setCurrentCampusIDDisplayValue("");
     setErrors({});
   };
-  const [currentEventDisplayValue, setCurrentEventDisplayValue] =
+  const [currentCampusIDDisplayValue, setCurrentCampusIDDisplayValue] =
     React.useState("");
-  const [currentEventValue, setCurrentEventValue] = React.useState(undefined);
-  const EventRef = React.createRef();
-  const getIDValue = {
-    Event: (r) => JSON.stringify({ id: r?.id }),
-  };
-  const EventIdSet = new Set(
-    Array.isArray(Event)
-      ? Event.map((r) => getIDValue.Event?.(r))
-      : getIDValue.Event?.(Event)
-  );
-  const eventRecords = useDataStoreBinding({
+  const [currentCampusIDValue, setCurrentCampusIDValue] =
+    React.useState(undefined);
+  const campusIDRef = React.createRef();
+  const campusRecords = useDataStoreBinding({
     type: "collection",
-    model: Event0,
+    model: Campus,
   }).items;
   const getDisplayValue = {
-    Event: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    campusID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
   };
   const validations = {
-    questions: [{ type: "JSON" }],
-    Event: [],
+    title: [],
+    campusID: [{ type: "Required" }],
   };
   const runValidationTasks = async (
     fieldName,
@@ -258,29 +252,21 @@ export default function FormCreateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          questions,
-          Event,
+          title,
+          campusID,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(
-                    fieldName,
-                    item,
-                    getDisplayValue[fieldName]
-                  )
+                  runValidationTasks(fieldName, item)
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(
-                fieldName,
-                modelFields[fieldName],
-                getDisplayValue[fieldName]
-              )
+              runValidationTasks(fieldName, modelFields[fieldName])
             );
             return promises;
           }, [])
@@ -297,30 +283,7 @@ export default function FormCreateForm(props) {
               modelFields[key] = undefined;
             }
           });
-          const form = await DataStore.save(new Form(modelFields));
-          const promises = [];
-          const eventToLink = modelFields.Event;
-          if (eventToLink) {
-            promises.push(
-              DataStore.save(
-                Event0.copyOf(eventToLink, (updated) => {
-                  updated.Form = form;
-                })
-              )
-            );
-            const formToUnlink = await eventToLink.Form;
-            if (formToUnlink) {
-              promises.push(
-                DataStore.save(
-                  Form.copyOf(formToUnlink, (updated) => {
-                    updated.Event = undefined;
-                    updated.formEventId = undefined;
-                  })
-                )
-              );
-            }
-          }
-          await Promise.all(promises);
+          await DataStore.save(new Area(modelFields));
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -333,125 +296,141 @@ export default function FormCreateForm(props) {
           }
         }
       }}
-      {...getOverrideProps(overrides, "FormCreateForm")}
+      {...getOverrideProps(overrides, "AreaCreateForm")}
       {...rest}
     >
-      <TextAreaField
-        label="Questions"
+      <TextField
+        label="Title"
         isRequired={false}
         isReadOnly={false}
+        value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
-              questions: value,
-              Event,
+              title: value,
+              campusID,
             };
             const result = onChange(modelFields);
-            value = result?.questions ?? value;
+            value = result?.title ?? value;
           }
-          if (errors.questions?.hasError) {
-            runValidationTasks("questions", value);
+          if (errors.title?.hasError) {
+            runValidationTasks("title", value);
           }
-          setQuestions(value);
+          setTitle(value);
         }}
-        onBlur={() => runValidationTasks("questions", questions)}
-        errorMessage={errors.questions?.errorMessage}
-        hasError={errors.questions?.hasError}
-        {...getOverrideProps(overrides, "questions")}
-      ></TextAreaField>
+        onBlur={() => runValidationTasks("title", title)}
+        errorMessage={errors.title?.errorMessage}
+        hasError={errors.title?.hasError}
+        {...getOverrideProps(overrides, "title")}
+      ></TextField>
       <ArrayField
         lengthLimit={1}
         onChange={async (items) => {
           let value = items[0];
           if (onChange) {
             const modelFields = {
-              questions,
-              Event: value,
+              title,
+              campusID: value,
             };
             const result = onChange(modelFields);
-            value = result?.Event ?? value;
+            value = result?.campusID ?? value;
           }
-          setEvent(value);
-          setCurrentEventValue(undefined);
-          setCurrentEventDisplayValue("");
+          setCampusID(value);
+          setCurrentCampusIDValue(undefined);
         }}
-        currentFieldValue={currentEventValue}
-        label={"Event"}
-        items={Event ? [Event] : []}
-        hasError={errors?.Event?.hasError}
-        errorMessage={errors?.Event?.errorMessage}
-        getBadgeText={getDisplayValue.Event}
-        setFieldValue={(model) => {
-          setCurrentEventDisplayValue(
-            model ? getDisplayValue.Event(model) : ""
+        currentFieldValue={currentCampusIDValue}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Campus id</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        items={campusID ? [campusID] : []}
+        hasError={errors?.campusID?.hasError}
+        errorMessage={errors?.campusID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.campusID(
+                campusRecords.find((r) => r.id === value)
+              )
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentCampusIDDisplayValue(
+            value
+              ? getDisplayValue.campusID(
+                  campusRecords.find((r) => r.id === value)
+                )
+              : ""
           );
-          setCurrentEventValue(model);
+          setCurrentCampusIDValue(value);
         }}
-        inputFieldRef={EventRef}
+        inputFieldRef={campusIDRef}
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Event"
-          isRequired={false}
+          label={
+            <span style={{ display: "inline-flex" }}>
+              <span>Campus id</span>
+              <span style={{ color: "red" }}>*</span>
+            </span>
+          }
+          isRequired={true}
           isReadOnly={false}
-          placeholder="Search Event"
-          value={currentEventDisplayValue}
-          options={eventRecords
-            .filter((r) => !EventIdSet.has(getIDValue.Event?.(r)))
+          placeholder="Search Campus"
+          value={currentCampusIDDisplayValue}
+          options={campusRecords
+            .filter(
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
+            )
             .map((r) => ({
-              id: getIDValue.Event?.(r),
-              label: getDisplayValue.Event?.(r),
+              id: r?.id,
+              label: getDisplayValue.campusID?.(r),
             }))}
           onSelect={({ id, label }) => {
-            setCurrentEventValue(
-              eventRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentEventDisplayValue(label);
-            runValidationTasks("Event", label);
+            setCurrentCampusIDValue(id);
+            setCurrentCampusIDDisplayValue(label);
+            runValidationTasks("campusID", label);
           }}
           onClear={() => {
-            setCurrentEventDisplayValue("");
+            setCurrentCampusIDDisplayValue("");
           }}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.Event?.hasError) {
-              runValidationTasks("Event", value);
+            if (errors.campusID?.hasError) {
+              runValidationTasks("campusID", value);
             }
-            setCurrentEventDisplayValue(value);
-            setCurrentEventValue(undefined);
+            setCurrentCampusIDDisplayValue(value);
+            setCurrentCampusIDValue(undefined);
           }}
-          onBlur={() => runValidationTasks("Event", currentEventDisplayValue)}
-          errorMessage={errors.Event?.errorMessage}
-          hasError={errors.Event?.hasError}
-          ref={EventRef}
+          onBlur={() => runValidationTasks("campusID", currentCampusIDValue)}
+          errorMessage={errors.campusID?.errorMessage}
+          hasError={errors.campusID?.hasError}
+          ref={campusIDRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "Event")}
+          {...getOverrideProps(overrides, "campusID")}
         ></Autocomplete>
       </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
       >
-        <Button
-          children="Clear"
-          type="reset"
-          onClick={(event) => {
-            event.preventDefault();
-            resetStateValues();
-          }}
-          {...getOverrideProps(overrides, "ClearButton")}
-        ></Button>
         <Flex
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
           <Button
-            children="Submit"
+            children="Cancelar"
+            type="button"
+            onClick={() => {
+              onCancel && onCancel();
+            }}
+            {...getOverrideProps(overrides, "CancelButton")}
+          ></Button>
+          <Button
+            children="Guardar"
             type="submit"
             variation="primary"
             isDisabled={Object.values(errors).some((e) => e?.hasError)}

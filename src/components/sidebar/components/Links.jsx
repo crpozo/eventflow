@@ -25,7 +25,7 @@ export function SidebarLinks(props) {
       ) {
         return (
           <div key={index}>
-          { route.path != 'campus/area' && route.path != 'campus/editar' && route.path != 'campus/crear' && route.path != 'campus/area/subarea' && route.path != 'eventos/crear' && route.path != 'eventos/:id/landing' && route.path != 'eventos/:id/detalle' && route.path != 'eventos/:id/usuarios' && route.path != 'eventos/:id/usuarios/crear' && route.path != 'eventos/:id/formulario' &&
+          { route.path != 'campus/editar' && route.path != 'campus/crear' && route.path != 'campus/area' && route.path != 'campus/area/editar' && route.path != 'campus/area/crear' &&  route.path != 'campus/area/subarea' && route.path != 'eventos/crear' && route.path != 'eventos/:id/landing' && route.path != 'eventos/:id/detalle' && route.path != 'eventos/:id/usuarios' && route.path != 'eventos/:id/usuarios/crear' && route.path != 'eventos/:id/formulario'  &&
           <Link className="hover:no-underline" key={index} to={route.layout + "/" + route.path}>
             <div className="relative mb-3 flex hover:cursor-pointer">
               <li
