@@ -4,6 +4,7 @@ import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
 import PageLayout from "layouts/page";
 import LandingLayout from "layouts/landing";
+import demo from "assets/img/auth/demo.png";
 
 import { I18n } from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
@@ -41,16 +42,25 @@ function App() {
           <Route path="landing/*" element={<LandingLayout />} />
         </Routes>
       ) : (
-        <div>
-          <div className="container">
-            <div className="login-left">
-              <h1>La forma más fácil de gestionar tus eventos</h1>
+        <div className="bg-lightPrimary">
+          <div className="grid h-screen xl:grid-cols-2">
+            <div className="flex flex-col justify-center items-center lg:items-start bg-purplePrimary px-3 xl:px-5 pt-5 pb-4 rounded-xl xl:rounded-none">
+              <h1 className="font-bold text-2xl mb-2">La forma más fácil de gestionar tus eventos</h1>
+              <p className="xl:mb-[50px]">Ingresa los credenciales para acceder a tu cuenta</p>
+              <img className="hidden xl:block max-w-[480px] mt-0 mb-[30px] mx-auto" src={demo}/>
+              <h2 className="font-black text-3xl hidden xl:block">Bienvenido a Eventflow</h2>
             </div>
-            <div className="login-right">
-              <h1>Eventflow</h1>
+            <div className="flex flex-col justify-center items-center bg-white p-2 sm:p-5">
+              <div className="xl:mt-0 mb-[40px] xl:mb-[80px]">
+                <h1 className="text-4xl font-black text-center">Eventflow</h1>
+              </div>
+              <div className="w-[80%]">
+                <h2 className="font-bold text-2xl mb-2">Autenticación</h2>
+                <p className="text-gray-500">Ingresa los credenciales para acceder a tu cuenta</p>
+                <Authenticator hideSignUp={true}/> 
+              </div>
             </div>
           </div>
-          <Authenticator hideSignUp={true}/> 
         </div>
       )}
       </>

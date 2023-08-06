@@ -15,6 +15,24 @@
 
 /* Amplify */
 
+div[data-amplify-authenticator] [data-amplify-router]{
+	border: 0;
+	box-shadow: none;
+}
+
+div[data-amplify-authenticator] [data-amplify-form]{
+	padding-left: 0;
+	padding-right: 0;
+}
+
+div[data-amplify-authenticator] [data-amplify-footer]{
+	padding-bottom:0;
+}
+
+div[data-amplify-authenticator] [data-amplify-container]{
+	width: 100%;
+}
+
 .amplify-button[data-variation='primary'] {
   background: #028CFF;
 	color: white;
