@@ -7,7 +7,7 @@
 import * as React from "react";
 import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { Career, Event } from "../models";
+import { Career } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -16,19 +16,16 @@ export declare type ValidationFunction<T> = (value: T, validationResponse: Valid
 export declare type CareerUpdateFormInputValues = {
     title?: string;
     areaID?: string;
-    Events?: Event[];
 };
 export declare type CareerUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
     areaID?: ValidationFunction<string>;
-    Events?: ValidationFunction<Event>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type CareerUpdateFormOverridesProps = {
     CareerUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
     areaID?: PrimitiveOverrideProps<AutocompleteProps>;
-    Events?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type CareerUpdateFormProps = React.PropsWithChildren<{
     overrides?: CareerUpdateFormOverridesProps | undefined | null;

@@ -24,7 +24,7 @@ export default function Admin(props) {
     if(eventId){
       setEventId(eventId);
     } 
-  }, []);
+  }, [routeResult]);
 
   // Show secondary Sidebar 
   React.useEffect(() => {

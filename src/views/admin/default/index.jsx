@@ -17,6 +17,7 @@ const Dashboard = () => {
 
     const subAreaId = localStorage.getItem('subAreaID');
     if(!subAreaId){
+      console.log("subAreaId: ",subAreaId)
       navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos"} });
     } else {
 

@@ -23,7 +23,7 @@ import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import { Career, Event, Area } from "../models";
+import { Career, Area } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -199,28 +199,21 @@ export default function CareerUpdateForm(props) {
   const initialValues = {
     title: "",
     areaID: undefined,
-    Events: [],
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [areaID, setAreaID] = React.useState(initialValues.areaID);
-  const [Events, setEvents] = React.useState(initialValues.Events);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = careerRecord
-      ? { ...initialValues, ...careerRecord, areaID, Events: linkedEvents }
+      ? { ...initialValues, ...careerRecord, areaID }
       : initialValues;
     setTitle(cleanValues.title);
     setAreaID(cleanValues.areaID);
     setCurrentAreaIDValue(undefined);
     setCurrentAreaIDDisplayValue("");
-    setEvents(cleanValues.Events ?? []);
-    setCurrentEventsValue(undefined);
-    setCurrentEventsDisplayValue("");
     setErrors({});
   };
   const [careerRecord, setCareerRecord] = React.useState(careerModelProp);
-  const [linkedEvents, setLinkedEvents] = React.useState([]);
-  const canUnlinkEvents = false;
   React.useEffect(() => {
     const queryData = async () => {
       const record = idProp
@@ -229,44 +222,24 @@ export default function CareerUpdateForm(props) {
       setCareerRecord(record);
       const areaIDRecord = record ? await record.areaID : undefined;
       setAreaID(areaIDRecord);
-      const linkedEvents = record ? await record.Events.toArray() : [];
-      setLinkedEvents(linkedEvents);
     };
     queryData();
   }, [idProp, careerModelProp]);
-  React.useEffect(resetStateValues, [careerRecord, areaID, linkedEvents]);
+  React.useEffect(resetStateValues, [careerRecord, areaID]);
   const [currentAreaIDDisplayValue, setCurrentAreaIDDisplayValue] =
     React.useState("");
   const [currentAreaIDValue, setCurrentAreaIDValue] = React.useState(undefined);
   const areaIDRef = React.createRef();
-  const [currentEventsDisplayValue, setCurrentEventsDisplayValue] =
-    React.useState("");
-  const [currentEventsValue, setCurrentEventsValue] = React.useState(undefined);
-  const EventsRef = React.createRef();
-  const getIDValue = {
-    Events: (r) => JSON.stringify({ id: r?.id }),
-  };
-  const EventsIdSet = new Set(
-    Array.isArray(Events)
-      ? Events.map((r) => getIDValue.Events?.(r))
-      : getIDValue.Events?.(Events)
-  );
   const areaRecords = useDataStoreBinding({
     type: "collection",
     model: Area,
   }).items;
-  const eventRecords = useDataStoreBinding({
-    type: "collection",
-    model: Event,
-  }).items;
   const getDisplayValue = {
     areaID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
-    Events: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
   };
   const validations = {
     title: [],
     areaID: [{ type: "Required" }],
-    Events: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -296,28 +269,19 @@ export default function CareerUpdateForm(props) {
         let modelFields = {
           title,
           areaID,
-          Events,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(
-                    fieldName,
-                    item,
-                    getDisplayValue[fieldName]
-                  )
+                  runValidationTasks(fieldName, item)
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(
-                fieldName,
-                modelFields[fieldName],
-                getDisplayValue[fieldName]
-              )
+              runValidationTasks(fieldName, modelFields[fieldName])
             );
             return promises;
           }, [])
@@ -334,60 +298,11 @@ export default function CareerUpdateForm(props) {
               modelFields[key] = undefined;
             }
           });
-          const promises = [];
-          const eventsToLink = [];
-          const eventsToUnLink = [];
-          const eventsSet = new Set();
-          const linkedEventsSet = new Set();
-          Events.forEach((r) => eventsSet.add(getIDValue.Events?.(r)));
-          linkedEvents.forEach((r) =>
-            linkedEventsSet.add(getIDValue.Events?.(r))
+          await DataStore.save(
+            Career.copyOf(careerRecord, (updated) => {
+              Object.assign(updated, modelFields);
+            })
           );
-          linkedEvents.forEach((r) => {
-            if (!eventsSet.has(getIDValue.Events?.(r))) {
-              eventsToUnLink.push(r);
-            }
-          });
-          Events.forEach((r) => {
-            if (!linkedEventsSet.has(getIDValue.Events?.(r))) {
-              eventsToLink.push(r);
-            }
-          });
-          eventsToUnLink.forEach((original) => {
-            if (!canUnlinkEvents) {
-              throw Error(
-                `Event ${original.id} cannot be unlinked from Career because careerID is a required field.`
-              );
-            }
-            promises.push(
-              DataStore.save(
-                Event.copyOf(original, (updated) => {
-                  updated.careerID = null;
-                })
-              )
-            );
-          });
-          eventsToLink.forEach((original) => {
-            promises.push(
-              DataStore.save(
-                Event.copyOf(original, (updated) => {
-                  updated.careerID = careerRecord.id;
-                })
-              )
-            );
-          });
-          const modelFieldsToSave = {
-            title: modelFields.title,
-            areaID: modelFields.areaID,
-          };
-          promises.push(
-            DataStore.save(
-              Career.copyOf(careerRecord, (updated) => {
-                Object.assign(updated, modelFieldsToSave);
-              })
-            )
-          );
-          await Promise.all(promises);
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -411,7 +326,6 @@ export default function CareerUpdateForm(props) {
             const modelFields = {
               title: value,
               areaID,
-              Events,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -434,7 +348,6 @@ export default function CareerUpdateForm(props) {
             const modelFields = {
               title,
               areaID: value,
-              Events,
             };
             const result = onChange(modelFields);
             value = result?.areaID ?? value;
@@ -501,79 +414,6 @@ export default function CareerUpdateForm(props) {
           ref={areaIDRef}
           labelHidden={true}
           {...getOverrideProps(overrides, "areaID")}
-        ></Autocomplete>
-      </ArrayField>
-      <ArrayField
-        onChange={async (items) => {
-          let values = items;
-          if (onChange) {
-            const modelFields = {
-              title,
-              areaID,
-              Events: values,
-            };
-            const result = onChange(modelFields);
-            values = result?.Events ?? values;
-          }
-          setEvents(values);
-          setCurrentEventsValue(undefined);
-          setCurrentEventsDisplayValue("");
-        }}
-        currentFieldValue={currentEventsValue}
-        label={"Events"}
-        items={Events}
-        hasError={errors?.Events?.hasError}
-        errorMessage={errors?.Events?.errorMessage}
-        getBadgeText={getDisplayValue.Events}
-        setFieldValue={(model) => {
-          setCurrentEventsDisplayValue(
-            model ? getDisplayValue.Events(model) : ""
-          );
-          setCurrentEventsValue(model);
-        }}
-        inputFieldRef={EventsRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label="Events"
-          isRequired={false}
-          isReadOnly={false}
-          placeholder="Search Event"
-          value={currentEventsDisplayValue}
-          options={eventRecords
-            .filter((r) => !EventsIdSet.has(getIDValue.Events?.(r)))
-            .map((r) => ({
-              id: getIDValue.Events?.(r),
-              label: getDisplayValue.Events?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentEventsValue(
-              eventRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentEventsDisplayValue(label);
-            runValidationTasks("Events", label);
-          }}
-          onClear={() => {
-            setCurrentEventsDisplayValue("");
-          }}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.Events?.hasError) {
-              runValidationTasks("Events", value);
-            }
-            setCurrentEventsDisplayValue(value);
-            setCurrentEventsValue(undefined);
-          }}
-          onBlur={() => runValidationTasks("Events", currentEventsDisplayValue)}
-          errorMessage={errors.Events?.errorMessage}
-          hasError={errors.Events?.hasError}
-          ref={EventsRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "Events")}
         ></Autocomplete>
       </ArrayField>
       <Flex

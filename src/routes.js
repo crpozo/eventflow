@@ -14,8 +14,9 @@ import CampusEditar from "views/campus/detalle";
 import Area from "views/area";
 import AreaCrear from "views/area/crear";
 import AreaEditar from "views/area/detalle";
-
 import Carrera from "views/carrera";
+import CarreraCrear from "views/carrera/crear";
+import CarreraEditar from "views/carrera/detalle";
 
 // Event Imports
 import Eventos from "views/admin/eventos";
@@ -91,6 +92,20 @@ const routes = [
     path: "campus/area/subarea",
     icon: <MdAccountBalance className="h-6 w-6" />,
     component: <Carrera />,
+  },
+  {
+    name: "Subarea Crear",
+    layout: "/page",
+    path: "campus/area/subarea/crear",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <CarreraCrear />,
+  },
+  {
+    name: "Subarea Editar",
+    layout: "/page",
+    path: "campus/area/subarea/editar",
+    icon: <MdAccountBalance className="h-6 w-6" />,
+    component: <CarreraEditar />,
   },
   {
     name: "Eventos",

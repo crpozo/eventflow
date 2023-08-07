@@ -141,6 +141,7 @@ module.exports = {
       yellowPrimary: "#fff000",
       purplePrimary: "#A79FFE",
       pinkPrimary: "#FFB4B4",
+      lightBrownPrimary: "#F2E6E2",
       brandLinear: "#868CFF",
       black: "#1A1A1A",
       gray: {

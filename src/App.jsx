@@ -43,15 +43,15 @@ function App() {
         </Routes>
       ) : (
         <div className="bg-lightPrimary">
-          <div className="grid h-screen xl:grid-cols-2">
-            <div className="flex flex-col justify-center items-center lg:items-start bg-purplePrimary px-3 xl:px-5 pt-5 pb-4 rounded-xl xl:rounded-none">
+          <div className="container grid h-screen xl:grid-cols-2 xl:px-0 xl:py-5">
+            <div className="flex flex-col justify-center items-center xl:items-start bg-purplePrimary px-3 xl:!px-[60px] pt-5 pb-4 rounded-lg xl:rounded-l-lg">
               <h1 className="font-bold text-2xl mb-2">La forma más fácil de gestionar tus eventos</h1>
               <p className="xl:mb-[50px]">Ingresa los credenciales para acceder a tu cuenta</p>
-              <img className="hidden xl:block max-w-[480px] mt-0 mb-[30px] mx-auto" src={demo}/>
+              <img className="hidden xl:block max-w-[450px] mt-0 mb-[30px] mx-auto" src={demo}/>
               <h2 className="font-black text-3xl hidden xl:block">Bienvenido a Eventflow</h2>
             </div>
-            <div className="flex flex-col justify-center items-center bg-white p-2 sm:p-5">
-              <div className="xl:mt-0 mb-[40px] xl:mb-[80px]">
+            <div className="flex flex-col justify-center items-center bg-white p-2 sm:p-5 rounded-lg xl:rounded-r-lg">
+              <div className="mt-3 xl:!mt-0 mb-[40px] xl:mb-[80px]">
                 <h1 className="text-4xl font-black text-center">Eventflow</h1>
               </div>
               <div className="w-[80%]">
