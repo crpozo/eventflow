@@ -4,15 +4,15 @@ import { schema } from './schema';
 
 
 
-const { Form, Landing, Attendee, Event, Career, Area, Campus, EventAttendee } = initSchema(schema);
+const { EventAttende, Form, Landing, Attendee, Event, Career, Area, Campus } = initSchema(schema);
 
 export {
+  EventAttende,
   Form,
   Landing,
   Attendee,
   Event,
   Career,
   Area,
-  Campus,
-  EventAttendee
+  Campus
 };

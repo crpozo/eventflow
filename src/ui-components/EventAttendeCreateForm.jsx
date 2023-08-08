@@ -15,15 +15,15 @@ import {
   Grid,
   Icon,
   ScrollView,
+  SwitchField,
   Text,
-  TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
 import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import { Landing, Event as Event0 } from "../models";
+import { EventAttende, Event, Attendee } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -184,10 +184,9 @@ function ArrayField({
     </React.Fragment>
   );
 }
-export default function LandingUpdateForm(props) {
+export default function EventAttendeCreateForm(props) {
   const {
-    id: idProp,
-    landing: landingModelProp,
+    clearOnSuccess = true,
     onSuccess,
     onError,
     onSubmit,
@@ -197,57 +196,54 @@ export default function LandingUpdateForm(props) {
     ...rest
   } = props;
   const initialValues = {
-    title: "",
-    Event: undefined,
+    eventID: undefined,
+    attendeeID: undefined,
+    authorized: false,
+    checkIn: false,
   };
-  const [title, setTitle] = React.useState(initialValues.title);
-  const [Event, setEvent] = React.useState(initialValues.Event);
+  const [eventID, setEventID] = React.useState(initialValues.eventID);
+  const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
+  const [authorized, setAuthorized] = React.useState(initialValues.authorized);
+  const [checkIn, setCheckIn] = React.useState(initialValues.checkIn);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
-    const cleanValues = landingRecord
-      ? { ...initialValues, ...landingRecord, Event }
-      : initialValues;
-    setTitle(cleanValues.title);
-    setEvent(cleanValues.Event);
-    setCurrentEventValue(undefined);
-    setCurrentEventDisplayValue("");
+    setEventID(initialValues.eventID);
+    setCurrentEventIDValue(undefined);
+    setCurrentEventIDDisplayValue("");
+    setAttendeeID(initialValues.attendeeID);
+    setCurrentAttendeeIDValue(undefined);
+    setCurrentAttendeeIDDisplayValue("");
+    setAuthorized(initialValues.authorized);
+    setCheckIn(initialValues.checkIn);
     setErrors({});
   };
-  const [landingRecord, setLandingRecord] = React.useState(landingModelProp);
-  React.useEffect(() => {
-    const queryData = async () => {
-      const record = idProp
-        ? await DataStore.query(Landing, idProp)
-        : landingModelProp;
-      setLandingRecord(record);
-      const EventRecord = record ? await record.Event : undefined;
-      setEvent(EventRecord);
-    };
-    queryData();
-  }, [idProp, landingModelProp]);
-  React.useEffect(resetStateValues, [landingRecord, Event]);
-  const [currentEventDisplayValue, setCurrentEventDisplayValue] =
+  const [currentEventIDDisplayValue, setCurrentEventIDDisplayValue] =
     React.useState("");
-  const [currentEventValue, setCurrentEventValue] = React.useState(undefined);
-  const EventRef = React.createRef();
-  const getIDValue = {
-    Event: (r) => JSON.stringify({ id: r?.id }),
-  };
-  const EventIdSet = new Set(
-    Array.isArray(Event)
-      ? Event.map((r) => getIDValue.Event?.(r))
-      : getIDValue.Event?.(Event)
-  );
+  const [currentEventIDValue, setCurrentEventIDValue] =
+    React.useState(undefined);
+  const eventIDRef = React.createRef();
+  const [currentAttendeeIDDisplayValue, setCurrentAttendeeIDDisplayValue] =
+    React.useState("");
+  const [currentAttendeeIDValue, setCurrentAttendeeIDValue] =
+    React.useState(undefined);
+  const attendeeIDRef = React.createRef();
   const eventRecords = useDataStoreBinding({
     type: "collection",
-    model: Event0,
+    model: Event,
+  }).items;
+  const attendeeRecords = useDataStoreBinding({
+    type: "collection",
+    model: Attendee,
   }).items;
   const getDisplayValue = {
-    Event: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    eventID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    attendeeID: (r) => `${r?.name ? r?.name + " - " : ""}${r?.id}`,
   };
   const validations = {
-    title: [],
-    Event: [],
+    eventID: [{ type: "Required" }],
+    attendeeID: [{ type: "Required" }],
+    authorized: [],
+    checkIn: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -275,29 +271,23 @@ export default function LandingUpdateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          title,
-          Event,
+          eventID,
+          attendeeID,
+          authorized,
+          checkIn,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(
-                    fieldName,
-                    item,
-                    getDisplayValue[fieldName]
-                  )
+                  runValidationTasks(fieldName, item)
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(
-                fieldName,
-                modelFields[fieldName],
-                getDisplayValue[fieldName]
-              )
+              runValidationTasks(fieldName, modelFields[fieldName])
             );
             return promises;
           }, [])
@@ -314,52 +304,12 @@ export default function LandingUpdateForm(props) {
               modelFields[key] = undefined;
             }
           });
-          const promises = [];
-          const eventToUnlink = await landingRecord.Event;
-          if (eventToUnlink) {
-            promises.push(
-              DataStore.save(
-                Event0.copyOf(eventToUnlink, (updated) => {
-                  updated.Landing = undefined;
-                  updated.eventLandingId = undefined;
-                })
-              )
-            );
-          }
-          const eventToLink = modelFields.Event;
-          if (eventToLink) {
-            promises.push(
-              DataStore.save(
-                Event0.copyOf(eventToLink, (updated) => {
-                  updated.Landing = landingRecord;
-                })
-              )
-            );
-            const landingToUnlink = await eventToLink.Landing;
-            if (landingToUnlink) {
-              promises.push(
-                DataStore.save(
-                  Landing.copyOf(landingToUnlink, (updated) => {
-                    updated.Event = undefined;
-                    updated.landingEventId = undefined;
-                  })
-                )
-              );
-            }
-          }
-          promises.push(
-            DataStore.save(
-              Landing.copyOf(landingRecord, (updated) => {
-                Object.assign(updated, modelFields);
-                if (!modelFields.Event) {
-                  updated.landingEventId = undefined;
-                }
-              })
-            )
-          );
-          await Promise.all(promises);
+          await DataStore.save(new EventAttende(modelFields));
           if (onSuccess) {
             onSuccess(modelFields);
+          }
+          if (clearOnSuccess) {
+            resetStateValues();
           }
         } catch (err) {
           if (onError) {
@@ -367,121 +317,237 @@ export default function LandingUpdateForm(props) {
           }
         }
       }}
-      {...getOverrideProps(overrides, "LandingUpdateForm")}
+      {...getOverrideProps(overrides, "EventAttendeCreateForm")}
       {...rest}
     >
-      <TextField
-        label="Title"
-        isRequired={false}
-        isReadOnly={false}
-        value={title}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              title: value,
-              Event,
-            };
-            const result = onChange(modelFields);
-            value = result?.title ?? value;
-          }
-          if (errors.title?.hasError) {
-            runValidationTasks("title", value);
-          }
-          setTitle(value);
-        }}
-        onBlur={() => runValidationTasks("title", title)}
-        errorMessage={errors.title?.errorMessage}
-        hasError={errors.title?.hasError}
-        {...getOverrideProps(overrides, "title")}
-      ></TextField>
       <ArrayField
         lengthLimit={1}
         onChange={async (items) => {
           let value = items[0];
           if (onChange) {
             const modelFields = {
-              title,
-              Event: value,
+              eventID: value,
+              attendeeID,
+              authorized,
+              checkIn,
             };
             const result = onChange(modelFields);
-            value = result?.Event ?? value;
+            value = result?.eventID ?? value;
           }
-          setEvent(value);
-          setCurrentEventValue(undefined);
-          setCurrentEventDisplayValue("");
+          setEventID(value);
+          setCurrentEventIDValue(undefined);
         }}
-        currentFieldValue={currentEventValue}
-        label={"Event"}
-        items={Event ? [Event] : []}
-        hasError={errors?.Event?.hasError}
-        errorMessage={errors?.Event?.errorMessage}
-        getBadgeText={getDisplayValue.Event}
-        setFieldValue={(model) => {
-          setCurrentEventDisplayValue(
-            model ? getDisplayValue.Event(model) : ""
+        currentFieldValue={currentEventIDValue}
+        label={"Event id"}
+        items={eventID ? [eventID] : []}
+        hasError={errors?.eventID?.hasError}
+        errorMessage={errors?.eventID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.eventID(eventRecords.find((r) => r.id === value))
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentEventIDDisplayValue(
+            value
+              ? getDisplayValue.eventID(
+                  eventRecords.find((r) => r.id === value)
+                )
+              : ""
           );
-          setCurrentEventValue(model);
+          setCurrentEventIDValue(value);
         }}
-        inputFieldRef={EventRef}
+        inputFieldRef={eventIDRef}
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Event"
-          isRequired={false}
+          label="Event id"
+          isRequired={true}
           isReadOnly={false}
           placeholder="Search Event"
-          value={currentEventDisplayValue}
+          value={currentEventIDDisplayValue}
           options={eventRecords
-            .filter((r) => !EventIdSet.has(getIDValue.Event?.(r)))
+            .filter(
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
+            )
             .map((r) => ({
-              id: getIDValue.Event?.(r),
-              label: getDisplayValue.Event?.(r),
+              id: r?.id,
+              label: getDisplayValue.eventID?.(r),
             }))}
           onSelect={({ id, label }) => {
-            setCurrentEventValue(
-              eventRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentEventDisplayValue(label);
-            runValidationTasks("Event", label);
+            setCurrentEventIDValue(id);
+            setCurrentEventIDDisplayValue(label);
+            runValidationTasks("eventID", label);
           }}
           onClear={() => {
-            setCurrentEventDisplayValue("");
+            setCurrentEventIDDisplayValue("");
           }}
-          defaultValue={Event}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.Event?.hasError) {
-              runValidationTasks("Event", value);
+            if (errors.eventID?.hasError) {
+              runValidationTasks("eventID", value);
             }
-            setCurrentEventDisplayValue(value);
-            setCurrentEventValue(undefined);
+            setCurrentEventIDDisplayValue(value);
+            setCurrentEventIDValue(undefined);
           }}
-          onBlur={() => runValidationTasks("Event", currentEventDisplayValue)}
-          errorMessage={errors.Event?.errorMessage}
-          hasError={errors.Event?.hasError}
-          ref={EventRef}
+          onBlur={() => runValidationTasks("eventID", currentEventIDValue)}
+          errorMessage={errors.eventID?.errorMessage}
+          hasError={errors.eventID?.hasError}
+          ref={eventIDRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "Event")}
+          {...getOverrideProps(overrides, "eventID")}
         ></Autocomplete>
       </ArrayField>
+      <ArrayField
+        lengthLimit={1}
+        onChange={async (items) => {
+          let value = items[0];
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID: value,
+              authorized,
+              checkIn,
+            };
+            const result = onChange(modelFields);
+            value = result?.attendeeID ?? value;
+          }
+          setAttendeeID(value);
+          setCurrentAttendeeIDValue(undefined);
+        }}
+        currentFieldValue={currentAttendeeIDValue}
+        label={"Attendee id"}
+        items={attendeeID ? [attendeeID] : []}
+        hasError={errors?.attendeeID?.hasError}
+        errorMessage={errors?.attendeeID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.attendeeID(
+                attendeeRecords.find((r) => r.id === value)
+              )
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentAttendeeIDDisplayValue(
+            value
+              ? getDisplayValue.attendeeID(
+                  attendeeRecords.find((r) => r.id === value)
+                )
+              : ""
+          );
+          setCurrentAttendeeIDValue(value);
+        }}
+        inputFieldRef={attendeeIDRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label="Attendee id"
+          isRequired={true}
+          isReadOnly={false}
+          placeholder="Search Attendee"
+          value={currentAttendeeIDDisplayValue}
+          options={attendeeRecords
+            .filter(
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
+            )
+            .map((r) => ({
+              id: r?.id,
+              label: getDisplayValue.attendeeID?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentAttendeeIDValue(id);
+            setCurrentAttendeeIDDisplayValue(label);
+            runValidationTasks("attendeeID", label);
+          }}
+          onClear={() => {
+            setCurrentAttendeeIDDisplayValue("");
+          }}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.attendeeID?.hasError) {
+              runValidationTasks("attendeeID", value);
+            }
+            setCurrentAttendeeIDDisplayValue(value);
+            setCurrentAttendeeIDValue(undefined);
+          }}
+          onBlur={() =>
+            runValidationTasks("attendeeID", currentAttendeeIDValue)
+          }
+          errorMessage={errors.attendeeID?.errorMessage}
+          hasError={errors.attendeeID?.hasError}
+          ref={attendeeIDRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "attendeeID")}
+        ></Autocomplete>
+      </ArrayField>
+      <SwitchField
+        label="Authorized"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={authorized}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized: value,
+              checkIn,
+            };
+            const result = onChange(modelFields);
+            value = result?.authorized ?? value;
+          }
+          if (errors.authorized?.hasError) {
+            runValidationTasks("authorized", value);
+          }
+          setAuthorized(value);
+        }}
+        onBlur={() => runValidationTasks("authorized", authorized)}
+        errorMessage={errors.authorized?.errorMessage}
+        hasError={errors.authorized?.hasError}
+        {...getOverrideProps(overrides, "authorized")}
+      ></SwitchField>
+      <SwitchField
+        label="Check in"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={checkIn}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.checkIn ?? value;
+          }
+          if (errors.checkIn?.hasError) {
+            runValidationTasks("checkIn", value);
+          }
+          setCheckIn(value);
+        }}
+        onBlur={() => runValidationTasks("checkIn", checkIn)}
+        errorMessage={errors.checkIn?.errorMessage}
+        hasError={errors.checkIn?.hasError}
+        {...getOverrideProps(overrides, "checkIn")}
+      ></SwitchField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
       >
         <Button
-          children="Reset"
+          children="Clear"
           type="reset"
           onClick={(event) => {
             event.preventDefault();
             resetStateValues();
           }}
-          isDisabled={!(idProp || landingModelProp)}
-          {...getOverrideProps(overrides, "ResetButton")}
+          {...getOverrideProps(overrides, "ClearButton")}
         ></Button>
         <Flex
           gap="15px"
@@ -491,10 +557,7 @@ export default function LandingUpdateForm(props) {
             children="Submit"
             type="submit"
             variation="primary"
-            isDisabled={
-              !(idProp || landingModelProp) ||
-              Object.values(errors).some((e) => e?.hasError)
-            }
+            isDisabled={Object.values(errors).some((e) => e?.hasError)}
             {...getOverrideProps(overrides, "SubmitButton")}
           ></Button>
         </Flex>

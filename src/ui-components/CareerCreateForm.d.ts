@@ -33,6 +33,7 @@ export declare type CareerCreateFormProps = React.PropsWithChildren<{
     onSubmit?: (fields: CareerCreateFormInputValues) => CareerCreateFormInputValues;
     onSuccess?: (fields: CareerCreateFormInputValues) => void;
     onError?: (fields: CareerCreateFormInputValues, errorMessage: string) => void;
+    onCancel?: () => void;
     onChange?: (fields: CareerCreateFormInputValues) => CareerCreateFormInputValues;
     onValidate?: CareerCreateFormValidationValues;
 } & React.CSSProperties>;

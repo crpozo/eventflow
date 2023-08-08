@@ -5,9 +5,9 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, SwitchFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { Event } from "../models";
+import { EventAttende } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -18,18 +18,14 @@ export declare type AttendeeCreateFormInputValues = {
     type?: string;
     age?: number;
     position?: string;
-    authorized?: boolean;
-    checkIn?: boolean;
-    events?: Event[];
+    EventAttendes?: EventAttende[];
 };
 export declare type AttendeeCreateFormValidationValues = {
     name?: ValidationFunction<string>;
     type?: ValidationFunction<string>;
     age?: ValidationFunction<number>;
     position?: ValidationFunction<string>;
-    authorized?: ValidationFunction<boolean>;
-    checkIn?: ValidationFunction<boolean>;
-    events?: ValidationFunction<Event>;
+    EventAttendes?: ValidationFunction<EventAttende>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type AttendeeCreateFormOverridesProps = {
@@ -38,9 +34,7 @@ export declare type AttendeeCreateFormOverridesProps = {
     type?: PrimitiveOverrideProps<TextFieldProps>;
     age?: PrimitiveOverrideProps<TextFieldProps>;
     position?: PrimitiveOverrideProps<TextFieldProps>;
-    authorized?: PrimitiveOverrideProps<SwitchFieldProps>;
-    checkIn?: PrimitiveOverrideProps<SwitchFieldProps>;
-    events?: PrimitiveOverrideProps<AutocompleteProps>;
+    EventAttendes?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type AttendeeCreateFormProps = React.PropsWithChildren<{
     overrides?: AttendeeCreateFormOverridesProps | undefined | null;

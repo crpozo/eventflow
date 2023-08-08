@@ -35,6 +35,7 @@ export declare type CareerUpdateFormProps = React.PropsWithChildren<{
     onSubmit?: (fields: CareerUpdateFormInputValues) => CareerUpdateFormInputValues;
     onSuccess?: (fields: CareerUpdateFormInputValues) => void;
     onError?: (fields: CareerUpdateFormInputValues, errorMessage: string) => void;
+    onCancel?: () => void;
     onChange?: (fields: CareerUpdateFormInputValues) => CareerUpdateFormInputValues;
     onValidate?: CareerUpdateFormValidationValues;
 } & React.CSSProperties>;

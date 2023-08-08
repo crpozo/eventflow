@@ -1,3 +1,11 @@
+type EventAttende @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  eventID: ID! @index(name: "byEvent")
+  attendeeID: ID! @index(name: "byAttendee")
+  authorized: Boolean
+  checkIn: Boolean
+}
+
 type Form @model @auth(rules: [{allow: public}]) {
   id: ID!
   questions: AWSJSON
@@ -7,6 +15,7 @@ type Form @model @auth(rules: [{allow: public}]) {
 type Landing @model @auth(rules: [{allow: public}]) {
   id: ID!
   title: String
+  Event: Event @belongsTo
 }
 
 type Attendee @model @auth(rules: [{allow: public}]) {
@@ -15,9 +24,7 @@ type Attendee @model @auth(rules: [{allow: public}]) {
   type: String
   age: Int
   position: String
-  authorized: Boolean
-  checkIn: Boolean
-  events: [Event] @manyToMany(relationName: "EventAttendee")
+  EventAttendes: [EventAttende] @hasMany(indexName: "byAttendee", fields: ["id"])
 }
 
 type Event @model @auth(rules: [{allow: public}]) {
@@ -27,7 +34,7 @@ type Event @model @auth(rules: [{allow: public}]) {
   Landing: Landing @hasOne
   careerID: ID! @index(name: "byCareer")
   Form: Form @hasOne
-  Attendees: [Attendee] @manyToMany(relationName: "EventAttendee")
+  EventAttendes: [EventAttende] @hasMany(indexName: "byEvent", fields: ["id"])
 }
 
 type Career @model @auth(rules: [{allow: public}]) {
@@ -48,4 +55,5 @@ type Campus @model @auth(rules: [{allow: public}]) {
   id: ID!
   title: String
   CampusArea: [Area] @hasMany(indexName: "byCampus", fields: ["id"])
-} 
+}
+ 

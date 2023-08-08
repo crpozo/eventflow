@@ -142,9 +142,16 @@ button:focus, button:active, button:focus-visible{
 	/* animation: spin 90s linear infinite alternate; */
 }
 
-@keyframes spin { 
-  100% { 
-    -webkit-transform: rotate(360deg); 
-    transform:rotate(360deg); 
-  }
+.loader {
+	border-top-color: #028CFF;
+	animation: spinner 1.5s linear infinite;
+}
+
+@keyframes spinner {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
 }

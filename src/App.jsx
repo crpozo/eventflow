@@ -16,11 +16,18 @@ I18n.setLanguage('es');
 function App() {
 
   const { route } = useAuthenticator(context => [context.route]);
+  const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const location = useLocation();
   const isLandingRoute = location.pathname.includes('/landing');
 
-  if(!route){
-    return <p>Loading...</p>
+  if(!route || authStatus === 'configuring' && 'Loading...'){
+    return(
+      <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-lightPrimary opacity-75 flex flex-col items-center justify-center">
+        <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
+        <h2 className="text-center text-black text-xl font-semibold mb-2">Cargando...</h2>
+        <p className="w-1/3 text-center text-black">Esto puede tardar unos segundos, por favor no cierre esta página.</p>
+      </div>
+    );
   }
 
   // Use the value of route to decide which page to render

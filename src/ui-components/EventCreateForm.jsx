@@ -27,9 +27,8 @@ import {
   Event,
   Landing as Landing0,
   Form as Form0,
-  Attendee,
+  EventAttende,
   Career,
-  EventAttendee,
 } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
@@ -197,6 +196,7 @@ export default function EventCreateForm(props) {
     onSuccess,
     onError,
     onSubmit,
+    onCancel,
     onValidate,
     onChange,
     overrides,
@@ -208,7 +208,7 @@ export default function EventCreateForm(props) {
     Landing: undefined,
     careerID: undefined,
     Form: undefined,
-    Attendees: [],
+    EventAttendes: [],
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -217,7 +217,9 @@ export default function EventCreateForm(props) {
   const [Landing, setLanding] = React.useState(initialValues.Landing);
   const [careerID, setCareerID] = React.useState(initialValues.careerID);
   const [Form, setForm] = React.useState(initialValues.Form);
-  const [Attendees, setAttendees] = React.useState(initialValues.Attendees);
+  const [EventAttendes, setEventAttendes] = React.useState(
+    initialValues.EventAttendes
+  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
@@ -231,9 +233,9 @@ export default function EventCreateForm(props) {
     setForm(initialValues.Form);
     setCurrentFormValue(undefined);
     setCurrentFormDisplayValue("");
-    setAttendees(initialValues.Attendees);
-    setCurrentAttendeesValue(undefined);
-    setCurrentAttendeesDisplayValue("");
+    setEventAttendes(initialValues.EventAttendes);
+    setCurrentEventAttendesValue(undefined);
+    setCurrentEventAttendesDisplayValue("");
     setErrors({});
   };
   const [currentLandingDisplayValue, setCurrentLandingDisplayValue] =
@@ -250,15 +252,17 @@ export default function EventCreateForm(props) {
     React.useState("");
   const [currentFormValue, setCurrentFormValue] = React.useState(undefined);
   const FormRef = React.createRef();
-  const [currentAttendeesDisplayValue, setCurrentAttendeesDisplayValue] =
-    React.useState("");
-  const [currentAttendeesValue, setCurrentAttendeesValue] =
+  const [
+    currentEventAttendesDisplayValue,
+    setCurrentEventAttendesDisplayValue,
+  ] = React.useState("");
+  const [currentEventAttendesValue, setCurrentEventAttendesValue] =
     React.useState(undefined);
-  const AttendeesRef = React.createRef();
+  const EventAttendesRef = React.createRef();
   const getIDValue = {
     Landing: (r) => JSON.stringify({ id: r?.id }),
     Form: (r) => JSON.stringify({ id: r?.id }),
-    Attendees: (r) => JSON.stringify({ id: r?.id }),
+    EventAttendes: (r) => JSON.stringify({ id: r?.id }),
   };
   const LandingIdSet = new Set(
     Array.isArray(Landing)
@@ -270,10 +274,10 @@ export default function EventCreateForm(props) {
       ? Form.map((r) => getIDValue.Form?.(r))
       : getIDValue.Form?.(Form)
   );
-  const AttendeesIdSet = new Set(
-    Array.isArray(Attendees)
-      ? Attendees.map((r) => getIDValue.Attendees?.(r))
-      : getIDValue.Attendees?.(Attendees)
+  const EventAttendesIdSet = new Set(
+    Array.isArray(EventAttendes)
+      ? EventAttendes.map((r) => getIDValue.EventAttendes?.(r))
+      : getIDValue.EventAttendes?.(EventAttendes)
   );
   const landingRecords = useDataStoreBinding({
     type: "collection",
@@ -287,15 +291,16 @@ export default function EventCreateForm(props) {
     type: "collection",
     model: Form0,
   }).items;
-  const attendeeRecords = useDataStoreBinding({
+  const eventAttendeRecords = useDataStoreBinding({
     type: "collection",
-    model: Attendee,
+    model: EventAttende,
   }).items;
   const getDisplayValue = {
     Landing: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     careerID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     Form: (r) => r?.id,
-    Attendees: (r) => `${r?.name ? r?.name + " - " : ""}${r?.id}`,
+    EventAttendes: (r) =>
+      `${r?.authorized ? r?.authorized + " - " : ""}${r?.id}`,
   };
   const validations = {
     title: [],
@@ -303,7 +308,7 @@ export default function EventCreateForm(props) {
     Landing: [],
     careerID: [{ type: "Required" }],
     Form: [],
-    Attendees: [],
+    EventAttendes: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -336,7 +341,7 @@ export default function EventCreateForm(props) {
           Landing,
           careerID,
           Form,
-          Attendees,
+          EventAttendes,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -383,6 +388,27 @@ export default function EventCreateForm(props) {
           };
           const event = await DataStore.save(new Event(modelFieldsToSave));
           const promises = [];
+          const landingToLink = modelFields.Landing;
+          if (landingToLink) {
+            promises.push(
+              DataStore.save(
+                Landing0.copyOf(landingToLink, (updated) => {
+                  updated.Event = event;
+                })
+              )
+            );
+            const eventToUnlink = await landingToLink.Event;
+            if (eventToUnlink) {
+              promises.push(
+                DataStore.save(
+                  Event.copyOf(eventToUnlink, (updated) => {
+                    updated.Landing = undefined;
+                    updated.eventLandingId = undefined;
+                  })
+                )
+              );
+            }
+          }
           const formToLink = modelFields.Form;
           if (formToLink) {
             promises.push(
@@ -405,12 +431,11 @@ export default function EventCreateForm(props) {
             }
           }
           promises.push(
-            ...Attendees.reduce((promises, attendee) => {
+            ...EventAttendes.reduce((promises, original) => {
               promises.push(
                 DataStore.save(
-                  new EventAttendee({
-                    event,
-                    attendee,
+                  EventAttende.copyOf(original, (updated) => {
+                    updated.eventID = event.id;
                   })
                 )
               );
@@ -447,7 +472,7 @@ export default function EventCreateForm(props) {
               Landing,
               careerID,
               Form,
-              Attendees,
+              EventAttendes,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -476,7 +501,7 @@ export default function EventCreateForm(props) {
               Landing,
               careerID,
               Form,
-              Attendees,
+              EventAttendes,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -502,7 +527,7 @@ export default function EventCreateForm(props) {
               Landing: value,
               careerID,
               Form,
-              Attendees,
+              EventAttendes,
             };
             const result = onChange(modelFields);
             value = result?.Landing ?? value;
@@ -581,7 +606,7 @@ export default function EventCreateForm(props) {
               Landing,
               careerID: value,
               Form,
-              Attendees,
+              EventAttendes,
             };
             const result = onChange(modelFields);
             value = result?.careerID ?? value;
@@ -664,7 +689,7 @@ export default function EventCreateForm(props) {
               Landing,
               careerID,
               Form: value,
-              Attendees,
+              EventAttendes,
             };
             const result = onChange(modelFields);
             value = result?.Form ?? value;
@@ -738,91 +763,95 @@ export default function EventCreateForm(props) {
               Landing,
               careerID,
               Form,
-              Attendees: values,
+              EventAttendes: values,
             };
             const result = onChange(modelFields);
-            values = result?.Attendees ?? values;
+            values = result?.EventAttendes ?? values;
           }
-          setAttendees(values);
-          setCurrentAttendeesValue(undefined);
-          setCurrentAttendeesDisplayValue("");
+          setEventAttendes(values);
+          setCurrentEventAttendesValue(undefined);
+          setCurrentEventAttendesDisplayValue("");
         }}
-        currentFieldValue={currentAttendeesValue}
-        label={"Attendees"}
-        items={Attendees}
-        hasError={errors?.Attendees?.hasError}
-        errorMessage={errors?.Attendees?.errorMessage}
-        getBadgeText={getDisplayValue.Attendees}
+        currentFieldValue={currentEventAttendesValue}
+        label={"Event attendes"}
+        items={EventAttendes}
+        hasError={errors?.EventAttendes?.hasError}
+        errorMessage={errors?.EventAttendes?.errorMessage}
+        getBadgeText={getDisplayValue.EventAttendes}
         setFieldValue={(model) => {
-          setCurrentAttendeesDisplayValue(
-            model ? getDisplayValue.Attendees(model) : ""
+          setCurrentEventAttendesDisplayValue(
+            model ? getDisplayValue.EventAttendes(model) : ""
           );
-          setCurrentAttendeesValue(model);
+          setCurrentEventAttendesValue(model);
         }}
-        inputFieldRef={AttendeesRef}
+        inputFieldRef={EventAttendesRef}
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Attendees"
+          label="Event attendes"
           isRequired={false}
           isReadOnly={false}
-          placeholder="Search Attendee"
-          value={currentAttendeesDisplayValue}
-          options={attendeeRecords
-            .filter((r) => !AttendeesIdSet.has(getIDValue.Attendees?.(r)))
+          placeholder="Search EventAttende"
+          value={currentEventAttendesDisplayValue}
+          options={eventAttendeRecords
+            .filter(
+              (r) => !EventAttendesIdSet.has(getIDValue.EventAttendes?.(r))
+            )
             .map((r) => ({
-              id: getIDValue.Attendees?.(r),
-              label: getDisplayValue.Attendees?.(r),
+              id: getIDValue.EventAttendes?.(r),
+              label: getDisplayValue.EventAttendes?.(r),
             }))}
           onSelect={({ id, label }) => {
-            setCurrentAttendeesValue(
-              attendeeRecords.find((r) =>
+            setCurrentEventAttendesValue(
+              eventAttendeRecords.find((r) =>
                 Object.entries(JSON.parse(id)).every(
                   ([key, value]) => r[key] === value
                 )
               )
             );
-            setCurrentAttendeesDisplayValue(label);
-            runValidationTasks("Attendees", label);
+            setCurrentEventAttendesDisplayValue(label);
+            runValidationTasks("EventAttendes", label);
           }}
           onClear={() => {
-            setCurrentAttendeesDisplayValue("");
+            setCurrentEventAttendesDisplayValue("");
           }}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.Attendees?.hasError) {
-              runValidationTasks("Attendees", value);
+            if (errors.EventAttendes?.hasError) {
+              runValidationTasks("EventAttendes", value);
             }
-            setCurrentAttendeesDisplayValue(value);
-            setCurrentAttendeesValue(undefined);
+            setCurrentEventAttendesDisplayValue(value);
+            setCurrentEventAttendesValue(undefined);
           }}
           onBlur={() =>
-            runValidationTasks("Attendees", currentAttendeesDisplayValue)
+            runValidationTasks(
+              "EventAttendes",
+              currentEventAttendesDisplayValue
+            )
           }
-          errorMessage={errors.Attendees?.errorMessage}
-          hasError={errors.Attendees?.hasError}
-          ref={AttendeesRef}
+          errorMessage={errors.EventAttendes?.errorMessage}
+          hasError={errors.EventAttendes?.hasError}
+          ref={EventAttendesRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "Attendees")}
+          {...getOverrideProps(overrides, "EventAttendes")}
         ></Autocomplete>
       </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
       >
-        <Button
-          children="Clear"
-          type="reset"
-          onClick={(event) => {
-            event.preventDefault();
-            resetStateValues();
-          }}
-          {...getOverrideProps(overrides, "ClearButton")}
-        ></Button>
         <Flex
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
+          <Button
+            children="Cancelar"
+            type="button"
+            onClick={() => {
+              onCancel && onCancel();
+            }}
+            {...getOverrideProps(overrides, "CancelButton")}
+          ></Button>
           <Button
             children="Submit"
             type="submit"

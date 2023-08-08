@@ -4,6 +4,9 @@ import { HiX } from "react-icons/hi";
 import Links from "./components/Links";
 import { Link } from "react-router-dom";
 import routes from "routes.js";
+import {
+  MdChevronLeft
+} from "react-icons/md";
 
 const Sidebar = ({ open, onClose, eventId, activePath}) => {
 
@@ -43,13 +46,17 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
         <div
           className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-56`}
           >
-          <div className="mt-[58px] mb-7 h-px dark:bg-white/30" />
+          <div className="mt-[14px] mb-7 h-px dark:bg-white/30" />
           <div className="flex flex-col gap-10">
-            <div className="pt-2 pb-4">
-              <Link className="px-[35px]" to={ `eventos/`}>Eventos</Link>
+            <div className="pt-2 pb-3 border-b border-gray-700">
+              <Link className="pl-[30px] pr-[35px] flex items-center text-brand-500 hover:no-underline hover:text-navy-700" to={ `eventos/`}>
+                <MdChevronLeft className="h-7 w-7" /> Eventos
+              </Link>
             </div>
             <div className="">
-            <Link className="px-[35px] py-3" to={ `/landing/${eventId}`} target="_blank">Link del evento</Link>
+            <Link className="px-[35px] py-3" to={ `/landing/${eventId}`} target="_blank">
+              Link del evento
+            </Link>
             </div>
             <div className="flex flex-col">
               <Link 

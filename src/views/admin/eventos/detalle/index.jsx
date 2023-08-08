@@ -1,87 +1,81 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
 import { Event } from "models"
-import { useForm } from "react-hook-form"
+import {
+  EventUpdateForm
+ } from 'ui-components';
+ import {
+  MdEditCalendar,
+  MdChevronLeft
+} from "react-icons/md";
 
 const Dashboard = () => {
 
   const [event, setEvent] = React.useState([]);
   const id = useParams().id;
   const navigate = useNavigate();
+  localStorage.setItem("eventID", id)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-  } = useForm();
-
-  const onSubmit = ( formData ) => {
-    if(event){
-      updateEvent(formData);
-    }
-  }
-  
   React.useEffect(() => {
     if(!id || id === "no-id"){
       navigate(`/admin/eventos`);
-      return 
+      return
     }
 
-    localStorage.setItem("eventID", id)
-
-    DataStore.query(Event, (c) => c.id.eq(id)).then( results => {
+    DataStore.query(Event, (e) => e.id.eq(id)).then( results => {
       setEvent(results[0]);
       console.log("Event: ", results)
-      setValue("title", results[0].title);
-      setValue("description", results[0].description);
     });
-  }, [id,setValue, navigate]);
-
-  async function updateEvent(formData) {
-    const updatedEvent= await DataStore.save(
-      Event.copyOf(event, updated => {
-        updated.title = formData.title;
-        updated.description = formData.description;
-      })
-    );
-    setEvent(updatedEvent);
-    alert("Evento actualizado con éxito");
-  }
+  }, [id, navigate]);
 
   const deleteEvent = () => {
     DataStore.delete(event);
     alert("Evento eliminado con éxito")
+    navigate('/admin/eventos');
   }
-
 
   if(!event){
     return <p>Loading...</p>
   }
 
   return (
-    <div className="campus-page">
+    <div className="event-detail-page">
       <div className="mt-3 grid h-full">
-        {/* NFt Banner */}
         <Banner />
       </div>
-      {event &&
-        <>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <input {...register("title", { required: true })}/>
-            {errors.title && <p>This field is required</p>}
-            <input {...register("description", { required: true })} />
-            {errors.description && <p>This field is required</p>}
-            <div>
-            <input className="linear mt-2 rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200" value="Guardar" type="submit" />
-            </div>
-          </form>
-          <button onClick={deleteEvent} className="linear mt-2 rounded-xl bg-red-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
-            Eliminar Evento
+
+      <Link
+        to="/admin/eventos"
+        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
+      >
+        <MdChevronLeft className="h-7 w-7" /> Lista de eventos
+      </Link>
+
+      {event && event.length !== 0 &&
+        <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+
+          <div className="flex items-center justify-between px-3 mb-4">
+            <p className="text-3xl flex items-center font-bold text-black dark:text-white">
+              <MdEditCalendar className="h-12 w-12 mr-3" /> Acerca del Evento
+            </p>
+          </div>
+
+          <EventUpdateForm
+            event={event}
+            onSuccess={() => {            
+              navigate('/admin/eventos');
+            }}
+            onCancel={() => {
+              navigate('/admin/eventos');
+            }}
+          />
+
+          <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
+            Eliminar
           </button>
-        </>
+        </div>
       }
     </div>
   );

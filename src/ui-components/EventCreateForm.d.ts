@@ -7,7 +7,7 @@
 import * as React from "react";
 import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { Landing as Landing0, Form as Form0, Attendee } from "../models";
+import { Landing as Landing0, Form as Form0, EventAttende } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -19,7 +19,7 @@ export declare type EventCreateFormInputValues = {
     Landing?: Landing0;
     careerID?: string;
     Form?: Form0;
-    Attendees?: Attendee[];
+    EventAttendes?: EventAttende[];
 };
 export declare type EventCreateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -27,7 +27,7 @@ export declare type EventCreateFormValidationValues = {
     Landing?: ValidationFunction<Landing0>;
     careerID?: ValidationFunction<string>;
     Form?: ValidationFunction<Form0>;
-    Attendees?: ValidationFunction<Attendee>;
+    EventAttendes?: ValidationFunction<EventAttende>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventCreateFormOverridesProps = {
@@ -37,7 +37,7 @@ export declare type EventCreateFormOverridesProps = {
     Landing?: PrimitiveOverrideProps<AutocompleteProps>;
     careerID?: PrimitiveOverrideProps<AutocompleteProps>;
     Form?: PrimitiveOverrideProps<AutocompleteProps>;
-    Attendees?: PrimitiveOverrideProps<AutocompleteProps>;
+    EventAttendes?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type EventCreateFormProps = React.PropsWithChildren<{
     overrides?: EventCreateFormOverridesProps | undefined | null;
@@ -46,6 +46,7 @@ export declare type EventCreateFormProps = React.PropsWithChildren<{
     onSubmit?: (fields: EventCreateFormInputValues) => EventCreateFormInputValues;
     onSuccess?: (fields: EventCreateFormInputValues) => void;
     onError?: (fields: EventCreateFormInputValues, errorMessage: string) => void;
+    onCancel?: () => void;
     onChange?: (fields: EventCreateFormInputValues) => EventCreateFormInputValues;
     onValidate?: EventCreateFormValidationValues;
 } & React.CSSProperties>;

@@ -10,12 +10,16 @@ import {
 const Dashboard = () => {
 
   const navigate = useNavigate();
-
+  const [formData, setFormData] = React.useState()
   const [subAreaId, setSubAreaId ] = React.useState();
 
   React.useEffect( () => {
     setSubAreaId(localStorage.getItem('subAreaID'));
   }, []);
+
+  React.useEffect( () => {
+    console.log(formData)
+  }, [formData]);
 
   return (
     <div className="event-page">

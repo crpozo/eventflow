@@ -7,7 +7,7 @@
 import * as React from "react";
 import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { Event, Landing as Landing0, Form as Form0, Attendee } from "../models";
+import { Event, Landing as Landing0, Form as Form0, EventAttende } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -19,7 +19,7 @@ export declare type EventUpdateFormInputValues = {
     Landing?: Landing0;
     careerID?: string;
     Form?: Form0;
-    Attendees?: Attendee[];
+    EventAttendes?: EventAttende[];
 };
 export declare type EventUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -27,7 +27,7 @@ export declare type EventUpdateFormValidationValues = {
     Landing?: ValidationFunction<Landing0>;
     careerID?: ValidationFunction<string>;
     Form?: ValidationFunction<Form0>;
-    Attendees?: ValidationFunction<Attendee>;
+    EventAttendes?: ValidationFunction<EventAttende>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventUpdateFormOverridesProps = {
@@ -37,7 +37,7 @@ export declare type EventUpdateFormOverridesProps = {
     Landing?: PrimitiveOverrideProps<AutocompleteProps>;
     careerID?: PrimitiveOverrideProps<AutocompleteProps>;
     Form?: PrimitiveOverrideProps<AutocompleteProps>;
-    Attendees?: PrimitiveOverrideProps<AutocompleteProps>;
+    EventAttendes?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type EventUpdateFormProps = React.PropsWithChildren<{
     overrides?: EventUpdateFormOverridesProps | undefined | null;
@@ -47,6 +47,7 @@ export declare type EventUpdateFormProps = React.PropsWithChildren<{
     onSubmit?: (fields: EventUpdateFormInputValues) => EventUpdateFormInputValues;
     onSuccess?: (fields: EventUpdateFormInputValues) => void;
     onError?: (fields: EventUpdateFormInputValues, errorMessage: string) => void;
+    onCancel?: () => void;
     onChange?: (fields: EventUpdateFormInputValues) => EventUpdateFormInputValues;
     onValidate?: EventUpdateFormValidationValues;
 } & React.CSSProperties>;
