@@ -9,8 +9,7 @@ window.$ = $;
 require('jquery-ui-sortable');
 require('formBuilder');
 
-  // Al cargar de nuevo la página obtener el JSON de preguntas y cargar el form builder
-  // En la landing cargar el json de la base de datos y mostrarlo listo para responderse
+// En vez de useParams usar localStorage
 
 const Dashboard = () => {
 
@@ -59,7 +58,7 @@ const Dashboard = () => {
     setFormData(updatedEvent.questions);
     alert("Form actualizado con éxito");
   }
-
+  
   class FormBuilder extends Component {
 
     fb = createRef();

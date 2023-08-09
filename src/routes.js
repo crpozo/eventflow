@@ -26,7 +26,7 @@ import EventoLanding from "views/admin/eventos/landing";
 import EventoFormulario from "views/admin/eventos/formulario";
 import EventoUsuarios from "views/admin/eventos/usuarios";
 import EventoUsuariosCrear from "views/admin/eventos/usuarios/crear";
-import Landing from "views/landing/SignIn";
+import Landing from "views/landing/index";
 import LandingRegistro from "views/landing/registro";
 
 // Auth Imports

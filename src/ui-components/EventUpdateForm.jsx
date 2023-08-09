@@ -23,13 +23,7 @@ import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import {
-  Event,
-  Landing as Landing0,
-  Form as Form0,
-  EventAttende,
-  Career,
-} from "../models";
+import { Event, Form as Form0, EventAttende, Career } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -206,7 +200,6 @@ export default function EventUpdateForm(props) {
   const initialValues = {
     title: "",
     description: "",
-    Landing: undefined,
     careerID: undefined,
     Form: undefined,
     EventAttendes: [],
@@ -215,7 +208,6 @@ export default function EventUpdateForm(props) {
   const [description, setDescription] = React.useState(
     initialValues.description
   );
-  const [Landing, setLanding] = React.useState(initialValues.Landing);
   const [careerID, setCareerID] = React.useState(initialValues.careerID);
   const [Form, setForm] = React.useState(initialValues.Form);
   const [EventAttendes, setEventAttendes] = React.useState(
@@ -227,7 +219,6 @@ export default function EventUpdateForm(props) {
       ? {
           ...initialValues,
           ...eventRecord,
-          Landing,
           careerID,
           Form,
           EventAttendes: linkedEventAttendes,
@@ -235,9 +226,6 @@ export default function EventUpdateForm(props) {
       : initialValues;
     setTitle(cleanValues.title);
     setDescription(cleanValues.description);
-    setLanding(cleanValues.Landing);
-    setCurrentLandingValue(undefined);
-    setCurrentLandingDisplayValue("");
     setCareerID(cleanValues.careerID);
     setCurrentCareerIDValue(undefined);
     setCurrentCareerIDDisplayValue("");
@@ -258,8 +246,6 @@ export default function EventUpdateForm(props) {
         ? await DataStore.query(Event, idProp)
         : eventModelProp;
       setEventRecord(record);
-      const LandingRecord = record ? await record.Landing : undefined;
-      setLanding(LandingRecord);
       const careerIDRecord = record ? await record.careerID : undefined;
       setCareerID(careerIDRecord);
       const FormRecord = record ? await record.Form : undefined;
@@ -273,16 +259,10 @@ export default function EventUpdateForm(props) {
   }, [idProp, eventModelProp]);
   React.useEffect(resetStateValues, [
     eventRecord,
-    Landing,
     careerID,
     Form,
     linkedEventAttendes,
   ]);
-  const [currentLandingDisplayValue, setCurrentLandingDisplayValue] =
-    React.useState("");
-  const [currentLandingValue, setCurrentLandingValue] =
-    React.useState(undefined);
-  const LandingRef = React.createRef();
   const [currentCareerIDDisplayValue, setCurrentCareerIDDisplayValue] =
     React.useState("");
   const [currentCareerIDValue, setCurrentCareerIDValue] =
@@ -300,15 +280,9 @@ export default function EventUpdateForm(props) {
     React.useState(undefined);
   const EventAttendesRef = React.createRef();
   const getIDValue = {
-    Landing: (r) => JSON.stringify({ id: r?.id }),
     Form: (r) => JSON.stringify({ id: r?.id }),
     EventAttendes: (r) => JSON.stringify({ id: r?.id }),
   };
-  const LandingIdSet = new Set(
-    Array.isArray(Landing)
-      ? Landing.map((r) => getIDValue.Landing?.(r))
-      : getIDValue.Landing?.(Landing)
-  );
   const FormIdSet = new Set(
     Array.isArray(Form)
       ? Form.map((r) => getIDValue.Form?.(r))
@@ -319,10 +293,6 @@ export default function EventUpdateForm(props) {
       ? EventAttendes.map((r) => getIDValue.EventAttendes?.(r))
       : getIDValue.EventAttendes?.(EventAttendes)
   );
-  const landingRecords = useDataStoreBinding({
-    type: "collection",
-    model: Landing0,
-  }).items;
   const careerRecords = useDataStoreBinding({
     type: "collection",
     model: Career,
@@ -336,7 +306,6 @@ export default function EventUpdateForm(props) {
     model: EventAttende,
   }).items;
   const getDisplayValue = {
-    Landing: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     careerID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     Form: (r) => r?.id,
     EventAttendes: (r) =>
@@ -345,7 +314,6 @@ export default function EventUpdateForm(props) {
   const validations = {
     title: [],
     description: [],
-    Landing: [],
     careerID: [{ type: "Required" }],
     Form: [],
     EventAttendes: [],
@@ -378,7 +346,6 @@ export default function EventUpdateForm(props) {
         let modelFields = {
           title,
           description,
-          Landing,
           careerID,
           Form,
           EventAttendes,
@@ -420,38 +387,6 @@ export default function EventUpdateForm(props) {
             }
           });
           const promises = [];
-          const landingToUnlink = await eventRecord.Landing;
-          if (landingToUnlink) {
-            promises.push(
-              DataStore.save(
-                Landing0.copyOf(landingToUnlink, (updated) => {
-                  updated.Event = undefined;
-                  updated.landingEventId = undefined;
-                })
-              )
-            );
-          }
-          const landingToLink = modelFields.Landing;
-          if (landingToLink) {
-            promises.push(
-              DataStore.save(
-                Landing0.copyOf(landingToLink, (updated) => {
-                  updated.Event = eventRecord;
-                })
-              )
-            );
-            const eventToUnlink = await landingToLink.Event;
-            if (eventToUnlink) {
-              promises.push(
-                DataStore.save(
-                  Event.copyOf(eventToUnlink, (updated) => {
-                    updated.Landing = undefined;
-                    updated.eventLandingId = undefined;
-                  })
-                )
-              );
-            }
-          }
           const formToUnlink = await eventRecord.Form;
           if (formToUnlink) {
             promises.push(
@@ -530,7 +465,6 @@ export default function EventUpdateForm(props) {
           const modelFieldsToSave = {
             title: modelFields.title,
             description: modelFields.description,
-            Landing: modelFields.Landing,
             careerID: modelFields.careerID,
             Form: modelFields.Form,
           };
@@ -538,9 +472,6 @@ export default function EventUpdateForm(props) {
             DataStore.save(
               Event.copyOf(eventRecord, (updated) => {
                 Object.assign(updated, modelFieldsToSave);
-                if (!modelFieldsToSave.Landing) {
-                  updated.eventLandingId = undefined;
-                }
                 if (!modelFieldsToSave.Form) {
                   updated.eventFormId = undefined;
                 }
@@ -571,7 +502,6 @@ export default function EventUpdateForm(props) {
             const modelFields = {
               title: value,
               description,
-              Landing,
               careerID,
               Form,
               EventAttendes,
@@ -600,7 +530,6 @@ export default function EventUpdateForm(props) {
             const modelFields = {
               title,
               description: value,
-              Landing,
               careerID,
               Form,
               EventAttendes,
@@ -626,87 +555,6 @@ export default function EventUpdateForm(props) {
             const modelFields = {
               title,
               description,
-              Landing: value,
-              careerID,
-              Form,
-              EventAttendes,
-            };
-            const result = onChange(modelFields);
-            value = result?.Landing ?? value;
-          }
-          setLanding(value);
-          setCurrentLandingValue(undefined);
-          setCurrentLandingDisplayValue("");
-        }}
-        currentFieldValue={currentLandingValue}
-        label={"Landing"}
-        items={Landing ? [Landing] : []}
-        hasError={errors?.Landing?.hasError}
-        errorMessage={errors?.Landing?.errorMessage}
-        getBadgeText={getDisplayValue.Landing}
-        setFieldValue={(model) => {
-          setCurrentLandingDisplayValue(
-            model ? getDisplayValue.Landing(model) : ""
-          );
-          setCurrentLandingValue(model);
-        }}
-        inputFieldRef={LandingRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label="Landing"
-          isRequired={false}
-          isReadOnly={false}
-          placeholder="Search Landing"
-          value={currentLandingDisplayValue}
-          options={landingRecords
-            .filter((r) => !LandingIdSet.has(getIDValue.Landing?.(r)))
-            .map((r) => ({
-              id: getIDValue.Landing?.(r),
-              label: getDisplayValue.Landing?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentLandingValue(
-              landingRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentLandingDisplayValue(label);
-            runValidationTasks("Landing", label);
-          }}
-          onClear={() => {
-            setCurrentLandingDisplayValue("");
-          }}
-          defaultValue={Landing}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.Landing?.hasError) {
-              runValidationTasks("Landing", value);
-            }
-            setCurrentLandingDisplayValue(value);
-            setCurrentLandingValue(undefined);
-          }}
-          onBlur={() =>
-            runValidationTasks("Landing", currentLandingDisplayValue)
-          }
-          errorMessage={errors.Landing?.errorMessage}
-          hasError={errors.Landing?.hasError}
-          ref={LandingRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "Landing")}
-        ></Autocomplete>
-      </ArrayField>
-      <ArrayField
-        lengthLimit={1}
-        onChange={async (items) => {
-          let value = items[0];
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              Landing,
               careerID: value,
               Form,
               EventAttendes,
@@ -800,7 +648,6 @@ export default function EventUpdateForm(props) {
             const modelFields = {
               title,
               description,
-              Landing,
               careerID,
               Form: value,
               EventAttendes,
@@ -875,7 +722,6 @@ export default function EventUpdateForm(props) {
             const modelFields = {
               title,
               description,
-              Landing,
               careerID,
               Form,
               EventAttendes: values,

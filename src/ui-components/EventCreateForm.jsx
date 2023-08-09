@@ -23,13 +23,7 @@ import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import {
-  Event,
-  Landing as Landing0,
-  Form as Form0,
-  EventAttende,
-  Career,
-} from "../models";
+import { Event, Form as Form0, EventAttende, Career } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -205,7 +199,6 @@ export default function EventCreateForm(props) {
   const initialValues = {
     title: "",
     description: "",
-    Landing: undefined,
     careerID: undefined,
     Form: undefined,
     EventAttendes: [],
@@ -214,7 +207,6 @@ export default function EventCreateForm(props) {
   const [description, setDescription] = React.useState(
     initialValues.description
   );
-  const [Landing, setLanding] = React.useState(initialValues.Landing);
   const [careerID, setCareerID] = React.useState(initialValues.careerID);
   const [Form, setForm] = React.useState(initialValues.Form);
   const [EventAttendes, setEventAttendes] = React.useState(
@@ -224,9 +216,6 @@ export default function EventCreateForm(props) {
   const resetStateValues = () => {
     setTitle(initialValues.title);
     setDescription(initialValues.description);
-    setLanding(initialValues.Landing);
-    setCurrentLandingValue(undefined);
-    setCurrentLandingDisplayValue("");
     setCareerID(initialValues.careerID);
     setCurrentCareerIDValue(undefined);
     setCurrentCareerIDDisplayValue("");
@@ -238,11 +227,6 @@ export default function EventCreateForm(props) {
     setCurrentEventAttendesDisplayValue("");
     setErrors({});
   };
-  const [currentLandingDisplayValue, setCurrentLandingDisplayValue] =
-    React.useState("");
-  const [currentLandingValue, setCurrentLandingValue] =
-    React.useState(undefined);
-  const LandingRef = React.createRef();
   const [currentCareerIDDisplayValue, setCurrentCareerIDDisplayValue] =
     React.useState("");
   const [currentCareerIDValue, setCurrentCareerIDValue] =
@@ -260,15 +244,9 @@ export default function EventCreateForm(props) {
     React.useState(undefined);
   const EventAttendesRef = React.createRef();
   const getIDValue = {
-    Landing: (r) => JSON.stringify({ id: r?.id }),
     Form: (r) => JSON.stringify({ id: r?.id }),
     EventAttendes: (r) => JSON.stringify({ id: r?.id }),
   };
-  const LandingIdSet = new Set(
-    Array.isArray(Landing)
-      ? Landing.map((r) => getIDValue.Landing?.(r))
-      : getIDValue.Landing?.(Landing)
-  );
   const FormIdSet = new Set(
     Array.isArray(Form)
       ? Form.map((r) => getIDValue.Form?.(r))
@@ -279,10 +257,6 @@ export default function EventCreateForm(props) {
       ? EventAttendes.map((r) => getIDValue.EventAttendes?.(r))
       : getIDValue.EventAttendes?.(EventAttendes)
   );
-  const landingRecords = useDataStoreBinding({
-    type: "collection",
-    model: Landing0,
-  }).items;
   const careerRecords = useDataStoreBinding({
     type: "collection",
     model: Career,
@@ -296,7 +270,6 @@ export default function EventCreateForm(props) {
     model: EventAttende,
   }).items;
   const getDisplayValue = {
-    Landing: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     careerID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     Form: (r) => r?.id,
     EventAttendes: (r) =>
@@ -305,7 +278,6 @@ export default function EventCreateForm(props) {
   const validations = {
     title: [],
     description: [],
-    Landing: [],
     careerID: [{ type: "Required" }],
     Form: [],
     EventAttendes: [],
@@ -338,7 +310,6 @@ export default function EventCreateForm(props) {
         let modelFields = {
           title,
           description,
-          Landing,
           careerID,
           Form,
           EventAttendes,
@@ -382,33 +353,11 @@ export default function EventCreateForm(props) {
           const modelFieldsToSave = {
             title: modelFields.title,
             description: modelFields.description,
-            Landing: modelFields.Landing,
             careerID: modelFields.careerID,
             Form: modelFields.Form,
           };
           const event = await DataStore.save(new Event(modelFieldsToSave));
           const promises = [];
-          const landingToLink = modelFields.Landing;
-          if (landingToLink) {
-            promises.push(
-              DataStore.save(
-                Landing0.copyOf(landingToLink, (updated) => {
-                  updated.Event = event;
-                })
-              )
-            );
-            const eventToUnlink = await landingToLink.Event;
-            if (eventToUnlink) {
-              promises.push(
-                DataStore.save(
-                  Event.copyOf(eventToUnlink, (updated) => {
-                    updated.Landing = undefined;
-                    updated.eventLandingId = undefined;
-                  })
-                )
-              );
-            }
-          }
           const formToLink = modelFields.Form;
           if (formToLink) {
             promises.push(
@@ -469,7 +418,6 @@ export default function EventCreateForm(props) {
             const modelFields = {
               title: value,
               description,
-              Landing,
               careerID,
               Form,
               EventAttendes,
@@ -498,7 +446,6 @@ export default function EventCreateForm(props) {
             const modelFields = {
               title,
               description: value,
-              Landing,
               careerID,
               Form,
               EventAttendes,
@@ -524,86 +471,6 @@ export default function EventCreateForm(props) {
             const modelFields = {
               title,
               description,
-              Landing: value,
-              careerID,
-              Form,
-              EventAttendes,
-            };
-            const result = onChange(modelFields);
-            value = result?.Landing ?? value;
-          }
-          setLanding(value);
-          setCurrentLandingValue(undefined);
-          setCurrentLandingDisplayValue("");
-        }}
-        currentFieldValue={currentLandingValue}
-        label={"Landing"}
-        items={Landing ? [Landing] : []}
-        hasError={errors?.Landing?.hasError}
-        errorMessage={errors?.Landing?.errorMessage}
-        getBadgeText={getDisplayValue.Landing}
-        setFieldValue={(model) => {
-          setCurrentLandingDisplayValue(
-            model ? getDisplayValue.Landing(model) : ""
-          );
-          setCurrentLandingValue(model);
-        }}
-        inputFieldRef={LandingRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label="Landing"
-          isRequired={false}
-          isReadOnly={false}
-          placeholder="Search Landing"
-          value={currentLandingDisplayValue}
-          options={landingRecords
-            .filter((r) => !LandingIdSet.has(getIDValue.Landing?.(r)))
-            .map((r) => ({
-              id: getIDValue.Landing?.(r),
-              label: getDisplayValue.Landing?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentLandingValue(
-              landingRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentLandingDisplayValue(label);
-            runValidationTasks("Landing", label);
-          }}
-          onClear={() => {
-            setCurrentLandingDisplayValue("");
-          }}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.Landing?.hasError) {
-              runValidationTasks("Landing", value);
-            }
-            setCurrentLandingDisplayValue(value);
-            setCurrentLandingValue(undefined);
-          }}
-          onBlur={() =>
-            runValidationTasks("Landing", currentLandingDisplayValue)
-          }
-          errorMessage={errors.Landing?.errorMessage}
-          hasError={errors.Landing?.hasError}
-          ref={LandingRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "Landing")}
-        ></Autocomplete>
-      </ArrayField>
-      <ArrayField
-        lengthLimit={1}
-        onChange={async (items) => {
-          let value = items[0];
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              Landing,
               careerID: value,
               Form,
               EventAttendes,
@@ -686,7 +553,6 @@ export default function EventCreateForm(props) {
             const modelFields = {
               title,
               description,
-              Landing,
               careerID,
               Form: value,
               EventAttendes,
@@ -760,7 +626,6 @@ export default function EventCreateForm(props) {
             const modelFields = {
               title,
               description,
-              Landing,
               careerID,
               Form,
               EventAttendes: values,
@@ -853,7 +718,7 @@ export default function EventCreateForm(props) {
             {...getOverrideProps(overrides, "CancelButton")}
           ></Button>
           <Button
-            children="Submit"
+            children="Guardar"
             type="submit"
             variation="primary"
             isDisabled={Object.values(errors).some((e) => e?.hasError)}

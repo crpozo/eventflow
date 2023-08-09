@@ -139,7 +139,6 @@ button:focus, button:active, button:focus-visible{
 	height: 180px;
 	width: 180px;
 	padding: 10px 20px;
-	/* animation: spin 90s linear infinite alternate; */
 }
 
 .loader {
@@ -155,3 +154,37 @@ button:focus, button:active, button:focus-visible{
 		transform: rotate(360deg);
 	}
 }
+
+/* Formulario */
+
+.form-wrap.form-builder ul.frmb{
+	padding: 30px 20px;
+	background: white;
+	border-radius: 25px;
+	width: calc(73% - 5px);
+}
+
+.form-wrap.form-builder div.btn-group{
+	display: flex;
+  gap: 10px;
+	margin-top: 15px;
+}
+
+.form-wrap.form-builder .btn-group > button.btn{
+	border-radius: 8px !important;
+	padding: 10px 30px !important;
+	font-weight: bold;
+}
+
+.form-wrap.form-builder .btn-group > .btn:first-child:not(:last-child):not(.dropdown-toggle){
+	display:none;
+}
+
+.form-wrap.form-builder .btn-group>.btn:not(:first-child):not(:last-child):not(.dropdown-toggle){
+	display: none;
+}
+
+.form-wrap.form-builder .btn-group>.btn:last-child:not(:first-child){
+	background: #028CFF;
+}
+

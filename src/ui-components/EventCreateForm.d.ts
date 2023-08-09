@@ -7,7 +7,7 @@
 import * as React from "react";
 import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { Landing as Landing0, Form as Form0, EventAttende } from "../models";
+import { Form as Form0, EventAttende } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -16,7 +16,6 @@ export declare type ValidationFunction<T> = (value: T, validationResponse: Valid
 export declare type EventCreateFormInputValues = {
     title?: string;
     description?: string;
-    Landing?: Landing0;
     careerID?: string;
     Form?: Form0;
     EventAttendes?: EventAttende[];
@@ -24,7 +23,6 @@ export declare type EventCreateFormInputValues = {
 export declare type EventCreateFormValidationValues = {
     title?: ValidationFunction<string>;
     description?: ValidationFunction<string>;
-    Landing?: ValidationFunction<Landing0>;
     careerID?: ValidationFunction<string>;
     Form?: ValidationFunction<Form0>;
     EventAttendes?: ValidationFunction<EventAttende>;
@@ -34,7 +32,6 @@ export declare type EventCreateFormOverridesProps = {
     EventCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
     description?: PrimitiveOverrideProps<TextFieldProps>;
-    Landing?: PrimitiveOverrideProps<AutocompleteProps>;
     careerID?: PrimitiveOverrideProps<AutocompleteProps>;
     Form?: PrimitiveOverrideProps<AutocompleteProps>;
     EventAttendes?: PrimitiveOverrideProps<AutocompleteProps>;

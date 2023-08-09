@@ -46,13 +46,6 @@ const Dashboard = () => {
         <Banner />
       </div>
 
-      <Link
-        to="/admin/eventos"
-        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
-      >
-        <MdChevronLeft className="h-7 w-7" /> Lista de eventos
-      </Link>
-
       {event && event.length !== 0 &&
         <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 

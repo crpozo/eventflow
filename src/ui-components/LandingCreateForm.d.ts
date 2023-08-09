@@ -5,9 +5,8 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { Event as Event0 } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -15,17 +14,14 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type LandingCreateFormInputValues = {
     title?: string;
-    Event?: Event0;
 };
 export declare type LandingCreateFormValidationValues = {
     title?: ValidationFunction<string>;
-    Event?: ValidationFunction<Event0>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type LandingCreateFormOverridesProps = {
     LandingCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
-    Event?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type LandingCreateFormProps = React.PropsWithChildren<{
     overrides?: LandingCreateFormOverridesProps | undefined | null;
@@ -34,6 +30,7 @@ export declare type LandingCreateFormProps = React.PropsWithChildren<{
     onSubmit?: (fields: LandingCreateFormInputValues) => LandingCreateFormInputValues;
     onSuccess?: (fields: LandingCreateFormInputValues) => void;
     onError?: (fields: LandingCreateFormInputValues, errorMessage: string) => void;
+    onCancel?: () => void;
     onChange?: (fields: LandingCreateFormInputValues) => LandingCreateFormInputValues;
     onValidate?: LandingCreateFormValidationValues;
 } & React.CSSProperties>;

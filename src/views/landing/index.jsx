@@ -1,14 +1,52 @@
+import React from "react";
 import InputField from "components/fields/InputField";
 import { FcGoogle } from "react-icons/fc";
 import Checkbox from "components/checkbox";
+import { useParams } from "react-router-dom";
+import { DataStore } from "aws-amplify";
+import { Landing } from "models";
 
 export default function SignIn() {
+
+  const { id } = useParams();
+  const [landing, setLanding] = React.useState(null);
+
+
+  React.useEffect(() => {
+
+    console.log(id)
+    
+    
+    // DataStore.query(Event, (e) => e.id.eq(eventId)).then( results => {
+    //   setEvent(results[0]);
+    //   console.log("Event: ", results)
+    // });
+
+    DataStore.query(Landing, (l) => l.landingEventId.eq(id)).then( results => {
+      setLanding(results[0]);
+      console.log("Landing: ", results)
+    });
+
+  }, []);
+
+  if(!landing ){
+    if(!landing ){
+      return (
+      <div class="flex h-screen">
+        <div class="m-auto">
+          <h1 className="text-xl">No existe una landing page con el id: {id}</h1>
+        </div>
+      </div>
+      );
+    }
+  }
+
   return (
     <div className="mt-16 mb-16 flex h-full w-full items-center justify-center px-2 md:mx-0 md:px-0 lg:mb-10 lg:items-center lg:justify-start">
       {/* Sign in section */}
       <div className="mt-[10vh] w-full max-w-full flex-col items-center md:pl-4 lg:pl-0 xl:max-w-[420px]">
         <h4 className="mb-2.5 text-4xl font-bold text-navy-700 dark:text-white">
-          Landing
+          {landing && landing.title}
         </h4>
         <p className="mb-9 ml-1 text-base text-gray-600">
           Enter your email and password to sign in!

@@ -13,7 +13,7 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
   return (
     <>
     <div
-      className={`sm:none duration-175 linear fixed !z-50 flex min-h-[96%] flex-col bg-black pb-10 shadow-2xl shadow-white/5 transition-all ${activePath != '' ? 'rounded-l-3xl' : 'rounded-3xl'} ml-3 mt-3 mb-4 dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0	 ${
+      className={`sm:none duration-175 linear fixed !z-50 flex min-h-[96%] flex-col bg-black pb-10 shadow-2xl shadow-white/5 transition-all ${activePath != '' ? 'rounded-l-3xl' : 'rounded-3xl'} ml-2 xl:ml-3 mt-3 mb-4 dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0	 ${
         open ? "translate-x-0" : "-translate-x-96"
       }`}
     >
@@ -44,38 +44,38 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
       {/* Nav item end */}
       { activePath != '' && 
         <div
-          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-56`}
+          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-52 xl:translate-x-56`}
           >
           <div className="mt-[14px] mb-7 h-px dark:bg-white/30" />
           <div className="flex flex-col gap-10">
             <div className="pt-2 pb-3 border-b border-gray-700">
-              <Link className="pl-[30px] pr-[35px] flex items-center text-brand-500 hover:no-underline hover:text-navy-700" to={ `eventos/`}>
+              <Link className="pl-[20px] pr-[25px] xl:pl-[30px] xl:pr-[35px] flex items-center text-brand-500 hover:no-underline hover:text-navy-700" to={ `eventos/`}>
                 <MdChevronLeft className="h-7 w-7" /> Eventos
               </Link>
             </div>
             <div className="">
-            <Link className="px-[35px] py-3" to={ `/landing/${eventId}`} target="_blank">
+            <Link className="px-[25px] xl:px-[35px] py-3" to={ `/landing/${eventId}`} target="_blank">
               Link del evento
             </Link>
             </div>
             <div className="flex flex-col">
               <Link 
-                className={`px-[35px] py-3 ${activePath === `eventos/:id/detalle` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/detalle` ? "text-brand-500" : ""}`}
                to={ `eventos/${eventId}/detalle/`}>
                   Detalle Evento
               </Link>
               <Link 
-                className={`px-[35px] py-3 ${activePath === `eventos/:id/landing` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/landing` ? "text-brand-500" : ""}`}
                to={ `eventos/${eventId}/landing/`}>
-                  Landing Page
+                  Landing page
               </Link>
               <Link 
-                className={`px-[35px] py-3 ${activePath === `eventos/:id/formulario` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/formulario` ? "text-brand-500" : ""}`}
                 to={ `eventos/${eventId}/formulario/`}>
                   Formulario
               </Link>
               <Link 
-                className={`px-[35px] py-3 ${activePath === `eventos/:id/usuarios` ? "text-brand-500" : ""}`} 
+                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/usuarios` ? "text-brand-500" : ""}`} 
                 to={ `eventos/${eventId}/usuarios/`}>
                   Usuarios
               </Link>
