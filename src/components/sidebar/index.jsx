@@ -54,30 +54,30 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
               </Link>
             </div>
             <div className="">
-            <Link className="px-[25px] xl:px-[35px] py-3" to={ `/landing/${eventId}`} target="_blank">
+            <Link className="px-[25px] xl:px-[35px] py-3 hover:no-underline" to={ `/landing/${eventId}`} target="_blank">
               Link del evento
             </Link>
             </div>
             <div className="flex flex-col">
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/detalle` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/detalle` ? "text-brand-500" : ""}`}
                to={ `eventos/${eventId}/detalle/`}>
                   Detalle Evento
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/landing` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/landing` ? "text-brand-500" : ""}`}
                to={ `eventos/${eventId}/landing/`}>
                   Landing page
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/formulario` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/formulario` ? "text-brand-500" : ""}`}
                 to={ `eventos/${eventId}/formulario/`}>
                   Formulario
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 ${activePath === `eventos/:id/usuarios` ? "text-brand-500" : ""}`} 
-                to={ `eventos/${eventId}/usuarios/`}>
-                  Usuarios
+                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/participantes` ? "text-brand-500" : ""}`} 
+                to={ `eventos/${eventId}/participantes/`}>
+                  Participantes
               </Link>
             </div>
           </div>

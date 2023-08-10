@@ -31,7 +31,7 @@ export default function Admin(props) {
     if(routeResult?.props.match.route.path == 'eventos/:id/landing' ||
       routeResult?.props.match.route.path == 'eventos/:id/detalle' ||
       routeResult?.props.match.route.path == 'eventos/:id/formulario' ||
-      routeResult?.props.match.route.path == 'eventos/:id/usuarios'){
+      routeResult?.props.match.route.path == 'eventos/:id/participantes'){
       setActivePath(routeResult?.props.match.route.path)
     } else {
       setActivePath('')

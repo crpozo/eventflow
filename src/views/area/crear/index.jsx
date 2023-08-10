@@ -13,7 +13,7 @@ const Dashboard = () => {
 
   return (
     <div className="area-page">
-      <div className="mt-3 grid h-full">
+      <div className="grid h-full">
         <Banner />
       </div>
 

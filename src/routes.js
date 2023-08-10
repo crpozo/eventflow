@@ -20,14 +20,15 @@ import CarreraEditar from "views/carrera/detalle";
 
 // Event Imports
 import Eventos from "views/admin/eventos";
-import EventoDetalle from "views/admin/eventos/detalle";
 import EventoCrear from "views/admin/eventos/crear";
-import EventoLanding from "views/admin/eventos/landing";
-import EventoFormulario from "views/admin/eventos/formulario";
-import EventoUsuarios from "views/admin/eventos/usuarios";
-import EventoUsuariosCrear from "views/admin/eventos/usuarios/crear";
+import EventoDetalle from "views/admin/eventos/detalle";
 import Landing from "views/landing/index";
 import LandingRegistro from "views/landing/registro";
+import EventoLanding from "views/admin/eventos/landing";
+import EventoFormulario from "views/admin/eventos/formulario";
+import EventoParticipantes from "views/admin/eventos/participantes";
+import EventoParticipantesCrear from "views/admin/eventos/participantes/crear";
+import EventoParticipantesDetalle from "views/admin/eventos/participantes/detalle";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -150,18 +151,25 @@ const routes = [
     component: <EventoFormulario />,
   },
   {
-    name: "Evento Usuarios",
+    name: "Evento Participantes",
     layout: "/admin",
-    path: "eventos/:id/usuarios",
+    path: "eventos/:id/participantes",
     icon: <MdCalendarToday className="h-6 w-6" />,
-    component: <EventoUsuarios />,
+    component: <EventoParticipantes />,
   },
   {
-    name: "Evento Usuarios Crear",
+    name: "Evento Participantes Detalle",
     layout: "/admin",
-    path: "eventos/:id/usuarios/crear",
+    path: "eventos/:id/participantes/:id/detalle",
     icon: <MdCalendarToday className="h-6 w-6" />,
-    component: <EventoUsuariosCrear />,
+    component: <EventoParticipantesDetalle />,
+  },
+  {
+    name: "Evento Participantes Crear",
+    layout: "/admin",
+    path: "eventos/:id/participantes/crear",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <EventoParticipantesCrear />,
   },
   {
     name: "Landing",

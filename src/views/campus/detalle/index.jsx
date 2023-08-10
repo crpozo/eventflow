@@ -40,7 +40,7 @@ const Dashboard = () => {
 
   return (
     <div className="campus-page">
-      <div className="mt-3 grid h-full">
+      <div className="grid h-full">
         <Banner />
       </div>
       <Link

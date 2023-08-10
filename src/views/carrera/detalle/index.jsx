@@ -42,7 +42,7 @@ const Dashboard = () => {
 
   return (
     <div className="subarea-page">
-      <div className="mt-3 grid h-full">
+      <div className="grid h-full">
         <Banner />
       </div>
       <Link

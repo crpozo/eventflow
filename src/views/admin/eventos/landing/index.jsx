@@ -48,7 +48,7 @@ const Dashboard = () => {
 
   return (
     <div className="landing-page">
-      <div className="mt-3 grid h-full">
+      <div className="grid h-full">
         <Banner />
       </div>
 

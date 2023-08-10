@@ -2,9 +2,9 @@ import React from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
-import { Event } from "models"
+import { Event, Attendee, EventAttendee } from "models"
 import {
-  EventUpdateForm
+  AttendeeCreateForm
  } from 'ui-components';
  import {
   MdPersonAddAlt,
@@ -13,46 +13,39 @@ import {
 
 const Dashboard = () => {
 
-  const [event, setEvent] = React.useState([]);
   const id = useParams().id;
   const navigate = useNavigate();
+  const eventID = localStorage.getItem('eventID');
 
   React.useEffect(() => {
     if(!id || id === "no-id"){
-      navigate(`/admin/eventos`);
+      navigate(`/`);
       return
     }
 
-    DataStore.query(Event, (e) => e.id.eq(id)).then( results => {
-      setEvent(results[0]);
-      console.log("Event: ", results)
-    });
   }, [id, navigate]);
 
-  const deleteEvent = () => {
-    DataStore.delete(event);
-    alert("Evento eliminado con éxito")
-    navigate('/admin/eventos');
-  }
-
-  if(!event){
-    return <p>Loading...</p>
-  }
+  // await DataStore.save(
+  //   new Post({
+  //     title: 'My First Post',
+  //     rating: 10,
+  //     status: PostStatus.INACTIVE
+  //   })
+  // );
 
   return (
     <div className="event-detail-page">
-      <div className="mt-3 grid h-full">
+      <div className="grid h-full">
         <Banner />
       </div>
 
       <Link
-        to="/admin/eventos/:id/usuarios"
+        to={`/admin/eventos/${eventID}/participantes`}
         className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
       >
-        <MdChevronLeft className="h-7 w-7" /> Lista de area
+        <MdChevronLeft className="h-7 w-7" /> Lista de participantes
       </Link>
 
-      {event && event.length !== 0 &&
         <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
           <div className="flex items-center justify-between px-3 mb-4">
@@ -61,21 +54,24 @@ const Dashboard = () => {
             </p>
           </div>
 
-          <EventUpdateForm
-            event={event}
-            onSuccess={() => {            
-              navigate('/admin/eventos');
+          <AttendeeCreateForm
+            onSuccess={(fields) => {
+              console.log(fields)
+              alert("Participante creado con éxito");         
+              navigate(`/admin/eventos/${eventID}/participantes`);
+            }}
+            onSubmit={(fields) => {
+              console.log(fields)
+              // Save Attende data store, take the id
+              // Save the EventAttendee with the event id + attende id
+              return;
             }}
             onCancel={() => {
-              navigate('/admin/eventos');
+              navigate(`/admin/eventos/${eventID}/participantes`);
             }}
           />
-
-          <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
-            Eliminar
-          </button>
         </div>
-      }
+
     </div>
   );
 };
