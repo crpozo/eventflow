@@ -6,9 +6,9 @@ import { LazyLoading, LazyLoadingDisabled, AsyncItem, AsyncCollection } from "@a
 
 
 
-type EagerEventAttende = {
+type EagerEventAttendee = {
   readonly [__modelMeta__]: {
-    identifier: ManagedIdentifier<EventAttende, 'id'>;
+    identifier: ManagedIdentifier<EventAttendee, 'id'>;
     readOnlyFields: 'createdAt' | 'updatedAt';
   };
   readonly id: string;
@@ -20,9 +20,9 @@ type EagerEventAttende = {
   readonly updatedAt?: string | null;
 }
 
-type LazyEventAttende = {
+type LazyEventAttendee = {
   readonly [__modelMeta__]: {
-    identifier: ManagedIdentifier<EventAttende, 'id'>;
+    identifier: ManagedIdentifier<EventAttendee, 'id'>;
     readOnlyFields: 'createdAt' | 'updatedAt';
   };
   readonly id: string;
@@ -34,10 +34,10 @@ type LazyEventAttende = {
   readonly updatedAt?: string | null;
 }
 
-export declare type EventAttende = LazyLoading extends LazyLoadingDisabled ? EagerEventAttende : LazyEventAttende
+export declare type EventAttendee = LazyLoading extends LazyLoadingDisabled ? EagerEventAttendee : LazyEventAttendee
 
-export declare const EventAttende: (new (init: ModelInit<EventAttende>) => EventAttende) & {
-  copyOf(source: EventAttende, mutator: (draft: MutableModel<EventAttende>) => MutableModel<EventAttende> | void): EventAttende;
+export declare const EventAttendee: (new (init: ModelInit<EventAttendee>) => EventAttendee) & {
+  copyOf(source: EventAttendee, mutator: (draft: MutableModel<EventAttendee>) => MutableModel<EventAttendee> | void): EventAttendee;
 }
 
 type EagerForm = {
@@ -114,7 +114,7 @@ type EagerAttendee = {
   readonly type?: string | null;
   readonly age?: number | null;
   readonly position?: string | null;
-  readonly EventAttendes?: (EventAttende | null)[] | null;
+  readonly EventAttendees?: (EventAttendee | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -129,7 +129,7 @@ type LazyAttendee = {
   readonly type?: string | null;
   readonly age?: number | null;
   readonly position?: string | null;
-  readonly EventAttendes: AsyncCollection<EventAttende>;
+  readonly EventAttendees: AsyncCollection<EventAttendee>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -151,7 +151,7 @@ type EagerEvent = {
   readonly Landing?: Landing | null;
   readonly careerID: string;
   readonly Form?: Form | null;
-  readonly EventAttendes?: (EventAttende | null)[] | null;
+  readonly EventAttendees?: (EventAttendee | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
@@ -169,7 +169,7 @@ type LazyEvent = {
   readonly Landing: AsyncItem<Landing | undefined>;
   readonly careerID: string;
   readonly Form: AsyncItem<Form | undefined>;
-  readonly EventAttendes: AsyncCollection<EventAttende>;
+  readonly EventAttendees: AsyncCollection<EventAttendee>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;

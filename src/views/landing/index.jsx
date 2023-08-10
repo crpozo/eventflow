@@ -10,7 +10,7 @@ export default function SignIn() {
 
   const { id } = useParams();
   const [landing, setLanding] = React.useState(null);
-
+  const [loading, setLoading] = React.useState(true); // Add a loading state
 
   React.useEffect(() => {
 
@@ -23,22 +23,33 @@ export default function SignIn() {
     // });
 
     DataStore.query(Landing, (l) => l.landingEventId.eq(id)).then( results => {
-      setLanding(results[0]);
-      console.log("Landing: ", results)
+      if (results.length > 0) {
+        setLanding(results[0]);
+        console.log("Landing: ", results)
+      }
+      setLoading(false); 
     });
 
   }, []);
 
-  if(!landing ){
-    if(!landing ){
-      return (
-      <div class="flex h-screen">
-        <div class="m-auto">
-          <h1 className="text-xl">No existe una landing page con el id: {id}</h1>
-        </div>
+  if (loading) {
+    return (
+      <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-lightPrimary opacity-75 flex flex-col items-center justify-center">
+        <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
+        <h2 className="text-center text-black text-xl font-semibold mb-2">Cargando...</h2>
+        <p className="w-1/3 text-center text-black">Esto puede tardar unos segundos, por favor no cierre esta página.</p>
       </div>
-      );
-    }
+    );
+  }
+
+  if(!landing ){
+    return (
+    <div class="flex h-screen">
+      <div class="m-auto">
+        <h1 className="text-xl">No existe una landing page con el id: {id}</h1>
+      </div>
+    </div>
+    );
   }
 
   return (

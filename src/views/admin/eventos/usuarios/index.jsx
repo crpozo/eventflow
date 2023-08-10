@@ -21,7 +21,7 @@ const Marketplace = () => {
   }, [id, navigate]);
 
   React.useEffect(() => {
-    DataStore.query(Attendee).then( (results) => {
+    DataStore.query(Attendee, (a) => a.EventAttendees.eventID.eq(id)).then( results => {
       let columns = [];
       let rows = [];
       setuser(results);

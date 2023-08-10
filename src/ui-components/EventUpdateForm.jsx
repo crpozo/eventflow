@@ -23,7 +23,7 @@ import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import { Event, Form as Form0, EventAttende, Career } from "../models";
+import { Event, EventAttendee, Career } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -201,17 +201,19 @@ export default function EventUpdateForm(props) {
     title: "",
     description: "",
     careerID: undefined,
-    Form: undefined,
-    EventAttendes: [],
+    EventAttendes: "",
+    EventAttendees: [],
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
     initialValues.description
   );
   const [careerID, setCareerID] = React.useState(initialValues.careerID);
-  const [Form, setForm] = React.useState(initialValues.Form);
   const [EventAttendes, setEventAttendes] = React.useState(
     initialValues.EventAttendes
+  );
+  const [EventAttendees, setEventAttendees] = React.useState(
+    initialValues.EventAttendees
   );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
@@ -220,8 +222,7 @@ export default function EventUpdateForm(props) {
           ...initialValues,
           ...eventRecord,
           careerID,
-          Form,
-          EventAttendes: linkedEventAttendes,
+          EventAttendees: linkedEventAttendees,
         }
       : initialValues;
     setTitle(cleanValues.title);
@@ -229,17 +230,15 @@ export default function EventUpdateForm(props) {
     setCareerID(cleanValues.careerID);
     setCurrentCareerIDValue(undefined);
     setCurrentCareerIDDisplayValue("");
-    setForm(cleanValues.Form);
-    setCurrentFormValue(undefined);
-    setCurrentFormDisplayValue("");
-    setEventAttendes(cleanValues.EventAttendes ?? []);
-    setCurrentEventAttendesValue(undefined);
-    setCurrentEventAttendesDisplayValue("");
+    setEventAttendes(cleanValues.EventAttendes);
+    setEventAttendees(cleanValues.EventAttendees ?? []);
+    setCurrentEventAttendeesValue(undefined);
+    setCurrentEventAttendeesDisplayValue("");
     setErrors({});
   };
   const [eventRecord, setEventRecord] = React.useState(eventModelProp);
-  const [linkedEventAttendes, setLinkedEventAttendes] = React.useState([]);
-  const canUnlinkEventAttendes = false;
+  const [linkedEventAttendees, setLinkedEventAttendees] = React.useState([]);
+  const canUnlinkEventAttendees = false;
   React.useEffect(() => {
     const queryData = async () => {
       const record = idProp
@@ -248,75 +247,57 @@ export default function EventUpdateForm(props) {
       setEventRecord(record);
       const careerIDRecord = record ? await record.careerID : undefined;
       setCareerID(careerIDRecord);
-      const FormRecord = record ? await record.Form : undefined;
-      setForm(FormRecord);
-      const linkedEventAttendes = record
-        ? await record.EventAttendes.toArray()
+      const linkedEventAttendees = record
+        ? await record.EventAttendees.toArray()
         : [];
-      setLinkedEventAttendes(linkedEventAttendes);
+      setLinkedEventAttendees(linkedEventAttendees);
     };
     queryData();
   }, [idProp, eventModelProp]);
   React.useEffect(resetStateValues, [
     eventRecord,
     careerID,
-    Form,
-    linkedEventAttendes,
+    linkedEventAttendees,
   ]);
   const [currentCareerIDDisplayValue, setCurrentCareerIDDisplayValue] =
     React.useState("");
   const [currentCareerIDValue, setCurrentCareerIDValue] =
     React.useState(undefined);
   const careerIDRef = React.createRef();
-  const [currentFormDisplayValue, setCurrentFormDisplayValue] =
-    React.useState("");
-  const [currentFormValue, setCurrentFormValue] = React.useState(undefined);
-  const FormRef = React.createRef();
   const [
-    currentEventAttendesDisplayValue,
-    setCurrentEventAttendesDisplayValue,
+    currentEventAttendeesDisplayValue,
+    setCurrentEventAttendeesDisplayValue,
   ] = React.useState("");
-  const [currentEventAttendesValue, setCurrentEventAttendesValue] =
+  const [currentEventAttendeesValue, setCurrentEventAttendeesValue] =
     React.useState(undefined);
-  const EventAttendesRef = React.createRef();
+  const EventAttendeesRef = React.createRef();
   const getIDValue = {
-    Form: (r) => JSON.stringify({ id: r?.id }),
-    EventAttendes: (r) => JSON.stringify({ id: r?.id }),
+    EventAttendees: (r) => JSON.stringify({ id: r?.id }),
   };
-  const FormIdSet = new Set(
-    Array.isArray(Form)
-      ? Form.map((r) => getIDValue.Form?.(r))
-      : getIDValue.Form?.(Form)
-  );
-  const EventAttendesIdSet = new Set(
-    Array.isArray(EventAttendes)
-      ? EventAttendes.map((r) => getIDValue.EventAttendes?.(r))
-      : getIDValue.EventAttendes?.(EventAttendes)
+  const EventAttendeesIdSet = new Set(
+    Array.isArray(EventAttendees)
+      ? EventAttendees.map((r) => getIDValue.EventAttendees?.(r))
+      : getIDValue.EventAttendees?.(EventAttendees)
   );
   const careerRecords = useDataStoreBinding({
     type: "collection",
     model: Career,
   }).items;
-  const formRecords = useDataStoreBinding({
+  const eventAttendeeRecords = useDataStoreBinding({
     type: "collection",
-    model: Form0,
-  }).items;
-  const eventAttendeRecords = useDataStoreBinding({
-    type: "collection",
-    model: EventAttende,
+    model: EventAttendee,
   }).items;
   const getDisplayValue = {
     careerID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
-    Form: (r) => r?.id,
-    EventAttendes: (r) =>
+    EventAttendees: (r) =>
       `${r?.authorized ? r?.authorized + " - " : ""}${r?.id}`,
   };
   const validations = {
     title: [],
     description: [],
     careerID: [{ type: "Required" }],
-    Form: [],
     EventAttendes: [],
+    EventAttendees: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -347,8 +328,8 @@ export default function EventUpdateForm(props) {
           title,
           description,
           careerID,
-          Form,
           EventAttendes,
+          EventAttendees,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -387,76 +368,44 @@ export default function EventUpdateForm(props) {
             }
           });
           const promises = [];
-          const formToUnlink = await eventRecord.Form;
-          if (formToUnlink) {
-            promises.push(
-              DataStore.save(
-                Form0.copyOf(formToUnlink, (updated) => {
-                  updated.Event = undefined;
-                  updated.formEventId = undefined;
-                })
-              )
-            );
-          }
-          const formToLink = modelFields.Form;
-          if (formToLink) {
-            promises.push(
-              DataStore.save(
-                Form0.copyOf(formToLink, (updated) => {
-                  updated.Event = eventRecord;
-                })
-              )
-            );
-            const eventToUnlink = await formToLink.Event;
-            if (eventToUnlink) {
-              promises.push(
-                DataStore.save(
-                  Event.copyOf(eventToUnlink, (updated) => {
-                    updated.Form = undefined;
-                    updated.eventFormId = undefined;
-                  })
-                )
-              );
-            }
-          }
-          const eventAttendesToLink = [];
-          const eventAttendesToUnLink = [];
-          const eventAttendesSet = new Set();
-          const linkedEventAttendesSet = new Set();
-          EventAttendes.forEach((r) =>
-            eventAttendesSet.add(getIDValue.EventAttendes?.(r))
+          const eventAttendeesToLink = [];
+          const eventAttendeesToUnLink = [];
+          const eventAttendeesSet = new Set();
+          const linkedEventAttendeesSet = new Set();
+          EventAttendees.forEach((r) =>
+            eventAttendeesSet.add(getIDValue.EventAttendees?.(r))
           );
-          linkedEventAttendes.forEach((r) =>
-            linkedEventAttendesSet.add(getIDValue.EventAttendes?.(r))
+          linkedEventAttendees.forEach((r) =>
+            linkedEventAttendeesSet.add(getIDValue.EventAttendees?.(r))
           );
-          linkedEventAttendes.forEach((r) => {
-            if (!eventAttendesSet.has(getIDValue.EventAttendes?.(r))) {
-              eventAttendesToUnLink.push(r);
+          linkedEventAttendees.forEach((r) => {
+            if (!eventAttendeesSet.has(getIDValue.EventAttendees?.(r))) {
+              eventAttendeesToUnLink.push(r);
             }
           });
-          EventAttendes.forEach((r) => {
-            if (!linkedEventAttendesSet.has(getIDValue.EventAttendes?.(r))) {
-              eventAttendesToLink.push(r);
+          EventAttendees.forEach((r) => {
+            if (!linkedEventAttendeesSet.has(getIDValue.EventAttendees?.(r))) {
+              eventAttendeesToLink.push(r);
             }
           });
-          eventAttendesToUnLink.forEach((original) => {
-            if (!canUnlinkEventAttendes) {
+          eventAttendeesToUnLink.forEach((original) => {
+            if (!canUnlinkEventAttendees) {
               throw Error(
-                `EventAttende ${original.id} cannot be unlinked from Event because eventID is a required field.`
+                `EventAttendee ${original.id} cannot be unlinked from Event because eventID is a required field.`
               );
             }
             promises.push(
               DataStore.save(
-                EventAttende.copyOf(original, (updated) => {
+                EventAttendee.copyOf(original, (updated) => {
                   updated.eventID = null;
                 })
               )
             );
           });
-          eventAttendesToLink.forEach((original) => {
+          eventAttendeesToLink.forEach((original) => {
             promises.push(
               DataStore.save(
-                EventAttende.copyOf(original, (updated) => {
+                EventAttendee.copyOf(original, (updated) => {
                   updated.eventID = eventRecord.id;
                 })
               )
@@ -466,15 +415,11 @@ export default function EventUpdateForm(props) {
             title: modelFields.title,
             description: modelFields.description,
             careerID: modelFields.careerID,
-            Form: modelFields.Form,
           };
           promises.push(
             DataStore.save(
               Event.copyOf(eventRecord, (updated) => {
                 Object.assign(updated, modelFieldsToSave);
-                if (!modelFieldsToSave.Form) {
-                  updated.eventFormId = undefined;
-                }
               })
             )
           );
@@ -503,8 +448,8 @@ export default function EventUpdateForm(props) {
               title: value,
               description,
               careerID,
-              Form,
               EventAttendes,
+              EventAttendees,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -531,8 +476,8 @@ export default function EventUpdateForm(props) {
               title,
               description: value,
               careerID,
-              Form,
               EventAttendes,
+              EventAttendees,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -556,8 +501,8 @@ export default function EventUpdateForm(props) {
               title,
               description,
               careerID: value,
-              Form,
               EventAttendes,
+              EventAttendees,
             };
             const result = onChange(modelFields);
             value = result?.careerID ?? value;
@@ -640,81 +585,32 @@ export default function EventUpdateForm(props) {
           {...getOverrideProps(overrides, "careerID")}
         ></Autocomplete>
       </ArrayField>
-      <ArrayField
-        lengthLimit={1}
-        onChange={async (items) => {
-          let value = items[0];
+      <TextField
+        label="Label"
+        value={EventAttendes}
+        onChange={(e) => {
+          let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title,
               description,
               careerID,
-              Form: value,
-              EventAttendes,
+              EventAttendes: value,
+              EventAttendees,
             };
             const result = onChange(modelFields);
-            value = result?.Form ?? value;
+            value = result?.EventAttendes ?? value;
           }
-          setForm(value);
-          setCurrentFormValue(undefined);
-          setCurrentFormDisplayValue("");
+          if (errors.EventAttendes?.hasError) {
+            runValidationTasks("EventAttendes", value);
+          }
+          setEventAttendes(value);
         }}
-        currentFieldValue={currentFormValue}
-        label={"Form"}
-        items={Form ? [Form] : []}
-        hasError={errors?.Form?.hasError}
-        errorMessage={errors?.Form?.errorMessage}
-        getBadgeText={getDisplayValue.Form}
-        setFieldValue={(model) => {
-          setCurrentFormDisplayValue(model ? getDisplayValue.Form(model) : "");
-          setCurrentFormValue(model);
-        }}
-        inputFieldRef={FormRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label="Form"
-          isRequired={false}
-          isReadOnly={false}
-          placeholder="Search Form"
-          value={currentFormDisplayValue}
-          options={formRecords
-            .filter((r) => !FormIdSet.has(getIDValue.Form?.(r)))
-            .map((r) => ({
-              id: getIDValue.Form?.(r),
-              label: getDisplayValue.Form?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentFormValue(
-              formRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentFormDisplayValue(label);
-            runValidationTasks("Form", label);
-          }}
-          onClear={() => {
-            setCurrentFormDisplayValue("");
-          }}
-          defaultValue={Form}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.Form?.hasError) {
-              runValidationTasks("Form", value);
-            }
-            setCurrentFormDisplayValue(value);
-            setCurrentFormValue(undefined);
-          }}
-          onBlur={() => runValidationTasks("Form", currentFormDisplayValue)}
-          errorMessage={errors.Form?.errorMessage}
-          hasError={errors.Form?.hasError}
-          ref={FormRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "Form")}
-        ></Autocomplete>
-      </ArrayField>
+        onBlur={() => runValidationTasks("EventAttendes", EventAttendes)}
+        errorMessage={errors.EventAttendes?.errorMessage}
+        hasError={errors.EventAttendes?.hasError}
+        {...getOverrideProps(overrides, "EventAttendes")}
+      ></TextField>
       <ArrayField
         onChange={async (items) => {
           let values = items;
@@ -723,78 +619,78 @@ export default function EventUpdateForm(props) {
               title,
               description,
               careerID,
-              Form,
-              EventAttendes: values,
+              EventAttendes,
+              EventAttendees: values,
             };
             const result = onChange(modelFields);
-            values = result?.EventAttendes ?? values;
+            values = result?.EventAttendees ?? values;
           }
-          setEventAttendes(values);
-          setCurrentEventAttendesValue(undefined);
-          setCurrentEventAttendesDisplayValue("");
+          setEventAttendees(values);
+          setCurrentEventAttendeesValue(undefined);
+          setCurrentEventAttendeesDisplayValue("");
         }}
-        currentFieldValue={currentEventAttendesValue}
-        label={"Event attendes"}
-        items={EventAttendes}
-        hasError={errors?.EventAttendes?.hasError}
-        errorMessage={errors?.EventAttendes?.errorMessage}
-        getBadgeText={getDisplayValue.EventAttendes}
+        currentFieldValue={currentEventAttendeesValue}
+        label={"Event attendees"}
+        items={EventAttendees}
+        hasError={errors?.EventAttendees?.hasError}
+        errorMessage={errors?.EventAttendees?.errorMessage}
+        getBadgeText={getDisplayValue.EventAttendees}
         setFieldValue={(model) => {
-          setCurrentEventAttendesDisplayValue(
-            model ? getDisplayValue.EventAttendes(model) : ""
+          setCurrentEventAttendeesDisplayValue(
+            model ? getDisplayValue.EventAttendees(model) : ""
           );
-          setCurrentEventAttendesValue(model);
+          setCurrentEventAttendeesValue(model);
         }}
-        inputFieldRef={EventAttendesRef}
+        inputFieldRef={EventAttendeesRef}
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Event attendes"
+          label="Event attendees"
           isRequired={false}
           isReadOnly={false}
-          placeholder="Search EventAttende"
-          value={currentEventAttendesDisplayValue}
-          options={eventAttendeRecords
+          placeholder="Search EventAttendee"
+          value={currentEventAttendeesDisplayValue}
+          options={eventAttendeeRecords
             .filter(
-              (r) => !EventAttendesIdSet.has(getIDValue.EventAttendes?.(r))
+              (r) => !EventAttendeesIdSet.has(getIDValue.EventAttendees?.(r))
             )
             .map((r) => ({
-              id: getIDValue.EventAttendes?.(r),
-              label: getDisplayValue.EventAttendes?.(r),
+              id: getIDValue.EventAttendees?.(r),
+              label: getDisplayValue.EventAttendees?.(r),
             }))}
           onSelect={({ id, label }) => {
-            setCurrentEventAttendesValue(
-              eventAttendeRecords.find((r) =>
+            setCurrentEventAttendeesValue(
+              eventAttendeeRecords.find((r) =>
                 Object.entries(JSON.parse(id)).every(
                   ([key, value]) => r[key] === value
                 )
               )
             );
-            setCurrentEventAttendesDisplayValue(label);
-            runValidationTasks("EventAttendes", label);
+            setCurrentEventAttendeesDisplayValue(label);
+            runValidationTasks("EventAttendees", label);
           }}
           onClear={() => {
-            setCurrentEventAttendesDisplayValue("");
+            setCurrentEventAttendeesDisplayValue("");
           }}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.EventAttendes?.hasError) {
-              runValidationTasks("EventAttendes", value);
+            if (errors.EventAttendees?.hasError) {
+              runValidationTasks("EventAttendees", value);
             }
-            setCurrentEventAttendesDisplayValue(value);
-            setCurrentEventAttendesValue(undefined);
+            setCurrentEventAttendeesDisplayValue(value);
+            setCurrentEventAttendeesValue(undefined);
           }}
           onBlur={() =>
             runValidationTasks(
-              "EventAttendes",
-              currentEventAttendesDisplayValue
+              "EventAttendees",
+              currentEventAttendeesDisplayValue
             )
           }
-          errorMessage={errors.EventAttendes?.errorMessage}
-          hasError={errors.EventAttendes?.hasError}
-          ref={EventAttendesRef}
+          errorMessage={errors.EventAttendees?.errorMessage}
+          hasError={errors.EventAttendees?.hasError}
+          ref={EventAttendeesRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "EventAttendes")}
+          {...getOverrideProps(overrides, "EventAttendees")}
         ></Autocomplete>
       </ArrayField>
       <Flex

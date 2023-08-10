@@ -1,52 +1,81 @@
 import React from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
 import { Event } from "models"
-import { useForm } from "react-hook-form"
+import {
+  EventUpdateForm
+ } from 'ui-components';
+ import {
+  MdPersonAddAlt,
+  MdChevronLeft
+} from "react-icons/md";
 
 const Dashboard = () => {
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm()
+  const [event, setEvent] = React.useState([]);
+  const id = useParams().id;
+  const navigate = useNavigate();
 
-  const [subAreaId, setSubAreaId ] = React.useState();
+  React.useEffect(() => {
+    if(!id || id === "no-id"){
+      navigate(`/admin/eventos`);
+      return
+    }
 
-  React.useEffect( () => {
-    setSubAreaId(localStorage.getItem('subAreaID'));
-  }, []);
+    DataStore.query(Event, (e) => e.id.eq(id)).then( results => {
+      setEvent(results[0]);
+      console.log("Event: ", results)
+    });
+  }, [id, navigate]);
 
-  const onSubmit = ( formData ) => {
-    createEvent(formData);
+  const deleteEvent = () => {
+    DataStore.delete(event);
+    alert("Evento eliminado con éxito")
+    navigate('/admin/eventos');
   }
 
-  async function createEvent(formData) {
-    await DataStore.save(
-      new Event({
-        "title": formData.title,
-        "description": formData.description,
-        "careerID": subAreaId
-      })
-    );
-    alert("Evento creado con éxito");
+  if(!event){
+    return <p>Loading...</p>
   }
 
   return (
-    <div className="campus-page">
+    <div className="event-detail-page">
       <div className="mt-3 grid h-full">
-        {/* NFt Banner */}
         <Banner />
       </div>
-      <form onSubmit={handleSubmit(onSubmit)}>
-          <input {...register("title", { required: true })}/>
-          <input {...register("description", { required: true })} />
-          {errors.exampleRequired && <p>This field is required</p>}
-          <div>
-          <input type="submit" />
+
+      <Link
+        to="/admin/eventos/:id/usuarios"
+        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
+      >
+        <MdChevronLeft className="h-7 w-7" /> Lista de area
+      </Link>
+
+      {event && event.length !== 0 &&
+        <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+
+          <div className="flex items-center justify-between px-3 mb-4">
+            <p className="text-3xl flex items-center font-bold text-black dark:text-white">
+              <MdPersonAddAlt className="h-12 w-12 mr-3" /> Acerca del participante
+            </p>
           </div>
-        </form>
+
+          <EventUpdateForm
+            event={event}
+            onSuccess={() => {            
+              navigate('/admin/eventos');
+            }}
+            onCancel={() => {
+              navigate('/admin/eventos');
+            }}
+          />
+
+          <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
+            Eliminar
+          </button>
+        </div>
+      }
     </div>
   );
 };

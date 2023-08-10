@@ -1,4 +1,4 @@
-type EventAttende @model @auth(rules: [{allow: public}]) {
+type EventAttendee @model @auth(rules: [{allow: public}]) {
   id: ID!
   eventID: ID! @index(name: "byEvent")
   attendeeID: ID! @index(name: "byAttendee")
@@ -24,7 +24,7 @@ type Attendee @model @auth(rules: [{allow: public}]) {
   type: String
   age: Int
   position: String
-  EventAttendes: [EventAttende] @hasMany(indexName: "byAttendee", fields: ["id"])
+  EventAttendees: [EventAttendee] @hasMany(indexName: "byAttendee", fields: ["id"])
 }
 
 type Event @model @auth(rules: [{allow: public}]) {
@@ -34,7 +34,7 @@ type Event @model @auth(rules: [{allow: public}]) {
   Landing: Landing @hasOne
   careerID: ID! @index(name: "byCareer")
   Form: Form @hasOne
-  EventAttendes: [EventAttende] @hasMany(indexName: "byEvent", fields: ["id"])
+  EventAttendees: [EventAttendee] @hasMany(indexName: "byEvent", fields: ["id"])
 }
 
 type Career @model @auth(rules: [{allow: public}]) {

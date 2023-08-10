@@ -15,15 +15,15 @@ import {
   Grid,
   Icon,
   ScrollView,
+  SwitchField,
   Text,
-  TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
 import {
   getOverrideProps,
   useDataStoreBinding,
 } from "@aws-amplify/ui-react/internal";
-import { Attendee, EventAttendee } from "../models";
+import { EventAttendee, Event, Attendee } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -184,7 +184,7 @@ function ArrayField({
     </React.Fragment>
   );
 }
-export default function AttendeeCreateForm(props) {
+export default function EventAttendeeCreateForm(props) {
   const {
     clearOnSuccess = true,
     onSuccess,
@@ -196,59 +196,54 @@ export default function AttendeeCreateForm(props) {
     ...rest
   } = props;
   const initialValues = {
-    name: "",
-    type: "",
-    age: "",
-    position: "",
-    EventAttendees: [],
+    eventID: undefined,
+    attendeeID: undefined,
+    authorized: false,
+    checkIn: false,
   };
-  const [name, setName] = React.useState(initialValues.name);
-  const [type, setType] = React.useState(initialValues.type);
-  const [age, setAge] = React.useState(initialValues.age);
-  const [position, setPosition] = React.useState(initialValues.position);
-  const [EventAttendees, setEventAttendees] = React.useState(
-    initialValues.EventAttendees
-  );
+  const [eventID, setEventID] = React.useState(initialValues.eventID);
+  const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
+  const [authorized, setAuthorized] = React.useState(initialValues.authorized);
+  const [checkIn, setCheckIn] = React.useState(initialValues.checkIn);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
-    setName(initialValues.name);
-    setType(initialValues.type);
-    setAge(initialValues.age);
-    setPosition(initialValues.position);
-    setEventAttendees(initialValues.EventAttendees);
-    setCurrentEventAttendeesValue(undefined);
-    setCurrentEventAttendeesDisplayValue("");
+    setEventID(initialValues.eventID);
+    setCurrentEventIDValue(undefined);
+    setCurrentEventIDDisplayValue("");
+    setAttendeeID(initialValues.attendeeID);
+    setCurrentAttendeeIDValue(undefined);
+    setCurrentAttendeeIDDisplayValue("");
+    setAuthorized(initialValues.authorized);
+    setCheckIn(initialValues.checkIn);
     setErrors({});
   };
-  const [
-    currentEventAttendeesDisplayValue,
-    setCurrentEventAttendeesDisplayValue,
-  ] = React.useState("");
-  const [currentEventAttendeesValue, setCurrentEventAttendeesValue] =
+  const [currentEventIDDisplayValue, setCurrentEventIDDisplayValue] =
+    React.useState("");
+  const [currentEventIDValue, setCurrentEventIDValue] =
     React.useState(undefined);
-  const EventAttendeesRef = React.createRef();
-  const getIDValue = {
-    EventAttendees: (r) => JSON.stringify({ id: r?.id }),
-  };
-  const EventAttendeesIdSet = new Set(
-    Array.isArray(EventAttendees)
-      ? EventAttendees.map((r) => getIDValue.EventAttendees?.(r))
-      : getIDValue.EventAttendees?.(EventAttendees)
-  );
-  const eventAttendeeRecords = useDataStoreBinding({
+  const eventIDRef = React.createRef();
+  const [currentAttendeeIDDisplayValue, setCurrentAttendeeIDDisplayValue] =
+    React.useState("");
+  const [currentAttendeeIDValue, setCurrentAttendeeIDValue] =
+    React.useState(undefined);
+  const attendeeIDRef = React.createRef();
+  const eventRecords = useDataStoreBinding({
     type: "collection",
-    model: EventAttendee,
+    model: Event,
+  }).items;
+  const attendeeRecords = useDataStoreBinding({
+    type: "collection",
+    model: Attendee,
   }).items;
   const getDisplayValue = {
-    EventAttendees: (r) =>
-      `${r?.authorized ? r?.authorized + " - " : ""}${r?.id}`,
+    eventID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    attendeeID: (r) => `${r?.name ? r?.name + " - " : ""}${r?.id}`,
   };
   const validations = {
-    name: [],
-    type: [],
-    age: [],
-    position: [],
-    EventAttendees: [],
+    eventID: [{ type: "Required" }],
+    attendeeID: [{ type: "Required" }],
+    authorized: [],
+    checkIn: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -276,32 +271,23 @@ export default function AttendeeCreateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          name,
-          type,
-          age,
-          position,
-          EventAttendees,
+          eventID,
+          attendeeID,
+          authorized,
+          checkIn,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(
-                    fieldName,
-                    item,
-                    getDisplayValue[fieldName]
-                  )
+                  runValidationTasks(fieldName, item)
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(
-                fieldName,
-                modelFields[fieldName],
-                getDisplayValue[fieldName]
-              )
+              runValidationTasks(fieldName, modelFields[fieldName])
             );
             return promises;
           }, [])
@@ -318,29 +304,7 @@ export default function AttendeeCreateForm(props) {
               modelFields[key] = undefined;
             }
           });
-          const modelFieldsToSave = {
-            name: modelFields.name,
-            type: modelFields.type,
-            age: modelFields.age,
-            position: modelFields.position,
-          };
-          const attendee = await DataStore.save(
-            new Attendee(modelFieldsToSave)
-          );
-          const promises = [];
-          promises.push(
-            ...EventAttendees.reduce((promises, original) => {
-              promises.push(
-                DataStore.save(
-                  EventAttendee.copyOf(original, (updated) => {
-                    updated.attendeeID = attendee.id;
-                  })
-                )
-              );
-              return promises;
-            }, [])
-          );
-          await Promise.all(promises);
+          await DataStore.save(new EventAttendee(modelFields));
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -353,207 +317,225 @@ export default function AttendeeCreateForm(props) {
           }
         }
       }}
-      {...getOverrideProps(overrides, "AttendeeCreateForm")}
+      {...getOverrideProps(overrides, "EventAttendeeCreateForm")}
       {...rest}
     >
-      <TextField
-        label="Name"
-        isRequired={false}
-        isReadOnly={false}
-        value={name}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              name: value,
-              type,
-              age,
-              position,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.name ?? value;
-          }
-          if (errors.name?.hasError) {
-            runValidationTasks("name", value);
-          }
-          setName(value);
-        }}
-        onBlur={() => runValidationTasks("name", name)}
-        errorMessage={errors.name?.errorMessage}
-        hasError={errors.name?.hasError}
-        {...getOverrideProps(overrides, "name")}
-      ></TextField>
-      <TextField
-        label="Type"
-        isRequired={false}
-        isReadOnly={false}
-        value={type}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type: value,
-              age,
-              position,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.type ?? value;
-          }
-          if (errors.type?.hasError) {
-            runValidationTasks("type", value);
-          }
-          setType(value);
-        }}
-        onBlur={() => runValidationTasks("type", type)}
-        errorMessage={errors.type?.errorMessage}
-        hasError={errors.type?.hasError}
-        {...getOverrideProps(overrides, "type")}
-      ></TextField>
-      <TextField
-        label="Age"
-        isRequired={false}
-        isReadOnly={false}
-        type="number"
-        step="any"
-        value={age}
-        onChange={(e) => {
-          let value = isNaN(parseInt(e.target.value))
-            ? e.target.value
-            : parseInt(e.target.value);
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age: value,
-              position,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.age ?? value;
-          }
-          if (errors.age?.hasError) {
-            runValidationTasks("age", value);
-          }
-          setAge(value);
-        }}
-        onBlur={() => runValidationTasks("age", age)}
-        errorMessage={errors.age?.errorMessage}
-        hasError={errors.age?.hasError}
-        {...getOverrideProps(overrides, "age")}
-      ></TextField>
-      <TextField
-        label="Position"
-        isRequired={false}
-        isReadOnly={false}
-        value={position}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age,
-              position: value,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.position ?? value;
-          }
-          if (errors.position?.hasError) {
-            runValidationTasks("position", value);
-          }
-          setPosition(value);
-        }}
-        onBlur={() => runValidationTasks("position", position)}
-        errorMessage={errors.position?.errorMessage}
-        hasError={errors.position?.hasError}
-        {...getOverrideProps(overrides, "position")}
-      ></TextField>
       <ArrayField
+        lengthLimit={1}
         onChange={async (items) => {
-          let values = items;
+          let value = items[0];
           if (onChange) {
             const modelFields = {
-              name,
-              type,
-              age,
-              position,
-              EventAttendees: values,
+              eventID: value,
+              attendeeID,
+              authorized,
+              checkIn,
             };
             const result = onChange(modelFields);
-            values = result?.EventAttendees ?? values;
+            value = result?.eventID ?? value;
           }
-          setEventAttendees(values);
-          setCurrentEventAttendeesValue(undefined);
-          setCurrentEventAttendeesDisplayValue("");
+          setEventID(value);
+          setCurrentEventIDValue(undefined);
         }}
-        currentFieldValue={currentEventAttendeesValue}
-        label={"Event attendees"}
-        items={EventAttendees}
-        hasError={errors?.EventAttendees?.hasError}
-        errorMessage={errors?.EventAttendees?.errorMessage}
-        getBadgeText={getDisplayValue.EventAttendees}
-        setFieldValue={(model) => {
-          setCurrentEventAttendeesDisplayValue(
-            model ? getDisplayValue.EventAttendees(model) : ""
+        currentFieldValue={currentEventIDValue}
+        label={"Event id"}
+        items={eventID ? [eventID] : []}
+        hasError={errors?.eventID?.hasError}
+        errorMessage={errors?.eventID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.eventID(eventRecords.find((r) => r.id === value))
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentEventIDDisplayValue(
+            value
+              ? getDisplayValue.eventID(
+                  eventRecords.find((r) => r.id === value)
+                )
+              : ""
           );
-          setCurrentEventAttendeesValue(model);
+          setCurrentEventIDValue(value);
         }}
-        inputFieldRef={EventAttendeesRef}
+        inputFieldRef={eventIDRef}
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Event attendees"
-          isRequired={false}
+          label="Event id"
+          isRequired={true}
           isReadOnly={false}
-          placeholder="Search EventAttendee"
-          value={currentEventAttendeesDisplayValue}
-          options={eventAttendeeRecords
+          placeholder="Search Event"
+          value={currentEventIDDisplayValue}
+          options={eventRecords
             .filter(
-              (r) => !EventAttendeesIdSet.has(getIDValue.EventAttendees?.(r))
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
             )
             .map((r) => ({
-              id: getIDValue.EventAttendees?.(r),
-              label: getDisplayValue.EventAttendees?.(r),
+              id: r?.id,
+              label: getDisplayValue.eventID?.(r),
             }))}
           onSelect={({ id, label }) => {
-            setCurrentEventAttendeesValue(
-              eventAttendeeRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentEventAttendeesDisplayValue(label);
-            runValidationTasks("EventAttendees", label);
+            setCurrentEventIDValue(id);
+            setCurrentEventIDDisplayValue(label);
+            runValidationTasks("eventID", label);
           }}
           onClear={() => {
-            setCurrentEventAttendeesDisplayValue("");
+            setCurrentEventIDDisplayValue("");
           }}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.EventAttendees?.hasError) {
-              runValidationTasks("EventAttendees", value);
+            if (errors.eventID?.hasError) {
+              runValidationTasks("eventID", value);
             }
-            setCurrentEventAttendeesDisplayValue(value);
-            setCurrentEventAttendeesValue(undefined);
+            setCurrentEventIDDisplayValue(value);
+            setCurrentEventIDValue(undefined);
           }}
-          onBlur={() =>
-            runValidationTasks(
-              "EventAttendees",
-              currentEventAttendeesDisplayValue
-            )
-          }
-          errorMessage={errors.EventAttendees?.errorMessage}
-          hasError={errors.EventAttendees?.hasError}
-          ref={EventAttendeesRef}
+          onBlur={() => runValidationTasks("eventID", currentEventIDValue)}
+          errorMessage={errors.eventID?.errorMessage}
+          hasError={errors.eventID?.hasError}
+          ref={eventIDRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "EventAttendees")}
+          {...getOverrideProps(overrides, "eventID")}
         ></Autocomplete>
       </ArrayField>
+      <ArrayField
+        lengthLimit={1}
+        onChange={async (items) => {
+          let value = items[0];
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID: value,
+              authorized,
+              checkIn,
+            };
+            const result = onChange(modelFields);
+            value = result?.attendeeID ?? value;
+          }
+          setAttendeeID(value);
+          setCurrentAttendeeIDValue(undefined);
+        }}
+        currentFieldValue={currentAttendeeIDValue}
+        label={"Attendee id"}
+        items={attendeeID ? [attendeeID] : []}
+        hasError={errors?.attendeeID?.hasError}
+        errorMessage={errors?.attendeeID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.attendeeID(
+                attendeeRecords.find((r) => r.id === value)
+              )
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentAttendeeIDDisplayValue(
+            value
+              ? getDisplayValue.attendeeID(
+                  attendeeRecords.find((r) => r.id === value)
+                )
+              : ""
+          );
+          setCurrentAttendeeIDValue(value);
+        }}
+        inputFieldRef={attendeeIDRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label="Attendee id"
+          isRequired={true}
+          isReadOnly={false}
+          placeholder="Search Attendee"
+          value={currentAttendeeIDDisplayValue}
+          options={attendeeRecords
+            .filter(
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
+            )
+            .map((r) => ({
+              id: r?.id,
+              label: getDisplayValue.attendeeID?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentAttendeeIDValue(id);
+            setCurrentAttendeeIDDisplayValue(label);
+            runValidationTasks("attendeeID", label);
+          }}
+          onClear={() => {
+            setCurrentAttendeeIDDisplayValue("");
+          }}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.attendeeID?.hasError) {
+              runValidationTasks("attendeeID", value);
+            }
+            setCurrentAttendeeIDDisplayValue(value);
+            setCurrentAttendeeIDValue(undefined);
+          }}
+          onBlur={() =>
+            runValidationTasks("attendeeID", currentAttendeeIDValue)
+          }
+          errorMessage={errors.attendeeID?.errorMessage}
+          hasError={errors.attendeeID?.hasError}
+          ref={attendeeIDRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "attendeeID")}
+        ></Autocomplete>
+      </ArrayField>
+      <SwitchField
+        label="Authorized"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={authorized}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized: value,
+              checkIn,
+            };
+            const result = onChange(modelFields);
+            value = result?.authorized ?? value;
+          }
+          if (errors.authorized?.hasError) {
+            runValidationTasks("authorized", value);
+          }
+          setAuthorized(value);
+        }}
+        onBlur={() => runValidationTasks("authorized", authorized)}
+        errorMessage={errors.authorized?.errorMessage}
+        hasError={errors.authorized?.hasError}
+        {...getOverrideProps(overrides, "authorized")}
+      ></SwitchField>
+      <SwitchField
+        label="Check in"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={checkIn}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.checkIn ?? value;
+          }
+          if (errors.checkIn?.hasError) {
+            runValidationTasks("checkIn", value);
+          }
+          setCheckIn(value);
+        }}
+        onBlur={() => runValidationTasks("checkIn", checkIn)}
+        errorMessage={errors.checkIn?.errorMessage}
+        hasError={errors.checkIn?.hasError}
+        {...getOverrideProps(overrides, "checkIn")}
+      ></SwitchField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

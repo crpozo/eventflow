@@ -2,28 +2,16 @@
 const Banner1 = () => {
   return (
     <div
-      className="flex w-full flex-col rounded-[20px] bg-cover px-[30px] py-[30px] md:px-[64px] md:py-[56px]"
+      className="flex w-full relative items-center justify-center flex-col rounded-[20px] bg-cover px-[30px] py-[30px] mb-[32px] md:px-[34px] md:py-[70px]"
       style={{ background: `#FFF000` }}
     >
       <div className="w-full">
-        <h4 className="mb-[14px] max-w-full text-xl font-bold text-navy-700 md:w-[64%] md:text-3xl md:leading-[42px] lg:w-[46%] xl:w-[85%] 2xl:w-[75%] 3xl:w-[52%]">
-          Crear Usuario
+        <h4 className="max-w-full text-xl font-black text-navy-700 md:w-[64%] md:text-5xl md:leading-[42px] lg:w-[46%] xl:w-[85%] 2xl:w-[75%] 3xl:w-[52%]">
+          Crear usuario
         </h4>
-        <p className="mb-[40px] max-w-full text-base text-navy-700 font-medium text-[#E3DAFF] md:w-[64%] lg:w-[40%] xl:w-[72%] 2xl:w-[60%] 3xl:w-[45%]">
-          Escoge un campus a la cual deseas acceder 
-        </p>
-
-        {/* <div className="mt-[36px] flex items-center justify-between gap-4 sm:justify-start 2xl:gap-10">
-          <button className="text-black linear rounded-xl bg-white px-4 py-2 text-center text-base font-medium transition duration-200 hover:!bg-white/80 active:!bg-white/70">
-            Discover now
-          </button>
-          <button
-            href=" "
-            className="text-base font-medium text-lightPrimary hover:text-lightPrimary 2xl:ml-2"
-          >
-            Watch Video
-          </button>
-        </div> */}
+        <svg className="pill hidden md:block" width="178" height="170" viewBox="0 0 178 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M106.813 184.32L182.553 105.916C206.413 81.216 205.813 41.7716 181.212 17.8147C156.611 -6.14219 117.325 -5.53962 93.4646 19.1606L17.7252 97.5649C-6.13549 122.265 -5.53535 161.709 19.0656 185.666C43.6666 209.623 82.9525 209.021 106.813 184.32Z" fill="#FFB4B4"/>
+        </svg>
       </div>
     </div>
   );

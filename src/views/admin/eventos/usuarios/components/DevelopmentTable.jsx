@@ -9,6 +9,7 @@ import {
 } from "react-table";
 
 import {
+  MdAdd,
   MdEditCalendar,
 } from "react-icons/md";
 
@@ -44,12 +45,12 @@ const DevelopmentTable = (props) => {
   return (
     <Card extra={"w-full h-full p-4"}>
       <div className="relative flex items-center justify-between">
-        <div className="text-xl font-bold text-navy-700 dark:text-white">
+        <div className="text-2xl font-bold text-navy-700 dark:text-white">
           Tabla de Usuarios
         </div>
-        <Link className="" to="crear">
-          <button className="linear mt-2 pr-4 pl-4 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
-            Crear Usuarios
+        <Link className="hover:no-underline" to="crear">
+          <button href="crear" className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+            Crear usuario <MdAdd className="h-5 w-5" />
           </button>
         </Link>
       </div>
@@ -101,7 +102,7 @@ const DevelopmentTable = (props) => {
                     }
                     else if (cell.column.Header === "") {
                       data = (
-                        <MdEditCalendar onClick={() => navigate(`${cell.value}/detalle/`) } className="h-6 w-6 cursor-pointer" />
+                        <MdEditCalendar onClick={() => navigate(`${cell.value}/`) } className="h-6 w-6 cursor-pointer" />
                       );
                     }
                     return (

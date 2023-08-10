@@ -28,7 +28,7 @@ const Navbar = (props) => {
             to="/"
             className="font-black text-3xl	capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
           >
-            Eventflow
+            EventFlow
           </Link>
         </p>
       </div>
@@ -169,31 +169,19 @@ const Navbar = (props) => {
           }
           children={
             <div className="flex  w-56 flex-col justify-start rounded-[20px] bg-white bg-cover bg-no-repeat shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white dark:shadow-none">
-              <div className="p-4">
+              {/* <div className="p-4">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-navy-700 dark:text-white">
-                    👋 Hola, {user.username}
+                    👋 Hola
                   </p>{" "}
                 </div>
               </div>
-              <div className="h-px w-full bg-gray-200 dark:bg-white/20 " />
+              <div className="h-px w-full bg-gray-200 dark:bg-white/20 " /> */}
 
               <div className="flex flex-col p-4">
-                <a
-                  href=" "
-                  className="text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                >
-                  Profile Settings
-                </a>
-                <a
-                  href=" "
-                  className="mt-3 text-sm text-gray-800 dark:text-white hover:dark:text-white"
-                >
-                  Newsletter Settings
-                </a>
-                <button className="mt-3 text-left text-sm text-gray-800 dark:text-white hover:dark:text-white" 
+                <button className="text-left text-sm text-gray-800 hover:text-brand-500 dark:text-white hover:dark:text-white" 
                 onClick={signOut}>
-                  Sign out
+                  Cerrar sesión
                 </button>
               </div>
             </div>

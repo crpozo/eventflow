@@ -6,7 +6,7 @@ import PageLayout from "layouts/page";
 import LandingLayout from "layouts/landing";
 import demo from "assets/img/auth/demo.png";
 
-import { I18n } from 'aws-amplify';
+import { I18n, DataStore } from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
@@ -19,6 +19,10 @@ function App() {
   const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const location = useLocation();
   const isLandingRoute = location.pathname.includes('/landing');
+
+
+  // await DataStore.clear();
+  // If your app has authentication implemented, it is recommended to call DataStore.clear() on sign-in/sign-out to remove any user-specific data. This method is often important to use for shared device scenarios or where you need to purge the local on-device storage of records for security/privacy concerns.
 
   if(!route || authStatus === 'configuring' && 'Loading...'){
     return(
@@ -50,16 +54,16 @@ function App() {
         </Routes>
       ) : (
         <div className="bg-lightPrimary">
-          <div className="container grid h-screen xl:grid-cols-2 xl:px-0 xl:py-5">
-            <div className="flex flex-col justify-center items-center xl:items-start bg-purplePrimary px-3 xl:!px-[60px] pt-5 pb-4 rounded-lg xl:rounded-l-lg">
+          <div className="container grid h-screen xl:grid-cols-2 xl:px-1 xl:py-[40px]">
+            <div className="flex flex-col justify-center items-center xl:items-start bg-purplePrimary px-3 xl:shadow-2xl xl:!px-[60px] pt-4 pb-3 rounded-xl xl:rounded-none xl:rounded-l-2xl">
               <h1 className="font-bold text-2xl mb-2">La forma más fácil de gestionar tus eventos</h1>
-              <p className="xl:mb-[50px]">Ingresa los credenciales para acceder a tu cuenta</p>
-              <img className="hidden xl:block max-w-[450px] mt-0 mb-[30px] mx-auto" src={demo}/>
-              <h2 className="font-black text-3xl hidden xl:block">Bienvenido a Eventflow</h2>
+              <p className="xl:mb-[40px]">Ingresa los credenciales para acceder a tu cuenta</p>
+              <img className="hidden xl:block max-w-[420px] mt-0 mb-[30px] mx-auto" src={demo}/>
+              <h2 className="font-black text-3xl hidden xl:block">Bienvenido a EventFlow</h2>
             </div>
-            <div className="flex flex-col justify-center items-center bg-white p-2 sm:p-5 rounded-lg xl:rounded-r-lg">
+            <div className="flex flex-col justify-center items-center bg-white p-2 sm:p-5 xl:shadow-2xl rounded-xl xl:rounded-none xl:rounded-r-2xl">
               <div className="mt-3 xl:!mt-0 mb-[40px] xl:mb-[80px]">
-                <h1 className="text-4xl font-black text-center">Eventflow</h1>
+                <h1 className="text-4xl font-black text-center">EventFlow</h1>
               </div>
               <div className="w-[80%]">
                 <h2 className="font-bold text-2xl mb-2">Autenticación</h2>

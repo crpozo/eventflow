@@ -1,5 +1,5 @@
 import React,{ Component, createRef} from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
 import { Form } from "models"
@@ -9,40 +9,38 @@ window.$ = $;
 require('jquery-ui-sortable');
 require('formBuilder');
 
-// En vez de useParams usar localStorage
-
 const Dashboard = () => {
 
   const [form, setForm] = React.useState();
   const [formData, setFormData] = React.useState([]);
   const [formExist, setFormExist] = React.useState(false);
-  const id = useParams().id;
   const navigate = useNavigate();
+  const eventId = localStorage.getItem('eventID');
 
   React.useEffect(() => {
     
-    if(!id || id === "no-id"){
-      navigate(`/admin/eventos`);
+    if(!eventId){
+      navigate(`/admin`);
       return 
     }
 
-    DataStore.query(Form, (c) => c.formEventId.eq(id)).then( results => {
+    DataStore.query(Form, (c) => c.formEventId.eq(eventId)).then( results => {
       if(results.length > 0){
         setForm(results[0])
         setFormData(results[0].questions);
         setFormExist(true);
-        console.log(results[0])
+        console.log("Form: ", results[0])
       } else {
         console.log("No form data found");
       }
     });
 
-  }, [id, navigate]);
+  }, [eventId, navigate]);
 
   async function createEvent(formData) {
     await DataStore.save(
       new Form({
-        "formEventId": id,
+        "formEventId": eventId,
         "questions": formData,
       })
     );

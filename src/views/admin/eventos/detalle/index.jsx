@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
 import { Event } from "models"

@@ -1,7 +1,7 @@
 export const schema = {
     "models": {
-        "EventAttende": {
-            "name": "EventAttende",
+        "EventAttendee": {
+            "name": "EventAttendee",
             "fields": {
                 "id": {
                     "name": "id",
@@ -56,7 +56,7 @@ export const schema = {
                 }
             },
             "syncable": true,
-            "pluralName": "EventAttendes",
+            "pluralName": "EventAttendees",
             "attributes": [
                 {
                     "type": "model",
@@ -298,11 +298,11 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "EventAttendes": {
-                    "name": "EventAttendes",
+                "EventAttendees": {
+                    "name": "EventAttendees",
                     "isArray": true,
                     "type": {
-                        "model": "EventAttende"
+                        "model": "EventAttendee"
                     },
                     "isRequired": false,
                     "attributes": [],
@@ -423,11 +423,11 @@ export const schema = {
                         ]
                     }
                 },
-                "EventAttendes": {
-                    "name": "EventAttendes",
+                "EventAttendees": {
+                    "name": "EventAttendees",
                     "isArray": true,
                     "type": {
-                        "model": "EventAttende"
+                        "model": "EventAttendee"
                     },
                     "isRequired": false,
                     "attributes": [],
@@ -765,5 +765,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "a8eccb79f7a587a05689d530ba45a0c1"
+    "version": "9066b9c1ec3280a8936ad1e7e40f7087"
 };

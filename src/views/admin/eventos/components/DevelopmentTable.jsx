@@ -48,7 +48,7 @@ const DevelopmentTable = (props) => {
           Tabla de Eventos
         </div>
         <Link className="hover:no-underline" to="crear">
-          <button className="linear flex items-center gap-1 mt-2 pr-4 pl-4 w-full rounded-xl bg-brand-500 py-[12px] text-base font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+          <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
             Crear Evento <MdAdd className="h-5 w-5" />
           </button>
         </Link>
