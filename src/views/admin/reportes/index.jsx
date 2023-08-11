@@ -7,7 +7,12 @@ import Widget from "components/widget/Widget";
 import DailyTraffic from "views/admin/default/components/DailyTraffic";
 import { useNavigate} from "react-router-dom";
 import { DataStore } from "aws-amplify";
-import { Attendee } from "models"
+import { Campus, Area, Career, Event, Attendee } from "models"
+import Banner from "./components/Banner";
+import Datepicker from "react-tailwindcss-datepicker"; 
+import {
+  MdFileDownload,
+} from "react-icons/md";
 
 const Dashboard = () => {
 
@@ -16,10 +21,32 @@ const Dashboard = () => {
   // Agregar datepicker
 
   const navigate = useNavigate();
+
+  const [campusList, setCampusList] = React.useState(null);
+  const [campusSelectID, setCampusSelectID] = React.useState('');
+  const [areaList, setAreaList] = React.useState(null);
+  const [areaSelectID, setAreaSelectID] = React.useState(null);
+  const [careerList, setCareerList] = React.useState(null);
+  const [careerSelectID, setCareerSelectID] = React.useState(null);
+  const [eventList, setEventList] = React.useState(null);
+  const [eventSelectID, setEventSelectID] = React.useState(null);
+
   const id = "caede638-3700-4231-aaf5-71596b78a35f";
+  const campusID = localStorage.getItem('campusID');
+  const subAreaId = localStorage.getItem('subAreaID');
+
+  const [value, setValue] = React.useState({ 
+    startDate: new Date(), 
+    endDate: new Date().setMonth(8) 
+    }); 
+
+  const handleValueChange = (newValue) => {
+    console.log("newValue:", newValue); 
+    setValue(newValue); 
+  } 
+
 
   React.useEffect( () => {
-    const subAreaId = localStorage.getItem('subAreaID');
     if(!subAreaId){
       navigate(`/page/campus`);
     }
@@ -27,8 +54,8 @@ const Dashboard = () => {
 
   const [option, setOption] = React.useState({
     title: {
-      text: 'Referer of a Website',
-      subtext: 'Fake Data',
+      text: 'Cargos de participantes',
+      subtext: 'Real Time Data',
       left: 'center'
     },
     tooltip: {
@@ -61,11 +88,62 @@ const Dashboard = () => {
     ]
   });
 
-  // Get data from attendees via ID
   React.useEffect(() => {
-   
-    DataStore.query(Attendee, (a) => a.events.event.id.eq(id)).then( results => {
-      console.log(results)
+
+    DataStore.query(Campus).then( results => {
+      setCampusList(results);
+      setCampusSelectID(results[0].id);
+      console.log("Campus: ",results)
+    });
+  }, [])
+
+  // Get area depending on the the campus ID
+  React.useEffect(() => {
+    DataStore.query(Area, (a) => a.campusID.eq(campusSelectID)).then( results => {
+      if(results.length > 0){
+        setAreaList(results);
+        setAreaSelectID(results[0].id);
+      } else {
+        setAreaSelectID('');
+        setAreaList([ {title: "Vacio"} ]);
+      }
+      console.log("Area: ",results)
+    });
+  }, [campusSelectID]);
+
+  // Get subarea depending on the the area ID
+  React.useEffect(() => {
+    DataStore.query(Career, (c) => c.areaID.eq(areaSelectID)).then( results => {
+      if(results.length > 0){
+        setCareerList(results);
+        setCareerSelectID(results[0].id)
+      } else {
+        setCareerSelectID('')
+        setCareerList([ {title: "Vacio"} ]);
+      }
+      console.log("Career: ",results)
+    });
+  }, [areaSelectID]);
+
+  // Get events depending on the subarea ID
+  React.useEffect(() => {
+    DataStore.query(Event, (e) => e.careerID.eq(careerSelectID)).then( results => {
+      if(results.length > 0){
+        setEventList(results);
+        setEventSelectID(results[0].id)
+      } else {
+        setEventSelectID('');
+        setEventList([ {title: "Vacio"} ]);
+      }
+      console.log("Event: ",results)
+    });
+  }, [careerSelectID]);
+
+
+  // Get Diagrams
+  React.useEffect(() => {
+
+    DataStore.query(Attendee, (a) => a.EventAttendees.eventID.eq(eventSelectID)).then( results => {
       const countMap = {};
 
       results.forEach(item => {
@@ -95,19 +173,89 @@ const Dashboard = () => {
 
     });
   
-  }, []);
+  }, [eventSelectID]);
 
   return (
     <div className="report-page">
 
-      <div className="filters mt-3">
-        <div className="relative w-full lg:max-w-sm">
-          <select className="w-full p-2.5 text-gray-500 bg-white border rounded-md shadow-sm outline-none  appearance:none focus:border-indigo-600 select-arrow">
-              <option>ReactJS Dropdown</option>
-              <option>Laravel 9 with React</option>
-              <option>React with Tailwind CSS</option>
-              <option>React With Headless UI</option>
-          </select>
+      <Banner />
+
+      <button href="crear" className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-green-500 py-[12px] text-sm font-medium text-white transition duration-200 mb-4 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-green-200">
+        Exportal Excel <MdFileDownload className="h-5 w-5" />
+      </button>
+      <div className="filters mt-3 mb-[35px]">
+        <div className="relative w-full flex gap-5">
+
+          <div className="flex flex-col w-full">
+            <label>Campus</label>
+            <select
+                className="w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-md shadow-sm outline-none appearance-none text-ellipsis	focus:border-indigo-600 select-arrow"
+                onChange={(e) => setCampusSelectID(e.target.value)}
+                value={campusSelectID}
+              >
+                {campusList &&
+                  campusList.map((result) => (
+                    <option key={result.id} value={result.id}>
+                      {result.title}
+                    </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col w-full">
+            <label>Área</label>
+            <select
+                className="w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-md shadow-sm outline-none appearance-none text-ellipsis	focus:border-indigo-600 select-arrow"
+                onChange={(e) => setAreaSelectID(e.target.value)}
+              >
+                {areaList &&
+                  areaList.map((result) => (
+                    <option key={result.id} value={result.id}>
+                      {result.title}
+                    </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col w-full">
+            <label>Subárea</label>
+            <select
+                className="w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-md shadow-sm outline-none appearance-none text-ellipsis	focus:border-indigo-600 select-arrow"
+                onChange={(e) => setCareerSelectID(e.target.value)}
+              >
+                {careerList &&
+                  careerList.map((result) => (
+                    <option key={result.id} value={result.id}>
+                      {result.title}
+                    </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col w-full">
+            <label>Eventos</label>
+            <select
+                className="w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-md shadow-sm outline-none appearance-none text-ellipsis	focus:border-indigo-600 select-arrow"
+                onChange={(e) => setEventSelectID(e.target.value)}
+              >
+                {eventList &&
+                  eventList.map((result) => (
+                    <option key={result.id} value={result.id}>
+                      {result.title}
+                    </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="date-filter flex flex-col w-full">
+            <label>Fechas</label>
+            <Datepicker 
+              i18n={"es"} 
+              value={value} 
+              onChange={handleValueChange} 
+            />
+          </div>
+
         </div>
       </div>
 

@@ -6,190 +6,18 @@
 
 /* eslint-disable */
 import * as React from "react";
-import {
-  Autocomplete,
-  Badge,
-  Button,
-  Divider,
-  Flex,
-  Grid,
-  Icon,
-  ScrollView,
-  Text,
-  TextField,
-  useTheme,
-} from "@aws-amplify/ui-react";
-import {
-  getOverrideProps,
-  useDataStoreBinding,
-} from "@aws-amplify/ui-react/internal";
-import { Attendee, EventAttendee } from "../models";
+import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
+import { getOverrideProps } from "@aws-amplify/ui-react/internal";
+import { Attendee } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
-function ArrayField({
-  items = [],
-  onChange,
-  label,
-  inputFieldRef,
-  children,
-  hasError,
-  setFieldValue,
-  currentFieldValue,
-  defaultFieldValue,
-  lengthLimit,
-  getBadgeText,
-  errorMessage,
-}) {
-  const labelElement = <Text>{label}</Text>;
-  const {
-    tokens: {
-      components: {
-        fieldmessages: { error: errorStyles },
-      },
-    },
-  } = useTheme();
-  const [selectedBadgeIndex, setSelectedBadgeIndex] = React.useState();
-  const [isEditing, setIsEditing] = React.useState();
-  React.useEffect(() => {
-    if (isEditing) {
-      inputFieldRef?.current?.focus();
-    }
-  }, [isEditing]);
-  const removeItem = async (removeIndex) => {
-    const newItems = items.filter((value, index) => index !== removeIndex);
-    await onChange(newItems);
-    setSelectedBadgeIndex(undefined);
-  };
-  const addItem = async () => {
-    if (
-      currentFieldValue !== undefined &&
-      currentFieldValue !== null &&
-      currentFieldValue !== "" &&
-      !hasError
-    ) {
-      const newItems = [...items];
-      if (selectedBadgeIndex !== undefined) {
-        newItems[selectedBadgeIndex] = currentFieldValue;
-        setSelectedBadgeIndex(undefined);
-      } else {
-        newItems.push(currentFieldValue);
-      }
-      await onChange(newItems);
-      setIsEditing(false);
-    }
-  };
-  const arraySection = (
-    <React.Fragment>
-      {!!items?.length && (
-        <ScrollView height="inherit" width="inherit" maxHeight={"7rem"}>
-          {items.map((value, index) => {
-            return (
-              <Badge
-                key={index}
-                style={{
-                  cursor: "pointer",
-                  alignItems: "center",
-                  marginRight: 3,
-                  marginTop: 3,
-                  backgroundColor:
-                    index === selectedBadgeIndex ? "#B8CEF9" : "",
-                }}
-                onClick={() => {
-                  setSelectedBadgeIndex(index);
-                  setFieldValue(items[index]);
-                  setIsEditing(true);
-                }}
-              >
-                {getBadgeText ? getBadgeText(value) : value.toString()}
-                <Icon
-                  style={{
-                    cursor: "pointer",
-                    paddingLeft: 3,
-                    width: 20,
-                    height: 20,
-                  }}
-                  viewBox={{ width: 20, height: 20 }}
-                  paths={[
-                    {
-                      d: "M10 10l5.09-5.09L10 10l5.09 5.09L10 10zm0 0L4.91 4.91 10 10l-5.09 5.09L10 10z",
-                      stroke: "black",
-                    },
-                  ]}
-                  ariaLabel="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeItem(index);
-                  }}
-                />
-              </Badge>
-            );
-          })}
-        </ScrollView>
-      )}
-      <Divider orientation="horizontal" marginTop={5} />
-    </React.Fragment>
-  );
-  if (lengthLimit !== undefined && items.length >= lengthLimit && !isEditing) {
-    return (
-      <React.Fragment>
-        {labelElement}
-        {arraySection}
-      </React.Fragment>
-    );
-  }
-  return (
-    <React.Fragment>
-      {labelElement}
-      {isEditing && children}
-      {!isEditing ? (
-        <>
-          <Button
-            onClick={() => {
-              setIsEditing(true);
-            }}
-          >
-            Add item
-          </Button>
-          {errorMessage && hasError && (
-            <Text color={errorStyles.color} fontSize={errorStyles.fontSize}>
-              {errorMessage}
-            </Text>
-          )}
-        </>
-      ) : (
-        <Flex justifyContent="flex-end">
-          {(currentFieldValue || isEditing) && (
-            <Button
-              children="Cancel"
-              type="button"
-              size="small"
-              onClick={() => {
-                setFieldValue(defaultFieldValue);
-                setIsEditing(false);
-                setSelectedBadgeIndex(undefined);
-              }}
-            ></Button>
-          )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
-            {selectedBadgeIndex !== undefined ? "Save" : "Add"}
-          </Button>
-        </Flex>
-      )}
-      {arraySection}
-    </React.Fragment>
-  );
-}
 export default function AttendeeCreateForm(props) {
   const {
     clearOnSuccess = true,
     onSuccess,
     onError,
     onSubmit,
+    onCancel,
     onValidate,
     onChange,
     overrides,
@@ -200,55 +28,24 @@ export default function AttendeeCreateForm(props) {
     type: "",
     age: "",
     position: "",
-    EventAttendees: [],
   };
   const [name, setName] = React.useState(initialValues.name);
   const [type, setType] = React.useState(initialValues.type);
   const [age, setAge] = React.useState(initialValues.age);
   const [position, setPosition] = React.useState(initialValues.position);
-  const [EventAttendees, setEventAttendees] = React.useState(
-    initialValues.EventAttendees
-  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setName(initialValues.name);
     setType(initialValues.type);
     setAge(initialValues.age);
     setPosition(initialValues.position);
-    setEventAttendees(initialValues.EventAttendees);
-    setCurrentEventAttendeesValue(undefined);
-    setCurrentEventAttendeesDisplayValue("");
     setErrors({});
-  };
-  const [
-    currentEventAttendeesDisplayValue,
-    setCurrentEventAttendeesDisplayValue,
-  ] = React.useState("");
-  const [currentEventAttendeesValue, setCurrentEventAttendeesValue] =
-    React.useState(undefined);
-  const EventAttendeesRef = React.createRef();
-  const getIDValue = {
-    EventAttendees: (r) => JSON.stringify({ id: r?.id }),
-  };
-  const EventAttendeesIdSet = new Set(
-    Array.isArray(EventAttendees)
-      ? EventAttendees.map((r) => getIDValue.EventAttendees?.(r))
-      : getIDValue.EventAttendees?.(EventAttendees)
-  );
-  const eventAttendeeRecords = useDataStoreBinding({
-    type: "collection",
-    model: EventAttendee,
-  }).items;
-  const getDisplayValue = {
-    EventAttendees: (r) =>
-      `${r?.authorized ? r?.authorized + " - " : ""}${r?.id}`,
   };
   const validations = {
     name: [],
     type: [],
     age: [],
     position: [],
-    EventAttendees: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -280,28 +77,19 @@ export default function AttendeeCreateForm(props) {
           type,
           age,
           position,
-          EventAttendees,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(
-                    fieldName,
-                    item,
-                    getDisplayValue[fieldName]
-                  )
+                  runValidationTasks(fieldName, item)
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(
-                fieldName,
-                modelFields[fieldName],
-                getDisplayValue[fieldName]
-              )
+              runValidationTasks(fieldName, modelFields[fieldName])
             );
             return promises;
           }, [])
@@ -318,29 +106,7 @@ export default function AttendeeCreateForm(props) {
               modelFields[key] = undefined;
             }
           });
-          const modelFieldsToSave = {
-            name: modelFields.name,
-            type: modelFields.type,
-            age: modelFields.age,
-            position: modelFields.position,
-          };
-          const attendee = await DataStore.save(
-            new Attendee(modelFieldsToSave)
-          );
-          const promises = [];
-          promises.push(
-            ...EventAttendees.reduce((promises, original) => {
-              promises.push(
-                DataStore.save(
-                  EventAttendee.copyOf(original, (updated) => {
-                    updated.attendeeID = attendee.id;
-                  })
-                )
-              );
-              return promises;
-            }, [])
-          );
-          await Promise.all(promises);
+          await DataStore.save(new Attendee(modelFields));
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -357,7 +123,7 @@ export default function AttendeeCreateForm(props) {
       {...rest}
     >
       <TextField
-        label="Name"
+        label="Nombre"
         isRequired={false}
         isReadOnly={false}
         value={name}
@@ -369,7 +135,6 @@ export default function AttendeeCreateForm(props) {
               type,
               age,
               position,
-              EventAttendees,
             };
             const result = onChange(modelFields);
             value = result?.name ?? value;
@@ -385,7 +150,7 @@ export default function AttendeeCreateForm(props) {
         {...getOverrideProps(overrides, "name")}
       ></TextField>
       <TextField
-        label="Type"
+        label="Tipo"
         isRequired={false}
         isReadOnly={false}
         value={type}
@@ -397,7 +162,6 @@ export default function AttendeeCreateForm(props) {
               type: value,
               age,
               position,
-              EventAttendees,
             };
             const result = onChange(modelFields);
             value = result?.type ?? value;
@@ -413,7 +177,7 @@ export default function AttendeeCreateForm(props) {
         {...getOverrideProps(overrides, "type")}
       ></TextField>
       <TextField
-        label="Age"
+        label="Edad"
         isRequired={false}
         isReadOnly={false}
         type="number"
@@ -429,7 +193,6 @@ export default function AttendeeCreateForm(props) {
               type,
               age: value,
               position,
-              EventAttendees,
             };
             const result = onChange(modelFields);
             value = result?.age ?? value;
@@ -445,7 +208,7 @@ export default function AttendeeCreateForm(props) {
         {...getOverrideProps(overrides, "age")}
       ></TextField>
       <TextField
-        label="Position"
+        label="Posición"
         isRequired={false}
         isReadOnly={false}
         value={position}
@@ -457,7 +220,6 @@ export default function AttendeeCreateForm(props) {
               type,
               age,
               position: value,
-              EventAttendees,
             };
             const result = onChange(modelFields);
             value = result?.position ?? value;
@@ -472,107 +234,24 @@ export default function AttendeeCreateForm(props) {
         hasError={errors.position?.hasError}
         {...getOverrideProps(overrides, "position")}
       ></TextField>
-      <ArrayField
-        onChange={async (items) => {
-          let values = items;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age,
-              position,
-              EventAttendees: values,
-            };
-            const result = onChange(modelFields);
-            values = result?.EventAttendees ?? values;
-          }
-          setEventAttendees(values);
-          setCurrentEventAttendeesValue(undefined);
-          setCurrentEventAttendeesDisplayValue("");
-        }}
-        currentFieldValue={currentEventAttendeesValue}
-        label={"Event attendees"}
-        items={EventAttendees}
-        hasError={errors?.EventAttendees?.hasError}
-        errorMessage={errors?.EventAttendees?.errorMessage}
-        getBadgeText={getDisplayValue.EventAttendees}
-        setFieldValue={(model) => {
-          setCurrentEventAttendeesDisplayValue(
-            model ? getDisplayValue.EventAttendees(model) : ""
-          );
-          setCurrentEventAttendeesValue(model);
-        }}
-        inputFieldRef={EventAttendeesRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label="Event attendees"
-          isRequired={false}
-          isReadOnly={false}
-          placeholder="Search EventAttendee"
-          value={currentEventAttendeesDisplayValue}
-          options={eventAttendeeRecords
-            .filter(
-              (r) => !EventAttendeesIdSet.has(getIDValue.EventAttendees?.(r))
-            )
-            .map((r) => ({
-              id: getIDValue.EventAttendees?.(r),
-              label: getDisplayValue.EventAttendees?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentEventAttendeesValue(
-              eventAttendeeRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentEventAttendeesDisplayValue(label);
-            runValidationTasks("EventAttendees", label);
-          }}
-          onClear={() => {
-            setCurrentEventAttendeesDisplayValue("");
-          }}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.EventAttendees?.hasError) {
-              runValidationTasks("EventAttendees", value);
-            }
-            setCurrentEventAttendeesDisplayValue(value);
-            setCurrentEventAttendeesValue(undefined);
-          }}
-          onBlur={() =>
-            runValidationTasks(
-              "EventAttendees",
-              currentEventAttendeesDisplayValue
-            )
-          }
-          errorMessage={errors.EventAttendees?.errorMessage}
-          hasError={errors.EventAttendees?.hasError}
-          ref={EventAttendeesRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "EventAttendees")}
-        ></Autocomplete>
-      </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
       >
-        <Button
-          children="Clear"
-          type="reset"
-          onClick={(event) => {
-            event.preventDefault();
-            resetStateValues();
-          }}
-          {...getOverrideProps(overrides, "ClearButton")}
-        ></Button>
         <Flex
           gap="15px"
           {...getOverrideProps(overrides, "RightAlignCTASubFlex")}
         >
           <Button
-            children="Submit"
+            children="Cancelar"
+            type="button"
+            onClick={() => {
+              onCancel && onCancel();
+            }}
+            {...getOverrideProps(overrides, "CancelButton")}
+          ></Button>
+          <Button
+            children="Guardar"
             type="submit"
             variation="primary"
             isDisabled={Object.values(errors).some((e) => e?.hasError)}

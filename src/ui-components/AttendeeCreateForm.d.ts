@@ -5,9 +5,8 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { EventAttendee } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -18,14 +17,12 @@ export declare type AttendeeCreateFormInputValues = {
     type?: string;
     age?: number;
     position?: string;
-    EventAttendees?: EventAttendee[];
 };
 export declare type AttendeeCreateFormValidationValues = {
     name?: ValidationFunction<string>;
     type?: ValidationFunction<string>;
     age?: ValidationFunction<number>;
     position?: ValidationFunction<string>;
-    EventAttendees?: ValidationFunction<EventAttendee>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type AttendeeCreateFormOverridesProps = {
@@ -34,7 +31,6 @@ export declare type AttendeeCreateFormOverridesProps = {
     type?: PrimitiveOverrideProps<TextFieldProps>;
     age?: PrimitiveOverrideProps<TextFieldProps>;
     position?: PrimitiveOverrideProps<TextFieldProps>;
-    EventAttendees?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type AttendeeCreateFormProps = React.PropsWithChildren<{
     overrides?: AttendeeCreateFormOverridesProps | undefined | null;
@@ -43,6 +39,7 @@ export declare type AttendeeCreateFormProps = React.PropsWithChildren<{
     onSubmit?: (fields: AttendeeCreateFormInputValues) => AttendeeCreateFormInputValues;
     onSuccess?: (fields: AttendeeCreateFormInputValues) => void;
     onError?: (fields: AttendeeCreateFormInputValues, errorMessage: string) => void;
+    onCancel?: () => void;
     onChange?: (fields: AttendeeCreateFormInputValues) => AttendeeCreateFormInputValues;
     onValidate?: AttendeeCreateFormValidationValues;
 } & React.CSSProperties>;

@@ -34,7 +34,7 @@ const Dashboard = () => {
   const deleteAttendee = () => {
     DataStore.delete(attendee);
     alert("Participante eliminada con éxito")
-    navigate('/page/campus/area');
+    navigate(`/admin/eventos/${eventID}/participantes`);
   }
 
   if(!attendee){

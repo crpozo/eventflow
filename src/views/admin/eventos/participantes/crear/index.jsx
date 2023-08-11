@@ -25,13 +25,28 @@ const Dashboard = () => {
 
   }, [id, navigate]);
 
-  // await DataStore.save(
-  //   new Post({
-  //     title: 'My First Post',
-  //     rating: 10,
-  //     status: PostStatus.INACTIVE
-  //   })
-  // );
+  async function createAttende(fields){
+    const attendee = await DataStore.save(
+      new Attendee({
+        name: fields.name,
+        type: fields.type,
+        age: fields.age,
+        position: fields.position
+      })
+    );
+    return attendee;
+  }
+
+  async function createEventAttendee( eventID, attendeeID){
+    const eventAttendee = await DataStore.save(
+      new EventAttendee({
+        eventID: eventID,
+        attendeeID: attendeeID,
+        authorized: false,
+        checkIn: false
+      })
+    );
+  }
 
   return (
     <div className="event-detail-page">
@@ -55,20 +70,22 @@ const Dashboard = () => {
           </div>
 
           <AttendeeCreateForm
-            onSuccess={(fields) => {
-              console.log(fields)
-              alert("Participante creado con éxito");         
-              navigate(`/admin/eventos/${eventID}/participantes`);
+
+            onSuccess={() => {
+              alert("Participante creado con éxito");    
+              navigate(`/admin/eventos/${eventID}/participantes`);     
             }}
-            onSubmit={(fields) => {
-              console.log(fields)
-              // Save Attende data store, take the id
-              // Save the EventAttendee with the event id + attende id
+
+            onSubmit={async (fields) => {
+              let attendee = await createAttende(fields);
+              createEventAttendee(eventID, attendee.id);
               return;
             }}
+
             onCancel={() => {
               navigate(`/admin/eventos/${eventID}/participantes`);
             }}
+
           />
         </div>
 

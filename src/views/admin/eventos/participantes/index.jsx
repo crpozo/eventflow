@@ -8,9 +8,8 @@ import DevelopmentTable from "./components/DevelopmentTable";
 const Marketplace = () => {
 
   const navigate = useNavigate();
-  const [user, setuser] = React.useState([]);
-  const [columns, setColumns] = React.useState([]);
-  const [rows, setRows] = React.useState([]);
+  const [columns, setColumns] = React.useState(null);
+  const [rows, setRows] = React.useState(null);
   const id = useParams().id;
 
   React.useEffect(() => {
@@ -21,48 +20,55 @@ const Marketplace = () => {
   }, [id, navigate]);
 
   React.useEffect(() => {
-    DataStore.query(Attendee, (a) => a.EventAttendees.eventID.eq(id)).then( results => {
-      let columns = [];
-      let rows = [];
-      setuser(results);
-      console.log("Participantes: ",results)
-      columns = [
-        {
-          Header: "Nombre",
-          accessor: "name",
-        },
-        {
-          Header: "CREACION",
-          accessor: "create_date",
-        },
-        {
-          Header: "",
-          accessor: "action",
-        },
-      ];
-      setColumns(columns);
 
-      for( let user of results ){
-        rows.push({
-          "name": user.name,
-          "create_date": user.createdAt,
-          "action": user.id
-        })
+    const sub = DataStore.observeQuery(Attendee, (a) =>
+      a.EventAttendees.eventID.eq(id)
+    ).subscribe(({ items }) => {
+      try{
+        console.log("items: ",items)
+
+        let columns = [
+          {
+            Header: "Nombre",
+            accessor: "name",
+          },
+          {
+            Header: "CREACION",
+            accessor: "create_date",
+          },
+          {
+            Header: "",
+            accessor: "action",
+          },
+        ];
+        setColumns(columns);
+
+        let updatedRows = items.map(user => ({
+          name: user.name,
+          create_date: user.createdAt,
+          action: user.id
+        }));
+
+        setRows(updatedRows);
+
+      } catch (e) {
+        console.error("Error in observeQuery subscription:", e);
       }
-      setRows(rows)
     });
-    
-  }, []);
 
-  if(!user){
+    return () => {
+      sub.unsubscribe();
+    };
+
+  }, [id]);
+
+  if(!rows){
     return <p>Loading...</p>
   }
-
 
   return (
     <div className="grid h-full grid-cols-1 gap-5">
       <div className="col-span-1 h-fit w-full xl:col-span-1 2xl:col-span-2">
-        {/* NFt Banner */}
         <Banner />
 
         <div className="mt-5 grid h-full grid-cols-1 gap-5">

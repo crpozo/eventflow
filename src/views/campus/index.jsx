@@ -13,7 +13,6 @@ const Dashboard = () => {
   const [campus, setCampus] = React.useState([]);
 
   React.useEffect(() => {
-    // AWS amplify data 
     DataStore.query(Campus).then( (results) => {
       setCampus(results);
       console.log("Campus: ",results)
