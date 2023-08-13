@@ -10,6 +10,7 @@ import {
 const Dashboard = () => {
 
   const navigate = useNavigate();
+  const areaID = localStorage.getItem('areaID');
 
   return (
     <div className="area-page">
@@ -36,6 +37,12 @@ const Dashboard = () => {
             onSuccess={() => {
               alert("Subarea creada con éxito")
               navigate(`/page/campus/area/subarea`);
+            }}
+            onSubmit={(fields) => {
+              if(areaID){
+                fields.areaID = areaID;
+                return fields;
+              }
             }}
             onCancel={() => {
               navigate(`/page/campus/area/subarea`);

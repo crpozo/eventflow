@@ -7,183 +7,16 @@
 /* eslint-disable */
 import * as React from "react";
 import {
-  Autocomplete,
-  Badge,
   Button,
-  Divider,
   Flex,
   Grid,
-  Icon,
-  ScrollView,
-  Text,
+  TextAreaField,
   TextField,
-  useTheme,
 } from "@aws-amplify/ui-react";
-import {
-  getOverrideProps,
-  useDataStoreBinding,
-} from "@aws-amplify/ui-react/internal";
-import { Area, Campus } from "../models";
+import { getOverrideProps } from "@aws-amplify/ui-react/internal";
+import { Area } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
-function ArrayField({
-  items = [],
-  onChange,
-  label,
-  inputFieldRef,
-  children,
-  hasError,
-  setFieldValue,
-  currentFieldValue,
-  defaultFieldValue,
-  lengthLimit,
-  getBadgeText,
-  errorMessage,
-}) {
-  const labelElement = <Text>{label}</Text>;
-  const {
-    tokens: {
-      components: {
-        fieldmessages: { error: errorStyles },
-      },
-    },
-  } = useTheme();
-  const [selectedBadgeIndex, setSelectedBadgeIndex] = React.useState();
-  const [isEditing, setIsEditing] = React.useState();
-  React.useEffect(() => {
-    if (isEditing) {
-      inputFieldRef?.current?.focus();
-    }
-  }, [isEditing]);
-  const removeItem = async (removeIndex) => {
-    const newItems = items.filter((value, index) => index !== removeIndex);
-    await onChange(newItems);
-    setSelectedBadgeIndex(undefined);
-  };
-  const addItem = async () => {
-    if (
-      currentFieldValue !== undefined &&
-      currentFieldValue !== null &&
-      currentFieldValue !== "" &&
-      !hasError
-    ) {
-      const newItems = [...items];
-      if (selectedBadgeIndex !== undefined) {
-        newItems[selectedBadgeIndex] = currentFieldValue;
-        setSelectedBadgeIndex(undefined);
-      } else {
-        newItems.push(currentFieldValue);
-      }
-      await onChange(newItems);
-      setIsEditing(false);
-    }
-  };
-  const arraySection = (
-    <React.Fragment>
-      {!!items?.length && (
-        <ScrollView height="inherit" width="inherit" maxHeight={"7rem"}>
-          {items.map((value, index) => {
-            return (
-              <Badge
-                key={index}
-                style={{
-                  cursor: "pointer",
-                  alignItems: "center",
-                  marginRight: 3,
-                  marginTop: 3,
-                  backgroundColor:
-                    index === selectedBadgeIndex ? "#B8CEF9" : "",
-                }}
-                onClick={() => {
-                  setSelectedBadgeIndex(index);
-                  setFieldValue(items[index]);
-                  setIsEditing(true);
-                }}
-              >
-                {getBadgeText ? getBadgeText(value) : value.toString()}
-                <Icon
-                  style={{
-                    cursor: "pointer",
-                    paddingLeft: 3,
-                    width: 20,
-                    height: 20,
-                  }}
-                  viewBox={{ width: 20, height: 20 }}
-                  paths={[
-                    {
-                      d: "M10 10l5.09-5.09L10 10l5.09 5.09L10 10zm0 0L4.91 4.91 10 10l-5.09 5.09L10 10z",
-                      stroke: "black",
-                    },
-                  ]}
-                  ariaLabel="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeItem(index);
-                  }}
-                />
-              </Badge>
-            );
-          })}
-        </ScrollView>
-      )}
-      <Divider orientation="horizontal" marginTop={5} />
-    </React.Fragment>
-  );
-  if (lengthLimit !== undefined && items.length >= lengthLimit && !isEditing) {
-    return (
-      <React.Fragment>
-        {labelElement}
-        {arraySection}
-      </React.Fragment>
-    );
-  }
-  return (
-    <React.Fragment>
-      {labelElement}
-      {isEditing && children}
-      {!isEditing ? (
-        <>
-          <Button
-            onClick={() => {
-              setIsEditing(true);
-            }}
-          >
-            Add item
-          </Button>
-          {errorMessage && hasError && (
-            <Text color={errorStyles.color} fontSize={errorStyles.fontSize}>
-              {errorMessage}
-            </Text>
-          )}
-        </>
-      ) : (
-        <Flex justifyContent="flex-end">
-          {(currentFieldValue || isEditing) && (
-            <Button
-              children="Cancel"
-              type="button"
-              size="small"
-              onClick={() => {
-                setFieldValue(defaultFieldValue);
-                setIsEditing(false);
-                setSelectedBadgeIndex(undefined);
-              }}
-            ></Button>
-          )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
-            {selectedBadgeIndex !== undefined ? "Save" : "Add"}
-          </Button>
-        </Flex>
-      )}
-      {arraySection}
-    </React.Fragment>
-  );
-}
 export default function AreaCreateForm(props) {
   const {
     clearOnSuccess = true,
@@ -198,33 +31,25 @@ export default function AreaCreateForm(props) {
   } = props;
   const initialValues = {
     title: "",
-    campusID: undefined,
+    description: "",
+    costCenter: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
-  const [campusID, setCampusID] = React.useState(initialValues.campusID);
+  const [description, setDescription] = React.useState(
+    initialValues.description
+  );
+  const [costCenter, setCostCenter] = React.useState(initialValues.costCenter);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
-    setCampusID(initialValues.campusID);
-    setCurrentCampusIDValue(undefined);
-    setCurrentCampusIDDisplayValue("");
+    setDescription(initialValues.description);
+    setCostCenter(initialValues.costCenter);
     setErrors({});
-  };
-  const [currentCampusIDDisplayValue, setCurrentCampusIDDisplayValue] =
-    React.useState("");
-  const [currentCampusIDValue, setCurrentCampusIDValue] =
-    React.useState(undefined);
-  const campusIDRef = React.createRef();
-  const campusRecords = useDataStoreBinding({
-    type: "collection",
-    model: Campus,
-  }).items;
-  const getDisplayValue = {
-    campusID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
   };
   const validations = {
     title: [],
-    campusID: [{ type: "Required" }],
+    description: [],
+    costCenter: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -253,7 +78,8 @@ export default function AreaCreateForm(props) {
         event.preventDefault();
         let modelFields = {
           title,
-          campusID,
+          description,
+          costCenter,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -300,16 +126,18 @@ export default function AreaCreateForm(props) {
       {...rest}
     >
       <TextField
-        label="Title"
+        label="Indica a los usuarios que área organiza los eventos"
         isRequired={false}
         isReadOnly={false}
+        placeholder="Nombre área"
         value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title: value,
-              campusID,
+              description,
+              costCenter,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -324,95 +152,59 @@ export default function AreaCreateForm(props) {
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
       ></TextField>
-      <ArrayField
-        lengthLimit={1}
-        onChange={async (items) => {
-          let value = items[0];
+      <TextAreaField
+        label="Descripción del área"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="A qué tipo de eventos se dedica el área?"
+        onChange={(e) => {
+          let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title,
-              campusID: value,
+              description: value,
+              costCenter,
             };
             const result = onChange(modelFields);
-            value = result?.campusID ?? value;
+            value = result?.description ?? value;
           }
-          setCampusID(value);
-          setCurrentCampusIDValue(undefined);
-        }}
-        currentFieldValue={currentCampusIDValue}
-        label={
-          <span style={{ display: "inline-flex" }}>
-            <span>Campus id</span>
-            <span style={{ color: "red" }}>*</span>
-          </span>
-        }
-        items={campusID ? [campusID] : []}
-        hasError={errors?.campusID?.hasError}
-        errorMessage={errors?.campusID?.errorMessage}
-        getBadgeText={(value) =>
-          value
-            ? getDisplayValue.campusID(
-                campusRecords.find((r) => r.id === value)
-              )
-            : ""
-        }
-        setFieldValue={(value) => {
-          setCurrentCampusIDDisplayValue(
-            value
-              ? getDisplayValue.campusID(
-                  campusRecords.find((r) => r.id === value)
-                )
-              : ""
-          );
-          setCurrentCampusIDValue(value);
-        }}
-        inputFieldRef={campusIDRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label={
-            <span style={{ display: "inline-flex" }}>
-              <span>Campus id</span>
-              <span style={{ color: "red" }}>*</span>
-            </span>
+          if (errors.description?.hasError) {
+            runValidationTasks("description", value);
           }
-          isRequired={true}
-          isReadOnly={false}
-          placeholder="Search Campus"
-          value={currentCampusIDDisplayValue}
-          options={campusRecords
-            .filter(
-              (r, i, arr) =>
-                arr.findIndex((member) => member?.id === r?.id) === i
-            )
-            .map((r) => ({
-              id: r?.id,
-              label: getDisplayValue.campusID?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentCampusIDValue(id);
-            setCurrentCampusIDDisplayValue(label);
-            runValidationTasks("campusID", label);
-          }}
-          onClear={() => {
-            setCurrentCampusIDDisplayValue("");
-          }}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.campusID?.hasError) {
-              runValidationTasks("campusID", value);
-            }
-            setCurrentCampusIDDisplayValue(value);
-            setCurrentCampusIDValue(undefined);
-          }}
-          onBlur={() => runValidationTasks("campusID", currentCampusIDValue)}
-          errorMessage={errors.campusID?.errorMessage}
-          hasError={errors.campusID?.hasError}
-          ref={campusIDRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "campusID")}
-        ></Autocomplete>
-      </ArrayField>
+          setDescription(value);
+        }}
+        onBlur={() => runValidationTasks("description", description)}
+        errorMessage={errors.description?.errorMessage}
+        hasError={errors.description?.hasError}
+        {...getOverrideProps(overrides, "description")}
+      ></TextAreaField>
+      <TextField
+        label="Centro de costos"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="Centro de costos"
+        value={costCenter}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              costCenter: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.costCenter ?? value;
+          }
+          if (errors.costCenter?.hasError) {
+            runValidationTasks("costCenter", value);
+          }
+          setCostCenter(value);
+        }}
+        onBlur={() => runValidationTasks("costCenter", costCenter)}
+        errorMessage={errors.costCenter?.errorMessage}
+        hasError={errors.costCenter?.hasError}
+        {...getOverrideProps(overrides, "costCenter")}
+      ></TextField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

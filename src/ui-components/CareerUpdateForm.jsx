@@ -199,9 +199,15 @@ export default function CareerUpdateForm(props) {
   } = props;
   const initialValues = {
     title: "",
+    description: "",
+    costCenter: "",
     areaID: undefined,
   };
   const [title, setTitle] = React.useState(initialValues.title);
+  const [description, setDescription] = React.useState(
+    initialValues.description
+  );
+  const [costCenter, setCostCenter] = React.useState(initialValues.costCenter);
   const [areaID, setAreaID] = React.useState(initialValues.areaID);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
@@ -209,6 +215,8 @@ export default function CareerUpdateForm(props) {
       ? { ...initialValues, ...careerRecord, areaID }
       : initialValues;
     setTitle(cleanValues.title);
+    setDescription(cleanValues.description);
+    setCostCenter(cleanValues.costCenter);
     setAreaID(cleanValues.areaID);
     setCurrentAreaIDValue(undefined);
     setCurrentAreaIDDisplayValue("");
@@ -240,6 +248,8 @@ export default function CareerUpdateForm(props) {
   };
   const validations = {
     title: [],
+    description: [],
+    costCenter: [],
     areaID: [{ type: "Required" }],
   };
   const runValidationTasks = async (
@@ -269,6 +279,8 @@ export default function CareerUpdateForm(props) {
         event.preventDefault();
         let modelFields = {
           title,
+          description,
+          costCenter,
           areaID,
         };
         const validationResponses = await Promise.all(
@@ -317,15 +329,18 @@ export default function CareerUpdateForm(props) {
       {...rest}
     >
       <TextField
-        label="Title"
+        label="Indica a los usuarios que subárea organiza los eventos"
         isRequired={false}
         isReadOnly={false}
+        placeholder="Nombre subárea"
         value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title: value,
+              description,
+              costCenter,
               areaID,
             };
             const result = onChange(modelFields);
@@ -341,6 +356,62 @@ export default function CareerUpdateForm(props) {
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
       ></TextField>
+      <TextField
+        label="Descripción de la carrera"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="A qué tipo de eventos se dedica la carrera?"
+        value={description}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description: value,
+              costCenter,
+              areaID,
+            };
+            const result = onChange(modelFields);
+            value = result?.description ?? value;
+          }
+          if (errors.description?.hasError) {
+            runValidationTasks("description", value);
+          }
+          setDescription(value);
+        }}
+        onBlur={() => runValidationTasks("description", description)}
+        errorMessage={errors.description?.errorMessage}
+        hasError={errors.description?.hasError}
+        {...getOverrideProps(overrides, "description")}
+      ></TextField>
+      <TextField
+        label="Centro de costos"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="Centro de costos"
+        value={costCenter}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              costCenter: value,
+              areaID,
+            };
+            const result = onChange(modelFields);
+            value = result?.costCenter ?? value;
+          }
+          if (errors.costCenter?.hasError) {
+            runValidationTasks("costCenter", value);
+          }
+          setCostCenter(value);
+        }}
+        onBlur={() => runValidationTasks("costCenter", costCenter)}
+        errorMessage={errors.costCenter?.errorMessage}
+        hasError={errors.costCenter?.hasError}
+        {...getOverrideProps(overrides, "costCenter")}
+      ></TextField>
       <ArrayField
         lengthLimit={1}
         onChange={async (items) => {
@@ -348,6 +419,8 @@ export default function CareerUpdateForm(props) {
           if (onChange) {
             const modelFields = {
               title,
+              description,
+              costCenter,
               areaID: value,
             };
             const result = onChange(modelFields);
@@ -357,7 +430,7 @@ export default function CareerUpdateForm(props) {
           setCurrentAreaIDValue(undefined);
         }}
         currentFieldValue={currentAreaIDValue}
-        label={"Area id"}
+        label={"Area"}
         items={areaID ? [areaID] : []}
         hasError={errors?.areaID?.hasError}
         errorMessage={errors?.areaID?.errorMessage}
@@ -378,10 +451,10 @@ export default function CareerUpdateForm(props) {
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Area id"
+          label="Area"
           isRequired={true}
           isReadOnly={false}
-          placeholder="Search Area"
+          placeholder="Buscar Area"
           value={currentAreaIDDisplayValue}
           options={areaRecords
             .filter(

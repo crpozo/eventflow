@@ -7,183 +7,16 @@
 /* eslint-disable */
 import * as React from "react";
 import {
-  Autocomplete,
-  Badge,
   Button,
-  Divider,
   Flex,
   Grid,
-  Icon,
-  ScrollView,
-  Text,
+  TextAreaField,
   TextField,
-  useTheme,
 } from "@aws-amplify/ui-react";
-import {
-  getOverrideProps,
-  useDataStoreBinding,
-} from "@aws-amplify/ui-react/internal";
-import { Career, Area } from "../models";
+import { getOverrideProps } from "@aws-amplify/ui-react/internal";
+import { Career } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
-function ArrayField({
-  items = [],
-  onChange,
-  label,
-  inputFieldRef,
-  children,
-  hasError,
-  setFieldValue,
-  currentFieldValue,
-  defaultFieldValue,
-  lengthLimit,
-  getBadgeText,
-  errorMessage,
-}) {
-  const labelElement = <Text>{label}</Text>;
-  const {
-    tokens: {
-      components: {
-        fieldmessages: { error: errorStyles },
-      },
-    },
-  } = useTheme();
-  const [selectedBadgeIndex, setSelectedBadgeIndex] = React.useState();
-  const [isEditing, setIsEditing] = React.useState();
-  React.useEffect(() => {
-    if (isEditing) {
-      inputFieldRef?.current?.focus();
-    }
-  }, [isEditing]);
-  const removeItem = async (removeIndex) => {
-    const newItems = items.filter((value, index) => index !== removeIndex);
-    await onChange(newItems);
-    setSelectedBadgeIndex(undefined);
-  };
-  const addItem = async () => {
-    if (
-      currentFieldValue !== undefined &&
-      currentFieldValue !== null &&
-      currentFieldValue !== "" &&
-      !hasError
-    ) {
-      const newItems = [...items];
-      if (selectedBadgeIndex !== undefined) {
-        newItems[selectedBadgeIndex] = currentFieldValue;
-        setSelectedBadgeIndex(undefined);
-      } else {
-        newItems.push(currentFieldValue);
-      }
-      await onChange(newItems);
-      setIsEditing(false);
-    }
-  };
-  const arraySection = (
-    <React.Fragment>
-      {!!items?.length && (
-        <ScrollView height="inherit" width="inherit" maxHeight={"7rem"}>
-          {items.map((value, index) => {
-            return (
-              <Badge
-                key={index}
-                style={{
-                  cursor: "pointer",
-                  alignItems: "center",
-                  marginRight: 3,
-                  marginTop: 3,
-                  backgroundColor:
-                    index === selectedBadgeIndex ? "#B8CEF9" : "",
-                }}
-                onClick={() => {
-                  setSelectedBadgeIndex(index);
-                  setFieldValue(items[index]);
-                  setIsEditing(true);
-                }}
-              >
-                {getBadgeText ? getBadgeText(value) : value.toString()}
-                <Icon
-                  style={{
-                    cursor: "pointer",
-                    paddingLeft: 3,
-                    width: 20,
-                    height: 20,
-                  }}
-                  viewBox={{ width: 20, height: 20 }}
-                  paths={[
-                    {
-                      d: "M10 10l5.09-5.09L10 10l5.09 5.09L10 10zm0 0L4.91 4.91 10 10l-5.09 5.09L10 10z",
-                      stroke: "black",
-                    },
-                  ]}
-                  ariaLabel="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeItem(index);
-                  }}
-                />
-              </Badge>
-            );
-          })}
-        </ScrollView>
-      )}
-      <Divider orientation="horizontal" marginTop={5} />
-    </React.Fragment>
-  );
-  if (lengthLimit !== undefined && items.length >= lengthLimit && !isEditing) {
-    return (
-      <React.Fragment>
-        {labelElement}
-        {arraySection}
-      </React.Fragment>
-    );
-  }
-  return (
-    <React.Fragment>
-      {labelElement}
-      {isEditing && children}
-      {!isEditing ? (
-        <>
-          <Button
-            onClick={() => {
-              setIsEditing(true);
-            }}
-          >
-            Add item
-          </Button>
-          {errorMessage && hasError && (
-            <Text color={errorStyles.color} fontSize={errorStyles.fontSize}>
-              {errorMessage}
-            </Text>
-          )}
-        </>
-      ) : (
-        <Flex justifyContent="flex-end">
-          {(currentFieldValue || isEditing) && (
-            <Button
-              children="Cancel"
-              type="button"
-              size="small"
-              onClick={() => {
-                setFieldValue(defaultFieldValue);
-                setIsEditing(false);
-                setSelectedBadgeIndex(undefined);
-              }}
-            ></Button>
-          )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
-            {selectedBadgeIndex !== undefined ? "Save" : "Add"}
-          </Button>
-        </Flex>
-      )}
-      {arraySection}
-    </React.Fragment>
-  );
-}
 export default function CareerCreateForm(props) {
   const {
     clearOnSuccess = true,
@@ -198,32 +31,25 @@ export default function CareerCreateForm(props) {
   } = props;
   const initialValues = {
     title: "",
-    areaID: undefined,
+    description: "",
+    costCenter: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
-  const [areaID, setAreaID] = React.useState(initialValues.areaID);
+  const [description, setDescription] = React.useState(
+    initialValues.description
+  );
+  const [costCenter, setCostCenter] = React.useState(initialValues.costCenter);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
-    setAreaID(initialValues.areaID);
-    setCurrentAreaIDValue(undefined);
-    setCurrentAreaIDDisplayValue("");
+    setDescription(initialValues.description);
+    setCostCenter(initialValues.costCenter);
     setErrors({});
-  };
-  const [currentAreaIDDisplayValue, setCurrentAreaIDDisplayValue] =
-    React.useState("");
-  const [currentAreaIDValue, setCurrentAreaIDValue] = React.useState(undefined);
-  const areaIDRef = React.createRef();
-  const areaRecords = useDataStoreBinding({
-    type: "collection",
-    model: Area,
-  }).items;
-  const getDisplayValue = {
-    areaID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
   };
   const validations = {
     title: [],
-    areaID: [{ type: "Required" }],
+    description: [],
+    costCenter: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -252,7 +78,8 @@ export default function CareerCreateForm(props) {
         event.preventDefault();
         let modelFields = {
           title,
-          areaID,
+          description,
+          costCenter,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -299,16 +126,18 @@ export default function CareerCreateForm(props) {
       {...rest}
     >
       <TextField
-        label="Title"
+        label="Indica a los usuarios que subárea organiza los eventos"
         isRequired={false}
         isReadOnly={false}
+        placeholder="Nombre subárea"
         value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title: value,
-              areaID,
+              description,
+              costCenter,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -323,81 +152,59 @@ export default function CareerCreateForm(props) {
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
       ></TextField>
-      <ArrayField
-        lengthLimit={1}
-        onChange={async (items) => {
-          let value = items[0];
+      <TextAreaField
+        label="Descripción"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="A qué tipo de eventos se dedica la carrera?"
+        onChange={(e) => {
+          let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title,
-              areaID: value,
+              description: value,
+              costCenter,
             };
             const result = onChange(modelFields);
-            value = result?.areaID ?? value;
+            value = result?.description ?? value;
           }
-          setAreaID(value);
-          setCurrentAreaIDValue(undefined);
+          if (errors.description?.hasError) {
+            runValidationTasks("description", value);
+          }
+          setDescription(value);
         }}
-        currentFieldValue={currentAreaIDValue}
-        label={"Area id"}
-        items={areaID ? [areaID] : []}
-        hasError={errors?.areaID?.hasError}
-        errorMessage={errors?.areaID?.errorMessage}
-        getBadgeText={(value) =>
-          value
-            ? getDisplayValue.areaID(areaRecords.find((r) => r.id === value))
-            : ""
-        }
-        setFieldValue={(value) => {
-          setCurrentAreaIDDisplayValue(
-            value
-              ? getDisplayValue.areaID(areaRecords.find((r) => r.id === value))
-              : ""
-          );
-          setCurrentAreaIDValue(value);
+        onBlur={() => runValidationTasks("description", description)}
+        errorMessage={errors.description?.errorMessage}
+        hasError={errors.description?.hasError}
+        {...getOverrideProps(overrides, "description")}
+      ></TextAreaField>
+      <TextField
+        label="Centro de costos"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="Centro de costos"
+        value={costCenter}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              costCenter: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.costCenter ?? value;
+          }
+          if (errors.costCenter?.hasError) {
+            runValidationTasks("costCenter", value);
+          }
+          setCostCenter(value);
         }}
-        inputFieldRef={areaIDRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label="Area id"
-          isRequired={true}
-          isReadOnly={false}
-          placeholder="Search Area"
-          value={currentAreaIDDisplayValue}
-          options={areaRecords
-            .filter(
-              (r, i, arr) =>
-                arr.findIndex((member) => member?.id === r?.id) === i
-            )
-            .map((r) => ({
-              id: r?.id,
-              label: getDisplayValue.areaID?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentAreaIDValue(id);
-            setCurrentAreaIDDisplayValue(label);
-            runValidationTasks("areaID", label);
-          }}
-          onClear={() => {
-            setCurrentAreaIDDisplayValue("");
-          }}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.areaID?.hasError) {
-              runValidationTasks("areaID", value);
-            }
-            setCurrentAreaIDDisplayValue(value);
-            setCurrentAreaIDValue(undefined);
-          }}
-          onBlur={() => runValidationTasks("areaID", currentAreaIDValue)}
-          errorMessage={errors.areaID?.errorMessage}
-          hasError={errors.areaID?.hasError}
-          ref={areaIDRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "areaID")}
-        ></Autocomplete>
-      </ArrayField>
+        onBlur={() => runValidationTasks("costCenter", costCenter)}
+        errorMessage={errors.costCenter?.errorMessage}
+        hasError={errors.costCenter?.hasError}
+        {...getOverrideProps(overrides, "costCenter")}
+      ></TextField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

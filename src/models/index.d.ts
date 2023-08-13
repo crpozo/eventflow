@@ -189,8 +189,10 @@ type EagerCareer = {
   };
   readonly id: string;
   readonly title?: string | null;
-  readonly areaID: string;
+  readonly description?: string | null;
   readonly Events?: (Event | null)[] | null;
+  readonly costCenter?: string | null;
+  readonly areaID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -202,8 +204,10 @@ type LazyCareer = {
   };
   readonly id: string;
   readonly title?: string | null;
-  readonly areaID: string;
+  readonly description?: string | null;
   readonly Events: AsyncCollection<Event>;
+  readonly costCenter?: string | null;
+  readonly areaID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -221,8 +225,10 @@ type EagerArea = {
   };
   readonly id: string;
   readonly title?: string | null;
-  readonly campusID: string;
+  readonly description?: string | null;
   readonly Carreras?: (Career | null)[] | null;
+  readonly costCenter?: string | null;
+  readonly campusID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -234,8 +240,10 @@ type LazyArea = {
   };
   readonly id: string;
   readonly title?: string | null;
-  readonly campusID: string;
+  readonly description?: string | null;
   readonly Carreras: AsyncCollection<Career>;
+  readonly costCenter?: string | null;
+  readonly campusID: string;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -254,6 +262,9 @@ type EagerCampus = {
   readonly id: string;
   readonly title?: string | null;
   readonly CampusArea?: (Area | null)[] | null;
+  readonly description?: string | null;
+  readonly phone?: string | null;
+  readonly email?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -266,6 +277,9 @@ type LazyCampus = {
   readonly id: string;
   readonly title?: string | null;
   readonly CampusArea: AsyncCollection<Area>;
+  readonly description?: string | null;
+  readonly phone?: string | null;
+  readonly email?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }

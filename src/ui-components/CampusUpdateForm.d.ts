@@ -15,14 +15,23 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type CampusUpdateFormInputValues = {
     title?: string;
+    description?: string;
+    phone?: string;
+    email?: string;
 };
 export declare type CampusUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
+    description?: ValidationFunction<string>;
+    phone?: ValidationFunction<string>;
+    email?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type CampusUpdateFormOverridesProps = {
     CampusUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
+    description?: PrimitiveOverrideProps<TextFieldProps>;
+    phone?: PrimitiveOverrideProps<TextFieldProps>;
+    email?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type CampusUpdateFormProps = React.PropsWithChildren<{
     overrides?: CampusUpdateFormOverridesProps | undefined | null;

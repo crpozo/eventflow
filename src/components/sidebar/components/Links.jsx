@@ -48,7 +48,11 @@ export function SidebarLinks(props) {
                       : "font-medium text-white"
                   }`}
                 >
-                  {route.name}
+                  {props.activePath == '' &&
+                    <>
+                    {route.name}
+                    </>
+                  }
                 </p>
               </li>
               {activeRoute(route.path) ? (

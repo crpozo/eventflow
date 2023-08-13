@@ -7,13 +7,20 @@ import routes from "routes.js";
 import {
   MdChevronLeft
 } from "react-icons/md";
+import {
+  GoDotFill,
+  GoDot
+} from "react-icons/go";
+import {
+  LiaExternalLinkAltSolid,
+} from "react-icons/lia";
 
 const Sidebar = ({ open, onClose, eventId, activePath}) => {
 
   return (
     <>
     <div
-      className={`sm:none duration-175 linear fixed !z-50 flex min-h-[96%] flex-col bg-black pb-10 shadow-2xl shadow-white/5 transition-all ${activePath != '' ? 'rounded-l-3xl' : 'rounded-3xl'} ml-2 xl:ml-3 mt-3 mb-4 dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0	 ${
+      className={`sm:none duration-175 linear fixed !z-50 flex min-h-[96%] flex-col bg-black pb-10 shadow-2xl shadow-white/5 transition-all max-w-[204px] ${activePath != '' ? 'rounded-l-3xl max-w-[100px]' : 'rounded-3xl'} ml-2 xl:ml-3 mt-3 mb-4 dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0	 ${
         open ? "translate-x-0" : "-translate-x-96"
       }`}
     >
@@ -33,7 +40,7 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
       {/* Nav item */}
 
       <ul className="mb-auto pt-1">
-        <Links routes={routes} />
+        <Links routes={routes} activePath={activePath} />
       </ul>
 
       {/* Free Horizon Card */}
@@ -44,38 +51,53 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
       {/* Nav item end */}
       { activePath != '' && 
         <div
-          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-52 xl:translate-x-56`}
+          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] w-[268px] xl:w-[268px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-[114px] xl:translate-x-[114px]`}
           >
-          <div className="mt-[14px] mb-7 h-px dark:bg-white/30" />
-          <div className="flex flex-col gap-10">
+          <div className="mt-[10px] h-px dark:bg-white/30" />
+          <div className="flex flex-col">
             <div className="pt-2 pb-3 border-b border-gray-700">
               <Link className="pl-[20px] pr-[25px] xl:pl-[30px] xl:pr-[35px] flex items-center text-brand-500 hover:no-underline hover:text-navy-700" to={ `eventos/`}>
-                <MdChevronLeft className="h-7 w-7" /> Eventos
+                <MdChevronLeft className="h-6 w-6 mr-2" /> Eventos
               </Link>
             </div>
-            <div className="">
-            <Link className="px-[25px] xl:px-[35px] py-3 hover:no-underline" to={ `/landing/${eventId}`} target="_blank">
-              Link del evento
-            </Link>
+            <div className="flex flex-col px-[25px] xl:px-[25px] py-[30px] border-b border-gray-700">
+              {/* <GoDot className="h-5 w-5" />
+              <GoDotFill className="h-5 w-5 fill-green-500" /> */}
+              <select
+                  className="text-sm w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-3xl shadow-sm outline-none appearance-none text-ellipsis max-w-[110px] mb-4 focus:border-indigo-600 select-arrow"
+                  onChange={(e) => console.log(e.target.value)}
+                >
+                <option value="public">
+                  Público
+                </option>
+                <option value="hidden">
+                  Oculto
+                </option>
+              </select>
+              <h2 className="text-2xl font-medium mb-3">Evento</h2>
+              <p className="text-sm text-gray-500 mb-3">Vie, Jun 16, 2023, 7:00 PM</p>
+              <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${eventId}`} target="_blank">
+                Link del evento <LiaExternalLinkAltSolid className="ml-2 h-5 w-5" />
+              </Link>
             </div>
             <div className="flex flex-col">
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/detalle` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/detalle` ? "bg-gray-200" : ""}`}
                to={ `eventos/${eventId}/detalle/`}>
                   Detalle Evento
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/landing` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[25px] py-[20px] hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/landing` ? "bg-gray-200" : ""}`}
                to={ `eventos/${eventId}/landing/`}>
                   Landing page
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/formulario` ? "text-brand-500" : ""}`}
+                className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/formulario` ? "bg-gray-200" : ""}`}
                 to={ `eventos/${eventId}/formulario/`}>
                   Formulario
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[35px] py-3 hover:no-underline ${activePath === `eventos/:id/participantes` ? "text-brand-500" : ""}`} 
+                className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`} 
                 to={ `eventos/${eventId}/participantes/`}>
                   Participantes
               </Link>

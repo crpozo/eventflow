@@ -77,7 +77,7 @@ const Dashboard = () => {
                     fields.Event = event;
                     return fields  
                   }
-              }}
+                }}
               />
           }
         </div>      

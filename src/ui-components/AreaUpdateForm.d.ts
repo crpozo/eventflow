@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { AutocompleteProps, GridProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 import { Area, Career } from "../models";
 export declare type ValidationResponse = {
@@ -15,11 +15,15 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type AreaUpdateFormInputValues = {
     title?: string;
+    description?: string;
+    costCenter?: string;
     campusID?: string;
     Carreras?: Career[];
 };
 export declare type AreaUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
+    description?: ValidationFunction<string>;
+    costCenter?: ValidationFunction<string>;
     campusID?: ValidationFunction<string>;
     Carreras?: ValidationFunction<Career>;
 };
@@ -27,6 +31,8 @@ export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes
 export declare type AreaUpdateFormOverridesProps = {
     AreaUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
+    description?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    costCenter?: PrimitiveOverrideProps<TextFieldProps>;
     campusID?: PrimitiveOverrideProps<AutocompleteProps>;
     Carreras?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;

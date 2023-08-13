@@ -6,7 +6,13 @@
 
 /* eslint-disable */
 import * as React from "react";
-import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
+import {
+  Button,
+  Flex,
+  Grid,
+  TextAreaField,
+  TextField,
+} from "@aws-amplify/ui-react";
 import { getOverrideProps } from "@aws-amplify/ui-react/internal";
 import { Campus } from "../models";
 import { fetchByPath, validateField } from "./utils";
@@ -25,15 +31,29 @@ export default function CampusCreateForm(props) {
   } = props;
   const initialValues = {
     title: "",
+    description: "",
+    phone: "",
+    email: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
+  const [description, setDescription] = React.useState(
+    initialValues.description
+  );
+  const [phone, setPhone] = React.useState(initialValues.phone);
+  const [email, setEmail] = React.useState(initialValues.email);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
+    setDescription(initialValues.description);
+    setPhone(initialValues.phone);
+    setEmail(initialValues.email);
     setErrors({});
   };
   const validations = {
     title: [{ type: "Required" }],
+    description: [],
+    phone: [{ type: "Phone" }],
+    email: [{ type: "Email" }],
   };
   const runValidationTasks = async (
     fieldName,
@@ -62,6 +82,9 @@ export default function CampusCreateForm(props) {
         event.preventDefault();
         let modelFields = {
           title,
+          description,
+          phone,
+          email,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -124,6 +147,9 @@ export default function CampusCreateForm(props) {
           if (onChange) {
             const modelFields = {
               title: value,
+              description,
+              phone,
+              email,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -137,6 +163,90 @@ export default function CampusCreateForm(props) {
         errorMessage={errors.title?.errorMessage}
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
+      ></TextField>
+      <TextAreaField
+        label="Descripción del campus"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="A qué tipo de eventos se dedica el campus?"
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description: value,
+              phone,
+              email,
+            };
+            const result = onChange(modelFields);
+            value = result?.description ?? value;
+          }
+          if (errors.description?.hasError) {
+            runValidationTasks("description", value);
+          }
+          setDescription(value);
+        }}
+        onBlur={() => runValidationTasks("description", description)}
+        errorMessage={errors.description?.errorMessage}
+        hasError={errors.description?.hasError}
+        {...getOverrideProps(overrides, "description")}
+      ></TextAreaField>
+      <TextField
+        label="Información de contacto télefono"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="+593 995 653 985"
+        type="tel"
+        value={phone}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              phone: value,
+              email,
+            };
+            const result = onChange(modelFields);
+            value = result?.phone ?? value;
+          }
+          if (errors.phone?.hasError) {
+            runValidationTasks("phone", value);
+          }
+          setPhone(value);
+        }}
+        onBlur={() => runValidationTasks("phone", phone)}
+        errorMessage={errors.phone?.errorMessage}
+        hasError={errors.phone?.hasError}
+        {...getOverrideProps(overrides, "phone")}
+      ></TextField>
+      <TextField
+        label="Información de contacto email"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="email@outlook.com"
+        value={email}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              phone,
+              email: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.email ?? value;
+          }
+          if (errors.email?.hasError) {
+            runValidationTasks("email", value);
+          }
+          setEmail(value);
+        }}
+        onBlur={() => runValidationTasks("email", email)}
+        errorMessage={errors.email?.errorMessage}
+        hasError={errors.email?.hasError}
+        {...getOverrideProps(overrides, "email")}
       ></TextField>
       <Flex
         justifyContent="space-between"

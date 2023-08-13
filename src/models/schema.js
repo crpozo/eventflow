@@ -521,11 +521,11 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "areaID": {
-                    "name": "areaID",
+                "description": {
+                    "name": "description",
                     "isArray": false,
-                    "type": "ID",
-                    "isRequired": true,
+                    "type": "String",
+                    "isRequired": false,
                     "attributes": []
                 },
                 "Events": {
@@ -543,6 +543,20 @@ export const schema = {
                             "careerID"
                         ]
                     }
+                },
+                "costCenter": {
+                    "name": "costCenter",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "areaID": {
+                    "name": "areaID",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -612,11 +626,11 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "campusID": {
-                    "name": "campusID",
+                "description": {
+                    "name": "description",
                     "isArray": false,
-                    "type": "ID",
-                    "isRequired": true,
+                    "type": "String",
+                    "isRequired": false,
                     "attributes": []
                 },
                 "Carreras": {
@@ -634,6 +648,20 @@ export const schema = {
                             "areaID"
                         ]
                     }
+                },
+                "costCenter": {
+                    "name": "costCenter",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "campusID": {
+                    "name": "campusID",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
                 },
                 "createdAt": {
                     "name": "createdAt",
@@ -719,6 +747,27 @@ export const schema = {
                         ]
                     }
                 },
+                "description": {
+                    "name": "description",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "phone": {
+                    "name": "phone",
+                    "isArray": false,
+                    "type": "AWSPhone",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "email": {
+                    "name": "email",
+                    "isArray": false,
+                    "type": "AWSEmail",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -765,5 +814,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "9066b9c1ec3280a8936ad1e7e40f7087"
+    "version": "ddd0918017a4947b9dffbd5039834974"
 };

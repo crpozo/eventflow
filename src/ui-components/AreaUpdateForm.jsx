@@ -16,6 +16,7 @@ import {
   Icon,
   ScrollView,
   Text,
+  TextAreaField,
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
@@ -199,10 +200,16 @@ export default function AreaUpdateForm(props) {
   } = props;
   const initialValues = {
     title: "",
+    description: "",
+    costCenter: "",
     campusID: undefined,
     Carreras: [],
   };
   const [title, setTitle] = React.useState(initialValues.title);
+  const [description, setDescription] = React.useState(
+    initialValues.description
+  );
+  const [costCenter, setCostCenter] = React.useState(initialValues.costCenter);
   const [campusID, setCampusID] = React.useState(initialValues.campusID);
   const [Carreras, setCarreras] = React.useState(initialValues.Carreras);
   const [errors, setErrors] = React.useState({});
@@ -211,6 +218,8 @@ export default function AreaUpdateForm(props) {
       ? { ...initialValues, ...areaRecord, campusID, Carreras: linkedCarreras }
       : initialValues;
     setTitle(cleanValues.title);
+    setDescription(cleanValues.description);
+    setCostCenter(cleanValues.costCenter);
     setCampusID(cleanValues.campusID);
     setCurrentCampusIDValue(undefined);
     setCurrentCampusIDDisplayValue("");
@@ -268,6 +277,8 @@ export default function AreaUpdateForm(props) {
   };
   const validations = {
     title: [],
+    description: [],
+    costCenter: [],
     campusID: [{ type: "Required" }],
     Carreras: [],
   };
@@ -298,6 +309,8 @@ export default function AreaUpdateForm(props) {
         event.preventDefault();
         let modelFields = {
           title,
+          description,
+          costCenter,
           campusID,
           Carreras,
         };
@@ -381,6 +394,8 @@ export default function AreaUpdateForm(props) {
           });
           const modelFieldsToSave = {
             title: modelFields.title,
+            description: modelFields.description,
+            costCenter: modelFields.costCenter,
             campusID: modelFields.campusID,
           };
           promises.push(
@@ -404,15 +419,18 @@ export default function AreaUpdateForm(props) {
       {...rest}
     >
       <TextField
-        label="Title"
+        label="Indica a los usuarios que área organiza los eventos"
         isRequired={false}
         isReadOnly={false}
+        placeholder="Nombre área"
         value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title: value,
+              description,
+              costCenter,
               campusID,
               Carreras,
             };
@@ -429,6 +447,63 @@ export default function AreaUpdateForm(props) {
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
       ></TextField>
+      <TextAreaField
+        label="Descripción del área"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="A qué tipo de eventos se dedica el área?"
+        value={description}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description: value,
+              costCenter,
+              campusID,
+              Carreras,
+            };
+            const result = onChange(modelFields);
+            value = result?.description ?? value;
+          }
+          if (errors.description?.hasError) {
+            runValidationTasks("description", value);
+          }
+          setDescription(value);
+        }}
+        onBlur={() => runValidationTasks("description", description)}
+        errorMessage={errors.description?.errorMessage}
+        hasError={errors.description?.hasError}
+        {...getOverrideProps(overrides, "description")}
+      ></TextAreaField>
+      <TextField
+        label="Centro de costos"
+        isRequired={false}
+        isReadOnly={false}
+        value={costCenter}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              costCenter: value,
+              campusID,
+              Carreras,
+            };
+            const result = onChange(modelFields);
+            value = result?.costCenter ?? value;
+          }
+          if (errors.costCenter?.hasError) {
+            runValidationTasks("costCenter", value);
+          }
+          setCostCenter(value);
+        }}
+        onBlur={() => runValidationTasks("costCenter", costCenter)}
+        errorMessage={errors.costCenter?.errorMessage}
+        hasError={errors.costCenter?.hasError}
+        {...getOverrideProps(overrides, "costCenter")}
+      ></TextField>
       <ArrayField
         lengthLimit={1}
         onChange={async (items) => {
@@ -436,6 +511,8 @@ export default function AreaUpdateForm(props) {
           if (onChange) {
             const modelFields = {
               title,
+              description,
+              costCenter,
               campusID: value,
               Carreras,
             };
@@ -446,7 +523,7 @@ export default function AreaUpdateForm(props) {
           setCurrentCampusIDValue(undefined);
         }}
         currentFieldValue={currentCampusIDValue}
-        label={"Campus id"}
+        label={"Campus"}
         items={campusID ? [campusID] : []}
         hasError={errors?.campusID?.hasError}
         errorMessage={errors?.campusID?.errorMessage}
@@ -471,7 +548,7 @@ export default function AreaUpdateForm(props) {
         defaultFieldValue={""}
       >
         <Autocomplete
-          label="Campus id"
+          label="Campus"
           isRequired={true}
           isReadOnly={false}
           placeholder="Buscar Campus"
@@ -516,6 +593,8 @@ export default function AreaUpdateForm(props) {
           if (onChange) {
             const modelFields = {
               title,
+              description,
+              costCenter,
               campusID,
               Carreras: values,
             };

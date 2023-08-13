@@ -10,6 +10,7 @@ import {
 const Dashboard = () => {
 
   const navigate = useNavigate();
+  const campusID = localStorage.getItem('campusID');
 
   return (
     <div className="area-page">
@@ -42,6 +43,12 @@ const Dashboard = () => {
             onSuccess={() => {
               alert("Area creada con éxito")
               navigate(`/page/campus/area`);
+            }}
+            onSubmit={(fields) => {
+              if(campusID){
+                fields.campusID = campusID;
+                return fields;
+              }
             }}
             onCancel={() => {
               navigate(`/page/campus/area`);

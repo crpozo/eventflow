@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 export declare type ValidationResponse = {
     hasError: boolean;
@@ -14,17 +14,20 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type AreaCreateFormInputValues = {
     title?: string;
-    campusID?: string;
+    description?: string;
+    costCenter?: string;
 };
 export declare type AreaCreateFormValidationValues = {
     title?: ValidationFunction<string>;
-    campusID?: ValidationFunction<string>;
+    description?: ValidationFunction<string>;
+    costCenter?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type AreaCreateFormOverridesProps = {
     AreaCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
-    campusID?: PrimitiveOverrideProps<AutocompleteProps>;
+    description?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    costCenter?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type AreaCreateFormProps = React.PropsWithChildren<{
     overrides?: AreaCreateFormOverridesProps | undefined | null;
