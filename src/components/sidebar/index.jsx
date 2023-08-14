@@ -17,6 +17,9 @@ import {
 
 const Sidebar = ({ open, onClose, eventId, activePath}) => {
 
+  const event = JSON.parse(localStorage.getItem("EVENTFLOW.event"));
+  console.log("SIDEBAR: ",event)
+
   return (
     <>
     <div
@@ -25,7 +28,7 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
       }`}
     >
       <span
-        className="absolute top-4 right-4 block cursor-pointer text-white xl:hidden"
+        className={`absolute ${activePath != '' ? 'top-6 -right-[240px] text-black z-[60]' : 'top-4 right-4 text-white'}  block cursor-pointer xl:hidden`}
         onClick={onClose}
       >
         <HiX />
@@ -51,7 +54,7 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
       {/* Nav item end */}
       { activePath != '' && 
         <div
-          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] w-[268px] xl:w-[268px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-[114px] xl:translate-x-[114px]`}
+          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] w-[268px] xl:w-[268px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-[100px] xl:translate-x-[110px]`}
           >
           <div className="mt-[10px] h-px dark:bg-white/30" />
           <div className="flex flex-col">
@@ -74,8 +77,8 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
                   Oculto
                 </option>
               </select>
-              <h2 className="text-2xl font-medium mb-3">Evento</h2>
-              <p className="text-sm text-gray-500 mb-3">Vie, Jun 16, 2023, 7:00 PM</p>
+              <h2 className="text-2xl font-medium mb-3">{event?.title}</h2>
+              <p className="text-sm text-gray-500 mb-3">{event?.updatedAt}</p>
               <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${eventId}`} target="_blank">
                 Link del evento <LiaExternalLinkAltSolid className="ml-2 h-5 w-5" />
               </Link>

@@ -7,7 +7,7 @@ import Widget from "components/widget/Widget";
 import DailyTraffic from "views/admin/default/components/DailyTraffic";
 import { useNavigate} from "react-router-dom";
 import { DataStore } from "aws-amplify";
-import { Campus, Area, Career, Event, Attendee } from "models"
+import { Campus, Area, Career, Event, Attendee, EventAttendee } from "models"
 import Banner from "./components/Banner";
 import Datepicker from "react-tailwindcss-datepicker"; 
 import {
@@ -32,19 +32,18 @@ const Dashboard = () => {
   const [eventSelectID, setEventSelectID] = React.useState(null);
 
   const id = "caede638-3700-4231-aaf5-71596b78a35f";
-  const campusID = localStorage.getItem('campusID');
-  const subAreaId = localStorage.getItem('subAreaID');
+  const campusID = JSON.parse(localStorage.getItem("EVENTFLOW.campus")).id;
+  const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id;
 
-  const [value, setValue] = React.useState({ 
-    startDate: new Date(), 
-    endDate: new Date().setMonth(8) 
-    }); 
+  // const [value, setValue] = React.useState({ 
+  //   startDate: new Date(), 
+  //   endDate: new Date().setMonth(8) 
+  //   }); 
 
-  const handleValueChange = (newValue) => {
-    console.log("newValue:", newValue); 
-    setValue(newValue); 
-  } 
-
+  // const handleValueChange = (newValue) => {
+  //   console.log("newValue:", newValue); 
+  //   setValue(newValue); 
+  // } 
 
   React.useEffect( () => {
     if(!subAreaId){
@@ -52,18 +51,34 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
-  const [option, setOption] = React.useState({
+  const [optionCargos, setOptionCargos] = React.useState({
     title: {
       text: 'Cargos de participantes',
       subtext: 'Real Time Data',
-      left: 'center'
+      left: 'center',
+      textStyle: {
+        fontSize: 23
+      },
+      subtextStyle: {
+        fontSize: 14
+      }
     },
+    color:[ 
+      "#3C83F5",
+      "#FCF054",
+      "#C6BFFA",
+      "#000000",
+      "#C5CBD2"
+    ],
     tooltip: {
-      trigger: 'item'
+      trigger: 'item',
     },
     legend: {
       orient: 'vertical',
-      left: 'left'
+      left: 'left',
+      textStyle: {
+        fontSize: 14
+      },
     },
     series: [
       {
@@ -71,11 +86,11 @@ const Dashboard = () => {
         type: 'pie',
         radius: '50%',
         data: [
-          { value: 1048, name: 'Search Engine' },
+          { value: 1048, name: 'Search Engine'},
           { value: 735, name: 'Direct' },
           { value: 580, name: 'Email' },
           { value: 484, name: 'Union Ads' },
-          { value: 300, name: 'Video Ads' }
+          { value: 300, name: 'Video Ads' },
         ], 
         emphasis: {
           itemStyle: {
@@ -88,6 +103,61 @@ const Dashboard = () => {
     ]
   });
 
+  const [optionEdad, setOptionEdad] = React.useState({
+    title: {
+      text: 'Edad de participantes',
+      subtext: 'Real Time Data',
+      left: 'center',
+      textStyle: {
+        fontSize: 23
+      },
+      subtextStyle: {
+        fontSize: 14
+      }
+    },
+    color:[ 
+      "#3C83F5",
+      "#FCF054",
+      "#C6BFFA",
+      "#000000",
+      "#C5CBD2"
+    ],
+    tooltip: {
+      trigger: 'item',
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left',
+      textStyle: {
+        fontSize: 14
+      },
+    },
+    series: [
+      {
+        name: 'Access From',
+        type: 'pie',
+        radius: '50%',
+        data: [
+          { value: 1048, name: 'Search Engine'},
+          { value: 735, name: 'Direct' },
+          { value: 580, name: 'Email' },
+          { value: 484, name: 'Union Ads' },
+          { value: 300, name: 'Video Ads' },
+        ], 
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
+  });
+
+  const [totalCheckIn, setTotalCheckIn] = React.useState(0);
+  const [totalRegistros, setTotalRegistros] = React.useState(0);
+
   React.useEffect(() => {
 
     DataStore.query(Campus).then( results => {
@@ -95,6 +165,7 @@ const Dashboard = () => {
       setCampusSelectID(results[0].id);
       console.log("Campus: ",results)
     });
+    
   }, [])
 
   // Get area depending on the the campus ID
@@ -139,41 +210,83 @@ const Dashboard = () => {
     });
   }, [careerSelectID]);
 
-
   // Get Diagrams
   React.useEffect(() => {
 
-    DataStore.query(Attendee, (a) => a.EventAttendees.eventID.eq(eventSelectID)).then( results => {
-      const countMap = {};
+    if(eventSelectID == 0){
 
-      results.forEach(item => {
-        const value = item.position;
-        if (countMap[value]) {
-          countMap[value] += 1;
-        } else {
-          countMap[value] = 1;
-        }
+      // let query = Amplify.DataStore.query(Attendee);
+
+      // for (let i = 0; i < participants.length; i++) {
+      //   query = query.or(Post.ID.eq(participants[i]));
+      // }
+
+      // console.log("eventList: ",eventList.map(event => event.id))
+      const eventListID = eventList.map(event => event.id);
+
+      DataStore.query(EventAttendee).then( results => {
+
+        console.log(results);
+        const filteredData = results.filter(item => eventListID.includes(item.eventID));
+
+        /*
+          console.log("resultados: ", filteredData);
+          processChart(results, setOptionCargos);
+          processChart(results, setOptionEdad);
+        */
+
       });
+
+    } else {
+
+      DataStore.query(Attendee, (a) => a.EventAttendees.eventID.eq(eventSelectID)).then( results => {
+
+        // Datos cargo de participantes
+        setTotalRegistros(results.length);
+        processChart(results, setOptionCargos);
+        processChart(results, setOptionEdad);
   
-      // Crear un array en el formato esperado por el gráfico
-      const processedData = Object.keys(countMap).map(value => ({
-        value: countMap[value],
-        name: value,
-      }));
+      });
 
-      setOption(prevOption => ({
-        ...prevOption,
-        series: [
-          {
-            ...prevOption.series[0],
-            data: processedData,
-          },
-        ],
-      }));
+      DataStore.query(EventAttendee, (e) => e.eventID.eq(eventSelectID)).then( results => {
+        console.log("EventAttendee: ", results)
+        setTotalCheckIn(results.filter(item => item.checkIn === true).length);
 
-    });
+      });
+    }
   
   }, [eventSelectID]);
+
+  function processChart(results, setOptionFunction) {
+    const countMap = {};
+  
+    results.forEach(item => {
+      const value = item.position || item.age;
+      if (countMap[value]) {
+        countMap[value] += 1;
+      } else {
+        countMap[value] = 1;
+      }
+    });
+  
+    const processedData = Object.keys(countMap).map(value => ({
+      value: countMap[value],
+      name: value,
+      label: {
+        fontSize: 15
+      }
+    }));
+  
+    setOptionFunction(prevOption => ({
+      ...prevOption,
+      series: [
+        {
+          ...prevOption.series[0],
+          data: processedData,
+        },
+      ],
+    }));
+  }
 
   return (
     <div className="report-page">
@@ -238,6 +351,9 @@ const Dashboard = () => {
                 className="w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-md shadow-sm outline-none appearance-none text-ellipsis	focus:border-indigo-600 select-arrow"
                 onChange={(e) => setEventSelectID(e.target.value)}
               >
+                {/* <option value="0">
+                  Todos los eventos
+                </option> */}
                 {eventList &&
                   eventList.map((result) => (
                     <option key={result.id} value={result.id}>
@@ -247,50 +363,35 @@ const Dashboard = () => {
             </select>
           </div>
 
-          <div className="date-filter flex flex-col w-full">
+          {/* <div className="date-filter flex flex-col w-full">
             <label>Fechas</label>
             <Datepicker 
               i18n={"es"} 
               value={value} 
               onChange={handleValueChange} 
             />
-          </div>
+          </div> */}
 
         </div>
       </div>
 
       {/* Card widget */}
 
-      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-6">
+      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         <Widget
           icon={<MdBarChart className="h-7 w-7" />}
-          title={"Earnings"}
-          subtitle={"$340.5"}
+          title={"Total Registros"}
+          subtitle={totalRegistros}
         />
         <Widget
-          icon={<IoDocuments className="h-6 w-6" />}
-          title={"Spend this month"}
-          subtitle={"$642.39"}
+          icon={<MdBarChart className="h-6 w-6" />}
+          title={"Total Check-in"}
+          subtitle={totalCheckIn}
         />
         <Widget
           icon={<MdBarChart className="h-7 w-7" />}
-          title={"Sales"}
+          title={"Total Ingresos"}
           subtitle={"$574.34"}
-        />
-        <Widget
-          icon={<MdDashboard className="h-6 w-6" />}
-          title={"Your Balance"}
-          subtitle={"$1,000"}
-        />
-        <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"New Tasks"}
-          subtitle={"145"}
-        />
-        <Widget
-          icon={<IoMdHome className="h-6 w-6" />}
-          title={"Total Projects"}
-          subtitle={"$2433"}
         />
       </div>
 
@@ -298,11 +399,13 @@ const Dashboard = () => {
 
       <div className="mt-5 grid grid-cols-1 gap-5">
 
-        {/* Traffic chart & Pie Chart */}
+        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-1">
+          <DailyTraffic />
+        </div>
 
         <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <DailyTraffic />
-          <PieChartApache option={option}/>
+          <PieChartApache option={optionEdad}/>
+          <PieChartApache option={optionCargos}/>
         </div>
         
       </div>

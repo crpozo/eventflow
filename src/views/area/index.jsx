@@ -13,7 +13,7 @@ const Dashboard = () => {
 
   const [area, setArea] = React.useState([]);
   const navigate = useNavigate();
-  const campusID = localStorage.getItem('campusID');
+  const campusID = JSON.parse(localStorage.getItem("EVENTFLOW.campus")).id
 
   React.useEffect(() => {
     DataStore.query(Area, (a) => a.campusID.eq(campusID)).then( results => {
@@ -63,6 +63,7 @@ const Dashboard = () => {
               <NftCard
                 modelName="area"
                 modelID={area.id}
+                model={area}
                 pathSelect="subarea/"
                 pathEdit="editar/"
                 key={area.id}

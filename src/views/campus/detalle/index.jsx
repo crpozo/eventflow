@@ -13,19 +13,22 @@ import {
 
 const Dashboard = () => {
 
-  const [campus, setCampus] = React.useState(null);
+  const [campus, setCampus] = React.useState({});
   const navigate = useNavigate();
   const id = useLocation().state?.id;
 
-  React.useEffect(() => {
+  React.useEffect(() => { 
+
     if(!id){
       navigate('/page/campus');
+      return;
     }
 
     DataStore.query(Campus, (c) => c.id.eq(id)).then( results => {
       setCampus(results[0]);
       console.log("Campus: ", results)
     });
+
   }, [id, navigate]);
 
   const deleteEvent = () => {
@@ -59,17 +62,19 @@ const Dashboard = () => {
           </div>
 
           <CampusUpdateForm
-              campus={campus}
-              onSuccess={() => {
-                navigate('/page/campus');
-              }}
-              onCancel={() => {
-                navigate('/page/campus');
-              }}
-            />
-            <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
-              Eliminar
-            </button>
+            campus={campus}
+            onSuccess={() => {
+              navigate('/page/campus');
+            }}
+            onCancel={() => {
+              navigate('/page/campus');
+            }}
+          />
+          
+          <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
+            Eliminar
+          </button>
+
         </div>
       }
     </div>

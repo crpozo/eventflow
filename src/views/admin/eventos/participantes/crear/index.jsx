@@ -15,7 +15,7 @@ const Dashboard = () => {
 
   const id = useParams().id;
   const navigate = useNavigate();
-  const eventID = localStorage.getItem('eventID');
+  const eventID = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
 
   React.useEffect(() => {
     if(!id || id === "no-id"){

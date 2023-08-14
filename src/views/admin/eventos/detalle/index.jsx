@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
 import { Event } from "models"
@@ -16,7 +16,6 @@ const Dashboard = () => {
   const [event, setEvent] = React.useState([]);
   const id = useParams().id;
   const navigate = useNavigate();
-  localStorage.setItem("eventID", id)
 
   React.useEffect(() => {
     if(!id || id === "no-id"){
@@ -26,6 +25,8 @@ const Dashboard = () => {
 
     DataStore.query(Event, (e) => e.id.eq(id)).then( results => {
       setEvent(results[0]);
+      localStorage.setItem("EVENTFLOW.event", JSON.stringify(results[0]))
+      console.log("DETALLE: ", JSON.stringify(results))
       console.log("Event: ", results)
     });
   }, [id, navigate]);

@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [formData, setFormData] = React.useState([]);
   const [formExist, setFormExist] = React.useState(false);
   const navigate = useNavigate();
-  const eventId = localStorage.getItem('eventID');
+  const eventId = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
 
   React.useEffect(() => {
     

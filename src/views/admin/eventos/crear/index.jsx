@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [subAreaId, setSubAreaId ] = React.useState();
 
   React.useEffect( () => {
-    setSubAreaId(localStorage.getItem('subAreaID'));
+    setSubAreaId(JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id);
   }, []);
 
   React.useEffect( () => {

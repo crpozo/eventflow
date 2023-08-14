@@ -13,7 +13,7 @@ const Dashboard = () => {
 
   const [subArea, setSubArea] = React.useState([]);
   const navigate = useNavigate();
-  const areaID = localStorage.getItem('areaID');
+  const areaID = JSON.parse(localStorage.getItem("EVENTFLOW.area")).id;
 
   React.useEffect(() => {
     // AWS amplify data 
@@ -21,7 +21,7 @@ const Dashboard = () => {
       setSubArea(results);
       console.log("SubArea: ",results)
     });
-  }, []);
+  }, [areaID]);
 
   if(!subArea){
     return <p>Loading...</p>
@@ -62,8 +62,9 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 mb-4">
             {subArea && subArea.map(subArea => (
               <NftCard
-                modelName="subArea"
+                modelName="subarea"
                 modelID={subArea.id}
+                model={subArea}
                 pathSelect="/"
                 pathEdit="editar/"
                 key={subArea.id}

@@ -1,7 +1,7 @@
 import Card from "components/card";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const NftCard = ({ modelName, modelID, pathEdit, pathSelect, title, date, cat, color}) => {
+const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date, cat, color}) => {
 
   const { state } = useLocation();
   const id = state?.id;
@@ -55,20 +55,20 @@ const NftCard = ({ modelName, modelID, pathEdit, pathSelect, title, date, cat, c
             <button
               onClick={() => {
                 navigate(`${pathSelect}`);
-                if(modelName && modelID){
-                  localStorage.setItem(`${modelName}ID`, modelID)
+                if(modelName && model){
+                  localStorage.setItem(`EVENTFLOW.${modelName}`, JSON.stringify(model))
                 }
                 if(modelName == "campus"){
-                  window.localStorage.removeItem('areaID');
-                  window.localStorage.removeItem('subAreaID');
-                  window.localStorage.removeItem('eventID');
+                  window.localStorage.removeItem('EVENTFLOW.area');
+                  window.localStorage.removeItem('EVENTFLOW.subarea');
+                  window.localStorage.removeItem('EVENTFLOW.event');
                 }
                 if(modelName == "area"){
-                  window.localStorage.removeItem('subAreaID');
-                  window.localStorage.removeItem('eventID');
+                  window.localStorage.removeItem('EVENTFLOW.subrea');
+                  window.localStorage.removeItem('EVENTFLOW.event');
                 }
                 if(modelName == "subarea"){
-                  window.localStorage.removeItem('eventID');
+                  window.localStorage.removeItem('EVENTFLOW.event');
                 }
               }}
               className="linear rounded-md bg-transparent px-3 py-2 text-sm font-medium transition duration-200 border border-gray-600  hover:!bg-brand-500 hover:text-white active:bg-brand-700 focus:outline-brand-500 dark:bg-brand-400 dark:hover:bg-brand-300 dark:active:opacity-90"

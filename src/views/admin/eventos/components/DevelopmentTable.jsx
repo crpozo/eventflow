@@ -15,7 +15,6 @@ import {
 
 const DevelopmentTable = (props) => {
   const { columnsData, tableData } = props;
-
   const navigate = useNavigate();
 
   const columns = useMemo(() => columnsData, [columnsData]);
@@ -101,7 +100,10 @@ const DevelopmentTable = (props) => {
                     }
                     else if (cell.column.Header === "") {
                       data = (
-                        <MdEditCalendar onClick={() => navigate(`${cell.value}/detalle/`) } className="h-6 w-6 cursor-pointer" />
+                        <MdEditCalendar onClick={() => {
+                          navigate(`${cell.value}/detalle/`); 
+                          localStorage.setItem(`EVENTFLOW.event`, JSON.stringify(cell.row.original.model))
+                        }} className="h-6 w-6 cursor-pointer" />
                       );
                     }
                     return (

@@ -20,10 +20,11 @@ export default function Admin(props) {
   }, []);
 
   React.useEffect(() => {
-    const eventId = localStorage.getItem('eventID');
-    if(eventId){
+    if(localStorage.getItem('EVENTFLOW.event')){
+      const eventId = JSON.parse(localStorage.getItem('EVENTFLOW.event')).id;
       setEventId(eventId);
-    } 
+    }
+    
   }, [routeResult]);
 
   // Show secondary Sidebar 

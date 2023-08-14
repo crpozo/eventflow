@@ -10,7 +10,7 @@ import {
 const Dashboard = () => {
 
   const navigate = useNavigate();
-  const campusID = localStorage.getItem('campusID');
+  const campusID = JSON.parse(localStorage.getItem("EVENTFLOW.campus")).id
 
   return (
     <div className="area-page">

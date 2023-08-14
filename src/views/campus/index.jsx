@@ -49,6 +49,7 @@ const Dashboard = () => {
               <NftCard
                 modelName="campus"
                 modelID={campus.id}
+                model={campus}
                 pathSelect="area/"
                 pathEdit="editar/"
                 key={campus.id}

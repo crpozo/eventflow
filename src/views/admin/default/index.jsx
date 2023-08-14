@@ -15,7 +15,12 @@ const Dashboard = () => {
 
   React.useEffect( () => {
 
-    const subAreaId = localStorage.getItem('subAreaID');
+    if(!localStorage.getItem("EVENTFLOW.subarea")){
+      navigate(`/page/campus`);
+      return
+    }
+
+    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id;
     if(!subAreaId){
       console.log("subAreaId: ",subAreaId)
       navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos"} });
@@ -49,6 +54,9 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 mb-[32px]">
           {events && events.map(event => (
              <NftCard
+              modelName="event"
+              modelId={event.id}
+              model={event}
               key={event.id}
               color="bg-purplePrimary"
               pathSelect={`/admin/eventos/${event.id}/detalle`}

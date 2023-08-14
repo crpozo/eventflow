@@ -13,7 +13,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [event, setEvent] = React.useState(null);
   const [landing, setLanding] = React.useState(null);
-  const eventId = localStorage.getItem('eventID');
+  const eventId = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
 
   React.useEffect(() => {
     const sub = DataStore.observeQuery(Landing, (l) =>

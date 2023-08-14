@@ -12,8 +12,10 @@ const Marketplace = () => {
   const [columns, setColumns] = React.useState([])
   const [rows, setRows] = React.useState([])
 
+  window.localStorage.removeItem('EVENTFLOW.event');
+
   React.useEffect( () => {
-    const subAreaId = localStorage.getItem('subAreaID');
+    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id;
     if(!subAreaId){
       navigate(`/page/campus`);
     } else {
@@ -42,20 +44,19 @@ const Marketplace = () => {
           rows.push({
             "title": event.title,
             "create_date": event.createdAt,
-            "action": event.id
+            "action": event.id,
+            "model": event
           })
         }
         setRows(rows)
       });
     }
 
-
   }, [navigate]);
 
   if(!eventos){
     return <p>Loading...</p>
   }
-
 
   return (
     <div className="grid h-full grid-cols-1 gap-5">

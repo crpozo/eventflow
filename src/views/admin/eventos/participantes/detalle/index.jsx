@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [attendee, setAttendee] = React.useState(null);
   const navigate = useNavigate();
   const { id } = useParams();
-  const eventID = localStorage.getItem('eventID');
+  const eventID = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
 
   React.useEffect(() => {
 
