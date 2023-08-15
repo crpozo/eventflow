@@ -1,4 +1,5 @@
 import BarChart from "components/charts/BarChart";
+import ReactEcharts from "echarts-for-react"; 
 import { barChartDataDailyTraffic } from "variables/charts";
 import { barChartOptionsDailyTraffic } from "variables/charts";
 import { MdArrowDropUp } from "react-icons/md";
@@ -27,9 +28,13 @@ const DailyTraffic = () => {
       </div>
 
       <div className="h-[300px] w-full pt-10 pb-0">
-        <BarChart
+        {/* <BarChart
           chartData={barChartDataDailyTraffic}
           chartOptions={barChartOptionsDailyTraffic}
+        /> */}
+        <ReactEcharts
+           style={{height: '350px', width: '100%'}}
+          option={props.option} 
         />
       </div>
     </Card>

@@ -6,6 +6,7 @@
 
 import * as React from "react";
 import { GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { StorageManagerProps } from "@aws-amplify/ui-react-storage";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 import { Landing } from "../models";
 export declare type ValidationResponse = {
@@ -15,14 +16,35 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type LandingUpdateFormInputValues = {
     title?: string;
+    description?: string;
+    mainBanner?: string;
+    location?: string;
+    cost?: string;
+    ticketTitle?: string[];
+    ticketPrice?: number[];
+    extraInfo?: string;
 };
 export declare type LandingUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
+    description?: ValidationFunction<string>;
+    mainBanner?: ValidationFunction<string>;
+    location?: ValidationFunction<string>;
+    cost?: ValidationFunction<string>;
+    ticketTitle?: ValidationFunction<string>;
+    ticketPrice?: ValidationFunction<number>;
+    extraInfo?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type LandingUpdateFormOverridesProps = {
     LandingUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
+    description?: PrimitiveOverrideProps<TextFieldProps>;
+    mainBanner?: PrimitiveOverrideProps<StorageManagerProps>;
+    location?: PrimitiveOverrideProps<TextFieldProps>;
+    cost?: PrimitiveOverrideProps<TextFieldProps>;
+    ticketTitle?: PrimitiveOverrideProps<TextFieldProps>;
+    ticketPrice?: PrimitiveOverrideProps<TextFieldProps>;
+    extraInfo?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type LandingUpdateFormProps = React.PropsWithChildren<{
     overrides?: LandingUpdateFormOverridesProps | undefined | null;

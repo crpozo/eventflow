@@ -79,7 +79,7 @@ export const barChartOptionsDailyTraffic = {
         [
           {
             offset: 0,
-            color: "#4318FF",
+            color: "#028CFF",
             opacity: 1,
           },
           {

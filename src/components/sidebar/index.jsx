@@ -79,7 +79,7 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
               </select>
               <h2 className="text-2xl font-medium mb-3">{event?.title}</h2>
               <p className="text-sm text-gray-500 mb-3">{event?.updatedAt}</p>
-              <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${eventId}`} target="_blank">
+              <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${eventId}`} target="_blank" rel="noopener noreferrer">
                 Link del evento <LiaExternalLinkAltSolid className="ml-2 h-5 w-5" />
               </Link>
             </div>

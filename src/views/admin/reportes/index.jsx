@@ -1,10 +1,8 @@
 import React from "react";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
-import { IoMdHome } from "react-icons/io";
-import { IoDocuments } from "react-icons/io5";
+import { graphic } from 'echarts'
 import { MdBarChart, MdDashboard } from "react-icons/md";
 import Widget from "components/widget/Widget";
-import DailyTraffic from "views/admin/default/components/DailyTraffic";
 import { useNavigate} from "react-router-dom";
 import { DataStore } from "aws-amplify";
 import { Campus, Area, Career, Event, Attendee, EventAttendee } from "models"
@@ -50,6 +48,66 @@ const Dashboard = () => {
       navigate(`/page/campus`);
     }
   }, [navigate]);
+
+  const [totalCheckIn, setTotalCheckIn] = React.useState(0);
+  const [totalRegistros, setTotalRegistros] = React.useState(0);
+
+  const [optionTipo, setOptionTipo] = React.useState({
+    xAxis: {
+      type: 'category',
+      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    },
+    yAxis: {
+      type: 'value'
+    },
+    title: {
+      text: 'Tipo de participantes',
+      subtext: 'Real Time Data',
+      left: 'center',
+      textStyle: {
+        fontSize: 23
+      },
+      subtextStyle: {
+        fontSize: 14
+      }
+    },
+    color: new graphic.LinearGradient(0, 0, 0, 1, [
+      { offset: 0, color: '#83bff6' },
+      { offset: 0.5, color: '#188df0' },
+      { offset: 1, color: '#188df0' }
+    ]),
+    tooltip: {
+      trigger: 'item',
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left',
+      textStyle: {
+        fontSize: 14
+      },
+    },
+    series: [
+      {
+        name: 'N° participantes',
+        type: 'bar',
+        showBackground: true,
+        data: [
+          { value: 1048, name: 'Search Engine'},
+          { value: 735, name: 'Direct' },
+          { value: 580, name: 'Email' },
+          { value: 484, name: 'Union Ads' },
+          { value: 300, name: 'Video Ads' },
+        ], 
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
+  });
 
   const [optionCargos, setOptionCargos] = React.useState({
     title: {
@@ -155,9 +213,6 @@ const Dashboard = () => {
     ]
   });
 
-  const [totalCheckIn, setTotalCheckIn] = React.useState(0);
-  const [totalRegistros, setTotalRegistros] = React.useState(0);
-
   React.useEffect(() => {
 
     DataStore.query(Campus).then( results => {
@@ -203,8 +258,39 @@ const Dashboard = () => {
         setEventList(results);
         setEventSelectID(results[0].id)
       } else {
+        // Reset
         setEventSelectID('');
         setEventList([ {title: "Vacio"} ]);
+        setOptionTipo(prevOption => ({
+          ...prevOption,
+          series: [
+            {
+              ...prevOption.series[0],
+              data: null,
+            },
+          ],
+        }));
+        setOptionCargos(prevOption => ({
+          ...prevOption,
+          series: [
+            {
+              ...prevOption.series[0],
+              data: null,
+            },
+          ],
+        }));
+        setOptionEdad(prevOption => ({
+          ...prevOption,
+          series: [
+            {
+              ...prevOption.series[0],
+              data: null,
+            },
+          ],
+        }));
+        setTotalCheckIn(null)
+        setTotalRegistros(null)
+
       }
       console.log("Event: ",results)
     });
@@ -243,25 +329,31 @@ const Dashboard = () => {
 
         // Datos cargo de participantes
         setTotalRegistros(results.length);
-        processChart(results, setOptionCargos);
-        processChart(results, setOptionEdad);
+        processChart(results, setOptionCargos, "position");
+        processChart(results, setOptionEdad, "age");
+        processChart(results, setOptionTipo, "type");
   
       });
 
       DataStore.query(EventAttendee, (e) => e.eventID.eq(eventSelectID)).then( results => {
-        console.log("EventAttendee: ", results)
         setTotalCheckIn(results.filter(item => item.checkIn === true).length);
-
       });
+
     }
   
   }, [eventSelectID]);
 
-  function processChart(results, setOptionFunction) {
+  function processChart(results, setOptionFunction, type) {
     const countMap = {};
+    let value;
   
     results.forEach(item => {
-      const value = item.position || item.age;
+      if(type == "position")
+        value = item.position;
+      if(type == "age")
+        value = item.age;
+      if(type == "type")
+        value = item.type;
       if (countMap[value]) {
         countMap[value] += 1;
       } else {
@@ -269,23 +361,51 @@ const Dashboard = () => {
       }
     });
   
-    const processedData = Object.keys(countMap).map(value => ({
-      value: countMap[value],
-      name: value,
-      label: {
-        fontSize: 15
-      }
-    }));
-  
-    setOptionFunction(prevOption => ({
-      ...prevOption,
-      series: [
-        {
-          ...prevOption.series[0],
-          data: processedData,
+    if(type=="type"){
+      const processedData = Object.keys(countMap).map(value => ({
+        value: countMap[value],
+        name: value,
+        label: {
+          fontSize: 15
+        }
+      }));
+
+      setOptionFunction(prevOption => ({
+        ...prevOption,
+        xAxis: {
+          type: 'category',
+          data: Object.keys(countMap)
         },
-      ],
-    }));
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            ...prevOption.series[0],
+            data: processedData,
+          },
+        ],
+      }));
+    } else {
+
+      const processedData = Object.keys(countMap).map(value => ({
+        value: countMap[value],
+        name: value,
+        label: {
+          fontSize: 15
+        }
+      }));
+
+      setOptionFunction(prevOption => ({
+        ...prevOption,
+        series: [
+          {
+            ...prevOption.series[0],
+            data: processedData,
+          },
+        ],
+      }));
+    }
   }
 
   return (
@@ -382,11 +502,13 @@ const Dashboard = () => {
           icon={<MdBarChart className="h-7 w-7" />}
           title={"Total Registros"}
           subtitle={totalRegistros}
+          description={"Participante/s"}
         />
         <Widget
           icon={<MdBarChart className="h-6 w-6" />}
           title={"Total Check-in"}
           subtitle={totalCheckIn}
+          description={"Participante/s"}
         />
         <Widget
           icon={<MdBarChart className="h-7 w-7" />}
@@ -399,13 +521,13 @@ const Dashboard = () => {
 
       <div className="mt-5 grid grid-cols-1 gap-5">
 
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-1">
-          <DailyTraffic />
+        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
+          <PieChartApache option={optionTipo} height="500px"/>
+          <PieChartApache option={optionEdad} height="450px"/>
         </div>
 
         <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <PieChartApache option={optionEdad}/>
-          <PieChartApache option={optionCargos}/>
+          <PieChartApache option={optionCargos} height="450px"/>
         </div>
         
       </div>

@@ -16,6 +16,13 @@ type Landing @model @auth(rules: [{allow: public}]) {
   id: ID!
   title: String
   Event: Event @belongsTo
+  description: String
+  mainBanner: String
+  location: String
+  cost: String
+  ticketTitle: [String]
+  ticketPrice: [Float]
+  extraInfo: String
 }
 
 type Attendee @model @auth(rules: [{allow: public}]) {
@@ -62,4 +69,5 @@ type Campus @model @auth(rules: [{allow: public}]) {
   description: String
   phone: AWSPhone
   email: AWSEmail
-} 
+}
+ 

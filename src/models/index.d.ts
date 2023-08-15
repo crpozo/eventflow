@@ -80,6 +80,13 @@ type EagerLanding = {
   readonly id: string;
   readonly title?: string | null;
   readonly Event?: Event | null;
+  readonly description?: string | null;
+  readonly mainBanner?: string | null;
+  readonly location?: string | null;
+  readonly cost?: string | null;
+  readonly ticketTitle?: (string | null)[] | null;
+  readonly ticketPrice?: (number | null)[] | null;
+  readonly extraInfo?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly landingEventId?: string | null;
@@ -93,6 +100,13 @@ type LazyLanding = {
   readonly id: string;
   readonly title?: string | null;
   readonly Event: AsyncItem<Event | undefined>;
+  readonly description?: string | null;
+  readonly mainBanner?: string | null;
+  readonly location?: string | null;
+  readonly cost?: string | null;
+  readonly ticketTitle?: (string | null)[] | null;
+  readonly ticketPrice?: (number | null)[] | null;
+  readonly extraInfo?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly landingEventId?: string | null;

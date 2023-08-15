@@ -75,7 +75,7 @@ hr.amplify-divider--horizontal{
 	display: none;
 }
 
-.amplify-grid .amplify-field .amplify-input{
+.amplify-grid .amplify-field .amplify-input, .amplify-grid .amplify-field .amplify-textarea{
 	background: #F8F9FB;
 	border-color: #EEEDF2;
 }

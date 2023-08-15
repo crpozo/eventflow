@@ -8,7 +8,7 @@ import DevelopmentTable from "./components/DevelopmentTable";
 const Marketplace = () => {
 
   const navigate = useNavigate();
-  const [eventos, setEventos] = React.useState([]);
+  const [events, setEvents] = React.useState([]);
   const [columns, setColumns] = React.useState([])
   const [rows, setRows] = React.useState([])
 
@@ -22,7 +22,7 @@ const Marketplace = () => {
       DataStore.query(Event, (e) => e.careerID.eq(subAreaId)).then( results => {
         let columns = [];
         let rows = [];
-        setEventos(results);
+        setEvents(results);
         console.log("Eventos: ",results)
         columns = [
           {
@@ -54,7 +54,7 @@ const Marketplace = () => {
 
   }, [navigate]);
 
-  if(!eventos){
+  if(!events){
     return <p>Loading...</p>
   }
 
@@ -63,12 +63,19 @@ const Marketplace = () => {
       <div className="col-span-1 h-fit w-full xl:col-span-1 2xl:col-span-2">
         <Banner />
 
-        <div className="mt-5 grid h-full grid-cols-1 gap-5">
-          <DevelopmentTable
-            columnsData={columns}
-            tableData={rows}
-          />
-        </div>
+        {events.length !== 0 ? 
+          <div className="mt-5 grid h-full grid-cols-1 gap-5">
+            <DevelopmentTable
+              columnsData={columns}
+              tableData={rows}
+            />
+          </div>
+          :
+          <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+            <p>No existen eventos en la base de datos...</p>
+          </div>
+        }
+        
       </div>
     </div>
   );

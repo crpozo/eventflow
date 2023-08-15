@@ -6,11 +6,181 @@
 
 /* eslint-disable */
 import * as React from "react";
-import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
-import { getOverrideProps } from "@aws-amplify/ui-react/internal";
+import {
+  Badge,
+  Button,
+  Divider,
+  Flex,
+  Grid,
+  Icon,
+  ScrollView,
+  Text,
+  TextField,
+  useTheme,
+} from "@aws-amplify/ui-react";
+import { StorageManager } from "@aws-amplify/ui-react-storage";
+import { Field, getOverrideProps } from "@aws-amplify/ui-react/internal";
 import { Landing } from "../models";
-import { fetchByPath, validateField } from "./utils";
+import { fetchByPath, processFile, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
+function ArrayField({
+  items = [],
+  onChange,
+  label,
+  inputFieldRef,
+  children,
+  hasError,
+  setFieldValue,
+  currentFieldValue,
+  defaultFieldValue,
+  lengthLimit,
+  getBadgeText,
+  errorMessage,
+}) {
+  const labelElement = <Text>{label}</Text>;
+  const {
+    tokens: {
+      components: {
+        fieldmessages: { error: errorStyles },
+      },
+    },
+  } = useTheme();
+  const [selectedBadgeIndex, setSelectedBadgeIndex] = React.useState();
+  const [isEditing, setIsEditing] = React.useState();
+  React.useEffect(() => {
+    if (isEditing) {
+      inputFieldRef?.current?.focus();
+    }
+  }, [isEditing]);
+  const removeItem = async (removeIndex) => {
+    const newItems = items.filter((value, index) => index !== removeIndex);
+    await onChange(newItems);
+    setSelectedBadgeIndex(undefined);
+  };
+  const addItem = async () => {
+    if (
+      currentFieldValue !== undefined &&
+      currentFieldValue !== null &&
+      currentFieldValue !== "" &&
+      !hasError
+    ) {
+      const newItems = [...items];
+      if (selectedBadgeIndex !== undefined) {
+        newItems[selectedBadgeIndex] = currentFieldValue;
+        setSelectedBadgeIndex(undefined);
+      } else {
+        newItems.push(currentFieldValue);
+      }
+      await onChange(newItems);
+      setIsEditing(false);
+    }
+  };
+  const arraySection = (
+    <React.Fragment>
+      {!!items?.length && (
+        <ScrollView height="inherit" width="inherit" maxHeight={"7rem"}>
+          {items.map((value, index) => {
+            return (
+              <Badge
+                key={index}
+                style={{
+                  cursor: "pointer",
+                  alignItems: "center",
+                  marginRight: 3,
+                  marginTop: 3,
+                  backgroundColor:
+                    index === selectedBadgeIndex ? "#B8CEF9" : "",
+                }}
+                onClick={() => {
+                  setSelectedBadgeIndex(index);
+                  setFieldValue(items[index]);
+                  setIsEditing(true);
+                }}
+              >
+                {getBadgeText ? getBadgeText(value) : value.toString()}
+                <Icon
+                  style={{
+                    cursor: "pointer",
+                    paddingLeft: 3,
+                    width: 20,
+                    height: 20,
+                  }}
+                  viewBox={{ width: 20, height: 20 }}
+                  paths={[
+                    {
+                      d: "M10 10l5.09-5.09L10 10l5.09 5.09L10 10zm0 0L4.91 4.91 10 10l-5.09 5.09L10 10z",
+                      stroke: "black",
+                    },
+                  ]}
+                  ariaLabel="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    removeItem(index);
+                  }}
+                />
+              </Badge>
+            );
+          })}
+        </ScrollView>
+      )}
+      <Divider orientation="horizontal" marginTop={5} />
+    </React.Fragment>
+  );
+  if (lengthLimit !== undefined && items.length >= lengthLimit && !isEditing) {
+    return (
+      <React.Fragment>
+        {labelElement}
+        {arraySection}
+      </React.Fragment>
+    );
+  }
+  return (
+    <React.Fragment>
+      {labelElement}
+      {isEditing && children}
+      {!isEditing ? (
+        <>
+          <Button
+            onClick={() => {
+              setIsEditing(true);
+            }}
+          >
+            Add item
+          </Button>
+          {errorMessage && hasError && (
+            <Text color={errorStyles.color} fontSize={errorStyles.fontSize}>
+              {errorMessage}
+            </Text>
+          )}
+        </>
+      ) : (
+        <Flex justifyContent="flex-end">
+          {(currentFieldValue || isEditing) && (
+            <Button
+              children="Cancel"
+              type="button"
+              size="small"
+              onClick={() => {
+                setFieldValue(defaultFieldValue);
+                setIsEditing(false);
+                setSelectedBadgeIndex(undefined);
+              }}
+            ></Button>
+          )}
+          <Button
+            size="small"
+            variation="link"
+            isDisabled={hasError}
+            onClick={addItem}
+          >
+            {selectedBadgeIndex !== undefined ? "Save" : "Add"}
+          </Button>
+        </Flex>
+      )}
+      {arraySection}
+    </React.Fragment>
+  );
+}
 export default function LandingUpdateForm(props) {
   const {
     id: idProp,
@@ -25,14 +195,43 @@ export default function LandingUpdateForm(props) {
   } = props;
   const initialValues = {
     title: "",
+    description: "",
+    mainBanner: undefined,
+    location: "",
+    cost: "",
+    ticketTitle: [],
+    ticketPrice: [],
+    extraInfo: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
+  const [description, setDescription] = React.useState(
+    initialValues.description
+  );
+  const [mainBanner, setMainBanner] = React.useState(initialValues.mainBanner);
+  const [location, setLocation] = React.useState(initialValues.location);
+  const [cost, setCost] = React.useState(initialValues.cost);
+  const [ticketTitle, setTicketTitle] = React.useState(
+    initialValues.ticketTitle
+  );
+  const [ticketPrice, setTicketPrice] = React.useState(
+    initialValues.ticketPrice
+  );
+  const [extraInfo, setExtraInfo] = React.useState(initialValues.extraInfo);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = landingRecord
       ? { ...initialValues, ...landingRecord }
       : initialValues;
     setTitle(cleanValues.title);
+    setDescription(cleanValues.description);
+    setMainBanner(cleanValues.mainBanner);
+    setLocation(cleanValues.location);
+    setCost(cleanValues.cost);
+    setTicketTitle(cleanValues.ticketTitle ?? []);
+    setCurrentTicketTitleValue("");
+    setTicketPrice(cleanValues.ticketPrice ?? []);
+    setCurrentTicketPriceValue("");
+    setExtraInfo(cleanValues.extraInfo);
     setErrors({});
   };
   const [landingRecord, setLandingRecord] = React.useState(landingModelProp);
@@ -46,8 +245,21 @@ export default function LandingUpdateForm(props) {
     queryData();
   }, [idProp, landingModelProp]);
   React.useEffect(resetStateValues, [landingRecord]);
+  const [currentTicketTitleValue, setCurrentTicketTitleValue] =
+    React.useState("");
+  const ticketTitleRef = React.createRef();
+  const [currentTicketPriceValue, setCurrentTicketPriceValue] =
+    React.useState("");
+  const ticketPriceRef = React.createRef();
   const validations = {
     title: [],
+    description: [],
+    mainBanner: [],
+    location: [],
+    cost: [],
+    ticketTitle: [],
+    ticketPrice: [],
+    extraInfo: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -76,6 +288,13 @@ export default function LandingUpdateForm(props) {
         event.preventDefault();
         let modelFields = {
           title,
+          description,
+          mainBanner,
+          location,
+          cost,
+          ticketTitle,
+          ticketPrice,
+          extraInfo,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -123,7 +342,7 @@ export default function LandingUpdateForm(props) {
       {...rest}
     >
       <TextField
-        label="Title"
+        label="Titulo principal"
         isRequired={false}
         isReadOnly={false}
         value={title}
@@ -132,6 +351,13 @@ export default function LandingUpdateForm(props) {
           if (onChange) {
             const modelFields = {
               title: value,
+              description,
+              mainBanner,
+              location,
+              cost,
+              ticketTitle,
+              ticketPrice,
+              extraInfo,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -145,6 +371,296 @@ export default function LandingUpdateForm(props) {
         errorMessage={errors.title?.errorMessage}
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
+      ></TextField>
+      <TextField
+        label="Descripción corta que se mostrará en el banner principal"
+        isRequired={false}
+        isReadOnly={false}
+        value={description}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description: value,
+              mainBanner,
+              location,
+              cost,
+              ticketTitle,
+              ticketPrice,
+              extraInfo,
+            };
+            const result = onChange(modelFields);
+            value = result?.description ?? value;
+          }
+          if (errors.description?.hasError) {
+            runValidationTasks("description", value);
+          }
+          setDescription(value);
+        }}
+        onBlur={() => runValidationTasks("description", description)}
+        errorMessage={errors.description?.errorMessage}
+        hasError={errors.description?.hasError}
+        {...getOverrideProps(overrides, "description")}
+      ></TextField>
+      <Field
+        errorMessage={errors.mainBanner?.errorMessage}
+        hasError={errors.mainBanner?.hasError}
+        label={"Imagen principal"}
+        isRequired={false}
+        isReadOnly={false}
+      >
+        {landingRecord && (
+          <StorageManager
+            defaultFiles={[{ key: landingRecord.mainBanner }]}
+            onUploadSuccess={({ key }) => {
+              setMainBanner((prev) => {
+                let value = key;
+                if (onChange) {
+                  const modelFields = {
+                    title,
+                    description,
+                    mainBanner: value,
+                    location,
+                    cost,
+                    ticketTitle,
+                    ticketPrice,
+                    extraInfo,
+                  };
+                  const result = onChange(modelFields);
+                  value = result?.mainBanner ?? value;
+                }
+                return value;
+              });
+            }}
+            onFileRemove={({ key }) => {
+              setMainBanner((prev) => {
+                let value = initialValues?.mainBanner;
+                if (onChange) {
+                  const modelFields = {
+                    title,
+                    description,
+                    mainBanner: value,
+                    location,
+                    cost,
+                    ticketTitle,
+                    ticketPrice,
+                    extraInfo,
+                  };
+                  const result = onChange(modelFields);
+                  value = result?.mainBanner ?? value;
+                }
+                return value;
+              });
+            }}
+            processFile={processFile}
+            accessLevel={"public"}
+            acceptedFileTypes={["image/*"]}
+            isResumable={false}
+            showThumbnails={true}
+            maxFileCount={1}
+            {...getOverrideProps(overrides, "mainBanner")}
+          ></StorageManager>
+        )}
+      </Field>
+      <TextField
+        label="Ubicación del evento"
+        isRequired={false}
+        isReadOnly={false}
+        value={location}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              mainBanner,
+              location: value,
+              cost,
+              ticketTitle,
+              ticketPrice,
+              extraInfo,
+            };
+            const result = onChange(modelFields);
+            value = result?.location ?? value;
+          }
+          if (errors.location?.hasError) {
+            runValidationTasks("location", value);
+          }
+          setLocation(value);
+        }}
+        onBlur={() => runValidationTasks("location", location)}
+        errorMessage={errors.location?.errorMessage}
+        hasError={errors.location?.hasError}
+        {...getOverrideProps(overrides, "location")}
+      ></TextField>
+      <TextField
+        label="Acceso al evento"
+        isRequired={false}
+        isReadOnly={false}
+        value={cost}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              mainBanner,
+              location,
+              cost: value,
+              ticketTitle,
+              ticketPrice,
+              extraInfo,
+            };
+            const result = onChange(modelFields);
+            value = result?.cost ?? value;
+          }
+          if (errors.cost?.hasError) {
+            runValidationTasks("cost", value);
+          }
+          setCost(value);
+        }}
+        onBlur={() => runValidationTasks("cost", cost)}
+        errorMessage={errors.cost?.errorMessage}
+        hasError={errors.cost?.hasError}
+        {...getOverrideProps(overrides, "cost")}
+      ></TextField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              mainBanner,
+              location,
+              cost,
+              ticketTitle: values,
+              ticketPrice,
+              extraInfo,
+            };
+            const result = onChange(modelFields);
+            values = result?.ticketTitle ?? values;
+          }
+          setTicketTitle(values);
+          setCurrentTicketTitleValue("");
+        }}
+        currentFieldValue={currentTicketTitleValue}
+        label={"Creaci\u00F3n tickets"}
+        items={ticketTitle}
+        hasError={errors?.ticketTitle?.hasError}
+        errorMessage={errors?.ticketTitle?.errorMessage}
+        setFieldValue={setCurrentTicketTitleValue}
+        inputFieldRef={ticketTitleRef}
+        defaultFieldValue={""}
+      >
+        <TextField
+          label="Creación tickets"
+          isRequired={false}
+          isReadOnly={false}
+          value={currentTicketTitleValue}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.ticketTitle?.hasError) {
+              runValidationTasks("ticketTitle", value);
+            }
+            setCurrentTicketTitleValue(value);
+          }}
+          onBlur={() =>
+            runValidationTasks("ticketTitle", currentTicketTitleValue)
+          }
+          errorMessage={errors.ticketTitle?.errorMessage}
+          hasError={errors.ticketTitle?.hasError}
+          ref={ticketTitleRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "ticketTitle")}
+        ></TextField>
+      </ArrayField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              mainBanner,
+              location,
+              cost,
+              ticketTitle,
+              ticketPrice: values,
+              extraInfo,
+            };
+            const result = onChange(modelFields);
+            values = result?.ticketPrice ?? values;
+          }
+          setTicketPrice(values);
+          setCurrentTicketPriceValue("");
+        }}
+        currentFieldValue={currentTicketPriceValue}
+        label={"Creaci\u00F3n precios"}
+        items={ticketPrice}
+        hasError={errors?.ticketPrice?.hasError}
+        errorMessage={errors?.ticketPrice?.errorMessage}
+        setFieldValue={setCurrentTicketPriceValue}
+        inputFieldRef={ticketPriceRef}
+        defaultFieldValue={""}
+      >
+        <TextField
+          label="Creación precios"
+          isRequired={false}
+          isReadOnly={false}
+          type="number"
+          step="any"
+          value={currentTicketPriceValue}
+          onChange={(e) => {
+            let value = isNaN(parseFloat(e.target.value))
+              ? e.target.value
+              : parseFloat(e.target.value);
+            if (errors.ticketPrice?.hasError) {
+              runValidationTasks("ticketPrice", value);
+            }
+            setCurrentTicketPriceValue(value);
+          }}
+          onBlur={() =>
+            runValidationTasks("ticketPrice", currentTicketPriceValue)
+          }
+          errorMessage={errors.ticketPrice?.errorMessage}
+          hasError={errors.ticketPrice?.hasError}
+          ref={ticketPriceRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "ticketPrice")}
+        ></TextField>
+      </ArrayField>
+      <TextField
+        label="Información adicional"
+        isRequired={false}
+        isReadOnly={false}
+        value={extraInfo}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              mainBanner,
+              location,
+              cost,
+              ticketTitle,
+              ticketPrice,
+              extraInfo: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.extraInfo ?? value;
+          }
+          if (errors.extraInfo?.hasError) {
+            runValidationTasks("extraInfo", value);
+          }
+          setExtraInfo(value);
+        }}
+        onBlur={() => runValidationTasks("extraInfo", extraInfo)}
+        errorMessage={errors.extraInfo?.errorMessage}
+        hasError={errors.extraInfo?.hasError}
+        {...getOverrideProps(overrides, "extraInfo")}
       ></TextField>
       <Flex
         justifyContent="space-between"

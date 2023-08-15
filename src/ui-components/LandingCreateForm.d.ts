@@ -5,7 +5,8 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { StorageManagerProps } from "@aws-amplify/ui-react-storage";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 export declare type ValidationResponse = {
     hasError: boolean;
@@ -14,14 +15,35 @@ export declare type ValidationResponse = {
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type LandingCreateFormInputValues = {
     title?: string;
+    description?: string;
+    mainBanner?: string;
+    location?: string;
+    cost?: string;
+    ticketTitle?: string[];
+    ticketPrice?: number[];
+    extraInfo?: string;
 };
 export declare type LandingCreateFormValidationValues = {
     title?: ValidationFunction<string>;
+    description?: ValidationFunction<string>;
+    mainBanner?: ValidationFunction<string>;
+    location?: ValidationFunction<string>;
+    cost?: ValidationFunction<string>;
+    ticketTitle?: ValidationFunction<string>;
+    ticketPrice?: ValidationFunction<number>;
+    extraInfo?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type LandingCreateFormOverridesProps = {
     LandingCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
+    description?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    mainBanner?: PrimitiveOverrideProps<StorageManagerProps>;
+    location?: PrimitiveOverrideProps<TextFieldProps>;
+    cost?: PrimitiveOverrideProps<TextFieldProps>;
+    ticketTitle?: PrimitiveOverrideProps<TextFieldProps>;
+    ticketPrice?: PrimitiveOverrideProps<TextFieldProps>;
+    extraInfo?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type LandingCreateFormProps = React.PropsWithChildren<{
     overrides?: LandingCreateFormOverridesProps | undefined | null;
