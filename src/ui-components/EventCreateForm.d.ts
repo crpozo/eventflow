@@ -5,9 +5,8 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { EventAttendee } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -16,25 +15,34 @@ export declare type ValidationFunction<T> = (value: T, validationResponse: Valid
 export declare type EventCreateFormInputValues = {
     title?: string;
     description?: string;
-    careerID?: string;
-    EventAttendes?: string;
-    EventAttendees?: EventAttendee[];
+    category?: string;
+    location?: string;
+    date?: string;
+    contactName?: string[];
+    contactNumber?: number[];
+    termsCondition?: string;
 };
 export declare type EventCreateFormValidationValues = {
     title?: ValidationFunction<string>;
     description?: ValidationFunction<string>;
-    careerID?: ValidationFunction<string>;
-    EventAttendes?: ValidationFunction<string>;
-    EventAttendees?: ValidationFunction<EventAttendee>;
+    category?: ValidationFunction<string>;
+    location?: ValidationFunction<string>;
+    date?: ValidationFunction<string>;
+    contactName?: ValidationFunction<string>;
+    contactNumber?: ValidationFunction<number>;
+    termsCondition?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventCreateFormOverridesProps = {
     EventCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
-    description?: PrimitiveOverrideProps<TextFieldProps>;
-    careerID?: PrimitiveOverrideProps<AutocompleteProps>;
-    EventAttendes?: PrimitiveOverrideProps<TextFieldProps>;
-    EventAttendees?: PrimitiveOverrideProps<AutocompleteProps>;
+    description?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    category?: PrimitiveOverrideProps<TextFieldProps>;
+    location?: PrimitiveOverrideProps<TextFieldProps>;
+    date?: PrimitiveOverrideProps<TextFieldProps>;
+    contactName?: PrimitiveOverrideProps<TextFieldProps>;
+    contactNumber?: PrimitiveOverrideProps<TextFieldProps>;
+    termsCondition?: PrimitiveOverrideProps<TextAreaFieldProps>;
 } & EscapeHatchProps;
 export declare type EventCreateFormProps = React.PropsWithChildren<{
     overrides?: EventCreateFormOverridesProps | undefined | null;

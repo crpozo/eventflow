@@ -16,6 +16,8 @@ type EagerEventAttendee = {
   readonly attendeeID: string;
   readonly authorized?: boolean | null;
   readonly checkIn?: boolean | null;
+  readonly formAnswers?: string | null;
+  readonly ticket?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -30,6 +32,8 @@ type LazyEventAttendee = {
   readonly attendeeID: string;
   readonly authorized?: boolean | null;
   readonly checkIn?: boolean | null;
+  readonly formAnswers?: string | null;
+  readonly ticket?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -166,6 +170,12 @@ type EagerEvent = {
   readonly careerID: string;
   readonly Form?: Form | null;
   readonly EventAttendees?: (EventAttendee | null)[] | null;
+  readonly category?: string | null;
+  readonly location?: string | null;
+  readonly date?: string | null;
+  readonly contactName?: (string | null)[] | null;
+  readonly contactNumber?: (number | null)[] | null;
+  readonly termsCondition?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
@@ -184,6 +194,12 @@ type LazyEvent = {
   readonly careerID: string;
   readonly Form: AsyncItem<Form | undefined>;
   readonly EventAttendees: AsyncCollection<EventAttendee>;
+  readonly category?: string | null;
+  readonly location?: string | null;
+  readonly date?: string | null;
+  readonly contactName?: (string | null)[] | null;
+  readonly contactNumber?: (number | null)[] | null;
+  readonly termsCondition?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;

@@ -43,7 +43,7 @@ export declare type LandingCreateFormOverridesProps = {
     cost?: PrimitiveOverrideProps<TextFieldProps>;
     ticketTitle?: PrimitiveOverrideProps<TextFieldProps>;
     ticketPrice?: PrimitiveOverrideProps<TextFieldProps>;
-    extraInfo?: PrimitiveOverrideProps<TextFieldProps>;
+    extraInfo?: PrimitiveOverrideProps<TextAreaFieldProps>;
 } & EscapeHatchProps;
 export declare type LandingCreateFormProps = React.PropsWithChildren<{
     overrides?: LandingCreateFormOverridesProps | undefined | null;

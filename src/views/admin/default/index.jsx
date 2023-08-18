@@ -15,7 +15,7 @@ const Dashboard = () => {
 
   React.useEffect( () => {
 
-    if(!localStorage.getItem("EVENTFLOW.subarea")){
+    if(!localStorage.getItem("EVENTFLOW.subarea") || localStorage.getItem("EVENTFLOW.subarea") === undefined){
       navigate(`/page/campus`);
       return
     }

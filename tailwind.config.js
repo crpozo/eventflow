@@ -147,6 +147,7 @@ module.exports = {
       lightBrownPrimary: "#F2E6E2",
       brandLinear: "#868CFF",
       black: "#1A1A1A",
+      blackBanner: "#000000b3",
       usfqPrimary: "#faf3e9f7",
       gray: {
         50: "#EEEDF2",

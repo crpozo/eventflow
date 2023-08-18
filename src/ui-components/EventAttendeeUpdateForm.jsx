@@ -17,6 +17,8 @@ import {
   ScrollView,
   SwitchField,
   Text,
+  TextAreaField,
+  TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
 import {
@@ -201,11 +203,17 @@ export default function EventAttendeeUpdateForm(props) {
     attendeeID: undefined,
     authorized: false,
     checkIn: false,
+    formAnswers: "",
+    ticket: "",
   };
   const [eventID, setEventID] = React.useState(initialValues.eventID);
   const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
   const [authorized, setAuthorized] = React.useState(initialValues.authorized);
   const [checkIn, setCheckIn] = React.useState(initialValues.checkIn);
+  const [formAnswers, setFormAnswers] = React.useState(
+    initialValues.formAnswers
+  );
+  const [ticket, setTicket] = React.useState(initialValues.ticket);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = eventAttendeeRecord
@@ -219,6 +227,12 @@ export default function EventAttendeeUpdateForm(props) {
     setCurrentAttendeeIDDisplayValue("");
     setAuthorized(cleanValues.authorized);
     setCheckIn(cleanValues.checkIn);
+    setFormAnswers(
+      typeof cleanValues.formAnswers === "string"
+        ? cleanValues.formAnswers
+        : JSON.stringify(cleanValues.formAnswers)
+    );
+    setTicket(cleanValues.ticket);
     setErrors({});
   };
   const [eventAttendeeRecord, setEventAttendeeRecord] = React.useState(
@@ -265,6 +279,8 @@ export default function EventAttendeeUpdateForm(props) {
     attendeeID: [{ type: "Required" }],
     authorized: [],
     checkIn: [],
+    formAnswers: [{ type: "JSON" }],
+    ticket: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -296,6 +312,8 @@ export default function EventAttendeeUpdateForm(props) {
           attendeeID,
           authorized,
           checkIn,
+          formAnswers,
+          ticket,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -352,6 +370,8 @@ export default function EventAttendeeUpdateForm(props) {
               attendeeID,
               authorized,
               checkIn,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.eventID ?? value;
@@ -432,6 +452,8 @@ export default function EventAttendeeUpdateForm(props) {
               attendeeID: value,
               authorized,
               checkIn,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.attendeeID ?? value;
@@ -519,6 +541,8 @@ export default function EventAttendeeUpdateForm(props) {
               attendeeID,
               authorized: value,
               checkIn,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.authorized ?? value;
@@ -546,6 +570,8 @@ export default function EventAttendeeUpdateForm(props) {
               attendeeID,
               authorized,
               checkIn: value,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.checkIn ?? value;
@@ -560,6 +586,64 @@ export default function EventAttendeeUpdateForm(props) {
         hasError={errors.checkIn?.hasError}
         {...getOverrideProps(overrides, "checkIn")}
       ></SwitchField>
+      <TextAreaField
+        label="Form answers"
+        isRequired={false}
+        isReadOnly={false}
+        value={formAnswers}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers: value,
+              ticket,
+            };
+            const result = onChange(modelFields);
+            value = result?.formAnswers ?? value;
+          }
+          if (errors.formAnswers?.hasError) {
+            runValidationTasks("formAnswers", value);
+          }
+          setFormAnswers(value);
+        }}
+        onBlur={() => runValidationTasks("formAnswers", formAnswers)}
+        errorMessage={errors.formAnswers?.errorMessage}
+        hasError={errors.formAnswers?.hasError}
+        {...getOverrideProps(overrides, "formAnswers")}
+      ></TextAreaField>
+      <TextField
+        label="Ticket"
+        isRequired={false}
+        isReadOnly={false}
+        value={ticket}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.ticket ?? value;
+          }
+          if (errors.ticket?.hasError) {
+            runValidationTasks("ticket", value);
+          }
+          setTicket(value);
+        }}
+        onBlur={() => runValidationTasks("ticket", ticket)}
+        errorMessage={errors.ticket?.errorMessage}
+        hasError={errors.ticket?.hasError}
+        {...getOverrideProps(overrides, "ticket")}
+      ></TextField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -15,6 +15,7 @@ import {
   Icon,
   ScrollView,
   Text,
+  TextAreaField,
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
@@ -372,7 +373,7 @@ export default function LandingUpdateForm(props) {
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
       ></TextField>
-      <TextField
+      <TextAreaField
         label="Descripción corta que se mostrará en el banner principal"
         isRequired={false}
         isReadOnly={false}
@@ -402,7 +403,7 @@ export default function LandingUpdateForm(props) {
         errorMessage={errors.description?.errorMessage}
         hasError={errors.description?.hasError}
         {...getOverrideProps(overrides, "description")}
-      ></TextField>
+      ></TextAreaField>
       <Field
         errorMessage={errors.mainBanner?.errorMessage}
         hasError={errors.mainBanner?.hasError}
@@ -631,7 +632,7 @@ export default function LandingUpdateForm(props) {
           {...getOverrideProps(overrides, "ticketPrice")}
         ></TextField>
       </ArrayField>
-      <TextField
+      <TextAreaField
         label="Información adicional"
         isRequired={false}
         isReadOnly={false}
@@ -661,7 +662,7 @@ export default function LandingUpdateForm(props) {
         errorMessage={errors.extraInfo?.errorMessage}
         hasError={errors.extraInfo?.hasError}
         {...getOverrideProps(overrides, "extraInfo")}
-      ></TextField>
+      ></TextAreaField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -65,6 +65,13 @@ const Dashboard = () => {
         { 
           formData,
           onSave: this.handleFormChange,
+          i18n: {
+            override: {
+              'en-US': {
+                save: 'Guardar'
+              }
+            }
+          }
         }
       );
     }

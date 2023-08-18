@@ -1,8 +1,8 @@
 /* eslint-disable */
-
+import React from "react";
 import { HiX } from "react-icons/hi";
 import Links from "./components/Links";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import routes from "routes.js";
 import {
   MdChevronLeft
@@ -15,10 +15,18 @@ import {
   LiaExternalLinkAltSolid,
 } from "react-icons/lia";
 
-const Sidebar = ({ open, onClose, eventId, activePath}) => {
+const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
-  const event = JSON.parse(localStorage.getItem("EVENTFLOW.event"));
-  console.log("SIDEBAR: ",event)
+  const [event, setEvent] = React.useState(null);
+  const { id } = useParams();
+
+  React.useEffect(() => {
+    const event = localStorage.getItem('EVENTFLOW.event');
+    console.log("hola: ",event)
+    if(event !== null && event !== undefined){
+      setEvent(JSON.parse(event));
+    }
+  }, [activePath]);
 
   return (
     <>
@@ -79,29 +87,29 @@ const Sidebar = ({ open, onClose, eventId, activePath}) => {
               </select>
               <h2 className="text-2xl font-medium mb-3">{event?.title}</h2>
               <p className="text-sm text-gray-500 mb-3">{event?.updatedAt}</p>
-              <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${eventId}`} target="_blank" rel="noopener noreferrer">
+              <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
                 Link del evento <LiaExternalLinkAltSolid className="ml-2 h-5 w-5" />
               </Link>
             </div>
             <div className="flex flex-col">
               <Link 
                 className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/detalle` ? "bg-gray-200" : ""}`}
-               to={ `eventos/${eventId}/detalle/`}>
+               to={ `eventos/${event?.id}/detalle/`}>
                   Detalle Evento
               </Link>
               <Link 
                 className={`px-[25px] xl:px-[25px] py-[20px] hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/landing` ? "bg-gray-200" : ""}`}
-               to={ `eventos/${eventId}/landing/`}>
+               to={ `eventos/${event?.id}/landing/`}>
                   Landing page
               </Link>
               <Link 
                 className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/formulario` ? "bg-gray-200" : ""}`}
-                to={ `eventos/${eventId}/formulario/`}>
+                to={ `eventos/${event?.id}/formulario/`}>
                   Formulario
               </Link>
               <Link 
                 className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`} 
-                to={ `eventos/${eventId}/participantes/`}>
+                to={ `eventos/${event?.id}/participantes/`}>
                   Participantes
               </Link>
             </div>

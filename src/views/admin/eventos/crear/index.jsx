@@ -47,6 +47,14 @@ const Dashboard = () => {
               alert("Evento creado con éxito")
               navigate('/admin/eventos');
             }}
+            onSubmit={(fields) => {
+              if(subAreaId){
+                console.log(fields)
+                console.log(subAreaId)
+                fields.careerID = subAreaId;
+                return fields  
+              }
+            }}
             onCancel={() => {
               navigate('/admin/eventos');
             }}

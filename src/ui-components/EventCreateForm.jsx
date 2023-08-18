@@ -7,7 +7,6 @@
 /* eslint-disable */
 import * as React from "react";
 import {
-  Autocomplete,
   Badge,
   Button,
   Divider,
@@ -16,14 +15,12 @@ import {
   Icon,
   ScrollView,
   Text,
+  TextAreaField,
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
-import {
-  getOverrideProps,
-  useDataStoreBinding,
-} from "@aws-amplify/ui-react/internal";
-import { Event, EventAttendee, Career } from "../models";
+import { getOverrideProps } from "@aws-amplify/ui-react/internal";
+import { Event } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -199,73 +196,58 @@ export default function EventCreateForm(props) {
   const initialValues = {
     title: "",
     description: "",
-    careerID: undefined,
-    EventAttendes: "",
-    EventAttendees: [],
+    category: "",
+    location: "",
+    date: "",
+    contactName: [],
+    contactNumber: [],
+    termsCondition: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
     initialValues.description
   );
-  const [careerID, setCareerID] = React.useState(initialValues.careerID);
-  const [EventAttendes, setEventAttendes] = React.useState(
-    initialValues.EventAttendes
+  const [category, setCategory] = React.useState(initialValues.category);
+  const [location, setLocation] = React.useState(initialValues.location);
+  const [date, setDate] = React.useState(initialValues.date);
+  const [contactName, setContactName] = React.useState(
+    initialValues.contactName
   );
-  const [EventAttendees, setEventAttendees] = React.useState(
-    initialValues.EventAttendees
+  const [contactNumber, setContactNumber] = React.useState(
+    initialValues.contactNumber
+  );
+  const [termsCondition, setTermsCondition] = React.useState(
+    initialValues.termsCondition
   );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
     setDescription(initialValues.description);
-    setCareerID(initialValues.careerID);
-    setCurrentCareerIDValue(undefined);
-    setCurrentCareerIDDisplayValue("");
-    setEventAttendes(initialValues.EventAttendes);
-    setEventAttendees(initialValues.EventAttendees);
-    setCurrentEventAttendeesValue(undefined);
-    setCurrentEventAttendeesDisplayValue("");
+    setCategory(initialValues.category);
+    setLocation(initialValues.location);
+    setDate(initialValues.date);
+    setContactName(initialValues.contactName);
+    setCurrentContactNameValue("");
+    setContactNumber(initialValues.contactNumber);
+    setCurrentContactNumberValue("");
+    setTermsCondition(initialValues.termsCondition);
     setErrors({});
   };
-  const [currentCareerIDDisplayValue, setCurrentCareerIDDisplayValue] =
+  const [currentContactNameValue, setCurrentContactNameValue] =
     React.useState("");
-  const [currentCareerIDValue, setCurrentCareerIDValue] =
-    React.useState(undefined);
-  const careerIDRef = React.createRef();
-  const [
-    currentEventAttendeesDisplayValue,
-    setCurrentEventAttendeesDisplayValue,
-  ] = React.useState("");
-  const [currentEventAttendeesValue, setCurrentEventAttendeesValue] =
-    React.useState(undefined);
-  const EventAttendeesRef = React.createRef();
-  const getIDValue = {
-    EventAttendees: (r) => JSON.stringify({ id: r?.id }),
-  };
-  const EventAttendeesIdSet = new Set(
-    Array.isArray(EventAttendees)
-      ? EventAttendees.map((r) => getIDValue.EventAttendees?.(r))
-      : getIDValue.EventAttendees?.(EventAttendees)
-  );
-  const careerRecords = useDataStoreBinding({
-    type: "collection",
-    model: Career,
-  }).items;
-  const eventAttendeeRecords = useDataStoreBinding({
-    type: "collection",
-    model: EventAttendee,
-  }).items;
-  const getDisplayValue = {
-    careerID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
-    EventAttendees: (r) =>
-      `${r?.authorized ? r?.authorized + " - " : ""}${r?.id}`,
-  };
+  const contactNameRef = React.createRef();
+  const [currentContactNumberValue, setCurrentContactNumberValue] =
+    React.useState("");
+  const contactNumberRef = React.createRef();
   const validations = {
     title: [],
     description: [],
-    careerID: [{ type: "Required" }],
-    EventAttendes: [],
-    EventAttendees: [],
+    category: [],
+    location: [],
+    date: [],
+    contactName: [],
+    contactNumber: [],
+    termsCondition: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -284,6 +266,23 @@ export default function EventCreateForm(props) {
     setErrors((errors) => ({ ...errors, [fieldName]: validationResponse }));
     return validationResponse;
   };
+  const convertToLocal = (date) => {
+    const df = new Intl.DateTimeFormat("default", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      calendar: "iso8601",
+      numberingSystem: "latn",
+      hourCycle: "h23",
+    });
+    const parts = df.formatToParts(date).reduce((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {});
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+  };
   return (
     <Grid
       as="form"
@@ -295,30 +294,25 @@ export default function EventCreateForm(props) {
         let modelFields = {
           title,
           description,
-          careerID,
-          EventAttendes,
-          EventAttendees,
+          category,
+          location,
+          date,
+          contactName,
+          contactNumber,
+          termsCondition,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(
-                    fieldName,
-                    item,
-                    getDisplayValue[fieldName]
-                  )
+                  runValidationTasks(fieldName, item)
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(
-                fieldName,
-                modelFields[fieldName],
-                getDisplayValue[fieldName]
-              )
+              runValidationTasks(fieldName, modelFields[fieldName])
             );
             return promises;
           }, [])
@@ -335,26 +329,7 @@ export default function EventCreateForm(props) {
               modelFields[key] = undefined;
             }
           });
-          const modelFieldsToSave = {
-            title: modelFields.title,
-            description: modelFields.description,
-            careerID: modelFields.careerID,
-          };
-          const event = await DataStore.save(new Event(modelFieldsToSave));
-          const promises = [];
-          promises.push(
-            ...EventAttendees.reduce((promises, original) => {
-              promises.push(
-                DataStore.save(
-                  EventAttendee.copyOf(original, (updated) => {
-                    updated.eventID = event.id;
-                  })
-                )
-              );
-              return promises;
-            }, [])
-          );
-          await Promise.all(promises);
+          await DataStore.save(new Event(modelFields));
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -371,9 +346,10 @@ export default function EventCreateForm(props) {
       {...rest}
     >
       <TextField
-        label="Title"
+        label="Indica a los participantes como se llama el evento"
         isRequired={false}
         isReadOnly={false}
+        placeholder="Nombre evento"
         value={title}
         onChange={(e) => {
           let { value } = e.target;
@@ -381,9 +357,12 @@ export default function EventCreateForm(props) {
             const modelFields = {
               title: value,
               description,
-              careerID,
-              EventAttendes,
-              EventAttendees,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -398,20 +377,23 @@ export default function EventCreateForm(props) {
         hasError={errors.title?.hasError}
         {...getOverrideProps(overrides, "title")}
       ></TextField>
-      <TextField
-        label="Description"
+      <TextAreaField
+        label="Descripción del evento"
         isRequired={false}
         isReadOnly={false}
-        value={description}
+        placeholder="De que se trata el evento?"
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title,
               description: value,
-              careerID,
-              EventAttendes,
-              EventAttendees,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -425,114 +407,103 @@ export default function EventCreateForm(props) {
         errorMessage={errors.description?.errorMessage}
         hasError={errors.description?.hasError}
         {...getOverrideProps(overrides, "description")}
-      ></TextField>
-      <ArrayField
-        lengthLimit={1}
-        onChange={async (items) => {
-          let value = items[0];
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              careerID: value,
-              EventAttendes,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.careerID ?? value;
-          }
-          setCareerID(value);
-          setCurrentCareerIDValue(undefined);
-        }}
-        currentFieldValue={currentCareerIDValue}
-        label={"Career id"}
-        items={careerID ? [careerID] : []}
-        hasError={errors?.careerID?.hasError}
-        errorMessage={errors?.careerID?.errorMessage}
-        getBadgeText={(value) =>
-          value
-            ? getDisplayValue.careerID(
-                careerRecords.find((r) => r.id === value)
-              )
-            : ""
-        }
-        setFieldValue={(value) => {
-          setCurrentCareerIDDisplayValue(
-            value
-              ? getDisplayValue.careerID(
-                  careerRecords.find((r) => r.id === value)
-                )
-              : ""
-          );
-          setCurrentCareerIDValue(value);
-        }}
-        inputFieldRef={careerIDRef}
-        defaultFieldValue={""}
-      >
-        <Autocomplete
-          label="Career id"
-          isRequired={true}
-          isReadOnly={false}
-          placeholder="Search Career"
-          value={currentCareerIDDisplayValue}
-          options={careerRecords
-            .filter(
-              (r, i, arr) =>
-                arr.findIndex((member) => member?.id === r?.id) === i
-            )
-            .map((r) => ({
-              id: r?.id,
-              label: getDisplayValue.careerID?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentCareerIDValue(id);
-            setCurrentCareerIDDisplayValue(label);
-            runValidationTasks("careerID", label);
-          }}
-          onClear={() => {
-            setCurrentCareerIDDisplayValue("");
-          }}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.careerID?.hasError) {
-              runValidationTasks("careerID", value);
-            }
-            setCurrentCareerIDDisplayValue(value);
-            setCurrentCareerIDValue(undefined);
-          }}
-          onBlur={() => runValidationTasks("careerID", currentCareerIDValue)}
-          errorMessage={errors.careerID?.errorMessage}
-          hasError={errors.careerID?.hasError}
-          ref={careerIDRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "careerID")}
-        ></Autocomplete>
-      </ArrayField>
+      ></TextAreaField>
       <TextField
-        label="Label"
-        value={EventAttendes}
+        label="Tipo/Categoria"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="Conferencia"
+        value={category}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
               title,
               description,
-              careerID,
-              EventAttendes: value,
-              EventAttendees,
+              category: value,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
             };
             const result = onChange(modelFields);
-            value = result?.EventAttendes ?? value;
+            value = result?.category ?? value;
           }
-          if (errors.EventAttendes?.hasError) {
-            runValidationTasks("EventAttendes", value);
+          if (errors.category?.hasError) {
+            runValidationTasks("category", value);
           }
-          setEventAttendes(value);
+          setCategory(value);
         }}
-        onBlur={() => runValidationTasks("EventAttendes", EventAttendes)}
-        errorMessage={errors.EventAttendes?.errorMessage}
-        hasError={errors.EventAttendes?.hasError}
-        {...getOverrideProps(overrides, "EventAttendes")}
+        onBlur={() => runValidationTasks("category", category)}
+        errorMessage={errors.category?.errorMessage}
+        hasError={errors.category?.hasError}
+        {...getOverrideProps(overrides, "category")}
+      ></TextField>
+      <TextField
+        label="Lugar donde se celebrará el evento"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="Universidad (in-house)"
+        value={location}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location: value,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
+            };
+            const result = onChange(modelFields);
+            value = result?.location ?? value;
+          }
+          if (errors.location?.hasError) {
+            runValidationTasks("location", value);
+          }
+          setLocation(value);
+        }}
+        onBlur={() => runValidationTasks("location", location)}
+        errorMessage={errors.location?.errorMessage}
+        hasError={errors.location?.hasError}
+        {...getOverrideProps(overrides, "location")}
+      ></TextField>
+      <TextField
+        label="Fecha y hora"
+        isRequired={false}
+        isReadOnly={false}
+        type="datetime-local"
+        value={date && convertToLocal(new Date(date))}
+        onChange={(e) => {
+          let value =
+            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date: value,
+              contactName,
+              contactNumber,
+              termsCondition,
+            };
+            const result = onChange(modelFields);
+            value = result?.date ?? value;
+          }
+          if (errors.date?.hasError) {
+            runValidationTasks("date", value);
+          }
+          setDate(value);
+        }}
+        onBlur={() => runValidationTasks("date", date)}
+        errorMessage={errors.date?.errorMessage}
+        hasError={errors.date?.hasError}
+        {...getOverrideProps(overrides, "date")}
       ></TextField>
       <ArrayField
         onChange={async (items) => {
@@ -541,81 +512,136 @@ export default function EventCreateForm(props) {
             const modelFields = {
               title,
               description,
-              careerID,
-              EventAttendes,
-              EventAttendees: values,
+              category,
+              location,
+              date,
+              contactName: values,
+              contactNumber,
+              termsCondition,
             };
             const result = onChange(modelFields);
-            values = result?.EventAttendees ?? values;
+            values = result?.contactName ?? values;
           }
-          setEventAttendees(values);
-          setCurrentEventAttendeesValue(undefined);
-          setCurrentEventAttendeesDisplayValue("");
+          setContactName(values);
+          setCurrentContactNameValue("");
         }}
-        currentFieldValue={currentEventAttendeesValue}
-        label={"Event attendees"}
-        items={EventAttendees}
-        hasError={errors?.EventAttendees?.hasError}
-        errorMessage={errors?.EventAttendees?.errorMessage}
-        getBadgeText={getDisplayValue.EventAttendees}
-        setFieldValue={(model) => {
-          setCurrentEventAttendeesDisplayValue(
-            model ? getDisplayValue.EventAttendees(model) : ""
-          );
-          setCurrentEventAttendeesValue(model);
-        }}
-        inputFieldRef={EventAttendeesRef}
+        currentFieldValue={currentContactNameValue}
+        label={"Nombre contacto"}
+        items={contactName}
+        hasError={errors?.contactName?.hasError}
+        errorMessage={errors?.contactName?.errorMessage}
+        setFieldValue={setCurrentContactNameValue}
+        inputFieldRef={contactNameRef}
         defaultFieldValue={""}
       >
-        <Autocomplete
-          label="Event attendees"
+        <TextField
+          label="Nombre contacto"
           isRequired={false}
           isReadOnly={false}
-          placeholder="Search EventAttendee"
-          value={currentEventAttendeesDisplayValue}
-          options={eventAttendeeRecords
-            .filter(
-              (r) => !EventAttendeesIdSet.has(getIDValue.EventAttendees?.(r))
-            )
-            .map((r) => ({
-              id: getIDValue.EventAttendees?.(r),
-              label: getDisplayValue.EventAttendees?.(r),
-            }))}
-          onSelect={({ id, label }) => {
-            setCurrentEventAttendeesValue(
-              eventAttendeeRecords.find((r) =>
-                Object.entries(JSON.parse(id)).every(
-                  ([key, value]) => r[key] === value
-                )
-              )
-            );
-            setCurrentEventAttendeesDisplayValue(label);
-            runValidationTasks("EventAttendees", label);
-          }}
-          onClear={() => {
-            setCurrentEventAttendeesDisplayValue("");
-          }}
+          value={currentContactNameValue}
           onChange={(e) => {
             let { value } = e.target;
-            if (errors.EventAttendees?.hasError) {
-              runValidationTasks("EventAttendees", value);
+            if (errors.contactName?.hasError) {
+              runValidationTasks("contactName", value);
             }
-            setCurrentEventAttendeesDisplayValue(value);
-            setCurrentEventAttendeesValue(undefined);
+            setCurrentContactNameValue(value);
           }}
           onBlur={() =>
-            runValidationTasks(
-              "EventAttendees",
-              currentEventAttendeesDisplayValue
-            )
+            runValidationTasks("contactName", currentContactNameValue)
           }
-          errorMessage={errors.EventAttendees?.errorMessage}
-          hasError={errors.EventAttendees?.hasError}
-          ref={EventAttendeesRef}
+          errorMessage={errors.contactName?.errorMessage}
+          hasError={errors.contactName?.hasError}
+          ref={contactNameRef}
           labelHidden={true}
-          {...getOverrideProps(overrides, "EventAttendees")}
-        ></Autocomplete>
+          {...getOverrideProps(overrides, "contactName")}
+        ></TextField>
       </ArrayField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber: values,
+              termsCondition,
+            };
+            const result = onChange(modelFields);
+            values = result?.contactNumber ?? values;
+          }
+          setContactNumber(values);
+          setCurrentContactNumberValue("");
+        }}
+        currentFieldValue={currentContactNumberValue}
+        label={"N\u00FAmero contacto"}
+        items={contactNumber}
+        hasError={errors?.contactNumber?.hasError}
+        errorMessage={errors?.contactNumber?.errorMessage}
+        setFieldValue={setCurrentContactNumberValue}
+        inputFieldRef={contactNumberRef}
+        defaultFieldValue={""}
+      >
+        <TextField
+          label="Número contacto"
+          isRequired={false}
+          isReadOnly={false}
+          type="number"
+          step="any"
+          value={currentContactNumberValue}
+          onChange={(e) => {
+            let value = isNaN(parseFloat(e.target.value))
+              ? e.target.value
+              : parseFloat(e.target.value);
+            if (errors.contactNumber?.hasError) {
+              runValidationTasks("contactNumber", value);
+            }
+            setCurrentContactNumberValue(value);
+          }}
+          onBlur={() =>
+            runValidationTasks("contactNumber", currentContactNumberValue)
+          }
+          errorMessage={errors.contactNumber?.errorMessage}
+          hasError={errors.contactNumber?.hasError}
+          ref={contactNumberRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "contactNumber")}
+        ></TextField>
+      </ArrayField>
+      <TextAreaField
+        label="Términos y condiciones"
+        isRequired={false}
+        isReadOnly={false}
+        placeholder="La siguiente información se visualizará dentro de la aplicación para los usuarios finales"
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.termsCondition ?? value;
+          }
+          if (errors.termsCondition?.hasError) {
+            runValidationTasks("termsCondition", value);
+          }
+          setTermsCondition(value);
+        }}
+        onBlur={() => runValidationTasks("termsCondition", termsCondition)}
+        errorMessage={errors.termsCondition?.errorMessage}
+        hasError={errors.termsCondition?.hasError}
+        {...getOverrideProps(overrides, "termsCondition")}
+      ></TextAreaField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -618,12 +618,11 @@ export default function LandingCreateForm(props) {
           {...getOverrideProps(overrides, "ticketPrice")}
         ></TextField>
       </ArrayField>
-      <TextField
+      <TextAreaField
         label="Información adicional"
         isRequired={false}
         isReadOnly={false}
         placeholder="Ejemplo: política de reembolso"
-        value={extraInfo}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
@@ -649,7 +648,7 @@ export default function LandingCreateForm(props) {
         errorMessage={errors.extraInfo?.errorMessage}
         hasError={errors.extraInfo?.hasError}
         {...getOverrideProps(overrides, "extraInfo")}
-      ></TextField>
+      ></TextAreaField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -17,6 +17,8 @@ import {
   ScrollView,
   SwitchField,
   Text,
+  TextAreaField,
+  TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
 import {
@@ -200,11 +202,17 @@ export default function EventAttendeeCreateForm(props) {
     attendeeID: undefined,
     authorized: false,
     checkIn: false,
+    formAnswers: "",
+    ticket: "",
   };
   const [eventID, setEventID] = React.useState(initialValues.eventID);
   const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
   const [authorized, setAuthorized] = React.useState(initialValues.authorized);
   const [checkIn, setCheckIn] = React.useState(initialValues.checkIn);
+  const [formAnswers, setFormAnswers] = React.useState(
+    initialValues.formAnswers
+  );
+  const [ticket, setTicket] = React.useState(initialValues.ticket);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setEventID(initialValues.eventID);
@@ -215,6 +223,8 @@ export default function EventAttendeeCreateForm(props) {
     setCurrentAttendeeIDDisplayValue("");
     setAuthorized(initialValues.authorized);
     setCheckIn(initialValues.checkIn);
+    setFormAnswers(initialValues.formAnswers);
+    setTicket(initialValues.ticket);
     setErrors({});
   };
   const [currentEventIDDisplayValue, setCurrentEventIDDisplayValue] =
@@ -244,6 +254,8 @@ export default function EventAttendeeCreateForm(props) {
     attendeeID: [{ type: "Required" }],
     authorized: [],
     checkIn: [],
+    formAnswers: [{ type: "JSON" }],
+    ticket: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -275,6 +287,8 @@ export default function EventAttendeeCreateForm(props) {
           attendeeID,
           authorized,
           checkIn,
+          formAnswers,
+          ticket,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -330,6 +344,8 @@ export default function EventAttendeeCreateForm(props) {
               attendeeID,
               authorized,
               checkIn,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.eventID ?? value;
@@ -409,6 +425,8 @@ export default function EventAttendeeCreateForm(props) {
               attendeeID: value,
               authorized,
               checkIn,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.attendeeID ?? value;
@@ -495,6 +513,8 @@ export default function EventAttendeeCreateForm(props) {
               attendeeID,
               authorized: value,
               checkIn,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.authorized ?? value;
@@ -522,6 +542,8 @@ export default function EventAttendeeCreateForm(props) {
               attendeeID,
               authorized,
               checkIn: value,
+              formAnswers,
+              ticket,
             };
             const result = onChange(modelFields);
             value = result?.checkIn ?? value;
@@ -536,6 +558,63 @@ export default function EventAttendeeCreateForm(props) {
         hasError={errors.checkIn?.hasError}
         {...getOverrideProps(overrides, "checkIn")}
       ></SwitchField>
+      <TextAreaField
+        label="Form answers"
+        isRequired={false}
+        isReadOnly={false}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers: value,
+              ticket,
+            };
+            const result = onChange(modelFields);
+            value = result?.formAnswers ?? value;
+          }
+          if (errors.formAnswers?.hasError) {
+            runValidationTasks("formAnswers", value);
+          }
+          setFormAnswers(value);
+        }}
+        onBlur={() => runValidationTasks("formAnswers", formAnswers)}
+        errorMessage={errors.formAnswers?.errorMessage}
+        hasError={errors.formAnswers?.hasError}
+        {...getOverrideProps(overrides, "formAnswers")}
+      ></TextAreaField>
+      <TextField
+        label="Ticket"
+        isRequired={false}
+        isReadOnly={false}
+        value={ticket}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.ticket ?? value;
+          }
+          if (errors.ticket?.hasError) {
+            runValidationTasks("ticket", value);
+          }
+          setTicket(value);
+        }}
+        onBlur={() => runValidationTasks("ticket", ticket)}
+        errorMessage={errors.ticket?.errorMessage}
+        hasError={errors.ticket?.hasError}
+        {...getOverrideProps(overrides, "ticket")}
+      ></TextField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { StorageManagerProps } from "@aws-amplify/ui-react-storage";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 import { Landing } from "../models";
@@ -38,13 +38,13 @@ export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes
 export declare type LandingUpdateFormOverridesProps = {
     LandingUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
-    description?: PrimitiveOverrideProps<TextFieldProps>;
+    description?: PrimitiveOverrideProps<TextAreaFieldProps>;
     mainBanner?: PrimitiveOverrideProps<StorageManagerProps>;
     location?: PrimitiveOverrideProps<TextFieldProps>;
     cost?: PrimitiveOverrideProps<TextFieldProps>;
     ticketTitle?: PrimitiveOverrideProps<TextFieldProps>;
     ticketPrice?: PrimitiveOverrideProps<TextFieldProps>;
-    extraInfo?: PrimitiveOverrideProps<TextFieldProps>;
+    extraInfo?: PrimitiveOverrideProps<TextAreaFieldProps>;
 } & EscapeHatchProps;
 export declare type LandingUpdateFormProps = React.PropsWithChildren<{
     overrides?: LandingUpdateFormOverridesProps | undefined | null;

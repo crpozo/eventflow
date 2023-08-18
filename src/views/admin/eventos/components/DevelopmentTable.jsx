@@ -7,7 +7,6 @@ import {
   useSortBy,
   useTable,
 } from "react-table";
-
 import {
   MdEditCalendar,
   MdAdd,

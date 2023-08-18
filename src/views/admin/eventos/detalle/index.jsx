@@ -58,8 +58,8 @@ const Dashboard = () => {
 
           <EventUpdateForm
             event={event}
-            onSuccess={() => {            
-              navigate('/admin/eventos');
+            onSuccess={() => {    
+              alert("Evento actualizado con éxito")        
             }}
             onCancel={() => {
               navigate('/admin/eventos');

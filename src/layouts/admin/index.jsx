@@ -10,7 +10,7 @@ export default function Admin(props) {
   const [open, setOpen] = React.useState(true);
   const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
   const [activePath, setActivePath] = React.useState('');
-  const [eventId, setEventId] = React.useState('');
+  const [event, setEvent] = React.useState('');
   const routeResult = useRoutes(routes);
 
   React.useEffect(() => {
@@ -18,14 +18,6 @@ export default function Admin(props) {
       window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
     );
   }, []);
-
-  React.useEffect(() => {
-    if(localStorage.getItem('EVENTFLOW.event')){
-      const eventId = JSON.parse(localStorage.getItem('EVENTFLOW.event')).id;
-      setEventId(eventId);
-    }
-    
-  }, [routeResult]);
 
   // Show secondary Sidebar 
   React.useEffect(() => {
@@ -81,7 +73,7 @@ export default function Admin(props) {
   document.documentElement.dir = "ltr";
   return (
     <div className="flex h-full w-full">
-      <Sidebar open={open} onClose={() => setOpen(false)} eventId={eventId} activePath={activePath} />
+      <Sidebar open={open} onClose={() => setOpen(false)} eventModel={event} activePath={activePath} />
       {/* Navbar & Main Content */}
       <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
         {/* Main Content */}

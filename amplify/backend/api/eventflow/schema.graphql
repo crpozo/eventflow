@@ -4,6 +4,8 @@ type EventAttendee @model @auth(rules: [{allow: public}]) {
   attendeeID: ID! @index(name: "byAttendee")
   authorized: Boolean
   checkIn: Boolean
+  formAnswers: AWSJSON
+  ticket: String
 }
 
 type Form @model @auth(rules: [{allow: public}]) {
@@ -42,6 +44,12 @@ type Event @model @auth(rules: [{allow: public}]) {
   careerID: ID! @index(name: "byCareer")
   Form: Form @hasOne
   EventAttendees: [EventAttendee] @hasMany(indexName: "byEvent", fields: ["id"])
+  category: String
+  location: String
+  date: AWSDateTime
+  contactName: [String]
+  contactNumber: [Float]
+  termsCondition: String
 }
 
 type Career @model @auth(rules: [{allow: public}]) {
@@ -69,5 +77,4 @@ type Campus @model @auth(rules: [{allow: public}]) {
   description: String
   phone: AWSPhone
   email: AWSEmail
-}
- 
+} 

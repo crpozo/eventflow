@@ -5,9 +5,9 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
-import { Event, EventAttendee } from "../models";
+import { Event } from "../models";
 export declare type ValidationResponse = {
     hasError: boolean;
     errorMessage?: string;
@@ -16,25 +16,34 @@ export declare type ValidationFunction<T> = (value: T, validationResponse: Valid
 export declare type EventUpdateFormInputValues = {
     title?: string;
     description?: string;
-    careerID?: string;
-    EventAttendes?: string;
-    EventAttendees?: EventAttendee[];
+    category?: string;
+    location?: string;
+    date?: string;
+    contactName?: string[];
+    contactNumber?: number[];
+    termsCondition?: string;
 };
 export declare type EventUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
     description?: ValidationFunction<string>;
-    careerID?: ValidationFunction<string>;
-    EventAttendes?: ValidationFunction<string>;
-    EventAttendees?: ValidationFunction<EventAttendee>;
+    category?: ValidationFunction<string>;
+    location?: ValidationFunction<string>;
+    date?: ValidationFunction<string>;
+    contactName?: ValidationFunction<string>;
+    contactNumber?: ValidationFunction<number>;
+    termsCondition?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventUpdateFormOverridesProps = {
     EventUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
     description?: PrimitiveOverrideProps<TextFieldProps>;
-    careerID?: PrimitiveOverrideProps<AutocompleteProps>;
-    EventAttendes?: PrimitiveOverrideProps<TextFieldProps>;
-    EventAttendees?: PrimitiveOverrideProps<AutocompleteProps>;
+    category?: PrimitiveOverrideProps<TextFieldProps>;
+    location?: PrimitiveOverrideProps<TextFieldProps>;
+    date?: PrimitiveOverrideProps<TextFieldProps>;
+    contactName?: PrimitiveOverrideProps<TextFieldProps>;
+    contactNumber?: PrimitiveOverrideProps<TextFieldProps>;
+    termsCondition?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type EventUpdateFormProps = React.PropsWithChildren<{
     overrides?: EventUpdateFormOverridesProps | undefined | null;
