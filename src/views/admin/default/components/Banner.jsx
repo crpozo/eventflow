@@ -5,7 +5,8 @@ import {
 const Banner1 = () => {
   return (
     <div
-      className="flex w-full relative items-center justify-center flex-col rounded-[20px] bg-cover px-[30px] py-[30px] mb-[32px] md:px-[34px] md:py-[54px]"
+    
+      className="flex w-full relative items-center justify-center flex-col rounded-[20px] bg-cover px-[30px] py-[30px] mb-[32px] md:px-[34px] md:py-[70px]"
       style={{ background: `#FFF000` }}
     >
       <div className="w-full">
@@ -16,9 +17,9 @@ const Banner1 = () => {
           <path d="M106.813 184.32L182.553 105.916C206.413 81.216 205.813 41.7716 181.212 17.8147C156.611 -6.14219 117.325 -5.53962 93.4646 19.1606L17.7252 97.5649C-6.13549 122.265 -5.53535 161.709 19.0656 185.666C43.6666 209.623 82.9525 209.021 106.813 184.32Z" fill="#FFB4B4"/>
         </svg>
       </div>
-      <span className="w-full flex items-center gap-1 mt-2">
+      {/* <span className="w-full flex items-center gap-1 mt-2">
         Campus {<GoChevronRight className="h-5 w-5" /> } Área {<GoChevronRight className="h-5 w-5" /> } Subárea
-      </span>
+      </span> */}
     </div>
   );
 };

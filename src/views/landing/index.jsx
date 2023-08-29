@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "assets/img/usfq/logo.png";
+import logo from "assets/img/usfq/logo.svg";
 import { useParams, Link } from "react-router-dom";
 import Registro from "./registro/index"
 import { DataStore } from "aws-amplify";
@@ -77,7 +77,7 @@ export default function SignIn() {
     <>
       <div className="w-full h-[140px] bg-usfqPrimary flex">
         <div className="container flex justify-between items-center">  
-          <img src={logo} />
+          <img src={logo} className="w-[120px]"/>
           <Link to="https://www.usfq.edu.ec/es"  className="flex items-center gap-2 hover:no-underline hover:text-red-500" target="_blank" rel="noopener noreferrer">  
             Ir a página oficial USFQ  <FiExternalLink className="h-5 w-5" />
           </Link>

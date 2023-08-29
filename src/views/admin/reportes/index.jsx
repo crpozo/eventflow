@@ -80,8 +80,8 @@ const Dashboard = () => {
       trigger: 'item',
     },
     legend: {
-      orient: 'vertical',
-      left: 'left',
+      orient: 'horizontal',
+      top: 'bottom',
       textStyle: {
         fontSize: 14
       },
@@ -132,8 +132,8 @@ const Dashboard = () => {
       trigger: 'item',
     },
     legend: {
-      orient: 'vertical',
-      left: 'left',
+      orient: 'horizontal',
+      top: 'bottom',
       textStyle: {
         fontSize: 14
       },
@@ -184,8 +184,8 @@ const Dashboard = () => {
       trigger: 'item',
     },
     legend: {
-      orient: 'vertical',
-      left: 'left',
+      orient: 'horizontal',
+      top: 'bottom',
       textStyle: {
         fontSize: 14
       },
@@ -522,7 +522,7 @@ const Dashboard = () => {
       <div className="mt-5 grid grid-cols-1 gap-5">
 
         <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <PieChartApache option={optionTipo} height="500px"/>
+          <PieChartApache option={optionTipo} height="450px"/>
           <PieChartApache option={optionEdad} height="450px"/>
         </div>
 
