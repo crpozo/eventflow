@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, SwitchFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { StorageManagerProps } from "@aws-amplify/ui-react-storage";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 import { Landing } from "../models";
@@ -23,6 +23,7 @@ export declare type LandingUpdateFormInputValues = {
     ticketTitle?: string[];
     ticketPrice?: number[];
     extraInfo?: string;
+    active?: boolean;
 };
 export declare type LandingUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -33,6 +34,7 @@ export declare type LandingUpdateFormValidationValues = {
     ticketTitle?: ValidationFunction<string>;
     ticketPrice?: ValidationFunction<number>;
     extraInfo?: ValidationFunction<string>;
+    active?: ValidationFunction<boolean>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type LandingUpdateFormOverridesProps = {
@@ -45,6 +47,7 @@ export declare type LandingUpdateFormOverridesProps = {
     ticketTitle?: PrimitiveOverrideProps<TextFieldProps>;
     ticketPrice?: PrimitiveOverrideProps<TextFieldProps>;
     extraInfo?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    active?: PrimitiveOverrideProps<SwitchFieldProps>;
 } & EscapeHatchProps;
 export declare type LandingUpdateFormProps = React.PropsWithChildren<{
     overrides?: LandingUpdateFormOverridesProps | undefined | null;

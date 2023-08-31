@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import Registro from "./registro/index"
 import { DataStore } from "aws-amplify";
 import { StorageImage } from '@aws-amplify/ui-react-storage';
+import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Landing } from "models";
 import {
   FiExternalLink,
@@ -14,6 +15,7 @@ import {
 
 export default function SignIn() {
 
+  const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const { id } = useParams();
   const [landing, setLanding] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -23,32 +25,26 @@ export default function SignIn() {
 
   React.useEffect(() => {
 
-    console.log(id)
-    
-    
-    // DataStore.query(Event, (e) => e.id.eq(eventId)).then( results => {
-    //   setEvent(results[0]);
-    //   console.log("Event: ", results)
-    // });
-
-    DataStore.query(Landing, (l) => l.landingEventId.eq(id)).then( results => {
-      console.log(landing.length)
-      if (results.length > 0) {
-        setLanding(results[0]);
-        console.log("Landing: ", results)
-        const tickets = results[0].ticketTitle.map( (title, index) => {
-          const cost = results[0].ticketPrice[index] !== undefined ? `$${results[0].ticketPrice[index].toFixed(2)}` : 'Vacio';
+    const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id)).subscribe((results) => {
+      if (results.items.length > 0) {
+        setLanding(results.items[0]);
+        console.log("Landing: ", results.items)
+        const tickets = results.items[0].ticketTitle.map( (title, index) => {
+          const cost = results.items[0].ticketPrice[index] !== undefined ? `$${results.items[0].ticketPrice[index].toFixed(2)}` : 'Vacio';
           if(index == 0) setSelectedCost(cost)
           return {
             title,
             cost
           }
-        })
-        
+        })  
         setTickets(tickets)
         setLoading(false); 
       } 
     });
+
+    return () => {
+      sub.unsubscribe();
+    };
 
   }, []);
 
@@ -62,15 +58,24 @@ export default function SignIn() {
     );
   }
 
-  if(landing.length === 0 ){
+  if (landing && !landing.active && authStatus == 'unauthenticated') {
     return (
-    <div className="flex h-screen">
-      <div className="m-auto">
-        <h1 className="text-xl">No existe una landing page con el id: {id}</h1>
+      <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-lightPrimary flex flex-col items-center justify-center">
+        <h2 className="text-center text-black text-xl font-semibold mb-2">El evento no se encuentra activo...</h2>
+        {/* <p className="w-1/3 text-center text-black">Por favor comunicarse con el administrador</p> */}
       </div>
-    </div>
     );
   }
+
+  // if(landing.length === 0 ){
+  //   return (
+  //   <div className="flex h-screen">
+  //     <div className="m-auto">
+  //       <h1 className="text-xl">No existe una landing page con el id: {id}</h1>
+  //     </div>
+  //   </div>
+  //   );
+  // }
 
   return (
     
@@ -130,7 +135,7 @@ export default function SignIn() {
               <div className="w-full max-w-[450px] flex flex-col justify-center border border-gray-500 rounded-md p-4 mx-auto">
                 <div className="w-full flex justify-between items-center gap-5 mb-3">
                   <select
-                      className="w-full max-w-[300px] py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-md shadow-sm outline-none appearance-none text-ellipsis	focus:border-indigo-600 select-arrow"
+                      className="w-full max-w-[280px] py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-md shadow-sm outline-none appearance-none text-ellipsis	focus:border-indigo-600 select-arrow"
                       onChange={(e) => {
                         setSelectedCost(e.target.value);
                       }}

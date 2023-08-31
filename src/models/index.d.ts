@@ -91,6 +91,7 @@ type EagerLanding = {
   readonly ticketTitle?: (string | null)[] | null;
   readonly ticketPrice?: (number | null)[] | null;
   readonly extraInfo?: string | null;
+  readonly active?: boolean | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly landingEventId?: string | null;
@@ -111,6 +112,7 @@ type LazyLanding = {
   readonly ticketTitle?: (string | null)[] | null;
   readonly ticketPrice?: (number | null)[] | null;
   readonly extraInfo?: string | null;
+  readonly active?: boolean | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly landingEventId?: string | null;

@@ -25,6 +25,7 @@ type Landing @model @auth(rules: [{allow: public}]) {
   ticketTitle: [String]
   ticketPrice: [Float]
   extraInfo: String
+  active: Boolean
 }
 
 type Attendee @model @auth(rules: [{allow: public}]) {

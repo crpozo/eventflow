@@ -26,10 +26,14 @@ const Dashboard = () => {
       navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos"} });
     } else {
 
-      DataStore.query(Event, (e) => e.careerID.eq(subAreaId)).then( results => {
-        setEvents(results);
-        console.log("Events: ",results)
+      const sub = DataStore.observeQuery(Event, (e) => e.careerID.eq(subAreaId)).subscribe((results) => {
+        setEvents(results.items);
+        console.log("Events: ",results.items)
       });
+  
+      return () => {
+        sub.unsubscribe();
+      };
 
     }
   }, [navigate]);

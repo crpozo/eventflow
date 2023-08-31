@@ -14,6 +14,7 @@ import {
   Grid,
   Icon,
   ScrollView,
+  SwitchField,
   Text,
   TextAreaField,
   TextField,
@@ -203,6 +204,7 @@ export default function LandingCreateForm(props) {
     ticketTitle: [],
     ticketPrice: [],
     extraInfo: "",
+    active: false,
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -218,6 +220,7 @@ export default function LandingCreateForm(props) {
     initialValues.ticketPrice
   );
   const [extraInfo, setExtraInfo] = React.useState(initialValues.extraInfo);
+  const [active, setActive] = React.useState(initialValues.active);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
@@ -230,6 +233,7 @@ export default function LandingCreateForm(props) {
     setTicketPrice(initialValues.ticketPrice);
     setCurrentTicketPriceValue("");
     setExtraInfo(initialValues.extraInfo);
+    setActive(initialValues.active);
     setErrors({});
   };
   const [currentTicketTitleValue, setCurrentTicketTitleValue] =
@@ -247,6 +251,7 @@ export default function LandingCreateForm(props) {
     ticketTitle: [],
     ticketPrice: [],
     extraInfo: [],
+    active: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -282,6 +287,7 @@ export default function LandingCreateForm(props) {
           ticketTitle,
           ticketPrice,
           extraInfo,
+          active,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -344,6 +350,7 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -375,6 +382,7 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -410,6 +418,7 @@ export default function LandingCreateForm(props) {
                   ticketTitle,
                   ticketPrice,
                   extraInfo,
+                  active,
                 };
                 const result = onChange(modelFields);
                 value = result?.mainBanner ?? value;
@@ -430,6 +439,7 @@ export default function LandingCreateForm(props) {
                   ticketTitle,
                   ticketPrice,
                   extraInfo,
+                  active,
                 };
                 const result = onChange(modelFields);
                 value = result?.mainBanner ?? value;
@@ -464,6 +474,7 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -496,6 +507,7 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.cost ?? value;
@@ -523,6 +535,7 @@ export default function LandingCreateForm(props) {
               ticketTitle: values,
               ticketPrice,
               extraInfo,
+              active,
             };
             const result = onChange(modelFields);
             values = result?.ticketTitle ?? values;
@@ -575,6 +588,7 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice: values,
               extraInfo,
+              active,
             };
             const result = onChange(modelFields);
             values = result?.ticketPrice ?? values;
@@ -635,6 +649,7 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo: value,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.extraInfo ?? value;
@@ -649,6 +664,38 @@ export default function LandingCreateForm(props) {
         hasError={errors.extraInfo?.hasError}
         {...getOverrideProps(overrides, "extraInfo")}
       ></TextAreaField>
+      <SwitchField
+        label="Active"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={active}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              mainBanner,
+              location,
+              cost,
+              ticketTitle,
+              ticketPrice,
+              extraInfo,
+              active: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.active ?? value;
+          }
+          if (errors.active?.hasError) {
+            runValidationTasks("active", value);
+          }
+          setActive(value);
+        }}
+        onBlur={() => runValidationTasks("active", active)}
+        errorMessage={errors.active?.errorMessage}
+        hasError={errors.active?.hasError}
+        {...getOverrideProps(overrides, "active")}
+      ></SwitchField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

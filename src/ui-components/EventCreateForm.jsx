@@ -14,6 +14,7 @@ import {
   Grid,
   Icon,
   ScrollView,
+  SwitchField,
   Text,
   TextAreaField,
   TextField,
@@ -202,6 +203,7 @@ export default function EventCreateForm(props) {
     contactName: [],
     contactNumber: [],
     termsCondition: "",
+    active: false,
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -219,6 +221,7 @@ export default function EventCreateForm(props) {
   const [termsCondition, setTermsCondition] = React.useState(
     initialValues.termsCondition
   );
+  const [active, setActive] = React.useState(initialValues.active);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
@@ -231,6 +234,7 @@ export default function EventCreateForm(props) {
     setContactNumber(initialValues.contactNumber);
     setCurrentContactNumberValue("");
     setTermsCondition(initialValues.termsCondition);
+    setActive(initialValues.active);
     setErrors({});
   };
   const [currentContactNameValue, setCurrentContactNameValue] =
@@ -248,6 +252,7 @@ export default function EventCreateForm(props) {
     contactName: [],
     contactNumber: [],
     termsCondition: [],
+    active: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -300,6 +305,7 @@ export default function EventCreateForm(props) {
           contactName,
           contactNumber,
           termsCondition,
+          active,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -329,7 +335,17 @@ export default function EventCreateForm(props) {
               modelFields[key] = undefined;
             }
           });
-          await DataStore.save(new Event(modelFields));
+          const modelFieldsToSave = {
+            title: modelFields.title,
+            description: modelFields.description,
+            category: modelFields.category,
+            location: modelFields.location,
+            date: modelFields.date,
+            contactName: modelFields.contactName,
+            contactNumber: modelFields.contactNumber,
+            termsCondition: modelFields.termsCondition,
+          };
+          await DataStore.save(new Event(modelFieldsToSave));
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -363,6 +379,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -394,6 +411,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -426,6 +444,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.category ?? value;
@@ -458,6 +477,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -491,6 +511,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.date ?? value;
@@ -518,6 +539,7 @@ export default function EventCreateForm(props) {
               contactName: values,
               contactNumber,
               termsCondition,
+              active,
             };
             const result = onChange(modelFields);
             values = result?.contactName ?? values;
@@ -569,6 +591,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber: values,
               termsCondition,
+              active,
             };
             const result = onChange(modelFields);
             values = result?.contactNumber ?? values;
@@ -628,6 +651,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition: value,
+              active,
             };
             const result = onChange(modelFields);
             value = result?.termsCondition ?? value;
@@ -642,6 +666,37 @@ export default function EventCreateForm(props) {
         hasError={errors.termsCondition?.hasError}
         {...getOverrideProps(overrides, "termsCondition")}
       ></TextAreaField>
+      <SwitchField
+        label="Label"
+        defaultChecked={false}
+        isChecked={active}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
+              active: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.active ?? value;
+          }
+          if (errors.active?.hasError) {
+            runValidationTasks("active", value);
+          }
+          setActive(value);
+        }}
+        onBlur={() => runValidationTasks("active", active)}
+        errorMessage={errors.active?.errorMessage}
+        hasError={errors.active?.hasError}
+        {...getOverrideProps(overrides, "active")}
+      ></SwitchField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

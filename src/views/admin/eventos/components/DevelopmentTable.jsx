@@ -97,7 +97,7 @@ const DevelopmentTable = (props) => {
                         </p>
                       );
                     }
-                    else if (cell.column.Header === "") {
+                    else if (cell.column.Header === "EDITAR") {
                       data = (
                         <MdEditCalendar onClick={() => {
                           navigate(`${cell.value}/detalle/`); 

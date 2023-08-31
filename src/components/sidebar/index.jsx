@@ -4,6 +4,8 @@ import { HiX } from "react-icons/hi";
 import Links from "./components/Links";
 import { Link, useParams } from "react-router-dom";
 import routes from "routes.js";
+import { Landing } from "models"
+import { DataStore } from "aws-amplify";
 import {
   MdChevronLeft
 } from "react-icons/md";
@@ -22,11 +24,19 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
   React.useEffect(() => {
     const event = localStorage.getItem('EVENTFLOW.event');
-    console.log("hola: ",event)
     if(event !== null && event !== undefined){
       setEvent(JSON.parse(event));
     }
   }, [activePath]);
+
+  async function updateLanding(state) {
+    const original = await DataStore.query(Landing, (l) => l.landingEventId.eq(event.id));
+    const updatedLanding = await DataStore.save(
+      Landing.copyOf(original[0], updated => {
+        updated.active = state;
+      })
+    );
+  }
 
   return (
     <>
@@ -76,7 +86,13 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
               <GoDotFill className="h-5 w-5 fill-green-500" /> */}
               <select
                   className="text-sm w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-3xl shadow-sm outline-none appearance-none text-ellipsis max-w-[110px] mb-4 focus:border-indigo-600 select-arrow"
-                  onChange={(e) => console.log(e.target.value)}
+                  onChange={(e) => {
+                    if(e.target.value == 'public'){
+                      updateLanding(true)
+                    } else if(e.target.value == 'hidden'){
+                      updateLanding(false)
+                    }
+                  }}
                 >
                 <option value="public">
                   Público

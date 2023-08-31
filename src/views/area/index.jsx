@@ -11,15 +11,21 @@ import {
 
 const Dashboard = () => {
 
-  const [area, setArea] = React.useState([]);
+  const [area, setArea] = React.useState(null);
   const navigate = useNavigate();
   const campusID = JSON.parse(localStorage.getItem("EVENTFLOW.campus")).id
 
   React.useEffect(() => {
-    DataStore.query(Area, (a) => a.campusID.eq(campusID)).then( results => {
-      setArea(results);
-      console.log("Area: ",results)
+
+    const sub = DataStore.observeQuery(Area, (a) => a.campusID.eq(campusID)).subscribe((results) => {
+      setArea(results.items);
+      console.log("Area: ", results.items)
     });
+
+    return () => {
+      sub.unsubscribe();
+    };
+
   }, [campusID]);
 
   if(!area){

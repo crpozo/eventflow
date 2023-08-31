@@ -20,7 +20,6 @@ function App() {
   const location = useLocation();
   const isLandingRoute = location.pathname.includes('/landing');
 
-
   // await DataStore.clear();
   // If your app has authentication implemented, it is recommended to call DataStore.clear() on sign-in/sign-out to remove any user-specific data. This method is often important to use for shared device scenarios or where you need to purge the local on-device storage of records for security/privacy concerns.
 

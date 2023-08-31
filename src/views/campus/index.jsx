@@ -10,13 +10,19 @@ import {
 
 const Dashboard = () => {
 
-  const [campus, setCampus] = React.useState([]);
+  const [campus, setCampus] = React.useState(null);
 
   React.useEffect(() => {
-    DataStore.query(Campus).then( (results) => {
-      setCampus(results);
-      console.log("Campus: ",results)
+
+    const sub = DataStore.observeQuery(Campus).subscribe((results) => {
+      setCampus(results.items);
+      console.log("Campus: ",results.items)
     });
+
+    return () => {
+      sub.unsubscribe();
+    };
+
   }, []);
 
   if(!campus){
@@ -61,7 +67,7 @@ const Dashboard = () => {
             ))}
           </div>
          :
-         <p>No existen campus en la base de datos...</p>
+         <p>Cargando Campus...</p>
         }
 
       </div>

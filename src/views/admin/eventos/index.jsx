@@ -37,7 +37,7 @@ const Marketplace = () => {
             accessor: "create_date",
           },
           {
-            Header: "",
+            Header: "EDITAR",
             accessor: "action",
           },
         ];

@@ -16,11 +16,16 @@ const Dashboard = () => {
   const areaID = JSON.parse(localStorage.getItem("EVENTFLOW.area")).id;
 
   React.useEffect(() => {
-    // AWS amplify data 
-    DataStore.query(Career, (a) => a.areaID.eq(areaID)).then( results => {
-      setSubArea(results);
-      console.log("SubArea: ",results)
+
+    const sub = DataStore.observeQuery(Career, (a) => a.areaID.eq(areaID)).subscribe((results) => {
+      setSubArea(results.items);
+      console.log("SubArea: ",results.items)
     });
+
+    return () => {
+      sub.unsubscribe();
+    };
+
   }, [areaID]);
 
   if(!subArea){
