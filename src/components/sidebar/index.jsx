@@ -7,6 +7,7 @@ import routes from "routes.js";
 import { Landing } from "models"
 import { DataStore } from "aws-amplify";
 import {
+  MdAirlineSeatIndividualSuite,
   MdChevronLeft
 } from "react-icons/md";
 import {
@@ -20,6 +21,8 @@ import {
 const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
   const [event, setEvent] = React.useState(null);
+  const [landing, setLanding] = React.useState(null);
+  const [isActive, setIsActive] = React.useState(false);
   const { id } = useParams();
 
   React.useEffect(() => {
@@ -27,12 +30,28 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
     if(event !== null && event !== undefined){
       setEvent(JSON.parse(event));
     }
+
   }, [activePath]);
 
+  React.useEffect( () => {
+
+    if(event){
+      const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(event.id)).subscribe(({ items }) => {
+        console.log("Sidebar Landing: ", items[0])
+        setLanding(items[0])
+        setIsActive(items[0].active)
+      });
+  
+      return () => {
+        sub.unsubscribe();
+      };
+    }
+
+  }, [event])
+
   async function updateLanding(state) {
-    const original = await DataStore.query(Landing, (l) => l.landingEventId.eq(event.id));
     const updatedLanding = await DataStore.save(
-      Landing.copyOf(original[0], updated => {
+      Landing.copyOf(landing, updated => {
         updated.active = state;
       })
     );
@@ -93,6 +112,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                       updateLanding(false)
                     }
                   }}
+                  value={isActive ? "public" : "hidden"}
                 >
                 <option value="public">
                   Público

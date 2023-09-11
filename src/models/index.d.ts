@@ -18,6 +18,8 @@ type EagerEventAttendee = {
   readonly checkIn?: boolean | null;
   readonly formAnswers?: string | null;
   readonly ticket?: string | null;
+  readonly email?: string | null;
+  readonly allowContact?: boolean | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -34,6 +36,8 @@ type LazyEventAttendee = {
   readonly checkIn?: boolean | null;
   readonly formAnswers?: string | null;
   readonly ticket?: string | null;
+  readonly email?: string | null;
+  readonly allowContact?: boolean | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }

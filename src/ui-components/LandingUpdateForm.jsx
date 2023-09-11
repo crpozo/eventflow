@@ -37,6 +37,7 @@ function ArrayField({
   defaultFieldValue,
   lengthLimit,
   getBadgeText,
+  runValidationTasks,
   errorMessage,
 }) {
   const labelElement = <Text>{label}</Text>;
@@ -60,6 +61,7 @@ function ArrayField({
     setSelectedBadgeIndex(undefined);
   };
   const addItem = async () => {
+    const { hasError } = runValidationTasks();
     if (
       currentFieldValue !== undefined &&
       currentFieldValue !== null &&
@@ -169,12 +171,7 @@ function ArrayField({
               }}
             ></Button>
           )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
+          <Button size="small" variation="link" onClick={addItem}>
             {selectedBadgeIndex !== undefined ? "Save" : "Add"}
           </Button>
         </Flex>
@@ -327,8 +324,8 @@ export default function LandingUpdateForm(props) {
         }
         try {
           Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() === "") {
-              modelFields[key] = undefined;
+            if (typeof value === "string" && value === "") {
+              modelFields[key] = null;
             }
           });
           await DataStore.save(
@@ -563,6 +560,9 @@ export default function LandingUpdateForm(props) {
         label={"Creaci\u00F3n tickets"}
         items={ticketTitle}
         hasError={errors?.ticketTitle?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("ticketTitle", currentTicketTitleValue)
+        }
         errorMessage={errors?.ticketTitle?.errorMessage}
         setFieldValue={setCurrentTicketTitleValue}
         inputFieldRef={ticketTitleRef}
@@ -615,6 +615,9 @@ export default function LandingUpdateForm(props) {
         label={"Creaci\u00F3n precios"}
         items={ticketPrice}
         hasError={errors?.ticketPrice?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("ticketPrice", currentTicketPriceValue)
+        }
         errorMessage={errors?.ticketPrice?.errorMessage}
         setFieldValue={setCurrentTicketPriceValue}
         inputFieldRef={ticketPriceRef}

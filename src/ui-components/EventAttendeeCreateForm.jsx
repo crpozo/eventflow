@@ -40,6 +40,7 @@ function ArrayField({
   defaultFieldValue,
   lengthLimit,
   getBadgeText,
+  runValidationTasks,
   errorMessage,
 }) {
   const labelElement = <Text>{label}</Text>;
@@ -63,6 +64,7 @@ function ArrayField({
     setSelectedBadgeIndex(undefined);
   };
   const addItem = async () => {
+    const { hasError } = runValidationTasks();
     if (
       currentFieldValue !== undefined &&
       currentFieldValue !== null &&
@@ -172,12 +174,7 @@ function ArrayField({
               }}
             ></Button>
           )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
+          <Button size="small" variation="link" onClick={addItem}>
             {selectedBadgeIndex !== undefined ? "Save" : "Add"}
           </Button>
         </Flex>
@@ -204,6 +201,8 @@ export default function EventAttendeeCreateForm(props) {
     checkIn: false,
     formAnswers: "",
     ticket: "",
+    email: "",
+    allowContact: false,
   };
   const [eventID, setEventID] = React.useState(initialValues.eventID);
   const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
@@ -213,6 +212,10 @@ export default function EventAttendeeCreateForm(props) {
     initialValues.formAnswers
   );
   const [ticket, setTicket] = React.useState(initialValues.ticket);
+  const [email, setEmail] = React.useState(initialValues.email);
+  const [allowContact, setAllowContact] = React.useState(
+    initialValues.allowContact
+  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setEventID(initialValues.eventID);
@@ -225,6 +228,8 @@ export default function EventAttendeeCreateForm(props) {
     setCheckIn(initialValues.checkIn);
     setFormAnswers(initialValues.formAnswers);
     setTicket(initialValues.ticket);
+    setEmail(initialValues.email);
+    setAllowContact(initialValues.allowContact);
     setErrors({});
   };
   const [currentEventIDDisplayValue, setCurrentEventIDDisplayValue] =
@@ -256,6 +261,8 @@ export default function EventAttendeeCreateForm(props) {
     checkIn: [],
     formAnswers: [{ type: "JSON" }],
     ticket: [],
+    email: [],
+    allowContact: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -289,6 +296,8 @@ export default function EventAttendeeCreateForm(props) {
           checkIn,
           formAnswers,
           ticket,
+          email,
+          allowContact,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -314,8 +323,8 @@ export default function EventAttendeeCreateForm(props) {
         }
         try {
           Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() === "") {
-              modelFields[key] = undefined;
+            if (typeof value === "string" && value === "") {
+              modelFields[key] = null;
             }
           });
           await DataStore.save(new EventAttendee(modelFields));
@@ -346,6 +355,8 @@ export default function EventAttendeeCreateForm(props) {
               checkIn,
               formAnswers,
               ticket,
+              email,
+              allowContact,
             };
             const result = onChange(modelFields);
             value = result?.eventID ?? value;
@@ -357,6 +368,9 @@ export default function EventAttendeeCreateForm(props) {
         label={"Event id"}
         items={eventID ? [eventID] : []}
         hasError={errors?.eventID?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("eventID", currentEventIDValue)
+        }
         errorMessage={errors?.eventID?.errorMessage}
         getBadgeText={(value) =>
           value
@@ -427,6 +441,8 @@ export default function EventAttendeeCreateForm(props) {
               checkIn,
               formAnswers,
               ticket,
+              email,
+              allowContact,
             };
             const result = onChange(modelFields);
             value = result?.attendeeID ?? value;
@@ -438,6 +454,9 @@ export default function EventAttendeeCreateForm(props) {
         label={"Attendee id"}
         items={attendeeID ? [attendeeID] : []}
         hasError={errors?.attendeeID?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("attendeeID", currentAttendeeIDValue)
+        }
         errorMessage={errors?.attendeeID?.errorMessage}
         getBadgeText={(value) =>
           value
@@ -515,6 +534,8 @@ export default function EventAttendeeCreateForm(props) {
               checkIn,
               formAnswers,
               ticket,
+              email,
+              allowContact,
             };
             const result = onChange(modelFields);
             value = result?.authorized ?? value;
@@ -544,6 +565,8 @@ export default function EventAttendeeCreateForm(props) {
               checkIn: value,
               formAnswers,
               ticket,
+              email,
+              allowContact,
             };
             const result = onChange(modelFields);
             value = result?.checkIn ?? value;
@@ -572,6 +595,8 @@ export default function EventAttendeeCreateForm(props) {
               checkIn,
               formAnswers: value,
               ticket,
+              email,
+              allowContact,
             };
             const result = onChange(modelFields);
             value = result?.formAnswers ?? value;
@@ -601,6 +626,8 @@ export default function EventAttendeeCreateForm(props) {
               checkIn,
               formAnswers,
               ticket: value,
+              email,
+              allowContact,
             };
             const result = onChange(modelFields);
             value = result?.ticket ?? value;
@@ -615,6 +642,68 @@ export default function EventAttendeeCreateForm(props) {
         hasError={errors.ticket?.hasError}
         {...getOverrideProps(overrides, "ticket")}
       ></TextField>
+      <TextField
+        label="Email"
+        isRequired={false}
+        isReadOnly={false}
+        value={email}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket,
+              email: value,
+              allowContact,
+            };
+            const result = onChange(modelFields);
+            value = result?.email ?? value;
+          }
+          if (errors.email?.hasError) {
+            runValidationTasks("email", value);
+          }
+          setEmail(value);
+        }}
+        onBlur={() => runValidationTasks("email", email)}
+        errorMessage={errors.email?.errorMessage}
+        hasError={errors.email?.hasError}
+        {...getOverrideProps(overrides, "email")}
+      ></TextField>
+      <SwitchField
+        label="Allow contact"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={allowContact}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket,
+              email,
+              allowContact: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.allowContact ?? value;
+          }
+          if (errors.allowContact?.hasError) {
+            runValidationTasks("allowContact", value);
+          }
+          setAllowContact(value);
+        }}
+        onBlur={() => runValidationTasks("allowContact", allowContact)}
+        errorMessage={errors.allowContact?.errorMessage}
+        hasError={errors.allowContact?.hasError}
+        {...getOverrideProps(overrides, "allowContact")}
+      ></SwitchField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

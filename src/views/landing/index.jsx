@@ -32,7 +32,7 @@ export default function SignIn() {
         const tickets = results.items[0].ticketTitle.map( (title, index) => {
           const cost = results.items[0].ticketPrice[index] !== undefined ? `$${results.items[0].ticketPrice[index].toFixed(2)}` : 'Vacio';
           if(index == 0) setSelectedCost(cost)
-          return {
+          return {
             title,
             cost
           }
@@ -48,7 +48,7 @@ export default function SignIn() {
 
   }, []);
 
-  if (loading && landing.length !== 0) {
+  if (loading && landing.length === 0) {
     return (
       <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-lightPrimary opacity-75 flex flex-col items-center justify-center">
         <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
@@ -77,6 +77,10 @@ export default function SignIn() {
   //   );
   // }
 
+  const handleImageLoad = () => {
+    console.log("on load")
+  };
+
   return (
     
     <>
@@ -96,6 +100,7 @@ export default function SignIn() {
           imgKey={landing.mainBanner} 
           accessLevel="public"
           onStorageGetError={(error) => console.error(error)}
+          onLoad={handleImageLoad}
         />
       </div>
 

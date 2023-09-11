@@ -19,6 +19,8 @@ export declare type EventAttendeeCreateFormInputValues = {
     checkIn?: boolean;
     formAnswers?: string;
     ticket?: string;
+    email?: string;
+    allowContact?: boolean;
 };
 export declare type EventAttendeeCreateFormValidationValues = {
     eventID?: ValidationFunction<string>;
@@ -27,6 +29,8 @@ export declare type EventAttendeeCreateFormValidationValues = {
     checkIn?: ValidationFunction<boolean>;
     formAnswers?: ValidationFunction<string>;
     ticket?: ValidationFunction<string>;
+    email?: ValidationFunction<string>;
+    allowContact?: ValidationFunction<boolean>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventAttendeeCreateFormOverridesProps = {
@@ -37,6 +41,8 @@ export declare type EventAttendeeCreateFormOverridesProps = {
     checkIn?: PrimitiveOverrideProps<SwitchFieldProps>;
     formAnswers?: PrimitiveOverrideProps<TextAreaFieldProps>;
     ticket?: PrimitiveOverrideProps<TextFieldProps>;
+    email?: PrimitiveOverrideProps<TextFieldProps>;
+    allowContact?: PrimitiveOverrideProps<SwitchFieldProps>;
 } & EscapeHatchProps;
 export declare type EventAttendeeCreateFormProps = React.PropsWithChildren<{
     overrides?: EventAttendeeCreateFormOverridesProps | undefined | null;

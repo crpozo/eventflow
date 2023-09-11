@@ -38,6 +38,7 @@ function ArrayField({
   defaultFieldValue,
   lengthLimit,
   getBadgeText,
+  runValidationTasks,
   errorMessage,
 }) {
   const labelElement = <Text>{label}</Text>;
@@ -61,6 +62,7 @@ function ArrayField({
     setSelectedBadgeIndex(undefined);
   };
   const addItem = async () => {
+    const { hasError } = runValidationTasks();
     if (
       currentFieldValue !== undefined &&
       currentFieldValue !== null &&
@@ -170,12 +172,7 @@ function ArrayField({
               }}
             ></Button>
           )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
+          <Button size="small" variation="link" onClick={addItem}>
             {selectedBadgeIndex !== undefined ? "Save" : "Add"}
           </Button>
         </Flex>
@@ -208,7 +205,8 @@ export default function FormUpdateForm(props) {
       ? { ...initialValues, ...formRecord, Event }
       : initialValues;
     setQuestions(
-      typeof cleanValues.questions === "string"
+      typeof cleanValues.questions === "string" ||
+        cleanValues.questions === null
         ? cleanValues.questions
         : JSON.stringify(cleanValues.questions)
     );
@@ -314,8 +312,8 @@ export default function FormUpdateForm(props) {
         }
         try {
           Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() === "") {
-              modelFields[key] = undefined;
+            if (typeof value === "string" && value === "") {
+              modelFields[key] = null;
             }
           });
           const promises = [];
@@ -419,6 +417,9 @@ export default function FormUpdateForm(props) {
         label={"Event"}
         items={Event ? [Event] : []}
         hasError={errors?.Event?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("Event", currentEventValue)
+        }
         errorMessage={errors?.Event?.errorMessage}
         getBadgeText={getDisplayValue.Event}
         setFieldValue={(model) => {

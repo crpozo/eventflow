@@ -6,6 +6,8 @@ type EventAttendee @model @auth(rules: [{allow: public}]) {
   checkIn: Boolean
   formAnswers: AWSJSON
   ticket: String
+  email: String
+  allowContact: Boolean
 }
 
 type Form @model @auth(rules: [{allow: public}]) {
@@ -78,4 +80,5 @@ type Campus @model @auth(rules: [{allow: public}]) {
   description: String
   phone: AWSPhone
   email: AWSEmail
-} 
+}
+ 

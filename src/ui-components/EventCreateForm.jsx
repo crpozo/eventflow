@@ -36,6 +36,7 @@ function ArrayField({
   defaultFieldValue,
   lengthLimit,
   getBadgeText,
+  runValidationTasks,
   errorMessage,
 }) {
   const labelElement = <Text>{label}</Text>;
@@ -59,6 +60,7 @@ function ArrayField({
     setSelectedBadgeIndex(undefined);
   };
   const addItem = async () => {
+    const { hasError } = runValidationTasks();
     if (
       currentFieldValue !== undefined &&
       currentFieldValue !== null &&
@@ -168,12 +170,7 @@ function ArrayField({
               }}
             ></Button>
           )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
+          <Button size="small" variation="link" onClick={addItem}>
             {selectedBadgeIndex !== undefined ? "Save" : "Add"}
           </Button>
         </Flex>
@@ -331,8 +328,8 @@ export default function EventCreateForm(props) {
         }
         try {
           Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() === "") {
-              modelFields[key] = undefined;
+            if (typeof value === "string" && value === "") {
+              modelFields[key] = null;
             }
           });
           const modelFieldsToSave = {
@@ -551,6 +548,9 @@ export default function EventCreateForm(props) {
         label={"Nombre contacto"}
         items={contactName}
         hasError={errors?.contactName?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("contactName", currentContactNameValue)
+        }
         errorMessage={errors?.contactName?.errorMessage}
         setFieldValue={setCurrentContactNameValue}
         inputFieldRef={contactNameRef}
@@ -603,6 +603,9 @@ export default function EventCreateForm(props) {
         label={"N\u00FAmero contacto"}
         items={contactNumber}
         hasError={errors?.contactNumber?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("contactNumber", currentContactNumberValue)
+        }
         errorMessage={errors?.contactNumber?.errorMessage}
         setFieldValue={setCurrentContactNumberValue}
         inputFieldRef={contactNumberRef}

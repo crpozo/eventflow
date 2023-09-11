@@ -39,6 +39,7 @@ function ArrayField({
   defaultFieldValue,
   lengthLimit,
   getBadgeText,
+  runValidationTasks,
   errorMessage,
 }) {
   const labelElement = <Text>{label}</Text>;
@@ -62,6 +63,7 @@ function ArrayField({
     setSelectedBadgeIndex(undefined);
   };
   const addItem = async () => {
+    const { hasError } = runValidationTasks();
     if (
       currentFieldValue !== undefined &&
       currentFieldValue !== null &&
@@ -171,12 +173,7 @@ function ArrayField({
               }}
             ></Button>
           )}
-          <Button
-            size="small"
-            variation="link"
-            isDisabled={hasError}
-            onClick={addItem}
-          >
+          <Button size="small" variation="link" onClick={addItem}>
             {selectedBadgeIndex !== undefined ? "Save" : "Add"}
           </Button>
         </Flex>
@@ -346,8 +343,8 @@ export default function AreaUpdateForm(props) {
         }
         try {
           Object.entries(modelFields).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() === "") {
-              modelFields[key] = undefined;
+            if (typeof value === "string" && value === "") {
+              modelFields[key] = null;
             }
           });
           const promises = [];
@@ -526,6 +523,9 @@ export default function AreaUpdateForm(props) {
         label={"Campus"}
         items={campusID ? [campusID] : []}
         hasError={errors?.campusID?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("campusID", currentCampusIDValue)
+        }
         errorMessage={errors?.campusID?.errorMessage}
         getBadgeText={(value) =>
           value
@@ -609,6 +609,9 @@ export default function AreaUpdateForm(props) {
         label={"Subareas"}
         items={Carreras}
         hasError={errors?.Carreras?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("Carreras", currentCarrerasValue)
+        }
         errorMessage={errors?.Carreras?.errorMessage}
         getBadgeText={getDisplayValue.Carreras}
         setFieldValue={(model) => {

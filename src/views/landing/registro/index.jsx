@@ -60,6 +60,28 @@ const Registro = ( props ) => {
     console.log(userData)
   };
 
+  const downloadQR = () => {
+    const svg = document.getElementById("qrcode");
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = function () {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+  
+      const downloadLink = document.createElement("a");
+      downloadLink.download = "qrcode";
+      downloadLink.href = `${pngFile}`;
+      downloadLink.click();
+    };
+  
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    console.log("data:image/svg+xml;base64," + btoa(svgData))
+  };
+
   return (
     <div className="campus-page">
       <div className="grid h-full">
@@ -82,9 +104,11 @@ const Registro = ( props ) => {
             <button href="crear" onClick={() => {
               handleSubmit();
               setFormRegister(true);
+              
               // Crear Attende
               // Crear EventAttendee
               // Luego del pago autorizar
+
             }}
             className="w-full max-w-[270px] mx-auto linear flex justify-center items-center gap-1 pr-3 pl-3 rounded-xl bg-red-500 py-[12px] text-md font-medium text-white transition duration-200 hover:bg-black">
               Enviar y completar pago
@@ -101,6 +125,7 @@ const Registro = ( props ) => {
             <h2 className="text-xl mb-4">Descargue su ticket para escanearlo en el evento</h2>
             <button href="descargar" onClick={() => {
               // Descargar PDF
+              downloadQR()
             }}
             className="w-full max-w-[270px] mx-auto linear flex justify-center items-center gap-1 pr-3 pl-3 rounded-xl bg-red-500 py-[12px] text-md font-medium text-white transition duration-200 hover:bg-black">
               Descargar PDF
@@ -115,12 +140,14 @@ const Registro = ( props ) => {
             <h1 className="text-2xl font-bold mb-4">{props.landing.title}</h1>
 
             <QRCode
+              id="qrcode"
               className="mb-[40px]"
               size={200}
               style={{ height: "auto" }}
-              value="attendeID"
+              value="5fa09b0e-9fb1-4778-962b-fe1530b83e2c"
               viewBox={`0 0 200 200`}
             />
+
             <div className="w-full border border-gray-500 mb-[30px]"></div>
             {userData.map((data, i) => (
               <div key={i}>
