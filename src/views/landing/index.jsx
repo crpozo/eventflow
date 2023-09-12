@@ -22,8 +22,10 @@ export default function SignIn() {
   const [tickets, setTickets] = React.useState([]); 
   const [selectedCost, setSelectedCost] = React.useState(null);
   const [showRegister, setShowRegister] = React.useState(false); // Add a loading state
+  const event = JSON.parse(localStorage.getItem("EVENTFLOW.event"));
 
   React.useEffect(() => {
+    console.log(event)
 
     const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id)).subscribe((results) => {
       if (results.items.length > 0) {
@@ -127,7 +129,7 @@ export default function SignIn() {
                 <LuCalendarClock className="h-8 min-w-[31px] w-8" />
                 <div>
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
-                  <p className="text-lg">Viernes, Junio 16/06/2023 - 18:00pm</p>
+                  <p className="text-lg">{event.date}</p>
                 </div>
               </div>
               <div className="flex justify-center items-center gap-6">

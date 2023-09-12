@@ -124,7 +124,6 @@ const Registro = ( props ) => {
             <h1 className="text-2xl mb-1">Compra éxitosa!</h1>
             <h2 className="text-xl mb-4">Descargue su ticket para escanearlo en el evento</h2>
             <button href="descargar" onClick={() => {
-              // Descargar PDF
               downloadQR()
             }}
             className="w-full max-w-[270px] mx-auto linear flex justify-center items-center gap-1 pr-3 pl-3 rounded-xl bg-red-500 py-[12px] text-md font-medium text-white transition duration-200 hover:bg-black">
