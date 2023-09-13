@@ -24,20 +24,26 @@ const Dashboard = () => {
       return 
     }
 
-    DataStore.query(Form, (c) => c.formEventId.eq(eventId)).then( results => {
-      if(results.length > 0){
-        setForm(results[0])
-        setFormData(results[0].questions);
+    const sub = DataStore.observeQuery(Form, (f) =>
+      f.formEventId.eq(eventId)
+    ).subscribe(({ items }) => {
+      if(items.length > 0){
+        setForm(items[0])
+        setFormData(items[0].questions);
         setFormExist(true);
-        console.log("Form: ", results[0])
+        console.log("Form: ", items[0])
       } else {
         console.log("No form data found");
       }
     });
 
+    return () => {
+      sub.unsubscribe();
+    };
+
   }, [eventId, navigate]);
 
-  async function createEvent(formData) {
+  async function createForm(formData) {
     await DataStore.save(
       new Form({
         "formEventId": eventId,
@@ -79,12 +85,16 @@ const Dashboard = () => {
     handleFormChange = () => {
 
       const formData = $(this.fb.current).formBuilder('getData', 'json');
+      console.log("formData: ", formData)
       if(formExist){
         if(formData){
+          console.log("update")
+          console.log("form: ", form)
           updateForm(form, JSON.parse(formData));
         }
       } else {
-        createEvent(JSON.parse(formData));
+        console.log("crear")
+        createForm(JSON.parse(formData));
       }
       
     };

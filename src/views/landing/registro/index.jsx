@@ -54,10 +54,44 @@ const Registro = ( props ) => {
   }
 
   const handleSubmit = () => {
-    const fbRender = document.querySelector("#fb-editor");
-    const userData = $(fbRender).formRender("userData");
-    setUserData(userData)
-    console.log(userData)
+    clearErrorMessages(); 
+    const isValid = validateForm();
+  
+    if (isValid) {
+      const fbRender = document.querySelector("#fb-editor");
+      const userData = $(fbRender).formRender("userData");
+      setUserData(userData);
+      console.log(userData);
+      setFormRegister(true);
+    } else {
+      // Form is not valid, you can display a message or take any other action.
+      console.log("Form is not valid");
+    }
+  };
+
+  const validateForm = () => {
+    const form = document.querySelector("#fb-editor .rendered-form");
+    const formElements = form.querySelectorAll("[required]");
+    let isValid = true;
+  
+    formElements.forEach((element) => {
+      if (!element.checkValidity()) {
+        isValid = false;
+        // You can display error messages or handle errors as needed.
+        // For example, you can show an error message for each invalid field.
+        const error = document.createElement("div");
+        error.className = "error-message";
+        error.textContent = element.validationMessage;
+        element.insertAdjacentElement("afterend", error);
+      }
+    });
+  
+    return isValid;
+  };
+
+  const clearErrorMessages = () => {
+    const errorMessages = document.querySelectorAll(".error-message");
+    errorMessages.forEach((error) => error.remove());
   };
 
   const downloadQR = () => {
@@ -101,9 +135,8 @@ const Registro = ( props ) => {
           <div className="w-full max-w-[1000px] mx-auto">
             <FormBuilder />
             <div className="mb-5"></div>
-            <button href="crear" onClick={() => {
+            <button href="crear" type="submit" onClick={() => {              
               handleSubmit();
-              setFormRegister(true);
               
               // Crear Attende
               // Crear EventAttendee
@@ -116,7 +149,6 @@ const Registro = ( props ) => {
           </div>
         </>
       }
-
       
       {userData.length !== 0 && (
         <>
