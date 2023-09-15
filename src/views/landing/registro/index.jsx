@@ -75,13 +75,15 @@ const Registro = ( props ) => {
     let isValid = true;
   
     formElements.forEach((element) => {
+      console.log(element)
       if (!element.checkValidity()) {
+        form.scrollIntoView({
+          behavior: 'smooth'
+        });
         isValid = false;
-        // You can display error messages or handle errors as needed.
-        // For example, you can show an error message for each invalid field.
         const error = document.createElement("div");
-        error.className = "error-message";
-        error.textContent = element.validationMessage;
+        error.className = "error-message text-red-500";
+        error.textContent = "El campo no puede estar en blanco";
         element.insertAdjacentElement("afterend", error);
       }
     });
@@ -129,7 +131,7 @@ const Registro = ( props ) => {
             <MdChevronLeft className="h-7 w-7" /> Regresar
           </Link>
 
-          <h2 className="flex justify-center gap-2 text-4xl font-bold mb-5">
+          <h2 id="title-form" className="flex justify-center gap-2 text-4xl font-bold mb-5">
             <HiOutlineDocumentText className="h-10 w-10" /> Formulario de Registro
           </h2>
           <div className="w-full max-w-[1000px] mx-auto">

@@ -336,6 +336,8 @@ const Dashboard = () => {
       });
 
       DataStore.query(EventAttendee, (e) => e.eventID.eq(eventSelectID)).then( results => {
+
+        console.log("EventAttendee: ",results)
         setTotalCheckIn(results.filter(item => item.checkIn === true).length);
       });
 

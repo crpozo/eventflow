@@ -50,6 +50,29 @@ export default function SignIn() {
 
   }, []);
 
+  function formatDate(inputDate) {
+    const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  
+    const date = new Date(inputDate);
+    const dayOfWeek = daysOfWeek[date.getUTCDay()];
+    const month = months[date.getUTCMonth()];
+    const day = date.getUTCDate();
+    const year = date.getUTCFullYear();
+    let hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+  
+    if (hours > 12) {
+      hours -= 12;
+    }
+  
+    hours = hours < 10 ? '0' + hours : hours;
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+  
+    return `${dayOfWeek}, ${('0' + day).slice(-2)}/${('0' + (date.getUTCMonth() + 1)).slice(-2)}/${year} - ${hours}:${formattedMinutes} ${ampm}`;
+  }
+
   if (loading && landing.length === 0) {
     return (
       <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-lightPrimary opacity-75 flex flex-col items-center justify-center">
@@ -129,7 +152,7 @@ export default function SignIn() {
                 <LuCalendarClock className="h-8 min-w-[31px] w-8" />
                 <div>
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
-                  <p className="text-lg">{event.date}</p>
+                  <p className="text-lg">{formatDate(event.date)}</p>
                 </div>
               </div>
               <div className="flex justify-center items-center gap-6">

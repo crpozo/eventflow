@@ -190,6 +190,10 @@ button:focus, button:active, button:focus-visible{
 
 /* Render Form */
 
+.rendered-form .error-message{
+	
+}
+
 .rendered-form label[class*="formbuilder"]{
 	font-weight: 500;
 }
