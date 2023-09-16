@@ -13,7 +13,7 @@ import '@aws-amplify/ui-react/styles.css';
 I18n.putVocabularies(translations);
 I18n.setLanguage('es');
 
-function App() { 
+function App() {
 
   const { route } = useAuthenticator(context => [context.route]);
   const { authStatus } = useAuthenticator(context => [context.authStatus]);
