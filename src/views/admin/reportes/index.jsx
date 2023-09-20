@@ -13,9 +13,6 @@ import { saveAs } from "file-saver";
 import { MdFileDownload } from "react-icons/md";
 
 const Dashboard = () => {
-  // Get all event ids
-  // Agregar filtros y realizar GET con estos valores
-  // Agregar datepicker
 
   const navigate = useNavigate();
 
