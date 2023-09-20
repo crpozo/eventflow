@@ -1,11 +1,9 @@
-import ReactEcharts from "echarts-for-react"; 
+import ReactEcharts from "echarts-for-react";
 import Card from "components/card";
 
 const PieChartApache = (props) => {
-
   return (
     <Card extra="rounded-[20px] p-3">
-
       {/* <div className="flex flex-row justify-between px-3 pt-2 mb-5">
         <div>
           <h4 className="text-lg font-bold text-navy-700 dark:text-white">
@@ -22,10 +20,10 @@ const PieChartApache = (props) => {
         </div>
       </div> */}
 
-      <div className="mb-auto h-full w-full mt-4">
+      <div className="mb-auto mt-4 h-full w-full">
         <ReactEcharts
-           style={{height: props.height, width: '100%'}}
-          option={props.option} 
+          style={{ height: props.height, width: "100%" }}
+          option={props.option}
         />
       </div>
     </Card>
