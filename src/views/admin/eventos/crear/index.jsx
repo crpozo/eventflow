@@ -10,16 +10,11 @@ import {
 const Dashboard = () => {
 
   const navigate = useNavigate();
-  const [formData, setFormData] = React.useState()
   const [subAreaId, setSubAreaId ] = React.useState();
 
   React.useEffect( () => {
     setSubAreaId(JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id);
   }, []);
-
-  React.useEffect( () => {
-    console.log(formData)
-  }, [formData]);
 
   return (
     <div className="event-page">
@@ -47,16 +42,19 @@ const Dashboard = () => {
               alert("Evento creado con éxito")
               navigate('/admin/eventos');
             }}
-            onSubmit={(fields) => {
-              if(subAreaId){
-                console.log(fields)
-                console.log(subAreaId)
-                fields.careerID = subAreaId;
-                return fields  
-              }
-            }}
+            // onSubmit={(fields) => {
+            //   if(subAreaId){
+            //     console.log(fields)
+            //     console.log(subAreaId)
+            //     fields.careerID = subAreaId;
+            //     return fields  
+            //   }
+            // }}
             onCancel={() => {
               navigate('/admin/eventos');
+            }}
+            onError={(error) => {
+              console.log("error: ",error)
             }}
           />
 

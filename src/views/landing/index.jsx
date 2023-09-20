@@ -5,7 +5,7 @@ import Registro from "./registro/index"
 import { DataStore } from "aws-amplify";
 import { StorageImage } from '@aws-amplify/ui-react-storage';
 import { useAuthenticator } from '@aws-amplify/ui-react';
-import { Landing } from "models";
+import { Landing, Event } from "models";
 import {
   FiExternalLink,
 } from "react-icons/fi";
@@ -18,15 +18,28 @@ export default function SignIn() {
   const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const { id } = useParams();
   const [landing, setLanding] = React.useState([]);
+  const [event, setEvent] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [tickets, setTickets] = React.useState([]); 
   const [selectedCost, setSelectedCost] = React.useState(null);
   const [showRegister, setShowRegister] = React.useState(false); // Add a loading state
-  const event = JSON.parse(localStorage.getItem("EVENTFLOW.event"));
 
   React.useEffect(() => {
-    console.log(event)
 
+    const subEvent = DataStore.observeQuery(Event, (e) => e.id.eq(id)).subscribe((results) => {
+      if (results.items.length > 0) {
+        setEvent(results.items[0])
+      } 
+    });
+
+    return () => {
+      subEvent.unsubscribe();
+    };
+
+  },[])
+
+  React.useEffect(() => {
+    
     const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id)).subscribe((results) => {
       if (results.items.length > 0) {
         setLanding(results.items[0]);
@@ -102,10 +115,6 @@ export default function SignIn() {
   //   );
   // }
 
-  const handleImageLoad = () => {
-    console.log("on load")
-  };
-
   return (
     
     <>
@@ -118,6 +127,7 @@ export default function SignIn() {
         </div>
       </div>
     
+    {landing && 
       <div className="absolute w-full">
         <StorageImage 
           className="!w-full !min-h-[400px] md: md:!max-h-[500px] !object-cover"
@@ -125,9 +135,9 @@ export default function SignIn() {
           imgKey={landing.mainBanner} 
           accessLevel="public"
           onStorageGetError={(error) => console.error(error)}
-          onLoad={handleImageLoad}
         />
       </div>
+      }
 
       <div className="container mb-[200px] relative mt-[75px] sm:mt-[100px] xl:mt-[120px]">
         <div className="md:max-w-[500px] md:!h-[250px] bg-blackBanner flex flex-col justify-center items-center gap-4 px-4 py-4 md:!py-[40px]">
@@ -152,7 +162,9 @@ export default function SignIn() {
                 <LuCalendarClock className="h-8 min-w-[31px] w-8" />
                 <div>
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
-                  <p className="text-lg">{formatDate(event.date)}</p>
+                  {event && (
+                    <p className="text-lg">{formatDate(event.date)}</p>
+                  )}
                 </div>
               </div>
               <div className="flex justify-center items-center gap-6">
