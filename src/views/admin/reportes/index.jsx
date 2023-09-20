@@ -583,6 +583,7 @@ const Dashboard = () => {
     if (attendees) {
       const groupedData = groupEventData(attendees);
       setChartsData(groupedData);
+      console.log("chartsData: ",chartsData)
     }
   }, [attendees]);
 
@@ -691,7 +692,7 @@ const Dashboard = () => {
         <Widget
           icon={<MdBarChart className="h-7 w-7" />}
           title={"Total Ingresos"}
-          subtitle={"$574.34"}
+          subtitle={"$0"}
         />
       </div>
 
@@ -701,6 +702,11 @@ const Dashboard = () => {
           chartsData?.map((chart, index) => (
             <PieChartApache key={index} option={chart.options} height="450px" />
           ))}
+          {chartsData.length == 0 && 
+            <div className="!z-5 relative flex flex-col rounded-[10px] bg-white bg-clip-border dark:!bg-navy-800 dark:text-white dark:shadow-none rounded-[20px] p-3">
+              No existen datos para el evento actual
+            </div>
+          }
       </div>
 
       {/* <div className="mt-5 grid grid-cols-1 gap-5">
