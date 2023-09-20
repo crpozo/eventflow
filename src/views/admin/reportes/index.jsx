@@ -11,6 +11,7 @@ import Datepicker from "react-tailwindcss-datepicker";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { MdFileDownload } from "react-icons/md";
+import { AiOutlineWarning } from "react-icons/ai";
 
 const Dashboard = () => {
 
@@ -702,12 +703,13 @@ const Dashboard = () => {
           chartsData?.map((chart, index) => (
             <PieChartApache key={index} option={chart.options} height="450px" />
           ))}
-          {chartsData.length == 0 && 
-            <div className="!z-5 relative flex flex-col rounded-[10px] bg-white bg-clip-border dark:!bg-navy-800 dark:text-white dark:shadow-none rounded-[20px] p-3">
-              No existen datos para el evento actual
-            </div>
-          }
       </div>
+
+      {chartsData.length == 0 && 
+        <div className="!z-5 relative flex items-center	gap-2 rounded-[10px] bg-white bg-clip-border dark:!bg-navy-800 dark:text-white dark:shadow-none rounded-[20px] p-3">
+         <AiOutlineWarning/>  No existen datos para el evento actual 
+        </div>
+      }
 
       {/* <div className="mt-5 grid grid-cols-1 gap-5">
         <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">

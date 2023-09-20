@@ -7,6 +7,7 @@ import DevelopmentTable from "./components/DevelopmentTable";
 import {
   MdAdd,
 } from "react-icons/md";
+import { AiOutlineWarning } from "react-icons/ai";
 
 const Marketplace = () => {
 
@@ -80,7 +81,7 @@ const Marketplace = () => {
               Crear Evento <MdAdd className="h-5 w-5" />
             </button>
           </Link>
-            <p>No existen eventos en la base de datos...</p>
+            <p> <AiOutlineWarning className="flex gap-2 items-center"/> No existen eventos en la base de datos...</p>
           </div>
         }
         
