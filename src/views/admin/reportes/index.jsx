@@ -14,7 +14,6 @@ import { MdFileDownload } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 
 const Dashboard = () => {
-
   const navigate = useNavigate();
 
   const [campusList, setCampusList] = React.useState(null);
@@ -219,7 +218,7 @@ const Dashboard = () => {
           setAreaSelectID("");
           setAreaList([{ title: "Vacio" }]);
         }
-        console.log("Area: ", results);
+        setChartsData([]);
       }
     );
   }, [campusSelectID]);
@@ -320,6 +319,7 @@ const Dashboard = () => {
         // console.log(results);
         // Datos cargo de participantes
         setTotalRegistros(results.length);
+
         processChart(results, setOptionCargos, "position");
         processChart(results, setOptionEdad, "age");
         processChart(results, setOptionTipo, "type");
@@ -331,7 +331,10 @@ const Dashboard = () => {
           setTotalCheckIn(
             results.filter((item) => item.checkIn === true).length
           );
-          setAttendees(results.map((item) => item.formAnswers));
+          setChartsData([]);
+          setAttendees(
+            results.length > 0 ? results.map((item) => item.formAnswers) : null
+          );
         }
       );
     }
@@ -420,16 +423,60 @@ const Dashboard = () => {
   }
 
   // ==> Export to excel handler
+  // function exportToExcel(data) {
+  //   const flattenedData = flattenData(data);
+  //   const ws = XLSX.utils.json_to_sheet(flattenedData.flat());
+  //   const wb = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  //   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  //   const blob = new Blob([excelBuffer], {
+  //     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  //   });
+  //   const eventName = eventList.find((item) => item.id === eventSelectID).title;
+  //   saveAs(blob, `${eventName}.xlsx`);
+  // }
+
+  // ==> Export to excel handler
+  // function exportToExcel(data) {
+  //   const flattenedData = flattenData(data);
+
+  //   // Create a worksheet from the data
+  //   const ws = XLSX.utils.json_to_sheet(flattenedData.flat());
+
+  //   // Create an empty row with the specified width for the header
+  //   const headerRow = Array(3).fill("");
+  //   // Insert the heading at the beginning of the empty row
+  //   headerRow[0] = "Expert Dev Labs";
+
+  //   // Insert the header row at the beginning of the worksheet
+  //   ws["A1"] = { v: headerRow[0], t: "s" }; // Set value and type for the header cell
+  //   ws["B1"] = { v: "", t: "s" }; // Empty cell in the second column
+  //   ws["C1"] = { v: "", t: "s" }; // Empty cell in the third column
+
+  //   const wb = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  //   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  //   const blob = new Blob([excelBuffer], {
+  //     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  //   });
+  //   const eventName = eventList.find((item) => item.id === eventSelectID).title;
+  //   saveAs(blob, `${eventName}.xlsx`);
+  // }
+  // ==> With header variant
   function exportToExcel(data) {
     const flattenedData = flattenData(data);
+    const eventName = eventList.find((item) => item.id === eventSelectID).title;
+
+    const header = [eventName]; // Add the header text
+
     const ws = XLSX.utils.json_to_sheet(flattenedData.flat());
+    XLSX.utils.sheet_add_aoa(ws, [header], { origin: "A1" }); // Add the header at A1 position
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    const eventName = eventList.find((item) => item.id === eventSelectID).title;
     saveAs(blob, `${eventName}.xlsx`);
   }
 
@@ -437,144 +484,152 @@ const Dashboard = () => {
   function groupEventData(eventData) {
     const groupedData = [];
 
-    // Iterate through each event item
-    eventData.forEach((eventItem) => {
-      eventItem.forEach((question) => {
-        // Check if the question is required
-        if (question.type === "number" || question.type === "select") {
-          const label = question.label;
-          const userData = question.userData[0]; // Assuming there's only one value in userData
-          const type = question.className.includes("bar-chart")
-            ? "bar-chart"
-            : "pie-chart";
-          let options;
+    if (eventData && eventData.length > 0) {
+      // Iterate through each event item
+      eventData.forEach((eventItem) => {
+        eventItem.forEach((question) => {
+          // Check if the question is required
+          if (question.type === "number" || question.type === "select") {
+            const label = question.label;
+            const userData = question.userData[0]; // Assuming there's only one value in userData
+            const type = question.className.includes("bar-chart")
+              ? "bar-chart"
+              : "pie-chart";
+            let options;
 
-          // Determine the chart options based on the chart type
-          if (type === "pie-chart") {
-            options = {
-              title: {
-                text: `${label}`,
-                subtext: "Real Time Data",
-                left: "center",
-                textStyle: {
-                  fontSize: 23,
-                },
-                subtextStyle: {
-                  fontSize: 14,
-                },
-              },
-              color: ["#3C83F5", "#FCF054", "#C6BFFA", "#000000", "#C5CBD2"],
-              tooltip: {
-                trigger: "item",
-              },
-              legend: {
-                orient: "horizontal",
-                top: "bottom",
-                textStyle: {
-                  fontSize: 14,
-                },
-              },
-              series: [
-                {
-                  name: label,
-                  type: "pie",
-                  radius: "50%",
-                  data: [], // This will be populated with userData and count
-                  emphasis: {
-                    itemStyle: {
-                      shadowBlur: 10,
-                      shadowOffsetX: 0,
-                      shadowColor: "rgba(0, 0, 0, 0.5)",
-                    },
+            // Determine the chart options based on the chart type
+            if (type === "pie-chart") {
+              options = {
+                title: {
+                  text: `${label}`,
+                  subtext: "Real Time Data",
+                  left: "center",
+                  textStyle: {
+                    fontSize: 23,
+                  },
+                  subtextStyle: {
+                    fontSize: 14,
                   },
                 },
-              ],
-            };
-          } else if (type === "bar-chart") {
-            options = {
-              xAxis: {
-                type: "category",
-                data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-              },
-              yAxis: {
-                type: "value",
-              },
-              title: {
-                text: `${label}`,
-                subtext: "Real Time Data",
-                left: "center",
-                textStyle: {
-                  fontSize: 23,
+                color: ["#3C83F5", "#FCF054", "#C6BFFA", "#000000", "#C5CBD2"],
+                tooltip: {
+                  trigger: "item",
                 },
-                subtextStyle: {
-                  fontSize: 14,
-                },
-              },
-              color: new graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: "#83bff6" },
-                { offset: 0.5, color: "#188df0" },
-                { offset: 1, color: "#188df0" },
-              ]),
-              tooltip: {
-                trigger: "item",
-              },
-              legend: {
-                orient: "horizontal",
-                top: "bottom",
-                textStyle: {
-                  fontSize: 14,
-                },
-              },
-              series: [
-                {
-                  name: label,
-                  type: "bar",
-                  showBackground: true,
-                  data: [], // This will be populated with userData and count
-                  emphasis: {
-                    itemStyle: {
-                      shadowBlur: 10,
-                      shadowOffsetX: 0,
-                      shadowColor: "rgba(0, 0, 0, 0.5)",
-                    },
+                legend: {
+                  orient: "horizontal",
+                  top: "bottom",
+                  textStyle: {
+                    fontSize: 14,
                   },
                 },
-              ],
-            };
-          }
+                series: [
+                  {
+                    name: label,
+                    type: "pie",
+                    radius: "50%",
+                    data: [], // This will be populated with userData and count
+                    emphasis: {
+                      itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: "rgba(0, 0, 0, 0.5)",
+                      },
+                    },
+                  },
+                ],
+              };
+            } else if (type === "bar-chart") {
+              options = {
+                xAxis: {
+                  type: "category",
+                  data: ["option-1", "option-2", "option-3"],
+                },
+                yAxis: {
+                  type: "value",
+                },
+                title: {
+                  text: `${label}`,
+                  subtext: "Real Time Data",
+                  left: "center",
+                  textStyle: {
+                    fontSize: 23,
+                  },
+                  subtextStyle: {
+                    fontSize: 14,
+                  },
+                },
+                color: new graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: "#83bff6" },
+                  { offset: 0.5, color: "#188df0" },
+                  { offset: 1, color: "#188df0" },
+                ]),
+                tooltip: {
+                  trigger: "item",
+                },
+                legend: {
+                  orient: "horizontal",
+                  top: "bottom",
+                  textStyle: {
+                    fontSize: 14,
+                  },
+                },
+                series: [
+                  {
+                    // name: label,
+                    type: "bar",
+                    showBackground: true,
+                    data: [], // This will be populated with userData and count
+                    emphasis: {
+                      itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: "rgba(0, 0, 0, 0.5)",
+                      },
+                    },
+                  },
+                ],
+              };
+            }
 
-          // Check if an entry with the same label already exists in groupedData
-          const existingEntry = groupedData.find(
-            (entry) => entry.title === label
-          );
-
-          if (existingEntry) {
-            // If it exists, find the userData entry
-            const userDataEntry = existingEntry.options.series[0].data.find(
-              (entry) => entry.name === userData
+            // Check if an entry with the same label already exists in groupedData
+            const existingEntry = groupedData.find(
+              (entry) => entry.title === label
             );
 
-            if (userDataEntry) {
-              // If userData entry exists, increment the count
-              userDataEntry.value++;
+            if (existingEntry) {
+              // If it exists, find the userData entry
+              const userDataEntry = existingEntry.options.series[0].data.find(
+                (entry) => entry.name === userData
+              );
+
+              if (userDataEntry) {
+                // If userData entry exists, increment the count
+                userDataEntry.value++;
+              } else {
+                // If userData entry doesn't exist, create a new entry
+                existingEntry.options.series[0].data.push({
+                  name: userData,
+                  value: 1,
+                });
+              }
+              if (
+                type === "bar-chart" &&
+                !options.xAxis.data.includes(userData)
+              ) {
+                options.xAxis.data.push(userData);
+              }
             } else {
-              // If userData entry doesn't exist, create a new entry
-              existingEntry.options.series[0].data.push({
-                name: userData,
-                value: 1,
+              // If it doesn't exist, create a new entry with options and userData
+              groupedData.push({
+                title: label,
+                type: type,
+                options: options,
               });
             }
-          } else {
-            // If it doesn't exist, create a new entry with options and userData
-            groupedData.push({
-              title: label,
-              type: type,
-              options: options,
-            });
           }
-        }
+        });
       });
-    });
+    }
 
     return groupedData;
   }
@@ -584,7 +639,7 @@ const Dashboard = () => {
     if (attendees) {
       const groupedData = groupEventData(attendees);
       setChartsData(groupedData);
-      console.log("chartsData: ",chartsData)
+      console.log("chartsData: ", chartsData);
     }
   }, [attendees]);
 
@@ -705,11 +760,11 @@ const Dashboard = () => {
           ))}
       </div>
 
-      {chartsData.length == 0 && 
-        <div className="!z-5 relative flex items-center	gap-2 rounded-[10px] bg-white bg-clip-border dark:!bg-navy-800 dark:text-white dark:shadow-none rounded-[20px] p-3">
-         <AiOutlineWarning/>  No existen datos para el evento actual 
+      {chartsData.length == 0 && (
+        <div className="!z-5 relative flex items-center	gap-2 rounded-[20px] bg-white bg-clip-border p-3 dark:!bg-navy-800 dark:text-white dark:shadow-none">
+          <AiOutlineWarning /> No existen datos para el evento actual
         </div>
-      }
+      )}
 
       {/* <div className="mt-5 grid grid-cols-1 gap-5">
         <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
