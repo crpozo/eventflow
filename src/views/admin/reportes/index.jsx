@@ -214,7 +214,9 @@ const Dashboard = () => {
         if (results.length > 0) {
           setAreaList(results);
           setAreaSelectID(results[0].id);
+          setChartsData([]);
         } else {
+          setChartsData([]);
           setAreaSelectID("");
           setAreaList([{ title: "Vacio" }]);
         }
@@ -228,9 +230,11 @@ const Dashboard = () => {
     DataStore.query(Career, (c) => c.areaID.eq(areaSelectID)).then(
       (results) => {
         if (results.length > 0) {
+          setChartsData([]);
           setCareerList(results);
           setCareerSelectID(results[0].id);
         } else {
+          setChartsData([]);
           setCareerSelectID("");
           setCareerList([{ title: "Vacio" }]);
         }
@@ -481,8 +485,9 @@ const Dashboard = () => {
   }
 
   // ==> Chart data handler
+
   function groupEventData(eventData) {
-    const groupedData = [];
+    const groupedData = {};
 
     if (eventData && eventData.length > 0) {
       // Iterate through each event item
@@ -542,7 +547,7 @@ const Dashboard = () => {
               options = {
                 xAxis: {
                   type: "category",
-                  data: ["option-1", "option-2", "option-3"],
+                  data: [], // Initialize with an empty array
                 },
                 yAxis: {
                   type: "value",
@@ -592,38 +597,34 @@ const Dashboard = () => {
             }
 
             // Check if an entry with the same label already exists in groupedData
-            const existingEntry = groupedData.find(
-              (entry) => entry.title === label
-            );
-
-            if (existingEntry) {
-              // If it exists, find the userData entry
-              const userDataEntry = existingEntry.options.series[0].data.find(
-                (entry) => entry.name === userData
-              );
-
-              if (userDataEntry) {
-                // If userData entry exists, increment the count
-                userDataEntry.value++;
-              } else {
-                // If userData entry doesn't exist, create a new entry
-                existingEntry.options.series[0].data.push({
-                  name: userData,
-                  value: 1,
-                });
-              }
-              if (
-                type === "bar-chart" &&
-                !options.xAxis.data.includes(userData)
-              ) {
-                options.xAxis.data.push(userData);
-              }
-            } else {
+            if (!groupedData[question.name]) {
               // If it doesn't exist, create a new entry with options and userData
-              groupedData.push({
+              groupedData[question.name] = {
                 title: label,
                 type: type,
                 options: options,
+                userDataCounts: {}, // Object to store userData counts
+              };
+            }
+
+            // Populate the chart data for the specific question
+            const chartData = groupedData[question.name].options.series[0].data;
+            const userDataCounts = groupedData[question.name].userDataCounts;
+            let barChartXaxisData;
+            if (type === "bar-chart") {
+              barChartXaxisData = groupedData[question.name].options.xAxis.data;
+            }
+
+            if (userDataCounts[userData]) {
+              userDataCounts[userData]++;
+            } else {
+              if (barChartXaxisData) {
+                barChartXaxisData.push(userData);
+              }
+              userDataCounts[userData] = 1;
+              chartData.push({
+                name: userData,
+                value: 1,
               });
             }
           }
@@ -631,15 +632,19 @@ const Dashboard = () => {
       });
     }
 
-    return groupedData;
+    // Convert the groupedData object to an array
+    const groupedDataArray = Object.values(groupedData);
+
+    return groupedDataArray;
   }
 
   // ==> Use Effect  to execute events data
   useEffect(() => {
     if (attendees) {
+      console.log(attendees);
       const groupedData = groupEventData(attendees);
       setChartsData(groupedData);
-      console.log("chartsData: ", chartsData);
+      console.log("chartsData: ", groupedData);
     }
   }, [attendees]);
 
@@ -647,6 +652,7 @@ const Dashboard = () => {
     <div className="report-page">
       <Banner />
       <button
+        disabled={chartsData.length === 0}
         href="crear"
         onClick={() => exportToExcel(attendees)}
         className="linear mb-4 flex items-center gap-1 rounded-xl bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-green-200"
