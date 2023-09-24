@@ -468,6 +468,12 @@ const Dashboard = () => {
   // }
   // ==> With header variant
   function exportToExcel(data) {
+    
+    if(!data){
+      alert("No existen datos en el evento seleccionado")
+      return;
+    }
+
     const flattenedData = flattenData(data);
     const eventName = eventList.find((item) => item.id === eventSelectID).title;
 
@@ -482,6 +488,7 @@ const Dashboard = () => {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     saveAs(blob, `${eventName}.xlsx`);
+
   }
 
   // ==> Chart data handler
@@ -652,7 +659,6 @@ const Dashboard = () => {
     <div className="report-page">
       <Banner />
       <button
-        disabled={chartsData.length === 0}
         href="crear"
         onClick={() => exportToExcel(attendees)}
         className="linear mb-4 flex items-center gap-1 rounded-xl bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-green-200"
