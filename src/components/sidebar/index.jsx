@@ -38,8 +38,11 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
     if(event){
       const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(event.id)).subscribe(({ items }) => {
         console.log("Sidebar Landing: ", items[0])
-        setLanding(items[0])
-        setIsActive(items[0].active)
+        if(items.length > 0){
+          setLanding(items[0])
+          setIsActive(items[0].active)
+        }
+      
       });
   
       return () => {

@@ -7,6 +7,7 @@
 /* eslint-disable */
 import * as React from "react";
 import {
+  Autocomplete,
   Badge,
   Button,
   Divider,
@@ -14,14 +15,16 @@ import {
   Grid,
   Icon,
   ScrollView,
-  SwitchField,
   Text,
   TextAreaField,
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
-import { getOverrideProps } from "@aws-amplify/ui-react/internal";
-import { Event } from "../models";
+import {
+  getOverrideProps,
+  useDataStoreBinding,
+} from "@aws-amplify/ui-react/internal";
+import { Event, Career } from "../models";
 import { fetchByPath, validateField } from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
@@ -200,7 +203,7 @@ export default function EventCreateForm(props) {
     contactName: [],
     contactNumber: [],
     termsCondition: "",
-    active: false,
+    careerID: undefined,
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -218,7 +221,7 @@ export default function EventCreateForm(props) {
   const [termsCondition, setTermsCondition] = React.useState(
     initialValues.termsCondition
   );
-  const [active, setActive] = React.useState(initialValues.active);
+  const [careerID, setCareerID] = React.useState(initialValues.careerID);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
@@ -231,7 +234,9 @@ export default function EventCreateForm(props) {
     setContactNumber(initialValues.contactNumber);
     setCurrentContactNumberValue("");
     setTermsCondition(initialValues.termsCondition);
-    setActive(initialValues.active);
+    setCareerID(initialValues.careerID);
+    setCurrentCareerIDValue(undefined);
+    setCurrentCareerIDDisplayValue("");
     setErrors({});
   };
   const [currentContactNameValue, setCurrentContactNameValue] =
@@ -240,6 +245,18 @@ export default function EventCreateForm(props) {
   const [currentContactNumberValue, setCurrentContactNumberValue] =
     React.useState("");
   const contactNumberRef = React.createRef();
+  const [currentCareerIDDisplayValue, setCurrentCareerIDDisplayValue] =
+    React.useState("");
+  const [currentCareerIDValue, setCurrentCareerIDValue] =
+    React.useState(undefined);
+  const careerIDRef = React.createRef();
+  const careerRecords = useDataStoreBinding({
+    type: "collection",
+    model: Career,
+  }).items;
+  const getDisplayValue = {
+    careerID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+  };
   const validations = {
     title: [],
     description: [],
@@ -249,7 +266,7 @@ export default function EventCreateForm(props) {
     contactName: [],
     contactNumber: [],
     termsCondition: [],
-    active: [],
+    careerID: [{ type: "Required" }],
   };
   const runValidationTasks = async (
     fieldName,
@@ -302,7 +319,7 @@ export default function EventCreateForm(props) {
           contactName,
           contactNumber,
           termsCondition,
-          active,
+          careerID,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -332,17 +349,7 @@ export default function EventCreateForm(props) {
               modelFields[key] = null;
             }
           });
-          const modelFieldsToSave = {
-            title: modelFields.title,
-            description: modelFields.description,
-            category: modelFields.category,
-            location: modelFields.location,
-            date: modelFields.date,
-            contactName: modelFields.contactName,
-            contactNumber: modelFields.contactNumber,
-            termsCondition: modelFields.termsCondition,
-          };
-          await DataStore.save(new Event(modelFieldsToSave));
+          await DataStore.save(new Event(modelFields));
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -376,7 +383,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -408,7 +415,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -441,7 +448,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             value = result?.category ?? value;
@@ -474,7 +481,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -508,7 +515,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             value = result?.date ?? value;
@@ -536,7 +543,7 @@ export default function EventCreateForm(props) {
               contactName: values,
               contactNumber,
               termsCondition,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             values = result?.contactName ?? values;
@@ -591,7 +598,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber: values,
               termsCondition,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             values = result?.contactNumber ?? values;
@@ -654,7 +661,7 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition: value,
-              active,
+              careerID,
             };
             const result = onChange(modelFields);
             value = result?.termsCondition ?? value;
@@ -669,12 +676,10 @@ export default function EventCreateForm(props) {
         hasError={errors.termsCondition?.hasError}
         {...getOverrideProps(overrides, "termsCondition")}
       ></TextAreaField>
-      <SwitchField
-        label="Label"
-        defaultChecked={false}
-        isChecked={active}
-        onChange={(e) => {
-          let value = e.target.checked;
+      <ArrayField
+        lengthLimit={1}
+        onChange={async (items) => {
+          let value = items[0];
           if (onChange) {
             const modelFields = {
               title,
@@ -685,21 +690,91 @@ export default function EventCreateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
-              active: value,
+              careerID: value,
             };
             const result = onChange(modelFields);
-            value = result?.active ?? value;
+            value = result?.careerID ?? value;
           }
-          if (errors.active?.hasError) {
-            runValidationTasks("active", value);
-          }
-          setActive(value);
+          setCareerID(value);
+          setCurrentCareerIDValue(undefined);
         }}
-        onBlur={() => runValidationTasks("active", active)}
-        errorMessage={errors.active?.errorMessage}
-        hasError={errors.active?.hasError}
-        {...getOverrideProps(overrides, "active")}
-      ></SwitchField>
+        currentFieldValue={currentCareerIDValue}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Subárea a la que pertenece el evento</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        items={careerID ? [careerID] : []}
+        hasError={errors?.careerID?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("careerID", currentCareerIDValue)
+        }
+        errorMessage={errors?.careerID?.errorMessage}
+        getBadgeText={(value) =>
+          value
+            ? getDisplayValue.careerID(
+                careerRecords.find((r) => r.id === value)
+              )
+            : ""
+        }
+        setFieldValue={(value) => {
+          setCurrentCareerIDDisplayValue(
+            value
+              ? getDisplayValue.careerID(
+                  careerRecords.find((r) => r.id === value)
+                )
+              : ""
+          );
+          setCurrentCareerIDValue(value);
+        }}
+        inputFieldRef={careerIDRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label={
+            <span style={{ display: "inline-flex" }}>
+              <span>Subárea a la que pertenece el evento</span>
+              <span style={{ color: "red" }}>*</span>
+            </span>
+          }
+          isRequired={true}
+          isReadOnly={false}
+          placeholder="Buscar Subarea"
+          value={currentCareerIDDisplayValue}
+          options={careerRecords
+            .filter(
+              (r, i, arr) =>
+                arr.findIndex((member) => member?.id === r?.id) === i
+            )
+            .map((r) => ({
+              id: r?.id,
+              label: getDisplayValue.careerID?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentCareerIDValue(id);
+            setCurrentCareerIDDisplayValue(label);
+            runValidationTasks("careerID", label);
+          }}
+          onClear={() => {
+            setCurrentCareerIDDisplayValue("");
+          }}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.careerID?.hasError) {
+              runValidationTasks("careerID", value);
+            }
+            setCurrentCareerIDDisplayValue(value);
+            setCurrentCareerIDValue(undefined);
+          }}
+          onBlur={() => runValidationTasks("careerID", currentCareerIDValue)}
+          errorMessage={errors.careerID?.errorMessage}
+          hasError={errors.careerID?.hasError}
+          ref={careerIDRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "careerID")}
+        ></Autocomplete>
+      </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

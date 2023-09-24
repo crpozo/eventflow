@@ -7,6 +7,7 @@ import { Event } from "models"
 import {
   MdEast
 } from "react-icons/md";
+import { AiOutlineWarning } from "react-icons/ai";
 
 const Dashboard = () => {
 
@@ -79,7 +80,7 @@ const Dashboard = () => {
             </Link>
           </>
           :
-          <p>No existen eventos en la base de datos...</p>
+          <p> <AiOutlineWarning className="flex gap-2 items-center"/> No existen eventos en la base de datos...</p>
         }
 
       </div>

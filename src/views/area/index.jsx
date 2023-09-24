@@ -8,6 +8,7 @@ import {
   MdAdd,
   MdChevronLeft
 } from "react-icons/md";
+import { AiOutlineWarning } from "react-icons/ai";
 
 const Dashboard = () => {
 
@@ -81,7 +82,7 @@ const Dashboard = () => {
             ))}
           </div>
         :
-         <p>No existen areas para el campus seleccionado...</p>
+         <p className="flex gap-2 items-center"><AiOutlineWarning/> No existen areas para el campus seleccionado...</p>
         }
 
       </div>

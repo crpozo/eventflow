@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, SwitchFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { AutocompleteProps, GridProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { EscapeHatchProps } from "@aws-amplify/ui-react/internal";
 export declare type ValidationResponse = {
     hasError: boolean;
@@ -21,7 +21,7 @@ export declare type EventCreateFormInputValues = {
     contactName?: string[];
     contactNumber?: number[];
     termsCondition?: string;
-    active?: boolean;
+    careerID?: string;
 };
 export declare type EventCreateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -32,7 +32,7 @@ export declare type EventCreateFormValidationValues = {
     contactName?: ValidationFunction<string>;
     contactNumber?: ValidationFunction<number>;
     termsCondition?: ValidationFunction<string>;
-    active?: ValidationFunction<boolean>;
+    careerID?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventCreateFormOverridesProps = {
@@ -45,7 +45,7 @@ export declare type EventCreateFormOverridesProps = {
     contactName?: PrimitiveOverrideProps<TextFieldProps>;
     contactNumber?: PrimitiveOverrideProps<TextFieldProps>;
     termsCondition?: PrimitiveOverrideProps<TextAreaFieldProps>;
-    active?: PrimitiveOverrideProps<SwitchFieldProps>;
+    careerID?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type EventCreateFormProps = React.PropsWithChildren<{
     overrides?: EventCreateFormOverridesProps | undefined | null;

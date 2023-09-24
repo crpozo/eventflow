@@ -77,6 +77,17 @@ const Dashboard = () => {
                 save: 'Guardar'
               }
             }
+          },
+          typeUserAttrs: {
+            select: {
+              className: {
+                label: 'Chart',
+                options: {
+                  'pie-chart form-control': 'Pie',
+                  'bar-chart form-control': 'Bar',
+                }
+              }
+            }
           }
         }
       );
