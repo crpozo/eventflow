@@ -467,9 +467,9 @@ const Dashboard = () => {
   //   saveAs(blob, `${eventName}.xlsx`);
   // }
   // ==> With header variant
-  function exportToExcel(data) {
+  function exportToExcel(data, charsData) {
     
-    if(!data){
+    if(!charsData || charsData.length == 0 ){
       alert("No existen datos en el evento seleccionado")
       return;
     }
@@ -660,7 +660,7 @@ const Dashboard = () => {
       <Banner />
       <button
         href="crear"
-        onClick={() => exportToExcel(attendees)}
+        onClick={() => exportToExcel(attendees, chartsData)}
         className="linear mb-4 flex items-center gap-1 rounded-xl bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-green-200"
       >
         Exportal Excel <MdFileDownload className="h-5 w-5" />
@@ -744,7 +744,7 @@ const Dashboard = () => {
 
       {/* Card widget */}
 
-      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2">
         <Widget
           icon={<MdBarChart className="h-7 w-7" />}
           title={"Total Registros"}
@@ -757,11 +757,11 @@ const Dashboard = () => {
           subtitle={totalCheckIn}
           description={"Participante/s"}
         />
-        <Widget
+        {/* <Widget
           icon={<MdBarChart className="h-7 w-7" />}
           title={"Total Ingresos"}
           subtitle={"$0"}
-        />
+        /> */}
       </div>
 
       {/* Tables & Charts */}
