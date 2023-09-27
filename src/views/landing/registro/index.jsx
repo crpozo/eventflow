@@ -166,22 +166,22 @@ const Registro = ( props ) => {
           </div>
 
           <div className="flex flex-col items-center justify-center md:w-[550px] max-w-[800px]
-          border border-gray-500 rounded-sm mx-auto py-[30px] px-[30px] mb-4">
+          border border-gray-500 rounded-sm mx-auto py-[25px] px-[25px] mb-4">
             
-            <img src={logo} className="w-[150px] mb-4" />
+            <img src={logo} className="w-[120px] mb-3" />
             
             <h1 className="text-2xl font-bold mb-4">{props.landing.title}</h1>
 
             <QRCode
               id="qrcode"
-              className="mb-[40px]"
-              size={200}
+              className="mb-[30px]"
+              size={150}
               style={{ height: "auto" }}
               value="5fa09b0e-9fb1-4778-962b-fe1530b83e2c"
               viewBox={`0 0 200 200`}
             />
 
-            <div className="w-full border border-gray-500 mb-[30px]"></div>
+            <div className="w-full border border-gray-500 mb-[25px]"></div>
             {userData.map((data, i) => (
               <div key={i}>
                 {data.name == "text-1692266990765-0" && <p className="text-xl mb-2" >{data.userData[0]}</p>}

@@ -146,7 +146,7 @@ export default function SignIn() {
         </div>  
       </div>
       
-      <div className="container mb-16 h-full w-full items-center justify-center px-2 mx-auto md:px-0 lg:mb-10 lg:items-center lg:justify-start">
+      <div className="container mb-16 h-full w-full items-center justify-center px-2 mx-auto md:px-0 lg:mb-12 lg:items-center lg:justify-start">
 
       {showRegister ?
           <>
@@ -202,7 +202,7 @@ export default function SignIn() {
             </div>
           </div>
 
-          <div className="mb-[80px]">
+          <div className="mb-[60px]">
             <h2 className="text-4xl font-bold mb-5">Informacion adicional</h2>
             <p className="text-lg">{landing.extraInfo}</p>
           </div>
