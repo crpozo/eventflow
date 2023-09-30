@@ -106,7 +106,8 @@ export default function AttendeeCreateForm(props) {
               modelFields[key] = null;
             }
           });
-          await DataStore.save(new Attendee(modelFields));
+          const modelFieldsToSave = {};
+          await DataStore.save(new Attendee(modelFieldsToSave));
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -124,8 +125,6 @@ export default function AttendeeCreateForm(props) {
     >
       <TextField
         label="Nombre"
-        isRequired={false}
-        isReadOnly={false}
         value={name}
         onChange={(e) => {
           let { value } = e.target;
@@ -151,8 +150,6 @@ export default function AttendeeCreateForm(props) {
       ></TextField>
       <TextField
         label="Tipo"
-        isRequired={false}
-        isReadOnly={false}
         value={type}
         onChange={(e) => {
           let { value } = e.target;
@@ -178,15 +175,11 @@ export default function AttendeeCreateForm(props) {
       ></TextField>
       <TextField
         label="Edad"
-        isRequired={false}
-        isReadOnly={false}
         type="number"
         step="any"
         value={age}
         onChange={(e) => {
-          let value = isNaN(parseInt(e.target.value))
-            ? e.target.value
-            : parseInt(e.target.value);
+          let { value } = e.target;
           if (onChange) {
             const modelFields = {
               name,
@@ -209,8 +202,6 @@ export default function AttendeeCreateForm(props) {
       ></TextField>
       <TextField
         label="Posición"
-        isRequired={false}
-        isReadOnly={false}
         value={position}
         onChange={(e) => {
           let { value } = e.target;

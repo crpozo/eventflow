@@ -1,5 +1,6 @@
 {
   "AppSyncApiName": "eventflow",
   "DynamoDBBillingMode": "PAY_PER_REQUEST",
-  "DynamoDBEnableServerSideEncryption": false
+  "DynamoDBEnableServerSideEncryption": false,
+  "AuthModeLastUpdated": "2023-09-27T03:24:06.787Z"
 }

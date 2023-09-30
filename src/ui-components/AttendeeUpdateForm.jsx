@@ -16,7 +16,6 @@ import {
   Icon,
   ScrollView,
   Text,
-  TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
 import {
@@ -194,16 +193,8 @@ export default function AttendeeUpdateForm(props) {
     ...rest
   } = props;
   const initialValues = {
-    name: "",
-    type: "",
-    age: "",
-    position: "",
     EventAttendees: [],
   };
-  const [name, setName] = React.useState(initialValues.name);
-  const [type, setType] = React.useState(initialValues.type);
-  const [age, setAge] = React.useState(initialValues.age);
-  const [position, setPosition] = React.useState(initialValues.position);
   const [EventAttendees, setEventAttendees] = React.useState(
     initialValues.EventAttendees
   );
@@ -216,10 +207,6 @@ export default function AttendeeUpdateForm(props) {
           EventAttendees: linkedEventAttendees,
         }
       : initialValues;
-    setName(cleanValues.name);
-    setType(cleanValues.type);
-    setAge(cleanValues.age);
-    setPosition(cleanValues.position);
     setEventAttendees(cleanValues.EventAttendees ?? []);
     setCurrentEventAttendeesValue(undefined);
     setCurrentEventAttendeesDisplayValue("");
@@ -266,10 +253,6 @@ export default function AttendeeUpdateForm(props) {
       `${r?.authorized ? r?.authorized + " - " : ""}${r?.id}`,
   };
   const validations = {
-    name: [],
-    type: [],
-    age: [],
-    position: [],
     EventAttendees: [],
   };
   const runValidationTasks = async (
@@ -298,10 +281,6 @@ export default function AttendeeUpdateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
-          name,
-          type,
-          age,
-          position,
           EventAttendees,
         };
         const validationResponses = await Promise.all(
@@ -384,12 +363,7 @@ export default function AttendeeUpdateForm(props) {
               )
             );
           });
-          const modelFieldsToSave = {
-            name: modelFields.name,
-            type: modelFields.type,
-            age: modelFields.age,
-            position: modelFields.position,
-          };
+          const modelFieldsToSave = {};
           promises.push(
             DataStore.save(
               Attendee.copyOf(attendeeRecord, (updated) => {
@@ -410,131 +384,11 @@ export default function AttendeeUpdateForm(props) {
       {...getOverrideProps(overrides, "AttendeeUpdateForm")}
       {...rest}
     >
-      <TextField
-        label="Name"
-        isRequired={false}
-        isReadOnly={false}
-        value={name}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              name: value,
-              type,
-              age,
-              position,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.name ?? value;
-          }
-          if (errors.name?.hasError) {
-            runValidationTasks("name", value);
-          }
-          setName(value);
-        }}
-        onBlur={() => runValidationTasks("name", name)}
-        errorMessage={errors.name?.errorMessage}
-        hasError={errors.name?.hasError}
-        {...getOverrideProps(overrides, "name")}
-      ></TextField>
-      <TextField
-        label="Type"
-        isRequired={false}
-        isReadOnly={false}
-        value={type}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type: value,
-              age,
-              position,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.type ?? value;
-          }
-          if (errors.type?.hasError) {
-            runValidationTasks("type", value);
-          }
-          setType(value);
-        }}
-        onBlur={() => runValidationTasks("type", type)}
-        errorMessage={errors.type?.errorMessage}
-        hasError={errors.type?.hasError}
-        {...getOverrideProps(overrides, "type")}
-      ></TextField>
-      <TextField
-        label="Age"
-        isRequired={false}
-        isReadOnly={false}
-        type="number"
-        step="any"
-        value={age}
-        onChange={(e) => {
-          let value = isNaN(parseInt(e.target.value))
-            ? e.target.value
-            : parseInt(e.target.value);
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age: value,
-              position,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.age ?? value;
-          }
-          if (errors.age?.hasError) {
-            runValidationTasks("age", value);
-          }
-          setAge(value);
-        }}
-        onBlur={() => runValidationTasks("age", age)}
-        errorMessage={errors.age?.errorMessage}
-        hasError={errors.age?.hasError}
-        {...getOverrideProps(overrides, "age")}
-      ></TextField>
-      <TextField
-        label="Position"
-        isRequired={false}
-        isReadOnly={false}
-        value={position}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              name,
-              type,
-              age,
-              position: value,
-              EventAttendees,
-            };
-            const result = onChange(modelFields);
-            value = result?.position ?? value;
-          }
-          if (errors.position?.hasError) {
-            runValidationTasks("position", value);
-          }
-          setPosition(value);
-        }}
-        onBlur={() => runValidationTasks("position", position)}
-        errorMessage={errors.position?.errorMessage}
-        hasError={errors.position?.hasError}
-        {...getOverrideProps(overrides, "position")}
-      ></TextField>
       <ArrayField
         onChange={async (items) => {
           let values = items;
           if (onChange) {
             const modelFields = {
-              name,
-              type,
-              age,
-              position,
               EventAttendees: values,
             };
             const result = onChange(modelFields);
