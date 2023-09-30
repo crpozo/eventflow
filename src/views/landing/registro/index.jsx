@@ -385,29 +385,23 @@ const Registro = (props) => {
 
               <h1 className="mb-4 text-2xl font-bold">{props.landing.title}</h1>
 
-              <QRCode
-                id="qrcode"
-                className="mb-[40px]"
-                size={200}
-                style={{ height: "auto" }}
-                value={eventID}
-                viewBox={`0 0 200 200`}
-              />
+            <QRCode
+              id="qrcode"
+              className="mb-[40px]"
+              size={200}
+              style={{ height: "auto" }}
+              value="5fa09b0e-9fb1-4778-962b-fe1530b83e2c"
+              viewBox={`0 0 200 200`}
+            />
 
-              <div className="mb-[30px] h-[1px] w-full bg-gray-500"></div>
-              {userData.map((data, i) => (
-                <div key={i}>
-                  {data.name == "text-1692266990765-0" && (
-                    <p className="mb-2 text-xl">{data.userData[0]}</p>
-                  )}
-                  {data.name == "text-1692267033618-0" && (
-                    <p className="mb-2 text-lg">{data.userData[0]}</p>
-                  )}
-                  {data.name == "text-1692267060603-0" && (
-                    <p className="mb-2 text-lg">{data.userData[0]}</p>
-                  )}
-                </div>
-              ))}
+            <div className="w-full border border-gray-500 mb-[30px]"></div>
+            {userData.map((data, i) => (
+              <div key={i}>
+                {data.name == "text-1692266990765-0" && <p className="text-xl mb-2" >{data.userData[0]}</p>}
+                {data.name == "text-1692267033618-0" && <p className="text-lg mb-2">{data.userData[0]}</p>}
+                {data.name == "text-1692267060603-0" && <p className="text-lg mb-2">{data.userData[0]}</p>}
+              </div>
+            ))}
 
               <p className="mb-2 text-lg">
                 Viernes, Junio 16/06/2023 - 18:00pm

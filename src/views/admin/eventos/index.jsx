@@ -81,7 +81,7 @@ const Marketplace = () => {
               Crear Evento <MdAdd className="h-5 w-5" />
             </button>
           </Link>
-            <p> <AiOutlineWarning className="flex gap-2 items-center"/> No existen eventos en la base de datos...</p>
+            <p className="flex gap-2 items-center"> <AiOutlineWarning/> No existen eventos en la base de datos...</p>
           </div>
         }
         
