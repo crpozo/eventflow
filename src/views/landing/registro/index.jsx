@@ -1,39 +1,49 @@
-import React,{ Component, createRef} from "react";
+import React, { Component, createRef, useState, useRef } from "react";
 import logo from "assets/img/usfq/logo.svg";
 import QRCode from "react-qr-code";
-import {  useParams, Link } from "react-router-dom";
+import jsPDF from "jspdf";
+import domtoimage from "dom-to-image";
+import html2pdf from "html2pdf.js";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import html2canvas from "html2canvas";
+import { PDFExport } from "@progress/kendo-react-pdf";
+import { useParams, Link } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
 import { DataStore } from "aws-amplify";
-import { Form } from "models"
+import { Form } from "models";
 import $ from "jquery";
+import { EventAttendee } from "models";
+import { Attendee } from "models";
+import DigitalTicket from "./Ticket";
 window.jQuery = $;
 window.$ = $;
-require('jquery-ui-sortable');
-require('formBuilder');
-require('formBuilder/dist/form-render.min.js');
+require("jquery-ui-sortable");
+require("formBuilder");
+require("formBuilder/dist/form-render.min.js");
 
-const Registro = ( props ) => {
-
+const Registro = (props) => {
+  const { userData, setUserData, quantity, eventID } = props;
   const [formData, setFormData] = React.useState([]);
-  const [userData, setUserData] = React.useState([]);
+  // const [userData, setUserData] = React.useState([]);
   const [formRegister, setFormRegister] = React.useState(false);
   const id = useParams().id;
 
+  const pdfContentRef = useRef();
+
   React.useEffect(() => {
-    // AWS amplify data 
-    DataStore.query(Form, (c) => c.formEventId.eq(id)).then( results => {
-      if(results.length > 0){
+    // AWS amplify data
+    DataStore.query(Form, (c) => c.formEventId.eq(id)).then((results) => {
+      if (results.length > 0) {
         setFormData(results[0].questions);
-        console.log(results[0])
       } else {
         console.log("No form data found");
       }
     });
   }, [id]);
 
-  if(!formData){
-    return <p>Loading...</p>
+  if (!formData) {
+    return <p>Loading...</p>;
   }
 
   const getTRS = async () => {
@@ -50,32 +60,109 @@ const Registro = ( props ) => {
   };
 
   class FormBuilder extends Component {
-
     fb = createRef();
     componentDidMount() {
-      $(this.fb.current).formRender(
-        { 
-          dataType: 'json',
-          formData
-        }
-      );
+      $(this.fb.current).formRender({
+        dataType: "json",
+        formData,
+      });
     }
 
     render() {
       return <div id="fb-editor" ref={this.fb} />;
     }
   }
+  // Download PDF Handler => A
+  const downloadPdf = () => {
+    const pdfContent = pdfContentRef.current;
 
-  const handleSubmit = () => {
-    clearErrorMessages(); 
+    if (!pdfContent) {
+      console.error("pdfContent not found");
+      return;
+    }
+
+    // Remove border around QRCode component
+    const qrCode = pdfContent.querySelector("#qrcode");
+    if (qrCode) {
+      qrCode.style.border = "none";
+    }
+
+    domtoimage
+      .toPng(pdfContent, { quality: 1 })
+      .then((dataUrl) => {
+        console.log(dataUrl);
+        const pdf = new jsPDF("p", "mm", "a4");
+        const imgWidth = 210; // A4 page width in mm
+        const imgHeight =
+          (pdfContent.clientHeight * imgWidth) / pdfContent.clientWidth;
+
+        pdf.addImage(dataUrl, "PNG", 0, 0, imgWidth, imgHeight);
+
+        pdf.save("ticket.pdf");
+      })
+      .catch((error) => {
+        console.error("Error while creating PDF:", error);
+      });
+  };
+
+  // Download PDF Handler => Final
+  let pdfExportComponent;
+
+  const handleExportToPDF = () => {
+    if (pdfExportComponent) {
+      pdfExportComponent.save();
+    }
+  };
+
+  const handleSubmit = async () => {
+    clearErrorMessages();
     const isValid = validateForm();
-  
+
     if (isValid) {
       const fbRender = document.querySelector("#fb-editor");
       const userData = $(fbRender).formRender("userData");
       setUserData(userData);
-      console.log(userData);
-      setFormRegister(true);
+
+      async function createAttende() {
+        const attendee = await DataStore.save(new Attendee({}));
+        return attendee;
+      }
+
+      const attendee = await createAttende(); // Make sure to await the creation of the attendee
+
+      if (attendee) {
+        try {
+          // Generate and save the PDF
+          const pdfContent = pdfContentRef.current;
+          const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
+          const base64Pdf = dataUrl.split(",")[1];
+
+          // Create and save the EventAttendee record with the base64 PDF
+          const newEventAttendee = await DataStore.save(
+            new EventAttendee({
+              eventID: eventID,
+              attendeeID: attendee.id,
+              authorized: false,
+              checkIn: false,
+              formAnswers: userData,
+              ticket: base64Pdf, // Store the PDF as a base64 string
+              email: "",
+              allowContact: false,
+              quantity,
+              scanned: 0,
+            })
+          );
+
+          // console.log(newEventAttendee);
+
+          setFormRegister(true);
+          // Download pdf => After user has succesfully done checkout
+          handleExport();
+        } catch (error) {
+          // Handle any errors that occur during PDF generation or saving
+          console.error("Error while creating or saving PDF:", error);
+        }
+      }
     } else {
       // Form is not valid, you can display a message or take any other action.
       console.log("Form is not valid");
@@ -86,12 +173,12 @@ const Registro = ( props ) => {
     const form = document.querySelector("#fb-editor .rendered-form");
     const formElements = form.querySelectorAll("[required]");
     let isValid = true;
-  
+
     formElements.forEach((element) => {
-      console.log(element)
+      console.log(element);
       if (!element.checkValidity()) {
         form.scrollIntoView({
-          behavior: 'smooth'
+          behavior: "smooth",
         });
         isValid = false;
         const error = document.createElement("div");
@@ -100,7 +187,7 @@ const Registro = ( props ) => {
         element.insertAdjacentElement("afterend", error);
       }
     });
-  
+
     return isValid;
   };
 
@@ -120,81 +207,206 @@ const Registro = ( props ) => {
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
       const pngFile = canvas.toDataURL("image/png");
-  
+
       const downloadLink = document.createElement("a");
       downloadLink.download = "qrcode";
       downloadLink.href = `${pngFile}`;
       downloadLink.click();
     };
-  
+
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
-    console.log("data:image/svg+xml;base64," + btoa(svgData))
+    console.log("data:image/svg+xml;base64," + btoa(svgData));
   };
+
+  const handleExport = () => {
+    // const capture = pdfContentRef.current;
+    // html2canvas(capture).then((canvas) => {
+    //   const imgData = canvas.toDataURL("image/png");
+    //   const doc = new jsPDF("p", "mm", "a4", true);
+    //   const componentWidth = doc.internal.pageSize.getWidth();
+    //   const componentHeight = doc.internal.pageSize.getHeight();
+    //   const imgWidth = canvas.width;
+    //   const imgHeight = canvas.height;
+    //   const ratio = Math.min(
+    //     componentWidth / imgWidth,
+    //     componentHeight / imgHeight
+    //   );
+    //   const imgX = (componentWidth - imgWidth * ratio) / 2;
+    //   const imgY = 30;
+    //   doc.addImage(imgData, "PNG", imgX, imgY, componentWidth, componentHeight);
+    //   doc.save("ticket.pdf");
+    // });
+    const pdfContent = document.getElementById("pdf-content").outerHTML;
+    html2pdf()
+      .set({ html2canvas: { scale: 2 } })
+      .from(pdfContent)
+      .save(`${props.landing.title}.pdf`);
+  };
+
+  // Creating an array of ticket components based on the quantity
+  const ticketsArray = Array.from({ length: quantity }, (v, i) => i);
 
   return (
     <div className="campus-page">
       <div className="grid h-full">
-        { !formRegister && 
-        <>
-          <Link
-            onClick={() => {
-              props.setShowRegister(false)
-            }}
-            className="flex gap items-center mb-4 font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white">
-            <MdChevronLeft className="h-7 w-7" /> Regresar
-          </Link>
+        {!formRegister && (
+          <>
+            <Link
+              onClick={() => {
+                props.setShowRegister(false);
+              }}
+              className="gap mb-4 flex items-center font-medium text-brand-500 hover:text-navy-700 hover:no-underline dark:hover:text-white"
+            >
+              <MdChevronLeft className="h-7 w-7" /> Regresar
+            </Link>
 
-          <h2 id="title-form" className="flex justify-center gap-2 text-4xl font-bold mb-5">
-            <HiOutlineDocumentText className="h-10 w-10" /> Formulario de Registro
-          </h2>
-          <div className="w-full max-w-[1000px] mx-auto">
-            <FormBuilder />
-            <div className="mb-5"></div>
-            <button href="crear" type="submit" onClick={() => {              
-              handleSubmit();
-              getTRS();
-              // Crear Attende
-              // Crear EventAttendee
-              // Luego del pago autorizar
+            <h2
+              id="title-form"
+              className="mb-5 flex justify-center gap-2 text-4xl font-bold"
+            >
+              <HiOutlineDocumentText className="h-10 w-10" /> Formulario de
+              Registro
+            </h2>
+            <div className="mx-auto w-full max-w-[1000px]">
+              <FormBuilder />
+              <div className="mb-5"></div>
+              <button
+                href="crear"
+                type="submit"
+                onClick={() => {
+                  handleSubmit();
+                  getTRS();
+                  // Crear Attende
+                  // Crear EventAttendee
+                  // Luego del pago autorizar
+                }}
+                className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
+              >
+                Enviar y completar pago
+              </button>
+            </div>
+          </>
+        )}
 
-            }}
-            className="w-full max-w-[270px] mx-auto linear flex justify-center items-center gap-1 pr-3 pl-3 rounded-xl bg-red-500 py-[12px] text-md font-medium text-white transition duration-200 hover:bg-black">
-              Enviar y completar pago
-            </button>
-          </div>
-        </>
-      }
-      
-      {userData.length !== 0 && (
-        <>
-          <div className="flex flex-col items-center justify-center mb-[35px] text-center">
-            <h1 className="text-2xl mb-1">Compra éxitosa!</h1>
-            <h2 className="text-xl mb-4">Descargue su ticket para escanearlo en el evento</h2>
-            <button href="descargar" onClick={() => {
-              downloadQR()
-            }}
-            className="w-full max-w-[270px] mx-auto linear flex justify-center items-center gap-1 pr-3 pl-3 rounded-xl bg-red-500 py-[12px] text-md font-medium text-white transition duration-200 hover:bg-black">
-              Descargar PDF
-            </button>
-          </div>
+        {userData.length !== 0 && (
+          <>
+            <div className="mb-[35px] flex flex-col items-center justify-center text-center">
+              <h1 className="mb-1 text-2xl">Compra éxitosa!</h1>
+              <h2 className="mb-4 text-xl">
+                Descargue su ticket para escanearlo en el evento
+              </h2>
+              {/* Via react-pdf  */}
+              {/* <PDFDownloadLink
+                document={
+                  <DigitalTicket
+                    userData={userData}
+                    eventID={eventID}
+                    props={props}
+                  />
+                }
+                fileName="your-pdf-file.pdf"
+              >
+                {({ blob, url, loading, error }) =>
+                  loading ? "Loading document..." : "Download now!"
+                }
+              </PDFDownloadLink> */}
+              <button
+                href="descargar"
+                onClick={handleExport}
+                // onClick={handleExportToPDF}
+                // onClick={downloadPdf}
+                className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
+              >
+                Descargar PDF
+              </button>
+            </div>
+            {/* Ticket 2  */}
+            <div
+              className={`mt-4 grid w-full ${
+                quantity > 1 && "md:grid-cols-2 lg:grid-cols-3"
+              } items-center gap-4`}
+            >
+              {ticketsArray.map((_, index) => (
+                <div
+                  key={index}
+                  ref={pdfContentRef}
+                  id="pdf-content"
+                  className="mb-4 flex w-full items-start justify-center"
+                >
+                  <div className="flex w-full max-w-[400px]  items-center justify-start bg-gray-100 border border-gray">
+                    <div className="ticket-bg flex w-full flex-col items-center justify-between gap-14 px-4 pb-4 pt-12">
+                      {/* QrCode + name of event + Logo  */}
+                      <div className="flex w-full flex-col items-center justify-start ">
+                        {/* => QrCode + Name of event + Logo  */}
+                        <div className="flex items-center justify-center bg-white p-1">
+                          <QRCode
+                            id="qrcode"
+                            className="mb-[40px]"
+                            size={170}
+                            style={{ height: "auto" }}
+                            value={eventID}
+                            viewBox={`0 0 200 200`}
+                          />
+                        </div>
+                        {/* => Event Name  */}
+                        <h1 className="mb-4 text-3xl font-bold">
+                          {props.landing.title}
+                        </h1>
+                        {/* => Logo  */}
+                        <img src={logo} className="w-[150px]" />
+                      </div>
+                      <div className="items-right flex w-full flex-col justify-end">
+                        {userData.map((data, i) => (
+                          <div key={i}>
+                            {data.name == "nombre" && (
+                              <p className="mb-1 w-full text-right text-md font-bold capitalize">
+                                {data.userData[0]}
+                              </p>
+                            )}
+                            {data.name == "empresa" && (
+                              <p className="mb-1 w-full text-right text-md font-bold capitalize">
+                                {data.userData[0]}
+                              </p>
+                            )}
+                            {data.name == "cargo" && (
+                              <p className="mb-1 w-full text-right text-md font-bold capitalize">
+                                {data.userData[0]}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                        <p className="mb-1 text-right text-sm font-normal mt-3 mb-2">
+                          Universidad San Francisco de Quito, Campus Cumbayá
+                        </p>
+                        <p className="l-auto mb-1 ml-auto max-w-fit bg-black px-2 py-[3px] text-right text-sm font-normal text-white">
+                          Viernes, Junio 16/06/2023 - 18:00pm
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* <div
+              ref={pdfContentRef}
+              id="pdf-content"
+              className="mx-auto mb-4 flex max-w-[800px] flex-col items-center
+          justify-center rounded-sm border border-gray-500 px-[30px] py-[30px] md:w-[550px]"
+            >
+              <img src={logo} className="mb-4 w-[150px]" />
 
-          <div className="flex flex-col items-center justify-center md:w-[550px] max-w-[800px]
-          border border-gray-500 rounded-sm mx-auto py-[25px] px-[25px] mb-4">
-            
-            <img src={logo} className="w-[120px] mb-3" />
-            
-            <h1 className="text-2xl font-bold mb-4">{props.landing.title}</h1>
+              <h1 className="mb-4 text-2xl font-bold">{props.landing.title}</h1>
 
             <QRCode
               id="qrcode"
-              className="mb-[30px]"
-              size={150}
+              className="mb-[40px]"
+              size={200}
               style={{ height: "auto" }}
               value="5fa09b0e-9fb1-4778-962b-fe1530b83e2c"
               viewBox={`0 0 200 200`}
             />
 
-            <div className="w-full border border-gray-500 mb-[25px]"></div>
+            <div className="w-full border border-gray-500 mb-[30px]"></div>
             {userData.map((data, i) => (
               <div key={i}>
                 {data.name == "text-1692266990765-0" && <p className="text-xl mb-2" >{data.userData[0]}</p>}
@@ -203,12 +415,15 @@ const Registro = ( props ) => {
               </div>
             ))}
 
-            <p className="text-lg mb-2">Viernes, Junio 16/06/2023 - 18:00pm</p>
-            <p className="text-lg mb-2">Universidad San Francisco de Quito, Campus Cumbayá</p>
-          </div>
-        </>
-      )}
-
+              <p className="mb-2 text-lg">
+                Viernes, Junio 16/06/2023 - 18:00pm
+              </p>
+              <p className="mb-2 text-lg">
+                Universidad San Francisco de Quito, Campus Cumbayá
+              </p>
+            </div> */}
+          </>
+        )}
       </div>
     </div>
   );
