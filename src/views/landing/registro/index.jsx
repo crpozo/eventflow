@@ -36,6 +36,19 @@ const Registro = ( props ) => {
     return <p>Loading...</p>
   }
 
+  const getTRS = async () => {
+    try {
+      const response = await fetch("https://bvq7tg35iuv6lbgndbqbwwhgim0mpnum.lambda-url.sa-east-1.on.aws/");
+      if (!response.ok) {
+        throw new Error(`HTTPS error! Status: ${response.status}`);
+      }
+      const responseData = await response.json();
+      console.log("getTokenFinancial: ",responseData);
+    } catch (err) {
+      console.log("getTokenFinancial: ", err)
+    }
+  };
+
   class FormBuilder extends Component {
 
     fb = createRef();
@@ -139,7 +152,7 @@ const Registro = ( props ) => {
             <div className="mb-5"></div>
             <button href="crear" type="submit" onClick={() => {              
               handleSubmit();
-              
+              getTRS();
               // Crear Attende
               // Crear EventAttendee
               // Luego del pago autorizar
