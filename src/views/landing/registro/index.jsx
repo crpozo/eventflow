@@ -6,7 +6,6 @@ import domtoimage from "dom-to-image";
 import html2pdf from "html2pdf.js";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import html2canvas from "html2canvas";
-import { PDFExport } from "@progress/kendo-react-pdf";
 import { useParams, Link } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
@@ -15,7 +14,7 @@ import { Form } from "models";
 import $ from "jquery";
 import { EventAttendee } from "models";
 import { Attendee } from "models";
-import DigitalTicket from "./Ticket";
+
 window.jQuery = $;
 window.$ = $;
 require("jquery-ui-sortable");
@@ -48,14 +47,16 @@ const Registro = (props) => {
 
   const getTRS = async () => {
     try {
-      const response = await fetch("https://bvq7tg35iuv6lbgndbqbwwhgim0mpnum.lambda-url.sa-east-1.on.aws/");
+      const response = await fetch(
+        "https://bvq7tg35iuv6lbgndbqbwwhgim0mpnum.lambda-url.sa-east-1.on.aws/"
+      );
       if (!response.ok) {
         throw new Error(`HTTPS error! Status: ${response.status}`);
       }
       const responseData = await response.json();
-      console.log("getTokenFinancial: ",responseData);
+      console.log("getTokenFinancial: ", responseData);
     } catch (err) {
-      console.log("getTokenFinancial: ", err)
+      console.log("getTokenFinancial: ", err);
     }
   };
 
@@ -219,23 +220,6 @@ const Registro = (props) => {
   };
 
   const handleExport = () => {
-    // const capture = pdfContentRef.current;
-    // html2canvas(capture).then((canvas) => {
-    //   const imgData = canvas.toDataURL("image/png");
-    //   const doc = new jsPDF("p", "mm", "a4", true);
-    //   const componentWidth = doc.internal.pageSize.getWidth();
-    //   const componentHeight = doc.internal.pageSize.getHeight();
-    //   const imgWidth = canvas.width;
-    //   const imgHeight = canvas.height;
-    //   const ratio = Math.min(
-    //     componentWidth / imgWidth,
-    //     componentHeight / imgHeight
-    //   );
-    //   const imgX = (componentWidth - imgWidth * ratio) / 2;
-    //   const imgY = 30;
-    //   doc.addImage(imgData, "PNG", imgX, imgY, componentWidth, componentHeight);
-    //   doc.save("ticket.pdf");
-    // });
     const pdfContent = document.getElementById("pdf-content").outerHTML;
     html2pdf()
       .set({ html2canvas: { scale: 2 } })
@@ -243,11 +227,58 @@ const Registro = (props) => {
       .save(`${props.landing.title}.pdf`);
   };
 
+  // Format Ticket date in spanish
+  function formatSpanishDate(dateString) {
+    const months = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+
+    const days = [
+      "Domingo",
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+      "Sábado",
+    ];
+
+    const date = new Date(dateString);
+    const dayName = days[date.getUTCDay()];
+    const monthName = months[date.getUTCMonth()];
+    const day = date.getUTCDate();
+    const month = date.getUTCMonth() + 1; // Adding 1 to match the "mm" format
+    const year = date.getUTCFullYear();
+    const hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
+
+    const formattedDate = `${dayName}, ${monthName} ${month
+      .toString()
+      .padStart(2, "0")}/${day.toString().padStart(2, "0")}/${year} - ${hours
+      .toString()
+      .padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${
+      hours >= 12 ? "PM" : "AM"
+    }`;
+
+    return formattedDate;
+  }
+
   // Creating an array of ticket components based on the quantity
   const ticketsArray = Array.from({ length: quantity }, (v, i) => i);
 
   return (
-    <div className="campus-page">
+    <div className={`campus-page `}>
       <div className="grid h-full">
         {!formRegister && (
           <>
@@ -323,7 +354,7 @@ const Registro = (props) => {
             {/* Ticket 2  */}
             <div
               className={`mt-4 grid w-full ${
-                quantity > 1 && "md:grid-cols-2 lg:grid-cols-3"
+                quantity > 1 && " lg:grid-cols-2"
               } items-center gap-4`}
             >
               {ticketsArray.map((_, index) => (
@@ -333,8 +364,15 @@ const Registro = (props) => {
                   id="pdf-content"
                   className="mb-4 flex w-full items-start justify-center"
                 >
-                  <div className="flex w-full max-w-[400px]  items-center justify-start bg-gray-100 border border-gray">
-                    <div className="ticket-bg flex w-full flex-col items-center justify-between gap-14 px-4 pb-4 pt-12">
+                  <div className="border-gray flex w-full max-w-[400px] items-center justify-start border border-solid pb-2">
+                    <div
+                      style={{
+                        background: "rgb(255,255,255)",
+                        background:
+                          " linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, rgba(255,251,235,1) 80%)",
+                      }}
+                      className=" flex w-full flex-col items-center justify-between gap-24 px-2 pb-3 pt-12"
+                    >
                       {/* QrCode + name of event + Logo  */}
                       <div className="flex w-full flex-col items-center justify-start ">
                         {/* => QrCode + Name of event + Logo  */}
@@ -359,27 +397,27 @@ const Registro = (props) => {
                         {userData.map((data, i) => (
                           <div key={i}>
                             {data.name == "nombre" && (
-                              <p className="mb-1 w-full text-right text-md font-bold capitalize">
+                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>
                             )}
                             {data.name == "empresa" && (
-                              <p className="mb-1 w-full text-right text-md font-bold capitalize">
+                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>
                             )}
                             {data.name == "cargo" && (
-                              <p className="mb-1 w-full text-right text-md font-bold capitalize">
+                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>
                             )}
                           </div>
                         ))}
-                        <p className="mb-1 text-right text-sm font-normal mt-3 mb-2">
-                          Universidad San Francisco de Quito, Campus Cumbayá
+                        <p className="mb-1 mb-2 mt-3 text-right text-sm font-normal">
+                          {props.event.location}
                         </p>
                         <p className="l-auto mb-1 ml-auto max-w-fit bg-black px-2 py-[3px] text-right text-sm font-normal text-white">
-                          Viernes, Junio 16/06/2023 - 18:00pm
+                          {formatSpanishDate(props.event.date)}
                         </p>
                       </div>
                     </div>

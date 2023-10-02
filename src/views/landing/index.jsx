@@ -25,7 +25,8 @@ export default function SignIn() {
   const [userData, setUserData] = useState([]);
   const [ticketsQuantity, setTicketsQuantity] = useState(1);
   const [selectedCost, setSelectedCost] = React.useState(null);
-  const [showRegister, setShowRegister] = React.useState(false); // Add a loading state
+  const [showRegister, setShowRegister] = React.useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const quantityIncrementHandler = () => {
     setTicketsQuantity((prevState) => prevState + 1);
@@ -187,12 +188,19 @@ export default function SignIn() {
 
       {landing && (
         <div className="absolute w-full">
+          {/* Placeholder Image  */}
+          {!imageLoaded && (
+            <div className="!min-h-[500px] w-full  bg-purplePrimary  md:!max-h-[600px]" />
+          )}
+          {/* Original Image  */}
           <StorageImage
             className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]"
             alt="banner"
             imgKey={landing.mainBanner}
             accessLevel="public"
             onStorageGetError={(error) => console.error(error)}
+            onLoad={() => setImageLoaded(true)}
+            style={{ display: imageLoaded ? "block" : "none" }}
           />
         </div>
       )}
@@ -207,145 +215,106 @@ export default function SignIn() {
           </p>
         </div>
       </div>
+      {/* Conditionals ==> Register for event +  Checkout and event details*/}
+      <div
+        className={`sm:px-2! container mx-auto mb-16 h-full w-full items-center justify-center px-4 md:px-0 lg:mb-10 lg:items-center lg:justify-start`}
+      >
+        <div
+          className={` ${
+            showRegister ? "block" : "hidden"
+          } transition-all duration-300`}
+        >
+          <Registro
+            landing={landing}
+            event={event}
+            setShowRegister={setShowRegister}
+            userData={userData}
+            setUserData={setUserData}
+            quantity={ticketsQuantity}
+            eventID={id}
+          />
+        </div>
+        <div className={`${showRegister ? "hidden" : "block"}`}>
+          <div
+            className={` mb-[60px] border-b border-gray-300 pb-[60px] transition-all duration-300`}
+          >
+            <h2 className="mb-5 text-4xl font-bold">Dónde y cuándo</h2>
 
-      <div className="container mx-auto mb-16 h-full w-full items-center justify-center px-4 sm:px-2! md:px-0 lg:mb-10 lg:items-center lg:justify-start">
-        {showRegister ? (
-          <>
-            <Registro
-              landing={landing}
-              setShowRegister={setShowRegister}
-              userData={userData}
-              setUserData={setUserData}
-              quantity={ticketsQuantity}
-              eventID={id}
-            />
-          </>
-        ) : (
-          <>
-            <div className="mb-[60px] border-b border-gray-300 pb-[60px]">
-              <h2 className="mb-5 text-4xl font-bold">Dónde y cuándo</h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-0">
-                <div className="flex items-center gap-5">
-                  <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
-                  <div>
-                    <h3 className="text-lg font-bold">Fecha y hora</h3>
-                    {event && (
-                      <p className="text-lg">{formatDate(event.date)}</p>
-                    )}
-                  </div>
+            <div className="grid grid-cols-1 gap-6 sm:gap-0 md:grid-cols-3">
+              <div className="flex items-center gap-5">
+                <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
+                <div>
+                  <h3 className="text-lg font-bold">Fecha y hora</h3>
+                  {event && <p className="text-lg">{formatDate(event.date)}</p>}
                 </div>
-                <div className="flex items-center gap-6">
-                  <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
-                  <div>
-                    <h3 className="text-lg font-bold">Ubicación</h3>
-                    <p className="text-lg">{landing.location}</p>
-                  </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
+                <div>
+                  <h3 className="text-lg font-bold">Ubicación</h3>
+                  <p className="text-lg">{landing.location}</p>
                 </div>
-                {/* Checkout  */}
-                <div className="mx-auto flex w-full max-w-[450px] flex-col justify-center rounded-md border border-gray-500 p-4">
-                  <div className="mb-3 flex flex-col sm:flex-row w-full sm:items-center justify-between gap-5">
-                    <select
-                      className="select-arrow w-full max-w-[270px] appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
-                      onChange={(e) => {
-                        setSelectedCost(e.target.value);
-                      }}
-                    >
-                      {tickets &&
-                        tickets.map((result, i) => (
-                          <option key={i} value={result.cost}>
-                            {result.title}
-                          </option>
-                        ))}
-                    </select>
-                    {/* Ticket Quantity => Increment / Decrement Boxes  */}
-
-                    <div className="flex shrink-0 items-center sm:justify-between gap-3">
-                      <div
-                        onClick={quantityDecrementHandler}
-                        className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
-                      >
-                        <MinusIcon className="text-base" />
-                      </div>
-                      <div className="text-xl font-semibold">
-                        {ticketsQuantity}
-                      </div>
-                      <div
-                        onClick={quantityIncrementHandler}
-                        className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
-                      >
-                        <PlusIcon className="cursor-pointer" />
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mb-3 text-xl font-bold">
-                    {selectedCost !== null ? selectedCost : "Vacio"}
-                  </p>
-                  {/* => Button  */}
-                  <button
-                    href="crear"
-                    onClick={() => setShowRegister(true)}
-                    className="linear text-md flex w-full items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
-                  >
-                    Reserver un lugar
-                  </button>
-                </div>
-                {/* Checkout  */}
-                {/* <div className="mx-auto flex w-full max-w-[450px] flex-col justify-center gap-4 rounded-xl border border-gray-500 p-4">
-                  <div className="flex w-full flex-col items-center justify-start gap-4 rounded-[10px] border-2 border-solid border-blue-700 p-3">
-                    <div className="flex w-full items-start justify-between gap-5">
-                      <div className="text-left text-base font-semibold">
-                        CriptoPro Business Seminar Ecuador
-                      </div>
-                      <div className="flex shrink-0 items-center justify-between gap-3">
-                        <div
-                          onClick={quantityDecrementHandler}
-                          className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
-                        >
-                          <MinusIcon className="text-base" />
-                        </div>
-                        <div className="text-xl font-semibold">
-                          {ticketsQuantity}
-                        </div>
-                        <div
-                          onClick={quantityIncrementHandler}
-                          className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
-                        >
-                          <PlusIcon className="cursor-pointer" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex w-full items-center justify-start gap-2">
-                      <div className="text-left text-base font-semibold">
-                        {" "}
-                        Gratis
-                      </div>
-                      <ExclaimationCircle className="text-lg text-blue-700" />
-                    </div>
-                  </div>
-                  <button
-                    href="crear"
-                    onClick={() => {
-                      setShowRegister(true);
+              </div>
+              {/* Checkout  */}
+              <div className="mx-auto flex w-full max-w-[450px] flex-col justify-center rounded-md border border-gray-500 p-4">
+                <div className="mb-3 flex w-full flex-col justify-between gap-5 sm:flex-row sm:items-center">
+                  <select
+                    className="select-arrow w-full max-w-[270px] appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
+                    onChange={(e) => {
+                      setSelectedCost(e.target.value);
                     }}
-                    className="linear text-md flex w-full items-center justify-center gap-1 rounded-md bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
                   >
-                    Reservar un lugar
-                  </button>
-                </div> */}
+                    {tickets &&
+                      tickets.map((result, i) => (
+                        <option key={i} value={result.cost}>
+                          {result.title}
+                        </option>
+                      ))}
+                  </select>
+                  {/* Ticket Quantity => Increment / Decrement Boxes  */}
+
+                  <div className="flex shrink-0 items-center gap-2 sm:justify-between">
+                    <div
+                      onClick={quantityDecrementHandler}
+                      className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
+                    >
+                      <MinusIcon className="text-base" />
+                    </div>
+                    <div className="flex min-w-[40px] items-center justify-center text-xl font-semibold">
+                      {ticketsQuantity}
+                    </div>
+                    <div
+                      onClick={quantityIncrementHandler}
+                      className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
+                    >
+                      <PlusIcon className="cursor-pointer" />
+                    </div>
+                  </div>
+                </div>
+                <p className="mb-3 text-xl font-bold">
+                  {selectedCost !== null ? selectedCost : "Vacio"}
+                </p>
+                {/* => Button  */}
+                <button
+                  href="crear"
+                  onClick={() => setShowRegister(true)}
+                  className="linear text-md flex w-full items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
+                >
+                  Reserver un lugar
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="mb-[80px]">
-              <h2 className="mb-5 text-4xl font-bold">Informacion adicional</h2>
-              <p className="text-lg">{landing.extraInfo}</p>
-            </div>
+          <div className="mb-[80px]">
+            <h2 className="mb-5 text-4xl font-bold">Informacion adicional</h2>
+            <p className="text-lg">{landing.extraInfo}</p>
+          </div>
 
-            <Link className="mb-2 flex justify-center text-center text-lg hover:no-underline">
-              Necesitas ayuda?
-            </Link>
-          </>
-        )}
+          <Link className="mb-2 flex justify-center text-center text-lg hover:no-underline">
+            Necesitas ayuda?
+          </Link>
+        </div>
       </div>
     </>
   );
