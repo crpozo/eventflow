@@ -1,4 +1,10 @@
-import React, { Component, createRef, useState, useRef } from "react";
+import React, {
+  Component,
+  createRef,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import logo from "assets/img/usfq/logo.svg";
 import QRCode from "react-qr-code";
 import jsPDF from "jspdf";
@@ -40,6 +46,14 @@ const Registro = (props) => {
       }
     });
   }, [id]);
+
+  // Using useEffect to listen for changes in formRegister
+  useEffect(() => {
+    if (formRegister) {
+      // Calling handleExport when formRegister becomes true
+      handleExport();
+    }
+  }, [formRegister]);
 
   if (!formData) {
     return <p>Loading...</p>;
@@ -112,61 +126,6 @@ const Registro = (props) => {
   const handleExportToPDF = () => {
     if (pdfExportComponent) {
       pdfExportComponent.save();
-    }
-  };
-
-  const handleSubmit = async () => {
-    clearErrorMessages();
-    const isValid = validateForm();
-
-    if (isValid) {
-      const fbRender = document.querySelector("#fb-editor");
-      const userData = $(fbRender).formRender("userData");
-      setUserData(userData);
-
-      async function createAttende() {
-        const attendee = await DataStore.save(new Attendee({}));
-        return attendee;
-      }
-
-      const attendee = await createAttende(); // Make sure to await the creation of the attendee
-
-      if (attendee) {
-        try {
-          // Generate and save the PDF
-          const pdfContent = pdfContentRef.current;
-          const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
-          const base64Pdf = dataUrl.split(",")[1];
-
-          // Create and save the EventAttendee record with the base64 PDF
-          const newEventAttendee = await DataStore.save(
-            new EventAttendee({
-              eventID: eventID,
-              attendeeID: attendee.id,
-              authorized: false,
-              checkIn: false,
-              formAnswers: userData,
-              ticket: base64Pdf, // Store the PDF as a base64 string
-              email: "",
-              allowContact: false,
-              quantity,
-              scanned: 0,
-            })
-          );
-
-          // console.log(newEventAttendee);
-
-          setFormRegister(true);
-          // Download pdf => After user has succesfully done checkout
-          handleExport();
-        } catch (error) {
-          // Handle any errors that occur during PDF generation or saving
-          console.error("Error while creating or saving PDF:", error);
-        }
-      }
-    } else {
-      // Form is not valid, you can display a message or take any other action.
-      console.log("Form is not valid");
     }
   };
 
@@ -273,6 +232,58 @@ const Registro = (props) => {
 
     return formattedDate;
   }
+
+  // Submit Form
+  const handleSubmit = async () => {
+    clearErrorMessages();
+    const isValid = validateForm();
+
+    if (isValid) {
+      const fbRender = document.querySelector("#fb-editor");
+      const userData = $(fbRender).formRender("userData");
+      setUserData(userData);
+
+      async function createAttende() {
+        const attendee = await DataStore.save(new Attendee({}));
+        return attendee;
+      }
+
+      const attendee = await createAttende(); // Make sure to await the creation of the attendee
+
+      if (attendee) {
+        try {
+          // Generate and save the PDF
+          const pdfContent = pdfContentRef.current;
+          const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
+          const base64Pdf = dataUrl.split(",")[1];
+
+          // Create and save the EventAttendee record with the base64 PDF
+          const newEventAttendee = await DataStore.save(
+            new EventAttendee({
+              eventID: eventID,
+              attendeeID: attendee.id,
+              authorized: false,
+              checkIn: false,
+              formAnswers: userData,
+              ticket: base64Pdf, // Store the PDF as a base64 string
+              email: "",
+              allowContact: false,
+              quantity,
+              scanned: 0,
+            })
+          );
+
+          setFormRegister(true);
+        } catch (error) {
+          // Handle any errors that occur during PDF generation or saving
+          console.error("Error while creating or saving PDF:", error);
+        }
+      }
+    } else {
+      // Form is not valid, you can display a message or take any other action.
+      console.log("Form is not valid");
+    }
+  };
 
   // Creating an array of ticket components based on the quantity
   const ticketsArray = Array.from({ length: quantity }, (v, i) => i);
