@@ -188,12 +188,13 @@ export default function SignIn() {
 
       {landing && (
         <div className="absolute w-full">
-          {/* Placeholder Image  */}
-          {!imageLoaded && (
-            <div className="!min-h-[500px] w-full  bg-purplePrimary  md:!max-h-[600px]" />
-          )}
-          {/* Original Image  */}
-          <StorageImage
+          <img 
+            className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]" 
+            src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}/>
+          {/* {!imageLoaded && (
+            <div className="!min-h-[500px] w-full  bg-lightGray  md:!max-h-[600px]" />
+          )}          
+           <StorageImage
             className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]"
             alt="banner"
             imgKey={landing.mainBanner}
@@ -201,7 +202,7 @@ export default function SignIn() {
             onStorageGetError={(error) => console.error(error)}
             onLoad={() => setImageLoaded(true)}
             style={{ display: imageLoaded ? "block" : "none" }}
-          />
+          /> */}
         </div>
       )}
 
