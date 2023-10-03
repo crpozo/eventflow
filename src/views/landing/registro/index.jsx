@@ -105,7 +105,6 @@ const Registro = (props) => {
     domtoimage
       .toPng(pdfContent, { quality: 1 })
       .then((dataUrl) => {
-        console.log(dataUrl);
         const pdf = new jsPDF("p", "mm", "a4");
         const imgWidth = 210; // A4 page width in mm
         const imgHeight =
@@ -135,7 +134,6 @@ const Registro = (props) => {
     let isValid = true;
 
     formElements.forEach((element) => {
-      console.log(element);
       if (!element.checkValidity()) {
         form.scrollIntoView({
           behavior: "smooth",
@@ -179,11 +177,18 @@ const Registro = (props) => {
   };
 
   const handleExport = () => {
+
+    for (let i = 0; i < quantity; i++) {
     const pdfContent = document.getElementById("pdf-content").outerHTML;
     html2pdf()
-      .set({ html2canvas: { scale: 2 } })
+      .set({ 
+        image: { type: 'jpeg', quality: 1 },
+        margin: [5, -220, 0, 0], 
+        jsPDF: { unit: 'mm', format: [520, 340]}
+      })
       .from(pdfContent)
-      .save(`${props.landing.title}.pdf`);
+      .save(`${props.landing.title + " - ticket "+ i }.pdf`);
+    }
   };
 
   // Format Ticket date in spanish
@@ -354,7 +359,9 @@ const Registro = (props) => {
               </PDFDownloadLink> */}
               <button
                 href="descargar"
-                onClick={handleExport}
+                onClick={() => {
+                  handleExport(); 
+                }}
                 // onClick={handleExportToPDF}
                 // onClick={downloadPdf}
                 className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
@@ -362,10 +369,9 @@ const Registro = (props) => {
                 Descargar PDF
               </button>
             </div>
-            {/* Ticket 2  */}
             <div
               className={`mt-4 grid w-full ${
-                quantity > 1 && " lg:grid-cols-2"
+                quantity > 1 && " lg:grid-cols-3"
               } items-center gap-4`}
             >
               {ticketsArray.map((_, index) => (
@@ -380,9 +386,9 @@ const Registro = (props) => {
                       style={{
                         background: "rgb(255,255,255)",
                         background:
-                          " linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, rgba(255,251,235,1) 80%)",
+                          " linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, #faf3e9f7 80%)",
                       }}
-                      className=" flex w-full flex-col items-center justify-between gap-24 px-2 pb-3 pt-12"
+                      className=" flex w-full flex-col items-center justify-between gap-[30px] px-2 pb-3 pt-12"
                     >
                       {/* QrCode + name of event + Logo  */}
                       <div className="flex w-full flex-col items-center justify-start ">
