@@ -10,8 +10,6 @@ import QRCode from "react-qr-code";
 import jsPDF from "jspdf";
 import domtoimage from "dom-to-image";
 import html2pdf from "html2pdf.js";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import html2canvas from "html2canvas";
 import { useParams, Link } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
@@ -30,7 +28,7 @@ require("formBuilder/dist/form-render.min.js");
 const Registro = (props) => {
   const { userData, setUserData, quantity, eventID } = props;
   const [formData, setFormData] = React.useState([]);
-  // const [userData, setUserData] = React.useState([]);
+  const [eventAttende, setEventAttende] = React.useState(null);
   const [formRegister, setFormRegister] = React.useState(false);
   const id = useParams().id;
 
@@ -173,7 +171,6 @@ const Registro = (props) => {
     };
 
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
-    console.log("data:image/svg+xml;base64," + btoa(svgData));
   };
 
   const handleExport = () => {
@@ -277,8 +274,11 @@ const Registro = (props) => {
               scanned: 0,
             })
           );
-
+          setEventAttende(newEventAttendee)
           setFormRegister(true);
+          // get token from USFQ
+          getTRS();
+
         } catch (error) {
           // Handle any errors that occur during PDF generation or saving
           console.error("Error while creating or saving PDF:", error);
@@ -322,7 +322,6 @@ const Registro = (props) => {
                 type="submit"
                 onClick={() => {
                   handleSubmit();
-                  getTRS();
                   // Crear Attende
                   // Crear EventAttendee
                   // Luego del pago autorizar
@@ -342,21 +341,6 @@ const Registro = (props) => {
               <h2 className="mb-4 text-xl">
                 Descargue su ticket para escanearlo en el evento
               </h2>
-              {/* Via react-pdf  */}
-              {/* <PDFDownloadLink
-                document={
-                  <DigitalTicket
-                    userData={userData}
-                    eventID={eventID}
-                    props={props}
-                  />
-                }
-                fileName="your-pdf-file.pdf"
-              >
-                {({ blob, url, loading, error }) =>
-                  loading ? "Loading document..." : "Download now!"
-                }
-              </PDFDownloadLink> */}
               <button
                 href="descargar"
                 onClick={() => {
@@ -394,14 +378,16 @@ const Registro = (props) => {
                       <div className="flex w-full flex-col items-center justify-start ">
                         {/* => QrCode + Name of event + Logo  */}
                         <div className="flex items-center justify-center bg-white p-1">
-                          <QRCode
-                            id="qrcode"
-                            className="mb-[40px]"
-                            size={170}
-                            style={{ height: "auto" }}
-                            value={eventID}
-                            viewBox={`0 0 200 200`}
-                          />
+                          {eventAttende && 
+                            <QRCode
+                              id="qrcode"
+                              className="mb-[40px]"
+                              size={170}
+                              style={{ height: "auto" }}
+                              value={eventAttende.id}
+                              viewBox={`0 0 200 200`}
+                            />
+                          }
                         </div>
                         {/* => Event Name  */}
                         <h1 className="mb-4 text-3xl font-bold">
@@ -442,41 +428,6 @@ const Registro = (props) => {
                 </div>
               ))}
             </div>
-            {/* <div
-              ref={pdfContentRef}
-              id="pdf-content"
-              className="mx-auto mb-4 flex max-w-[800px] flex-col items-center
-          justify-center rounded-sm border border-gray-500 px-[30px] py-[30px] md:w-[550px]"
-            >
-              <img src={logo} className="mb-4 w-[150px]" />
-
-              <h1 className="mb-4 text-2xl font-bold">{props.landing.title}</h1>
-
-            <QRCode
-              id="qrcode"
-              className="mb-[40px]"
-              size={200}
-              style={{ height: "auto" }}
-              value="5fa09b0e-9fb1-4778-962b-fe1530b83e2c"
-              viewBox={`0 0 200 200`}
-            />
-
-            <div className="w-full border border-gray-500 mb-[30px]"></div>
-            {userData.map((data, i) => (
-              <div key={i}>
-                {data.name == "text-1692266990765-0" && <p className="text-xl mb-2" >{data.userData[0]}</p>}
-                {data.name == "text-1692267033618-0" && <p className="text-lg mb-2">{data.userData[0]}</p>}
-                {data.name == "text-1692267060603-0" && <p className="text-lg mb-2">{data.userData[0]}</p>}
-              </div>
-            ))}
-
-              <p className="mb-2 text-lg">
-                Viernes, Junio 16/06/2023 - 18:00pm
-              </p>
-              <p className="mb-2 text-lg">
-                Universidad San Francisco de Quito, Campus Cumbayá
-              </p>
-            </div> */}
           </>
         )}
       </div>

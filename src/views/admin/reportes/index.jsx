@@ -294,33 +294,18 @@ const Dashboard = () => {
   // Get Diagrams
   React.useEffect(() => {
     if (eventSelectID == 0) {
-      // let query = Amplify.DataStore.query(Attendee);
-
-      // for (let i = 0; i < participants.length; i++) {
-      //   query = query.or(Post.ID.eq(participants[i]));
-      // }
-
-      // console.log("eventList: ",eventList.map(event => event.id))
       const eventListID = eventList.map((event) => event.id);
 
       DataStore.query(EventAttendee).then((results) => {
         console.log(results);
-        // console.log(results);
         const filteredData = results.filter((item) =>
           eventListID.includes(item.eventID)
         );
-
-        /*
-          console.log("resultados: ", filteredData);
-          processChart(results, setOptionCargos);
-          processChart(results, setOptionEdad);
-        */
       });
     } else {
       DataStore.query(Attendee, (a) =>
         a.EventAttendees.eventID.eq(eventSelectID)
       ).then((results) => {
-        // console.log(results);
         // Datos cargo de participantes
         setTotalRegistros(results.length);
 
@@ -426,46 +411,6 @@ const Dashboard = () => {
     return flattenedData;
   }
 
-  // ==> Export to excel handler
-  // function exportToExcel(data) {
-  //   const flattenedData = flattenData(data);
-  //   const ws = XLSX.utils.json_to_sheet(flattenedData.flat());
-  //   const wb = XLSX.utils.book_new();
-  //   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-  //   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  //   const blob = new Blob([excelBuffer], {
-  //     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  //   });
-  //   const eventName = eventList.find((item) => item.id === eventSelectID).title;
-  //   saveAs(blob, `${eventName}.xlsx`);
-  // }
-
-  // ==> Export to excel handler
-  // function exportToExcel(data) {
-  //   const flattenedData = flattenData(data);
-
-  //   // Create a worksheet from the data
-  //   const ws = XLSX.utils.json_to_sheet(flattenedData.flat());
-
-  //   // Create an empty row with the specified width for the header
-  //   const headerRow = Array(3).fill("");
-  //   // Insert the heading at the beginning of the empty row
-  //   headerRow[0] = "Expert Dev Labs";
-
-  //   // Insert the header row at the beginning of the worksheet
-  //   ws["A1"] = { v: headerRow[0], t: "s" }; // Set value and type for the header cell
-  //   ws["B1"] = { v: "", t: "s" }; // Empty cell in the second column
-  //   ws["C1"] = { v: "", t: "s" }; // Empty cell in the third column
-
-  //   const wb = XLSX.utils.book_new();
-  //   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-  //   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  //   const blob = new Blob([excelBuffer], {
-  //     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  //   });
-  //   const eventName = eventList.find((item) => item.id === eventSelectID).title;
-  //   saveAs(blob, `${eventName}.xlsx`);
-  // }
   // ==> With header variant
   function exportToExcel(data, charsData) {
     

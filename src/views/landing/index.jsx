@@ -41,10 +41,6 @@ export default function SignIn() {
     });
   };
 
-  useEffect(() => {
-    console.log(ticketsQuantity);
-  }, [ticketsQuantity]);
-
   React.useEffect(() => {
     const subEvent = DataStore.observeQuery(Event, (e) =>
       e.id.eq(id)
