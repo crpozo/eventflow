@@ -307,7 +307,6 @@ const Dashboard = () => {
         a.EventAttendees.eventID.eq(eventSelectID)
       ).then((results) => {
         // Datos cargo de participantes
-        setTotalRegistros(results.length);
 
         processChart(results, setOptionCargos, "position");
         processChart(results, setOptionEdad, "age");
@@ -317,6 +316,8 @@ const Dashboard = () => {
       DataStore.query(EventAttendee, (e) => e.eventID.eq(eventSelectID)).then(
         (results) => {
           console.log("EventAttendee: ", results);
+          setTotalRegistros(results.length);
+
           setTotalCheckIn(
             results.filter((item) => item.checkIn === true).length
           );
@@ -413,9 +414,8 @@ const Dashboard = () => {
 
   // ==> With header variant
   function exportToExcel(data, charsData) {
-    
-    if(!charsData || charsData.length == 0 ){
-      alert("No existen datos en el evento seleccionado")
+    if (!charsData || charsData.length == 0) {
+      alert("No existen datos en el evento seleccionado");
       return;
     }
 
@@ -433,7 +433,6 @@ const Dashboard = () => {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     saveAs(blob, `${eventName}.xlsx`);
-
   }
 
   // ==> Chart data handler
@@ -443,7 +442,7 @@ const Dashboard = () => {
 
     if (eventData && eventData.length > 0) {
       // Iterate through each event item
-      eventData.forEach((eventItem) => {
+      eventData.forEach((eventItem, index) => {
         eventItem.forEach((question) => {
           // Check if the question is required
           if (question.type === "number" || question.type === "select") {
@@ -532,7 +531,6 @@ const Dashboard = () => {
                 },
                 series: [
                   {
-                    // name: label,
                     type: "bar",
                     showBackground: true,
                     data: [], // This will be populated with userData and count
@@ -549,9 +547,9 @@ const Dashboard = () => {
             }
 
             // Check if an entry with the same label already exists in groupedData
-            if (!groupedData[question.name]) {
+            if (!groupedData[label]) {
               // If it doesn't exist, create a new entry with options and userData
-              groupedData[question.name] = {
+              groupedData[label] = {
                 title: label,
                 type: type,
                 options: options,
@@ -560,15 +558,15 @@ const Dashboard = () => {
             }
 
             // Populate the chart data for the specific question
-            const chartData = groupedData[question.name].options.series[0].data;
-            const userDataCounts = groupedData[question.name].userDataCounts;
+            const chartData = groupedData[label].options.series[0].data;
+            const userDataCounts = groupedData[label].userDataCounts;
             let barChartXaxisData;
             if (type === "bar-chart") {
-              barChartXaxisData = groupedData[question.name].options.xAxis.data;
+              barChartXaxisData = groupedData[label].options.xAxis.data;
             }
-
             if (userDataCounts[userData]) {
               userDataCounts[userData]++;
+              console.log(userDataCounts);
             } else {
               if (barChartXaxisData) {
                 barChartXaxisData.push(userData);
@@ -593,7 +591,6 @@ const Dashboard = () => {
   // ==> Use Effect  to execute events data
   useEffect(() => {
     if (attendees) {
-      console.log(attendees);
       const groupedData = groupEventData(attendees);
       setChartsData(groupedData);
       console.log("chartsData: ", groupedData);
