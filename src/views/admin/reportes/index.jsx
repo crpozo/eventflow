@@ -566,7 +566,14 @@ const Dashboard = () => {
             }
             if (userDataCounts[userData]) {
               userDataCounts[userData]++;
-              console.log(userDataCounts);
+              if (index === eventData.length - 1 && groupedData[label]) {
+                const keys = Object.keys(userDataCounts);
+                const data = keys.map((key) => ({
+                  name: key,
+                  value: userDataCounts[key],
+                }));
+                groupedData[label].options.series[0].data = data;
+              }
             } else {
               if (barChartXaxisData) {
                 barChartXaxisData.push(userData);
