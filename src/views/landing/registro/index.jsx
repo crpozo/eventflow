@@ -1,13 +1,10 @@
 import React, {
   Component,
   createRef,
-  useState,
-  useEffect,
   useRef,
 } from "react";
 import logo from "assets/img/usfq/logo.svg";
 import QRCode from "react-qr-code";
-import jsPDF from "jspdf";
 import domtoimage from "dom-to-image";
 import html2pdf from "html2pdf.js";
 import { useParams, Link } from "react-router-dom";
@@ -16,8 +13,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { DataStore } from "aws-amplify";
 import { Form } from "models";
 import $ from "jquery";
-import { EventAttendee } from "models";
-import { Attendee } from "models";
+import { Attendee, EventAttendee } from "models";
 
 window.jQuery = $;
 window.$ = $;
@@ -26,9 +22,10 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantity, eventID } = props;
+  const { userData, setUserData, quantity, price, eventID } = props;
   const [formData, setFormData] = React.useState([]);
   const [eventAttende, setEventAttende] = React.useState(null);
+  const [authorized, setAuthorized] = React.useState(false);
   const [formRegister, setFormRegister] = React.useState(false);
   const id = useParams().id;
 
@@ -45,19 +42,29 @@ const Registro = (props) => {
     });
   }, [id]);
 
-  // Using useEffect to listen for changes in formRegister
+  React.useEffect(() => {
+    if(eventAttende && eventAttende.id){
+      const eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
+      e.id.eq(eventAttende.id)
+      ).subscribe((results) => {
+        console.log(results);
+      });
+    }
+  });
+
+  /*
   useEffect(() => {
     if (formRegister) {
-      // Calling handleExport when formRegister becomes true
       handleExport();
     }
   }, [formRegister]);
+  */
 
   if (!formData) {
     return <p>Loading...</p>;
   }
 
-  const getTRS = async () => {
+  const getTokenFinancial = async () => {
     try {
       const response = await fetch(
         "https://bvq7tg35iuv6lbgndbqbwwhgim0mpnum.lambda-url.sa-east-1.on.aws/"
@@ -66,9 +73,40 @@ const Registro = (props) => {
         throw new Error(`HTTPS error! Status: ${response.status}`);
       }
       const responseData = await response.json();
-      console.log("getTokenFinancial: ", responseData);
+      return responseData.access_token;
     } catch (err) {
       console.log("getTokenFinancial: ", err);
+    }
+  };
+
+  const postRegistroFinanciero = async (data, accessToken) => {
+    try {
+
+      const response = await fetch(
+        "https://wsexternal.usfq.edu.ec/WSFinancieroUSFQ/WSFinancieroUSFQ-DESA/financiero/PostRegistroExternos",
+        {
+          method: "POST",
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            "Authorization": `Bearer ${accessToken}`
+          },
+          body: JSON.stringify(data),
+        }
+      );
+  
+      if (!response.ok) {
+        const errorResponseData = await response.json();
+        console.log(errorResponseData)
+        console.log(response)
+        throw new Error(`HTTPS error! Status: ${response.status}`);
+      }
+  
+      const responseData = await response.json();
+      return responseData[0].valor;
+    } catch (err) {
+      console.error("postRegistroFinanciero: ", err);
+      throw err;
     }
   };
 
@@ -85,46 +123,6 @@ const Registro = (props) => {
       return <div id="fb-editor" ref={this.fb} />;
     }
   }
-  // Download PDF Handler => A
-  const downloadPdf = () => {
-    const pdfContent = pdfContentRef.current;
-
-    if (!pdfContent) {
-      console.error("pdfContent not found");
-      return;
-    }
-
-    // Remove border around QRCode component
-    const qrCode = pdfContent.querySelector("#qrcode");
-    if (qrCode) {
-      qrCode.style.border = "none";
-    }
-
-    domtoimage
-      .toPng(pdfContent, { quality: 1 })
-      .then((dataUrl) => {
-        const pdf = new jsPDF("p", "mm", "a4");
-        const imgWidth = 210; // A4 page width in mm
-        const imgHeight =
-          (pdfContent.clientHeight * imgWidth) / pdfContent.clientWidth;
-
-        pdf.addImage(dataUrl, "PNG", 0, 0, imgWidth, imgHeight);
-
-        pdf.save("ticket.pdf");
-      })
-      .catch((error) => {
-        console.error("Error while creating PDF:", error);
-      });
-  };
-
-  // Download PDF Handler => Final
-  let pdfExportComponent;
-
-  const handleExportToPDF = () => {
-    if (pdfExportComponent) {
-      pdfExportComponent.save();
-    }
-  };
 
   const validateForm = () => {
     const form = document.querySelector("#fb-editor .rendered-form");
@@ -150,27 +148,6 @@ const Registro = (props) => {
   const clearErrorMessages = () => {
     const errorMessages = document.querySelectorAll(".error-message");
     errorMessages.forEach((error) => error.remove());
-  };
-
-  const downloadQR = () => {
-    const svg = document.getElementById("qrcode");
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.onload = function () {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const pngFile = canvas.toDataURL("image/png");
-
-      const downloadLink = document.createElement("a");
-      downloadLink.download = "qrcode";
-      downloadLink.href = `${pngFile}`;
-      downloadLink.click();
-    };
-
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
   const handleExport = () => {
@@ -254,11 +231,6 @@ const Registro = (props) => {
 
       if (attendee) {
         try {
-          // Generate and save the PDF
-          const pdfContent = pdfContentRef.current;
-          const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
-          const base64Pdf = dataUrl.split(",")[1];
-
           // Create and save the EventAttendee record with the base64 PDF
           const newEventAttendee = await DataStore.save(
             new EventAttendee({
@@ -267,8 +239,8 @@ const Registro = (props) => {
               authorized: false,
               checkIn: false,
               formAnswers: userData,
-              ticket: base64Pdf, // Store the PDF as a base64 string
-              email: "",
+              ticket: '', // Store the PDF as a base64 string
+              email: userData.find(item => item.name === 'email').userData[0].toString(),
               allowContact: false,
               quantity,
               scanned: 0,
@@ -277,15 +249,51 @@ const Registro = (props) => {
           setEventAttende(newEventAttendee)
           setFormRegister(true);
           // get token from USFQ
-          getTRS();
+          const accessToken = await getTokenFinancial();
+          const requestBody = [{
+            identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
+            nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
+            direccion: userData.find(item => item.name === 'direccion').userData[0].toString(),
+            telefono: userData.find(item => item.name === 'telefono').userData[0].toString(),
+            correo: userData.find(item => item.name === 'email').userData[0].toString(),
+            valor: price.replace(/\$/g, ''),
+            evento_descripcion: "TEST",
+            evento_id: "810110188",
+            trs_unico: "",
+            codigo: "0",
+            clave: "SEOP",
+            tipo_pago: "O",
+            diferido: "BTNS",
+            periodo: "202320",
+            correo_adicional: "",
+            colegio: "",
+            especialidad: "",
+            envio: "N",
+            usuario: "OPIEVENTOS",
+          }];
+          const trs = await postRegistroFinanciero(requestBody, accessToken)
+          console.log(requestBody)
+          window.open(`https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`, '_blank');
+
+
+          // Chequear la base de datos, si cambio autorize ejecutar
+          // Una vez realizado el pago generar pdf y autorizar variable.
+
+          // DataStore.clear()
+
+          // Generate and save the PDF
+          /*
+          const pdfContent = pdfContentRef.current;
+          const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
+          const base64Pdf = dataUrl.split(",")[1];
+          */
+
 
         } catch (error) {
-          // Handle any errors that occur during PDF generation or saving
-          console.error("Error while creating or saving PDF:", error);
+          console.error("HandleSubmit:", error);
         }
       }
     } else {
-      // Form is not valid, you can display a message or take any other action.
       console.log("Form is not valid");
     }
   };
@@ -322,9 +330,6 @@ const Registro = (props) => {
                 type="submit"
                 onClick={() => {
                   handleSubmit();
-                  // Crear Attende
-                  // Crear EventAttendee
-                  // Luego del pago autorizar
                 }}
                 className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
@@ -334,7 +339,19 @@ const Registro = (props) => {
           </>
         )}
 
-        {userData.length !== 0 && (
+        {!authorized && formRegister &&
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-75">
+            <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
+            <h2 className="mb-2 text-center text-xl font-semibold text-black">
+              Esperando recibir el pago desde la plataforma USFQ...
+            </h2>
+            <p className="w-1/3 text-center text-black">
+              Por favor no cierre esta página.
+            </p>
+          </div>
+        }
+
+        {authorized && userData.length !== 0 && (
           <>
             <div className="mb-[35px] flex flex-col items-center justify-center text-center">
               <h1 className="mb-1 text-2xl">Compra éxitosa!</h1>
@@ -346,8 +363,6 @@ const Registro = (props) => {
                 onClick={() => {
                   handleExport(); 
                 }}
-                // onClick={handleExportToPDF}
-                // onClick={downloadPdf}
                 className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
                 Descargar PDF
@@ -372,7 +387,7 @@ const Registro = (props) => {
                         background:
                           " linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, #faf3e9f7 80%)",
                       }}
-                      className=" flex w-full flex-col items-center justify-between gap-[30px] px-2 pb-3 pt-12"
+                      className=" flex w-full flex-col items-center justify-between gap-[30px] px-2 pb-3 pt-8"
                     >
                       {/* QrCode + name of event + Logo  */}
                       <div className="flex w-full flex-col items-center justify-start ">
@@ -381,7 +396,7 @@ const Registro = (props) => {
                           {eventAttende && 
                             <QRCode
                               id="qrcode"
-                              className="mb-[40px]"
+                              className="mb-[24px]"
                               size={170}
                               style={{ height: "auto" }}
                               value={eventAttende.id}
@@ -396,7 +411,7 @@ const Registro = (props) => {
                         {/* => Logo  */}
                         <img src={logo} className="w-[150px]" />
                       </div>
-                      <div className="items-right flex w-full flex-col justify-end">
+                      <div className="items-center flex w-full flex-col justify-center">
                         {userData.map((data, i) => (
                           <div key={i}>
                             {data.name == "nombre" && (
@@ -414,12 +429,17 @@ const Registro = (props) => {
                                 {data.userData[0]}
                               </p>
                             )}
+                            {eventAttende && (
+                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
+                                Código de ticket: {eventAttende.id}
+                              </p>
+                            )}
                           </div>
                         ))}
                         <p className="mb-1 mb-2 mt-3 text-right text-sm font-normal">
                           {props.event.location}
                         </p>
-                        <p className="l-auto mb-1 ml-auto max-w-fit bg-black px-2 py-[3px] text-right text-sm font-normal text-white">
+                        <p className="l-auto mb-1 max-w-fit bg-black px-2 py-[3px] text-right text-sm font-normal text-white">
                           {formatSpanishDate(props.event.date)}
                         </p>
                       </div>

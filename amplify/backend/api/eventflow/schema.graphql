@@ -10,6 +10,8 @@ type EventAttendee @model @auth(rules: [{allow: public}]) {
   allowContact: Boolean
   quantity: Int
   scanned: Int
+  termsConditions: String
+  profileURL: String
 }
 
 type Form @model @auth(rules: [{allow: public}]) {

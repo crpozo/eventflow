@@ -22,6 +22,8 @@ type EagerEventAttendee = {
   readonly allowContact?: boolean | null;
   readonly quantity?: number | null;
   readonly scanned?: number | null;
+  readonly termsConditions?: string | null;
+  readonly profileURL?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -42,6 +44,8 @@ type LazyEventAttendee = {
   readonly allowContact?: boolean | null;
   readonly quantity?: number | null;
   readonly scanned?: number | null;
+  readonly termsConditions?: string | null;
+  readonly profileURL?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }

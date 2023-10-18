@@ -228,6 +228,7 @@ export default function SignIn() {
             userData={userData}
             setUserData={setUserData}
             quantity={ticketsQuantity}
+            price={selectedCost}
             eventID={id}
           />
         </div>
