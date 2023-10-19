@@ -149,6 +149,7 @@ module.exports = {
       black: "#1A1A1A",
       blackBanner: "#000000b3",
       usfqPrimary: "#faf3e9f7",
+      lightGray: "#F8F8F8",
       gray: {
         50: "#EEEDF2",
         100: "#edf2f7",

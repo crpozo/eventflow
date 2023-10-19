@@ -82,7 +82,7 @@ const Dashboard = () => {
             ))}
           </div>
         :
-        <p><AiOutlineWarning className="flex gap-2 items-center"/> No existen subáreas para el área seleccionada...</p>
+        <p className="flex gap-2 items-center"><AiOutlineWarning/> No existen subáreas para el área seleccionada...</p>
         }
 
       </div>

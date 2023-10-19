@@ -20,6 +20,9 @@ type EagerEventAttendee = {
   readonly ticket?: string | null;
   readonly email?: string | null;
   readonly allowContact?: boolean | null;
+  readonly quantity?: number | null;
+  readonly scanned?: number | null;
+  readonly profileURL?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -38,6 +41,9 @@ type LazyEventAttendee = {
   readonly ticket?: string | null;
   readonly email?: string | null;
   readonly allowContact?: boolean | null;
+  readonly quantity?: number | null;
+  readonly scanned?: number | null;
+  readonly profileURL?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -134,10 +140,6 @@ type EagerAttendee = {
     readOnlyFields: 'createdAt' | 'updatedAt';
   };
   readonly id: string;
-  readonly name?: string | null;
-  readonly type?: string | null;
-  readonly age?: number | null;
-  readonly position?: string | null;
   readonly EventAttendees?: (EventAttendee | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
@@ -149,10 +151,6 @@ type LazyAttendee = {
     readOnlyFields: 'createdAt' | 'updatedAt';
   };
   readonly id: string;
-  readonly name?: string | null;
-  readonly type?: string | null;
-  readonly age?: number | null;
-  readonly position?: string | null;
   readonly EventAttendees: AsyncCollection<EventAttendee>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;

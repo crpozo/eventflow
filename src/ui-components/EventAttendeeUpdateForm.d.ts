@@ -22,6 +22,9 @@ export declare type EventAttendeeUpdateFormInputValues = {
     ticket?: string;
     email?: string;
     allowContact?: boolean;
+    quantity?: number;
+    scanned?: number;
+    profileURL?: string;
 };
 export declare type EventAttendeeUpdateFormValidationValues = {
     eventID?: ValidationFunction<string>;
@@ -32,6 +35,9 @@ export declare type EventAttendeeUpdateFormValidationValues = {
     ticket?: ValidationFunction<string>;
     email?: ValidationFunction<string>;
     allowContact?: ValidationFunction<boolean>;
+    quantity?: ValidationFunction<number>;
+    scanned?: ValidationFunction<number>;
+    profileURL?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventAttendeeUpdateFormOverridesProps = {
@@ -44,6 +50,9 @@ export declare type EventAttendeeUpdateFormOverridesProps = {
     ticket?: PrimitiveOverrideProps<TextFieldProps>;
     email?: PrimitiveOverrideProps<TextFieldProps>;
     allowContact?: PrimitiveOverrideProps<SwitchFieldProps>;
+    quantity?: PrimitiveOverrideProps<TextFieldProps>;
+    scanned?: PrimitiveOverrideProps<TextFieldProps>;
+    profileURL?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type EventAttendeeUpdateFormProps = React.PropsWithChildren<{
     overrides?: EventAttendeeUpdateFormOverridesProps | undefined | null;

@@ -15,13 +15,13 @@ export declare type ValidationFunction<T> = (value: T, validationResponse: Valid
 export declare type AttendeeCreateFormInputValues = {
     name?: string;
     type?: string;
-    age?: number;
+    age?: string;
     position?: string;
 };
 export declare type AttendeeCreateFormValidationValues = {
     name?: ValidationFunction<string>;
     type?: ValidationFunction<string>;
-    age?: ValidationFunction<number>;
+    age?: ValidationFunction<string>;
     position?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;

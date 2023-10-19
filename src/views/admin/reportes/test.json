@@ -1,0 +1,104 @@
+[
+  {
+    "access": false,
+    "userData": ["3"],
+    "subtype": "text",
+    "name": "nombre",
+    "className": "form-control",
+    "label": "Nombre y apellido",
+    "placeholder": "Paula Romero",
+    "type": "text",
+    "required": true
+  },
+  {
+    "access": false,
+    "userData": ["female"],
+    "values": [
+      { "label": "Male", "value": "male", "selected": true },
+      { "label": "Female", "value": "female", "selected": false },
+      { "label": "Not to say", "value": "none", "selected": false }
+    ],
+    "name": "select-1692267006129-0",
+    "multiple": false,
+    "className": "pie-chart form-control",
+    "label": "Genero",
+    "type": "select",
+    "required": true
+  },
+  {
+    "access": false,
+    "userData": ["3"],
+    "name": "number-1695138715671-0",
+    "className": "form-control cedula-regex",
+    "step": 1,
+    "label": "CGPA",
+    "placeholder": "Enter your CGPA",
+    "type": "number",
+    "required": true
+  },
+  {
+    "access": false,
+    "userData": ["3"],
+    "name": "number-1695138864862-0",
+    "className": "form-control",
+    "label": "Ticket Price",
+    "placeholder": "Enter your ticket price",
+    "type": "number",
+    "required": false
+  },
+  {
+    "access": false,
+    "userData": ["3"],
+    "subtype": "text",
+    "name": "empresa",
+    "className": "form-control",
+    "label": "Empresa",
+    "placeholder": "Yanbal Ecuador ",
+    "type": "text",
+    "required": true
+  },
+  {
+    "access": false,
+    "userData": ["3"],
+    "subtype": "text",
+    "name": "cargo",
+    "className": "form-control",
+    "label": "Cargo",
+    "placeholder": "Directora Ejecutiva",
+    "type": "text",
+    "required": true
+  },
+  {
+    "access": false,
+    "userData": [""],
+    "subtype": "text",
+    "name": "text-1692267104279-0",
+    "className": "form-control",
+    "label": "Teléfono",
+    "placeholder": "+593 99 5653 987",
+    "type": "text",
+    "required": false
+  },
+  {
+    "access": false,
+    "userData": [""],
+    "subtype": "email",
+    "name": "text-1692267124404-0",
+    "className": "form-control",
+    "label": "Email corporativo",
+    "placeholder": "promero@yanbal.com",
+    "type": "text",
+    "required": false
+  },
+  {
+    "access": false,
+    "userData": [""],
+    "subtype": "email",
+    "name": "text-1692267142588-0",
+    "className": "form-control",
+    "label": "Linkedin",
+    "placeholder": "promero@yanbal.com",
+    "type": "text",
+    "required": false
+  }
+]

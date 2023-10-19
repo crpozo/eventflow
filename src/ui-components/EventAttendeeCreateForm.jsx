@@ -203,6 +203,9 @@ export default function EventAttendeeCreateForm(props) {
     ticket: "",
     email: "",
     allowContact: false,
+    quantity: "",
+    scanned: "",
+    profileURL: "",
   };
   const [eventID, setEventID] = React.useState(initialValues.eventID);
   const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
@@ -216,6 +219,9 @@ export default function EventAttendeeCreateForm(props) {
   const [allowContact, setAllowContact] = React.useState(
     initialValues.allowContact
   );
+  const [quantity, setQuantity] = React.useState(initialValues.quantity);
+  const [scanned, setScanned] = React.useState(initialValues.scanned);
+  const [profileURL, setProfileURL] = React.useState(initialValues.profileURL);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setEventID(initialValues.eventID);
@@ -230,6 +236,9 @@ export default function EventAttendeeCreateForm(props) {
     setTicket(initialValues.ticket);
     setEmail(initialValues.email);
     setAllowContact(initialValues.allowContact);
+    setQuantity(initialValues.quantity);
+    setScanned(initialValues.scanned);
+    setProfileURL(initialValues.profileURL);
     setErrors({});
   };
   const [currentEventIDDisplayValue, setCurrentEventIDDisplayValue] =
@@ -252,7 +261,7 @@ export default function EventAttendeeCreateForm(props) {
   }).items;
   const getDisplayValue = {
     eventID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
-    attendeeID: (r) => `${r?.name ? r?.name + " - " : ""}${r?.id}`,
+    attendeeID: (r) => r?.id,
   };
   const validations = {
     eventID: [{ type: "Required" }],
@@ -263,6 +272,9 @@ export default function EventAttendeeCreateForm(props) {
     ticket: [],
     email: [],
     allowContact: [],
+    quantity: [],
+    scanned: [],
+    profileURL: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -298,6 +310,9 @@ export default function EventAttendeeCreateForm(props) {
           ticket,
           email,
           allowContact,
+          quantity,
+          scanned,
+          profileURL,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -357,6 +372,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket,
               email,
               allowContact,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.eventID ?? value;
@@ -443,6 +461,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket,
               email,
               allowContact,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.attendeeID ?? value;
@@ -536,6 +557,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket,
               email,
               allowContact,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.authorized ?? value;
@@ -567,6 +591,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket,
               email,
               allowContact,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.checkIn ?? value;
@@ -597,6 +624,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket,
               email,
               allowContact,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.formAnswers ?? value;
@@ -628,6 +658,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket: value,
               email,
               allowContact,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.ticket ?? value;
@@ -659,6 +692,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket,
               email: value,
               allowContact,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.email ?? value;
@@ -690,6 +726,9 @@ export default function EventAttendeeCreateForm(props) {
               ticket,
               email,
               allowContact: value,
+              quantity,
+              scanned,
+              profileURL,
             };
             const result = onChange(modelFields);
             value = result?.allowContact ?? value;
@@ -704,6 +743,116 @@ export default function EventAttendeeCreateForm(props) {
         hasError={errors.allowContact?.hasError}
         {...getOverrideProps(overrides, "allowContact")}
       ></SwitchField>
+      <TextField
+        label="Quantity"
+        isRequired={false}
+        isReadOnly={false}
+        type="number"
+        step="any"
+        value={quantity}
+        onChange={(e) => {
+          let value = isNaN(parseInt(e.target.value))
+            ? e.target.value
+            : parseInt(e.target.value);
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket,
+              email,
+              allowContact,
+              quantity: value,
+              scanned,
+              profileURL,
+            };
+            const result = onChange(modelFields);
+            value = result?.quantity ?? value;
+          }
+          if (errors.quantity?.hasError) {
+            runValidationTasks("quantity", value);
+          }
+          setQuantity(value);
+        }}
+        onBlur={() => runValidationTasks("quantity", quantity)}
+        errorMessage={errors.quantity?.errorMessage}
+        hasError={errors.quantity?.hasError}
+        {...getOverrideProps(overrides, "quantity")}
+      ></TextField>
+      <TextField
+        label="Scanned"
+        isRequired={false}
+        isReadOnly={false}
+        type="number"
+        step="any"
+        value={scanned}
+        onChange={(e) => {
+          let value = isNaN(parseInt(e.target.value))
+            ? e.target.value
+            : parseInt(e.target.value);
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket,
+              email,
+              allowContact,
+              quantity,
+              scanned: value,
+              profileURL,
+            };
+            const result = onChange(modelFields);
+            value = result?.scanned ?? value;
+          }
+          if (errors.scanned?.hasError) {
+            runValidationTasks("scanned", value);
+          }
+          setScanned(value);
+        }}
+        onBlur={() => runValidationTasks("scanned", scanned)}
+        errorMessage={errors.scanned?.errorMessage}
+        hasError={errors.scanned?.hasError}
+        {...getOverrideProps(overrides, "scanned")}
+      ></TextField>
+      <TextField
+        label="Profile url"
+        isRequired={false}
+        isReadOnly={false}
+        value={profileURL}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket,
+              email,
+              allowContact,
+              quantity,
+              scanned,
+              profileURL: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.profileURL ?? value;
+          }
+          if (errors.profileURL?.hasError) {
+            runValidationTasks("profileURL", value);
+          }
+          setProfileURL(value);
+        }}
+        onBlur={() => runValidationTasks("profileURL", profileURL)}
+        errorMessage={errors.profileURL?.errorMessage}
+        hasError={errors.profileURL?.hasError}
+        {...getOverrideProps(overrides, "profileURL")}
+      ></TextField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

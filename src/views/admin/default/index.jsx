@@ -80,7 +80,7 @@ const Dashboard = () => {
             </Link>
           </>
           :
-          <p> <AiOutlineWarning className="flex gap-2 items-center"/> No existen eventos en la base de datos...</p>
+          <p className="flex gap-2 items-center"> <AiOutlineWarning/> No existen eventos en la base de datos...</p>
         }
 
       </div>
