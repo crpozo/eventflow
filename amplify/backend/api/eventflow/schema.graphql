@@ -8,6 +8,9 @@ type EventAttendee @model @auth(rules: [{allow: public}]) {
   ticket: String
   email: String
   allowContact: Boolean
+  quantity: Int
+  scanned: Int
+  profileURL: String
 }
 
 type Form @model @auth(rules: [{allow: public}]) {
@@ -32,10 +35,6 @@ type Landing @model @auth(rules: [{allow: public}]) {
 
 type Attendee @model @auth(rules: [{allow: public}]) {
   id: ID!
-  name: String
-  type: String
-  age: Int
-  position: String
   EventAttendees: [EventAttendee] @hasMany(indexName: "byAttendee", fields: ["id"])
 }
 
