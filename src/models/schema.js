@@ -80,13 +80,6 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
-                "termsConditions": {
-                    "name": "termsConditions",
-                    "isArray": false,
-                    "type": "String",
-                    "isRequired": false,
-                    "attributes": []
-                },
                 "profileURL": {
                     "name": "profileURL",
                     "isArray": false,
@@ -944,5 +937,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "df5c7c864b570485c7af0559090ac3dd"
+    "version": "ed8f94ea9509cd290e900786846f1cc6"
 };

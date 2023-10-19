@@ -162,10 +162,17 @@ button:focus-visible {
 /* Formulario */
 
 .form-wrap.form-builder ul.frmb {
-  padding: 30px 20px;
-  background: white;
+  padding: 0;
+  background: transparent;
   border-radius: 25px;
   width: calc(73% - 5px);
+}
+
+.form-wrap.form-builder .frmb li.form-field{
+  background: transparent;
+  margin-bottom: 9px !important;
+  padding-bottom: 25px !important;
+  border-bottom: 1px solid #dfdfdf;
 }
 
 .form-wrap.form-builder div.btn-group {
@@ -196,10 +203,11 @@ button:focus-visible {
   background: #028cff;
 }
 
-/* Render Form */
-
-.rendered-form .error-message {
+.form-wrap.form-builder .frmb li.form-field:last-child{
+  border:0;
 }
+
+/* Render Form */
 
 .rendered-form label[class*="formbuilder"] {
   font-weight: 500;

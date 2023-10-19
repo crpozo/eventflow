@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
 import { Form } from "models"
+import {
+  MdEditCalendar
+} from "react-icons/md";
 import $ from "jquery";
 window.jQuery = $;
 window.$ = $;
@@ -121,8 +124,14 @@ const Dashboard = () => {
       <div className="grid h-full">
         <Banner />
       </div>
-
-      <FormBuilder />
+      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+        <div className="flex items-center justify-between px-3 mb-[30px]">
+            <p className="text-3xl flex items-center font-bold text-black dark:text-white">
+              <MdEditCalendar className="h-12 w-12 mr-3" /> Acerca del Formulario
+            </p>
+          </div>
+        <FormBuilder />
+      </div>
 
     </div>
   );

@@ -544,8 +544,10 @@ const Dashboard = () => {
                   },
                 ],
               };
+            } else if(type === "no-chart"){
+              console.log("no chart")
             }
-
+ 
             // Check if an entry with the same label already exists in groupedData
             if (!groupedData[label]) {
               // If it doesn't exist, create a new entry with options and userData

@@ -27,9 +27,21 @@ const Registro = (props) => {
   const [eventAttende, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [formRegister, setFormRegister] = React.useState(false);
+  const currentUrl = window.location.href;
   const id = useParams().id;
-
+  const searchParams = new URLSearchParams(document.location.search);
+  let eventAttendeeDataStore = null;
   const pdfContentRef = useRef();
+
+  React.useEffect(() => {
+    console.log(searchParams.get('EventAttendee'))
+    if(searchParams.get('EventAttendee')){
+      DataStore.query(EventAttendee,searchParams.get('EventAttendee')).then(results => {
+        setEventAttende(results)
+        setFormRegister(true)
+      });
+    }
+  }, []);
 
   React.useEffect(() => {
     // AWS amplify data
@@ -44,13 +56,16 @@ const Registro = (props) => {
 
   React.useEffect(() => {
     if(eventAttende && eventAttende.id){
-      const eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
+      eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
       e.id.eq(eventAttende.id)
       ).subscribe((results) => {
-        console.log(results);
+        if(results.items.length > 0){
+          console.log(results)
+          setAuthorized(results.items[0].authorized)
+        }
       });
     }
-  });
+  }, [eventAttende]);
 
   /*
   useEffect(() => {
@@ -270,24 +285,20 @@ const Registro = (props) => {
             especialidad: "",
             envio: "N",
             usuario: "OPIEVENTOS",
+            reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
+            reg_id_externo: newEventAttendee.id
           }];
           const trs = await postRegistroFinanciero(requestBody, accessToken)
           console.log(requestBody)
           window.open(`https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`, '_blank');
 
-
-          // Chequear la base de datos, si cambio autorize ejecutar
-          // Una vez realizado el pago generar pdf y autorizar variable.
-
-          // DataStore.clear()
-
-          // Generate and save the PDF
-          /*
-          const pdfContent = pdfContentRef.current;
-          const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
-          const base64Pdf = dataUrl.split(",")[1];
-          */
-
+          // Payment sucesffull and generate PDF
+          if(authorized){
+            eventAttendeeDataStore.unsubscribe();
+            const pdfContent = pdfContentRef.current;
+            const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
+            const base64Pdf = dataUrl.split(",")[1];
+          }
 
         } catch (error) {
           console.error("HandleSubmit:", error);
@@ -414,12 +425,12 @@ const Registro = (props) => {
                       <div className="items-center flex w-full flex-col justify-center">
                         {userData.map((data, i) => (
                           <div key={i}>
-                            {data.name == "nombre" && (
+                            {data.name == "nombres" && (
                               <p className="text-md mb-1 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>
                             )}
-                            {data.name == "empresa" && (
+                            {/* {data.name == "empresa" && (
                               <p className="text-md mb-1 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>
@@ -428,7 +439,7 @@ const Registro = (props) => {
                               <p className="text-md mb-1 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>
-                            )}
+                            )} */}
                             {eventAttende && (
                               <p className="text-md mb-1 w-full text-right font-bold capitalize">
                                 Código de ticket: {eventAttende.id}
