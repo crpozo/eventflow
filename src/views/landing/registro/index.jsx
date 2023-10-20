@@ -118,6 +118,7 @@ const Registro = (props) => {
       }
   
       const responseData = await response.json();
+      console.log("postRegistroFinanciero: ", responseData)
       return responseData[0].valor;
     } catch (err) {
       console.error("postRegistroFinanciero: ", err);
@@ -152,7 +153,7 @@ const Registro = (props) => {
         isValid = false;
         const error = document.createElement("div");
         error.className = "error-message text-red-500";
-        error.textContent = "El campo no puede estar en blanco";
+        error.textContent = "El campo no se ha rellenado correctamente";
         element.insertAdjacentElement("afterend", error);
       }
     });
@@ -265,6 +266,7 @@ const Registro = (props) => {
           setFormRegister(true);
           // get token from USFQ
           const accessToken = await getTokenFinancial();
+          console.log("accessToken: ",accessToken)
           const requestBody = [{
             identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
             nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
@@ -289,7 +291,6 @@ const Registro = (props) => {
             reg_id_externo: newEventAttendee.id
           }];
           const trs = await postRegistroFinanciero(requestBody, accessToken)
-          console.log(requestBody)
           window.open(`https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`, '_blank');
 
           // Payment sucesffull and generate PDF
@@ -298,6 +299,8 @@ const Registro = (props) => {
             const pdfContent = pdfContentRef.current;
             const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
             const base64Pdf = dataUrl.split(",")[1];
+            // enviar correo y pdf en base64
+            // Transformar pdf y enviar email en lambda
           }
 
         } catch (error) {
