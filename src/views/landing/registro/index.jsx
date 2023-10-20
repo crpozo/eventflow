@@ -290,6 +290,7 @@ const Registro = (props) => {
             reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
             reg_id_externo: newEventAttendee.id
           }];
+          console.log("requestBody: ",requestBody)
           const trs = await postRegistroFinanciero(requestBody, accessToken)
           window.open(`https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`, '_blank');
 
