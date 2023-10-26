@@ -22,7 +22,7 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantity, price, eventID } = props;
+  const { userData, setUserData, quantity, price, eventID, setShowRegister } = props;
   const [formData, setFormData] = React.useState([]);
   const [eventAttende, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
@@ -34,11 +34,16 @@ const Registro = (props) => {
   const pdfContentRef = useRef();
 
   React.useEffect(() => {
-    console.log(searchParams.get('EventAttendee'))
     if(searchParams.get('EventAttendee')){
       DataStore.query(EventAttendee,searchParams.get('EventAttendee')).then(results => {
-        setEventAttende(results)
-        setFormRegister(true)
+        if(results){
+          setEventAttende(results)
+          setFormRegister(true)
+          setShowRegister(true)
+          setUserData(results.formAnswers)
+        } else {
+          console.log("NO ENTRO")
+        }
       });
     }
   }, []);
@@ -61,7 +66,7 @@ const Registro = (props) => {
       ).subscribe((results) => {
         if(results.items.length > 0){
           console.log(results)
-          // setAuthorized(results.items[0].authorized) uncomment
+          setAuthorized(results.items[0].authorized)
         }
       });
     }
@@ -291,19 +296,18 @@ const Registro = (props) => {
             reg_id_externo: newEventAttendee.id
           }];
           console.log("requestBody: ",requestBody)
-          //const trs = await postRegistroFinanciero(requestBody, accessToken) uncomment this
-          //window.location.href = `https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; uncomment this
-          setAuthorized(true) // remove this
+          const trs = await postRegistroFinanciero(requestBody, accessToken)
+          window.location.href = `https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; 
 
           // Payment sucesffull and generate PDF
-          //if(authorized){
-            //eventAttendeeDataStore.unsubscribe();
+          if(authorized){
+            eventAttendeeDataStore.unsubscribe();
             const pdfContent = pdfContentRef.current;
             const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
             const base64Pdf = dataUrl.split(",")[1];
             // enviar correo y pdf en base64
             // Transformar pdf y enviar email en lambda
-          //}
+          }
 
         } catch (error) {
           console.error("HandleSubmit:", error);
@@ -370,10 +374,13 @@ const Registro = (props) => {
         {authorized && userData.length !== 0 && (
           <>
             <div className="mb-[35px] flex flex-col items-center justify-center text-center">
-              <h1 className="mb-1 text-2xl">Compra éxitosa!</h1>
-              <h2 className="mb-4 text-xl">
-                Descargue su ticket para escanearlo en el evento
-              </h2>
+              <h1 className="mb-3 text-2xl font-semibold">Compra éxitosa!</h1>
+              <p className="text-lg">
+                Descargue su ticket y presentelo el día del evento para ingresar.
+              </p>
+              <p className="mb-4 text-lg">
+                Su ticket tambien es enviado por correo para su resplado. 
+              </p>
               <button
                 href="descargar"
                 onClick={() => {
@@ -385,7 +392,7 @@ const Registro = (props) => {
               </button>
             </div>
             <div
-              className={`mt-4 grid w-full ${
+              className={`mt-2 grid w-full ${
                 quantity > 1 && " lg:grid-cols-3"
               } items-center gap-4`}
             >

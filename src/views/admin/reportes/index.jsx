@@ -1,47 +1,44 @@
 import React, { useEffect, useState } from "react";
-import PieChartApache from "views/admin/reportes/components/PieChartApache";
 import { graphic } from "echarts";
-import { MdBarChart, MdDashboard } from "react-icons/md";
+import { MdBarChart } from "react-icons/md";
 import Widget from "components/widget/Widget";
 import { useNavigate } from "react-router-dom";
 import { DataStore } from "aws-amplify";
-import { Campus, Area, Career, Event, Attendee, EventAttendee, Form } from "models";
+import {
+  Campus,
+  Area,
+  Career,
+  Event,
+  Attendee,
+  EventAttendee,
+  Form,
+} from "models";
 import Banner from "./components/Banner";
 import Datepicker from "react-tailwindcss-datepicker";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { MdFileDownload } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
+import PieChartApache from "views/admin/reportes/components/PieChartApache";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
 
-  const [campusList, setCampusList] = React.useState(null);
-  const [campusSelectID, setCampusSelectID] = React.useState("");
-  const [areaList, setAreaList] = React.useState(null);
-  const [areaSelectID, setAreaSelectID] = React.useState(null);
-  const [careerList, setCareerList] = React.useState(null);
-  const [careerSelectID, setCareerSelectID] = React.useState(null);
-  const [eventList, setEventList] = React.useState(null);
-  const [eventSelectID, setEventSelectID] = React.useState(null);
+  const [campusList, setCampusList] = useState(null);
+  const [campusSelectID, setCampusSelectID] = useState("");
+  const [areaList, setAreaList] = useState(null);
+  const [areaSelectID, setAreaSelectID] = useState(null);
+  const [careerList, setCareerList] = useState(null);
+  const [careerSelectID, setCareerSelectID] = useState(null);
+  const [eventList, setEventList] = useState(null);
+  const [eventSelectID, setEventSelectID] = useState(null);
   const [attendees, setAttendees] = useState(null);
   const [chartsData, setChartsData] = useState([]);
 
-  const id = "caede638-3700-4231-aaf5-71596b78a35f";
-  const campusID = JSON.parse(localStorage.getItem("EVENTFLOW.campus")).id;
   const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id;
 
-  // const [value, setValue] = React.useState({
-  //   startDate: new Date(),
-  //   endDate: new Date().setMonth(8)
-  //   });
+  const navigate = useNavigate();
 
-  // const handleValueChange = (newValue) => {
-  //   console.log("newValue:", newValue);
-  //   setValue(newValue);
-  // }
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (!subAreaId) {
       navigate(`/page/campus`);
     }
@@ -199,6 +196,8 @@ const Dashboard = () => {
     ],
   });
 
+  /* Logic filters + data */
+
   React.useEffect(() => {
     DataStore.query(Campus).then((results) => {
       setCampusList(results);
@@ -307,8 +306,6 @@ const Dashboard = () => {
       DataStore.query(Attendee, (a) =>
         a.EventAttendees.eventID.eq(eventSelectID)
       ).then((results) => {
-        // Datos cargo de participantes
-
         processChart(results, setOptionCargos, "position");
         processChart(results, setOptionEdad, "age");
         processChart(results, setOptionTipo, "type");
@@ -440,7 +437,6 @@ const Dashboard = () => {
 
   function groupEventData(eventData) {
     const groupedData = {};
-
     if (eventData && eventData.length > 0) {
       // Iterate through each event item
       eventData.forEach((eventItem, index) => {
@@ -545,8 +541,6 @@ const Dashboard = () => {
                   },
                 ],
               };
-            } else if(type === "no-chart"){
-              console.log("no chart")
             }
  
             // Check if an entry with the same label already exists in groupedData
@@ -564,7 +558,6 @@ const Dashboard = () => {
             const chartData = groupedData[label].options.series[0].data;
             const userDataCounts = groupedData[label].userDataCounts;
             let barChartXaxisData;
-            console.log("type: ", type)
             if (type === "bar-chart") {
               barChartXaxisData = groupedData[label].options.xAxis.data;
             }
@@ -594,7 +587,9 @@ const Dashboard = () => {
     }
 
     // Convert the groupedData object to an array
-    const groupedDataArray = Object.values(groupedData);
+    let groupedDataArray = Object.values(groupedData);
+    // Only for DEMO = REMOVE
+    groupedDataArray = groupedDataArray.filter(item => item.title !== "Identificación");
 
     return groupedDataArray;
   }
@@ -604,7 +599,6 @@ const Dashboard = () => {
     if (attendees) {
       const groupedData = groupEventData(attendees);
       setChartsData(groupedData);
-      console.log("chartsData: ", groupedData);
     }
   }, [attendees]);
 
@@ -684,14 +678,6 @@ const Dashboard = () => {
             </select>
           </div>
 
-          {/* <div className="date-filter flex flex-col w-full">
-            <label>Fechas</label>
-            <Datepicker 
-              i18n={"es"} 
-              value={value} 
-              onChange={handleValueChange} 
-            />
-          </div> */}
         </div>
       </div>
 
@@ -730,17 +716,6 @@ const Dashboard = () => {
           <AiOutlineWarning /> No existen datos para el evento actual
         </div>
       )}
-
-      {/* <div className="mt-5 grid grid-cols-1 gap-5">
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <PieChartApache option={optionTipo} height="450px" />
-          <PieChartApache option={optionEdad} height="450px" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <PieChartApache option={optionCargos} height="450px" />
-        </div>
-      </div> */}
     </div>
   );
 };

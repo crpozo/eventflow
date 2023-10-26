@@ -26,7 +26,7 @@ export default function SignIn() {
   const [ticketsQuantity, setTicketsQuantity] = useState(1);
   const [selectedCost, setSelectedCost] = React.useState(null);
   const [showRegister, setShowRegister] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);  
 
   const quantityIncrementHandler = () => {
     setTicketsQuantity((prevState) => prevState + 1);
