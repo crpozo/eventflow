@@ -61,7 +61,7 @@ const Registro = (props) => {
       ).subscribe((results) => {
         if(results.items.length > 0){
           console.log(results)
-          setAuthorized(results.items[0].authorized)
+          // setAuthorized(results.items[0].authorized) uncomment
         }
       });
     }
@@ -118,6 +118,7 @@ const Registro = (props) => {
       }
   
       const responseData = await response.json();
+      console.log("postRegistroFinanciero: ", responseData)
       return responseData[0].valor;
     } catch (err) {
       console.error("postRegistroFinanciero: ", err);
@@ -152,7 +153,7 @@ const Registro = (props) => {
         isValid = false;
         const error = document.createElement("div");
         error.className = "error-message text-red-500";
-        error.textContent = "El campo no puede estar en blanco";
+        error.textContent = "El campo no se ha rellenado correctamente";
         element.insertAdjacentElement("afterend", error);
       }
     });
@@ -265,6 +266,7 @@ const Registro = (props) => {
           setFormRegister(true);
           // get token from USFQ
           const accessToken = await getTokenFinancial();
+          console.log("accessToken: ",accessToken)
           const requestBody = [{
             identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
             nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
@@ -288,17 +290,20 @@ const Registro = (props) => {
             reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
             reg_id_externo: newEventAttendee.id
           }];
-          const trs = await postRegistroFinanciero(requestBody, accessToken)
-          console.log(requestBody)
-          window.open(`https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`, '_blank');
+          console.log("requestBody: ",requestBody)
+          //const trs = await postRegistroFinanciero(requestBody, accessToken) uncomment this
+          //window.location.href = `https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; uncomment this
+          setAuthorized(true) // remove this
 
           // Payment sucesffull and generate PDF
-          if(authorized){
-            eventAttendeeDataStore.unsubscribe();
+          //if(authorized){
+            //eventAttendeeDataStore.unsubscribe();
             const pdfContent = pdfContentRef.current;
             const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
             const base64Pdf = dataUrl.split(",")[1];
-          }
+            // enviar correo y pdf en base64
+            // Transformar pdf y enviar email en lambda
+          //}
 
         } catch (error) {
           console.error("HandleSubmit:", error);
@@ -426,7 +431,7 @@ const Registro = (props) => {
                         {userData.map((data, i) => (
                           <div key={i}>
                             {data.name == "nombres" && (
-                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
+                              <p className="text-md mb-3 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>
                             )}
@@ -440,13 +445,13 @@ const Registro = (props) => {
                                 {data.userData[0]}
                               </p>
                             )} */}
-                            {eventAttende && (
-                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
-                                Código de ticket: {eventAttende.id}
-                              </p>
-                            )}
                           </div>
                         ))}
+                        {eventAttende && (
+                          <p className="text-md mb-1 w-full text-center font-bold capitalize">
+                            Código de ticket: <span className="d-block font-normal">{eventAttende.id}</span>
+                          </p>
+                        )}
                         <p className="mb-1 mb-2 mt-3 text-right text-sm font-normal">
                           {props.event.location}
                         </p>

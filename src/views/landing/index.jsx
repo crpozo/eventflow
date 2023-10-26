@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import logo from "assets/img/usfq/logo.svg";
 import { useParams, Link } from "react-router-dom";
 import Registro from "./registro/index";
+import { formatDateHour } from 'scripts/utils';
 import { DataStore } from "aws-amplify";
 import { StorageImage } from "@aws-amplify/ui-react-storage";
 import { useAuthenticator } from "@aws-amplify/ui-react";
@@ -11,9 +12,8 @@ import { LuCalendarClock } from "react-icons/lu";
 import { BsPlusLg as PlusIcon } from "react-icons/bs";
 import {
   AiOutlineMinus as MinusIcon,
-  AiOutlineExclamationCircle as ExclaimationCircle,
+  AiOutlineExclamationCircle,
 } from "react-icons/ai";
-import { API, graphqlOperation } from "aws-amplify";
 
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
@@ -83,53 +83,6 @@ export default function SignIn() {
       sub.unsubscribe();
     };
   }, []);
-
-  function formatDate(inputDate) {
-    const daysOfWeek = [
-      "Domingo",
-      "Lunes",
-      "Martes",
-      "Miércoles",
-      "Jueves",
-      "Viernes",
-      "Sábado",
-    ];
-    const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
-
-    const date = new Date(inputDate);
-    const dayOfWeek = daysOfWeek[date.getUTCDay()];
-    const month = months[date.getUTCMonth()];
-    const day = date.getUTCDate();
-    const year = date.getUTCFullYear();
-    let hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
-    const ampm = hours >= 12 ? "pm" : "am";
-
-    if (hours > 12) {
-      hours -= 12;
-    }
-
-    hours = hours < 10 ? "0" + hours : hours;
-    const formattedMinutes = minutes < 10 ? "0" + minutes : minutes;
-
-    return `${dayOfWeek}, ${("0" + day).slice(-2)}/${(
-      "0" +
-      (date.getUTCMonth() + 1)
-    ).slice(-2)}/${year} - ${hours}:${formattedMinutes} ${ampm}`;
-  }
 
   if (loading && landing.length === 0) {
     return (
@@ -243,7 +196,7 @@ export default function SignIn() {
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
-                  {event && <p className="text-lg">{formatDate(event.date)}</p>}
+                  {event && <p className="text-lg">{formatDateHour(event.date)}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-6">

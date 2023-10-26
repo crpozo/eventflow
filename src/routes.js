@@ -3,9 +3,6 @@ import React from "react";
 // Admin Imports
 import MainDashboard from "views/admin/default";
 import Reports from "views/admin/reportes";
-import NFTMarketplace from "views/admin/marketplace";
-import Profile from "views/admin/profile";
-import DataTables from "views/admin/tables";
 
 // Area Imports
 import Campus from "views/campus";
@@ -30,16 +27,13 @@ import EventoParticipantes from "views/admin/eventos/participantes";
 import EventoParticipantesCrear from "views/admin/eventos/participantes/crear";
 import EventoParticipantesDetalle from "views/admin/eventos/participantes/detalle";
 
-// Auth Imports
-import SignIn from "views/auth/SignIn";
+// Legal Imports
+import Privacidad from "views/privacidad";
 
 // Icon Imports
 import {
   MdHome,
-  MdOutlineShoppingCart,
   MdBarChart,
-  MdPerson,
-  MdLock,
   MdAccountBalance,
   MdCalendarToday,
 } from "react-icons/md";
@@ -185,41 +179,19 @@ const routes = [
     icon: <MdCalendarToday className="h-6 w-6" />,
     component: <LandingRegistro />,
   },
-  // {
-  //   name: "NFT",
-  //   layout: "/admin",
-  //   path: "nft-marketplace",
-  //   icon: <MdOutlineShoppingCart className="h-6 w-6" />,
-  //   component: <NFTMarketplace />,
-  //   secondary: true,
-  // },
-  // {
-  //   name: "Data Tables",
-  //   layout: "/admin",
-  //   icon: <MdBarChart className="h-6 w-6" />,
-  //   path: "data-tables",
-  //   component: <DataTables />,
-  // },
-  // {
-  //   name: "Profile",
-  //   layout: "/admin",
-  //   path: "profile",
-  //   icon: <MdPerson className="h-6 w-6" />,
-  //   component: <Profile />,
-  // },
-  // {
-  //   name: "Sign In",
-  //   layout: "/auth",
-  //   path: "sign-in",
-  //   icon: <MdLock className="h-6 w-6" />,
-  //   component: <SignIn />,
-  // },
   {
     name: "Campus",
     layout: "/page",
     path: "campus",
     icon: <MdAccountBalance className="h-6 w-6" />,
     component: <Campus />,
+  },
+  {
+    name: "Privacidad",
+    layout: "/privacidad",
+    path: "",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <Privacidad />,
   },
 ];
 export default routes;
