@@ -5,15 +5,11 @@ import Links from "./components/Links";
 import { Link, useParams } from "react-router-dom";
 import routes from "routes.js";
 import { Landing } from "models"
+import { formatDateHour } from 'scripts/utils'
 import { DataStore } from "aws-amplify";
 import {
-  MdAirlineSeatIndividualSuite,
   MdChevronLeft
 } from "react-icons/md";
-import {
-  GoDotFill,
-  GoDot
-} from "react-icons/go";
 import {
   LiaExternalLinkAltSolid,
 } from "react-icons/lia";
@@ -125,7 +121,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                 </option>
               </select>
               <h2 className="text-2xl font-medium mb-3">{event?.title}</h2>
-              <p className="text-sm text-gray-500 mb-3">{event?.updatedAt}</p>
+              <p className="text-sm text-gray-500 mb-3">{formatDateHour(event?.date)}</p>
               <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
                 Link del evento <LiaExternalLinkAltSolid className="ml-2 h-5 w-5" />
               </Link>

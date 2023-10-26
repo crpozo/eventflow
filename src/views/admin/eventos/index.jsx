@@ -4,6 +4,7 @@ import { DataStore } from "aws-amplify";
 import { Event } from "models"
 import { useNavigate, Link } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
+import { formatDate } from 'scripts/utils'
 import {
   MdAdd,
 } from "react-icons/md";
@@ -47,7 +48,7 @@ const Marketplace = () => {
         for( let event of results ){
           rows.push({
             "title": event.title,
-            "create_date": event.createdAt,
+            "create_date": formatDate(event.createdAt),
             "action": event.id,
             "model": event
           })

@@ -5,7 +5,7 @@ import { MdBarChart, MdDashboard } from "react-icons/md";
 import Widget from "components/widget/Widget";
 import { useNavigate } from "react-router-dom";
 import { DataStore } from "aws-amplify";
-import { Campus, Area, Career, Event, Attendee, EventAttendee } from "models";
+import { Campus, Area, Career, Event, Attendee, EventAttendee, Form } from "models";
 import Banner from "./components/Banner";
 import Datepicker from "react-tailwindcss-datepicker";
 import * as XLSX from "xlsx";
@@ -303,6 +303,7 @@ const Dashboard = () => {
         );
       });
     } else {
+
       DataStore.query(Attendee, (a) =>
         a.EventAttendees.eventID.eq(eventSelectID)
       ).then((results) => {
@@ -563,6 +564,7 @@ const Dashboard = () => {
             const chartData = groupedData[label].options.series[0].data;
             const userDataCounts = groupedData[label].userDataCounts;
             let barChartXaxisData;
+            console.log("type: ", type)
             if (type === "bar-chart") {
               barChartXaxisData = groupedData[label].options.xAxis.data;
             }

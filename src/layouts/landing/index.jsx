@@ -1,7 +1,5 @@
-import Footer from "components/footer/FooterAuthDefault";
-import { Link, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import routes from "routes.js";
-import FixedPlugin from "components/fixedPlugin/FixedPlugin";
 
 export default function Landing() {
   const getRoutes = (routes) => {
@@ -15,7 +13,6 @@ export default function Landing() {
       }
     });
   };
-  document.documentElement.dir = "ltr";
   return (
     <div>
       <div className="relative float-right h-full min-h-screen w-full !bg-white dark:!bg-navy-900">

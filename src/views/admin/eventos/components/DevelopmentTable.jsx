@@ -86,13 +86,13 @@ const DevelopmentTable = (props) => {
                     let data = "";
                     if (cell.column.Header === "TITULO") {
                       data = (
-                        <p className="text-sm font-bold text-navy-700 dark:text-white">
+                        <p className="text-sm font-semibold text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     } else if (cell.column.Header === "CREACION") {
                       data = (
-                        <p className="text-sm font-bold text-navy-700 dark:text-white">
+                        <p className="text-sm font-semibold text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );

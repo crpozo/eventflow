@@ -1,11 +1,14 @@
+import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import RtlLayout from "layouts/rtl";
 import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
 import PageLayout from "layouts/page";
 import LandingLayout from "layouts/landing";
+import LegalLayout from "layouts/privacidad";
 import demo from "assets/img/auth/demo.png";
 
+import Hotjar from '@hotjar/browser'
 import { I18n, DataStore } from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
@@ -19,6 +22,24 @@ function App() {
   const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const location = useLocation();
   const isLandingRoute = location.pathname.includes('/landing');
+  const isLegalRoute = location.pathname.includes('/privacidad');
+
+  // Hotjar init
+  const siteId = 123;
+  const hotjarVersion = 6;
+  Hotjar.init(siteId, hotjarVersion);
+
+  // Live chat Tidio
+  React.useEffect(() => {
+    const script = document.createElement('script');
+    script.src = '//code.tidio.co/bobrsdf7yom6r9hq2y6rcwp6b9wnvfnu.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   // await DataStore.clear();
   // If your app has authentication implemented, it is recommended to call DataStore.clear() on sign-in/sign-out to remove any user-specific data. This method is often important to use for shared device scenarios or where you need to purge the local on-device storage of records for security/privacy concerns.
@@ -42,6 +63,7 @@ function App() {
         <Route path="rtl/*" element={<RtlLayout />} />
         <Route path="page/*" element={<PageLayout />} />
         <Route path="landing/*" element={<LandingLayout />} />
+        <Route path="privacidad" element={<LegalLayout />} />
         <Route path="/" element={<Navigate to="/admin" replace />} />
       </Routes>
       )
@@ -50,6 +72,10 @@ function App() {
       {isLandingRoute ? (
         <Routes>
           <Route path="landing/*" element={<LandingLayout />} />
+        </Routes>
+      ) : isLegalRoute ? (
+        <Routes>
+          <Route path="privacidad" element={<LegalLayout />} />
         </Routes>
       ) : (
         <div className="bg-lightPrimary">
