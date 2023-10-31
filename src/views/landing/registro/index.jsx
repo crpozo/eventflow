@@ -14,6 +14,7 @@ import { DataStore } from "aws-amplify";
 import { Form } from "models";
 import $ from "jquery";
 import { Attendee, EventAttendee } from "models";
+import { validateForm, formatSpanishDate } from "scripts/utils"
 
 window.jQuery = $;
 window.$ = $;
@@ -65,7 +66,6 @@ const Registro = (props) => {
       e.id.eq(eventAttende.id)
       ).subscribe((results) => {
         if(results.items.length > 0){
-          console.log(results)
           setAuthorized(results.items[0].authorized)
         }
       });
@@ -145,27 +145,6 @@ const Registro = (props) => {
     }
   }
 
-  const validateForm = () => {
-    const form = document.querySelector("#fb-editor .rendered-form");
-    const formElements = form.querySelectorAll("[required]");
-    let isValid = true;
-
-    formElements.forEach((element) => {
-      if (!element.checkValidity()) {
-        form.scrollIntoView({
-          behavior: "smooth",
-        });
-        isValid = false;
-        const error = document.createElement("div");
-        error.className = "error-message text-red-500";
-        error.textContent = "El campo no se ha rellenado correctamente";
-        element.insertAdjacentElement("afterend", error);
-      }
-    });
-
-    return isValid;
-  };
-
   const clearErrorMessages = () => {
     const errorMessages = document.querySelectorAll(".error-message");
     errorMessages.forEach((error) => error.remove());
@@ -185,53 +164,6 @@ const Registro = (props) => {
       .save(`${props.landing.title + " - ticket "+ i }.pdf`);
     }
   };
-
-  // Format Ticket date in spanish
-  function formatSpanishDate(dateString) {
-    const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
-
-    const days = [
-      "Domingo",
-      "Lunes",
-      "Martes",
-      "Miércoles",
-      "Jueves",
-      "Viernes",
-      "Sábado",
-    ];
-
-    const date = new Date(dateString);
-    const dayName = days[date.getUTCDay()];
-    const monthName = months[date.getUTCMonth()];
-    const day = date.getUTCDate();
-    const month = date.getUTCMonth() + 1; // Adding 1 to match the "mm" format
-    const year = date.getUTCFullYear();
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
-
-    const formattedDate = `${dayName}, ${monthName} ${month
-      .toString()
-      .padStart(2, "0")}/${day.toString().padStart(2, "0")}/${year} - ${hours
-      .toString()
-      .padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${
-      hours >= 12 ? "PM" : "AM"
-    }`;
-
-    return formattedDate;
-  }
 
   // Submit Form
   const handleSubmit = async () => {
@@ -295,9 +227,8 @@ const Registro = (props) => {
             reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
             reg_id_externo: newEventAttendee.id
           }];
-          console.log("requestBody: ",requestBody)
           const trs = await postRegistroFinanciero(requestBody, accessToken)
-          window.location.href = `https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; 
+          window.location.href = `https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; 
 
           // Payment sucesffull and generate PDF
           if(authorized){
@@ -305,10 +236,7 @@ const Registro = (props) => {
             const pdfContent = pdfContentRef.current;
             const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
             const base64Pdf = dataUrl.split(",")[1];
-            // enviar correo y pdf en base64
-            // Transformar pdf y enviar email en lambda
           }
-
         } catch (error) {
           console.error("HandleSubmit:", error);
         }
@@ -359,8 +287,20 @@ const Registro = (props) => {
           </>
         )}
 
-        {!authorized && formRegister &&
-          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-75">
+        {!authorized && searchParams.get('EventAttendee') &&
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-80">
+            <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
+            <h2 className="mb-2 text-center text-xl font-semibold text-black">
+              Estamos esperando recibir el pago desde la plataforma USFQ...
+            </h2>
+            <p className="w-1/3 text-center text-black">
+              Si se ha realizado una transferencia o un depósito, se le enviará un correo electrónico con las entradas una vez que se haya verificado el pago.
+            </p>
+          </div>
+        }
+
+        {!authorized && formRegister && !searchParams.get('EventAttendee') &&
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-80">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
               Esperando recibir el pago desde la plataforma USFQ...
@@ -455,7 +395,7 @@ const Registro = (props) => {
                           </div>
                         ))}
                         {eventAttende && (
-                          <p className="text-md mb-1 w-full text-center font-bold capitalize">
+                          <p className="text-md mb-1 w-full text-center font-bold">
                             Código de ticket: <span className="d-block font-normal">{eventAttende.id}</span>
                           </p>
                         )}

@@ -77,7 +77,15 @@ const Dashboard = () => {
           i18n: {
             override: {
               'en-US': {
-                save: 'Guardar'
+                save: 'Guardar',
+                header: 'Titulo',
+                dateField: 'Campo Fecha',
+                number: 'Campo Número',
+                paragraph: "Descripción",
+                select: "Campo Seleccionar",
+                text: "Campo texto",
+                textArea: "Área texto",
+
               }
             }
           },
@@ -88,10 +96,79 @@ const Dashboard = () => {
                 options: {
                   'pie-chart form-control': 'Pie',
                   'bar-chart form-control': 'Bar',
+                  'no-chart form-control': 'No chart',
                 }
               }
             }
-          }
+          },
+          disableFields: ['autocomplete', 'button', 'hidden', 'radio-group', 'file', 'checkbox-group'],
+          defaultFields: [
+              {
+                "type": "select",
+                "required": true,
+                "label": "Tipo de identificación",
+                "name": "tipo_identificacion",
+                "access": false,
+                "multiple": false,
+                "className": "no-chart form-control",
+                "values": [
+                    {
+                        "label": "Cédula",
+                        "value": "cedula",
+                        "selected": true
+                    },
+                    {
+                        "label": "Pasaporte",
+                        "value": "pasaporte",
+                        "selected": false
+                    },
+                    {
+                        "label": "RUC",
+                        "value": "ruc",
+                        "selected": false
+                    }
+                ]
+            },
+            {
+              "type": "text",
+              "required": true,
+              "label": "N° de Identificación",
+              "className": "form-control",
+              "name": "identificacion",
+              "access": false,
+              "subtype": "text"
+            },
+            {
+              "type": "text",
+              "required": true,
+              "label": "Nombre y apellido",
+              "placeholder": "Paula Romero",
+              "className": "form-control",
+              "name": "nombres",
+              "access": false,
+              "subtype": "text"
+            },
+            {
+              "type": "text",
+              "required": true,
+              "label": "Dirección",
+              "className": "form-control",
+              "name": "direccion",
+              "access": false,
+              "subtype": "text"
+            },
+            {
+              "type": "text",
+              "required": true,
+              "label": "Teléfono",
+              "placeholder": "+593 99 5653 987",
+              "className": "form-control",
+              "name": "telefono",
+              "access": false,
+              "subtype": "text"
+            }
+          ],
+          persistDefaultFields: true
         }
       );
     }

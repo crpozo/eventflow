@@ -1,4 +1,6 @@
 
+// Dates
+
 export const formatDateHour = (inputDate) => {
   try{
     const daysOfWeek = [
@@ -60,4 +62,117 @@ export const formatDate = (inputDate) => {
     return `${day}/${month}/${year}`;
     
   }catch(e) { console.error("formatDate: ",e)}
+}
+
+export const formatSpanishDate = (dateString) => {
+  try{
+    const months = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+
+    const days = [
+      "Domingo",
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+      "Sábado",
+    ];
+
+    const date = new Date(dateString);
+    const dayName = days[date.getUTCDay()];
+    const monthName = months[date.getUTCMonth()];
+    const day = date.getUTCDate();
+    const month = date.getUTCMonth() + 1; // Adding 1 to match the "mm" format
+    const year = date.getUTCFullYear();
+    const hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
+
+    const formattedDate = `${dayName}, ${monthName} ${month
+      .toString()
+      .padStart(2, "0")}/${day.toString().padStart(2, "0")}/${year} - ${hours
+      .toString()
+      .padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${
+      hours >= 12 ? "PM" : "AM"
+    }`;
+
+    return formattedDate;
+  }catch(e) { console.error("formatSpanishDate: ",e)}
+}
+
+// Validate Form
+
+export const validateForm = (id) => {
+  const form = document.querySelector("#fb-editor .rendered-form");
+    const formElements = form.querySelectorAll("[required]");
+    let isValid = true;
+    let tipo_identificación = "";
+
+    formElements.forEach((element) => {
+      // Checking empty fields 
+      if (!element.checkValidity()) {
+        isValid = false;
+        const error = document.createElement("div");
+        error.className = "error-message text-red-500";
+        error.textContent = "El campo no se ha rellenado correctamente";
+        element.insertAdjacentElement("afterend", error);
+      }
+      // Check type of id 
+      if(element.id == "tipo_identificacion"){
+        tipo_identificación = element.options[element.selectedIndex].value;        
+      }
+
+      if(element.id == "identificacion"){
+        switch (tipo_identificación) {
+          case "cedula":
+              if(!/^\d{10}$/.test(element.value)){
+                const error = document.createElement("div");
+                error.className = "error-message text-red-500";
+                error.textContent = "El campo requiere de 10 digitos númericos";
+                element.insertAdjacentElement("afterend", error);
+              }
+              break;
+          case "pasaporte":
+              break;
+          case "ruc":
+              if(!/^\d{13}$/.test(element.value)){
+                const error = document.createElement("div");
+                error.className = "error-message text-red-500";
+                error.textContent = "El campo requiere de 13 digitos númericos";
+                element.insertAdjacentElement("afterend", error);
+              }
+              break;   
+        } 
+      }
+    });
+
+    if(isValid == false){
+      debounce(form.scrollIntoView({ behavior: 'smooth' }), 400)
+    }
+
+    return isValid;
+}
+
+function debounce(func, wait) {
+  let timeout;
+  return function() {
+      const contexto = this;
+      const args = arguments;
+      clearTimeout(timeout);
+      timeout = setTimeout(function() {
+          func.apply(contexto, args);
+      }, wait);
+  };
 }
