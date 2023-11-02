@@ -180,7 +180,7 @@ export default function SignIn() {
             setShowRegister={setShowRegister}
             userData={userData}
             setUserData={setUserData}
-            quantity={ticketsQuantity}
+            quantityProp={ticketsQuantity}
             price={selectedCost}
             eventID={id}
           />

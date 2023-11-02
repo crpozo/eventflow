@@ -23,11 +23,14 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantity, price, eventID, setShowRegister } = props;
+  const { userData, setUserData, quantityProp, price, eventID, setShowRegister } = props;
   const [formData, setFormData] = React.useState([]);
   const [eventAttende, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [formRegister, setFormRegister] = React.useState(false);
+  const [quantity, setQuantity] = React.useState(quantityProp);
+  const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
+
   const currentUrl = window.location.href;
   const id = useParams().id;
   const searchParams = new URLSearchParams(document.location.search);
@@ -42,9 +45,9 @@ const Registro = (props) => {
           setFormRegister(true)
           setShowRegister(true)
           setUserData(results.formAnswers)
-        } else {
-          console.log("NO ENTRO")
-        }
+          setQuantity(results.quantity);
+          setTicketsArray(Array.from({ length: results.quantity }, (_, index) => index));
+        } 
       });
     }
   }, []);
@@ -70,15 +73,19 @@ const Registro = (props) => {
         }
       });
     }
-  }, [eventAttende]);
 
-  /*
-  useEffect(() => {
-    if (formRegister) {
+    if(authorized){
+      eventAttendeeDataStore?.unsubscribe();
+    }
+  }, [eventAttende]);
+   
+  
+  React.useEffect(() => {
+    if (authorized) {
       handleExport();
     }
-  }, [formRegister]);
-  */
+  }, [authorized]);
+  
 
   if (!formData) {
     return <p>Loading...</p>;
@@ -150,20 +157,34 @@ const Registro = (props) => {
     errorMessages.forEach((error) => error.remove());
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    try{      
 
-    for (let i = 0; i < quantity; i++) {
-    const pdfContent = document.getElementById("pdf-content").outerHTML;
-    html2pdf()
-      .set({ 
+      const tickets = document.querySelectorAll('[id^="pdf-content"]');
+      const pdfOptions = {
         image: { type: 'jpeg', quality: 1 },
-        margin: [5, -220, 0, 0], 
-        jsPDF: { unit: 'mm', format: [520, 340]}
+        margin: [5, -220, 0, 0],
+        jsPDF: { unit: 'mm', format: [520, 340] }
+      };
+      
+      const pdf = html2pdf().set(pdfOptions);
+    
+      for (const [index, ticket] of tickets.entries() ) {
+
+        await pdf.from(ticket).toContainer().toCanvas().toPdf().get('pdf').then(function (pdf) {
+          if(index != quantity-1){
+            pdf.addPage();
+          }
+        });
+      }
+      pdf.outputPdf().then(function(pdf) {
+        console.log("BASE 64: ", btoa(pdf));
       })
-      .from(pdfContent)
-      .save(`${props.landing.title + " - ticket "+ i }.pdf`);
-    }
+      pdf.save(`${props.landing.title + " - ticket "}.pdf`);
+    
+    }catch(e){ console.error("handleExport error: ",e) }
   };
+  
 
   // Submit Form
   const handleSubmit = async () => {
@@ -180,10 +201,12 @@ const Registro = (props) => {
         return attendee;
       }
 
-      const attendee = await createAttende(); // Make sure to await the creation of the attendee
+      // Make sure to await the creation of the attendee
+      const attendee = await createAttende(); 
 
       if (attendee) {
         try {
+
           // Create and save the EventAttendee record with the base64 PDF
           const newEventAttendee = await DataStore.save(
             new EventAttendee({
@@ -203,7 +226,6 @@ const Registro = (props) => {
           setFormRegister(true);
           // get token from USFQ
           const accessToken = await getTokenFinancial();
-          console.log("accessToken: ",accessToken)
           const requestBody = [{
             identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
             nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
@@ -227,16 +249,17 @@ const Registro = (props) => {
             reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
             reg_id_externo: newEventAttendee.id
           }];
+
           const trs = await postRegistroFinanciero(requestBody, accessToken)
           window.location.href = `https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; 
 
           // Payment sucesffull and generate PDF
-          if(authorized){
-            eventAttendeeDataStore.unsubscribe();
-            const pdfContent = pdfContentRef.current;
-            const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
-            const base64Pdf = dataUrl.split(",")[1];
-          }
+          // if(authorized){
+            // const pdfContent = pdfContentRef.current;
+            // const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
+            // const base64Pdf = dataUrl.split(",")[1];
+          // }
+
         } catch (error) {
           console.error("HandleSubmit:", error);
         }
@@ -245,9 +268,6 @@ const Registro = (props) => {
       console.log("Form is not valid");
     }
   };
-
-  // Creating an array of ticket components based on the quantity
-  const ticketsArray = Array.from({ length: quantity }, (v, i) => i);
 
   return (
     <div className={`campus-page `}>
@@ -311,7 +331,7 @@ const Registro = (props) => {
           </div>
         }
 
-        {authorized && userData.length !== 0 && (
+        {authorized && eventAttende && userData.length !== 0 && (
           <>
             <div className="mb-[35px] flex flex-col items-center justify-center text-center">
               <h1 className="mb-3 text-2xl font-semibold">Compra éxitosa!</h1>
@@ -332,16 +352,17 @@ const Registro = (props) => {
               </button>
             </div>
             <div
+            
               className={`mt-2 grid w-full ${
                 quantity > 1 && " lg:grid-cols-3"
               } items-center gap-4`}
             >
               {ticketsArray.map((_, index) => (
                 <div
-                  key={index}
+                  id={`pdf-content-${index}`}
                   ref={pdfContentRef}
-                  id="pdf-content"
-                  className="mb-4 flex w-full items-start justify-center"
+                  key={index}
+                  className={`mb-4 flex w-full items-start justify-center ticket-${index}`}
                 >
                   <div className="border-gray flex w-full max-w-[400px] items-center justify-start border border-solid pb-2">
                     <div
