@@ -37,10 +37,25 @@ const Registro = (props) => {
   let eventAttendeeDataStore = null;
   const pdfContentRef = useRef();
 
+  class FormBuilder extends Component {
+    fb = createRef();
+    componentDidMount() {
+      $(this.fb.current).formRender({
+        dataType: "json",
+        formData,
+      });
+    }
+
+    render() {
+      return <div id="fb-editor" ref={this.fb} />;
+    }
+  }
+
   React.useEffect(() => {
     if(searchParams.get('EventAttendee')){
       DataStore.query(EventAttendee,searchParams.get('EventAttendee')).then(results => {
         if(results){
+          console.log("get query and search ",results)
           setEventAttende(results)
           setFormRegister(true)
           setShowRegister(true)
@@ -64,11 +79,14 @@ const Registro = (props) => {
   }, [id]);
 
   React.useEffect(() => {
-    if(eventAttende && eventAttende.id){
+    if(eventAttende && eventAttende.id && eventAttendeeDataStore == null){
+
       eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
       e.id.eq(eventAttende.id)
       ).subscribe((results) => {
         if(results.items.length > 0){
+          console.log("OBSERVE EXECUTED")
+          setEventAttende(results.items[0])
           setAuthorized(results.items[0].authorized)
         }
       });
@@ -77,7 +95,8 @@ const Registro = (props) => {
     if(authorized){
       eventAttendeeDataStore?.unsubscribe();
     }
-  }, [eventAttende]);
+
+  }, [formRegister]);
    
   
   React.useEffect(() => {
@@ -138,24 +157,16 @@ const Registro = (props) => {
     }
   };
 
-  class FormBuilder extends Component {
-    fb = createRef();
-    componentDidMount() {
-      $(this.fb.current).formRender({
-        dataType: "json",
-        formData,
-      });
-    }
+  async function updateEventAttendee(ticket) {
 
-    render() {
-      return <div id="fb-editor" ref={this.fb} />;
-    }
+    const updatedEventAttendee= await DataStore.save(
+      EventAttendee.copyOf(eventAttende, updated => {
+        updated.ticket = ticket;
+      })
+    );
+
+    console.log("updatedEventAttendee: ",updatedEventAttendee)
   }
-
-  const clearErrorMessages = () => {
-    const errorMessages = document.querySelectorAll(".error-message");
-    errorMessages.forEach((error) => error.remove());
-  };
 
   const handleExport = async () => {
     try{      
@@ -178,13 +189,20 @@ const Registro = (props) => {
         });
       }
       pdf.outputPdf().then(function(pdf) {
-        console.log("BASE 64: ", btoa(pdf));
+        // Save ticket base 64 in eventAttende only when creating attendee
+        if(!searchParams.get('EventAttendee')){
+          updateEventAttendee(btoa(pdf))
+        }
       })
       pdf.save(`${props.landing.title + " - ticket "}.pdf`);
     
     }catch(e){ console.error("handleExport error: ",e) }
   };
-  
+
+  const clearErrorMessages = () => {
+    const errorMessages = document.querySelectorAll(".error-message");
+    errorMessages.forEach((error) => error.remove());
+  };
 
   // Submit Form
   const handleSubmit = async () => {
@@ -207,7 +225,7 @@ const Registro = (props) => {
       if (attendee) {
         try {
 
-          // Create and save the EventAttendee record with the base64 PDF
+          // Create and save the EventAttendee record
           const newEventAttendee = await DataStore.save(
             new EventAttendee({
               eventID: eventID,
@@ -223,6 +241,7 @@ const Registro = (props) => {
             })
           );
           setEventAttende(newEventAttendee)
+
           setFormRegister(true);
           // get token from USFQ
           const accessToken = await getTokenFinancial();
@@ -253,11 +272,11 @@ const Registro = (props) => {
           const trs = await postRegistroFinanciero(requestBody, accessToken)
           window.location.href = `https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; 
 
-          // Payment successful and generate PDF
+          //Payment successful and generate PDF for saving
           // if(authorized){
-            // const pdfContent = pdfContentRef.current;
-            // const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
-            // const base64Pdf = dataUrl.split(",")[1];
+          //   const pdfContent = pdfContentRef.current;
+          //   const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
+          //   const base64Pdf = dataUrl.split(",")[1];
           // }
 
         } catch (error) {
@@ -377,7 +396,7 @@ const Registro = (props) => {
                       <div className="flex w-full flex-col items-center justify-start ">
                         {/* => QrCode + Name of event + Logo  */}
                         <div className="flex items-center justify-center bg-white p-1">
-                          {eventAttende && 
+                          {eventAttende.id && 
                             <QRCode
                               id="qrcode"
                               className="mb-[24px]"
