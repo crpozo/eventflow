@@ -253,7 +253,7 @@ const Registro = (props) => {
           const trs = await postRegistroFinanciero(requestBody, accessToken)
           window.location.href = `https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; 
 
-          // Payment sucesffull and generate PDF
+          // Payment successful and generate PDF
           // if(authorized){
             // const pdfContent = pdfContentRef.current;
             // const dataUrl = await domtoimage.toPng(pdfContent, { quality: 1 });
