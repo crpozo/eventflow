@@ -6,6 +6,7 @@ import AuthLayout from "layouts/auth";
 import PageLayout from "layouts/page";
 import LandingLayout from "layouts/landing";
 import LegalLayout from "layouts/privacidad";
+import UserLayout from "layouts/usuario";
 import demo from "assets/img/auth/demo.png";
 
 import Hotjar from '@hotjar/browser'
@@ -23,6 +24,7 @@ function App() {
   const location = useLocation();
   const isLandingRoute = location.pathname.includes('/landing');
   const isLegalRoute = location.pathname.includes('/privacidad');
+  const isUserRoute = location.pathname.includes('/usuario');
 
   // Hotjar init
   const siteId = 123;
@@ -64,6 +66,7 @@ function App() {
         <Route path="page/*" element={<PageLayout />} />
         <Route path="landing/*" element={<LandingLayout />} />
         <Route path="privacidad" element={<LegalLayout />} />
+        <Route path="usuario/*" element={<UserLayout />} />
         <Route path="/" element={<Navigate to="/admin" replace />} />
       </Routes>
       )
@@ -77,7 +80,12 @@ function App() {
         <Routes>
           <Route path="privacidad" element={<LegalLayout />} />
         </Routes>
-      ) : (
+      ) : 
+      isUserRoute ? (
+        <Routes>
+          <Route path="usuario/*" element={<UserLayout />} />
+        </Routes>
+      ) :(
         <div className="bg-lightPrimary">
           <div className="container grid h-screen xl:grid-cols-2 xl:px-1 xl:py-[40px]">
             <div className="flex flex-col justify-center items-center xl:items-start bg-purplePrimary px-3 xl:shadow-2xl xl:!px-[60px] pt-4 pb-3 rounded-xl xl:rounded-none xl:rounded-l-2xl">

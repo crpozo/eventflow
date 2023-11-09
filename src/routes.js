@@ -153,8 +153,8 @@ const routes = [
   },
   {
     name: "Evento Participantes Detalle",
-    layout: "/admin",
-    path: "eventos/:id/participantes/:id/detalle",
+    layout: "/usuario",
+    path: ":id",
     icon: <MdCalendarToday className="h-6 w-6" />,
     component: <EventoParticipantesDetalle />,
   },

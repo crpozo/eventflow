@@ -4,6 +4,7 @@ import { DataStore } from "aws-amplify";
 import { Attendee } from "models"
 import { useNavigate, useParams } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
+import { formatDate } from 'scripts/utils'
 
 const Marketplace = () => {
 
@@ -25,27 +26,27 @@ const Marketplace = () => {
       a.EventAttendees.eventID.eq(id)
     ).subscribe(({ items }) => {
       try{
-        console.log("items: ",items)
+        console.log("Attendee: ",items)
 
         let columns = [
           {
-            Header: "Nombre",
-            accessor: "name",
+            Header: "ID",
+            accessor: "id",
           },
           {
-            Header: "CREACION",
+            Header: "Creacion",
             accessor: "create_date",
           },
           {
-            Header: "",
+            Header: "Detalle",
             accessor: "action",
           },
         ];
         setColumns(columns);
 
         let updatedRows = items.map(user => ({
-          name: user.name,
-          create_date: user.createdAt,
+          id: user.id,
+          create_date: formatDate(user.createdAt),
           action: user.id
         }));
 

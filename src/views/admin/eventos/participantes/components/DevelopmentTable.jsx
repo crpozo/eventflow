@@ -87,22 +87,23 @@ const DevelopmentTable = (props) => {
                 <tr {...row.getRowProps()} key={index}>
                   {row.cells.map((cell, index) => {
                     let data = "";
-                    if (cell.column.Header === "Nombre") {
+                    console.log("Cell: ",cell)
+                    if (cell.column.Header === "ID") {
                       data = (
                         <p className="text-sm font-bold text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
-                    } else if (cell.column.Header === "CREACION") {
+                    } else if (cell.column.Header === "Creacion") {
                       data = (
                         <p className="text-sm font-bold text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     }
-                    else if (cell.column.Header === "") {
+                    else if (cell.column.Header === "Detalle") {
                       data = (
-                        <MdEditCalendar onClick={() => navigate(`${cell.value}/detalle`) } className="h-6 w-6 cursor-pointer" />
+                        <MdEditCalendar onClick={() => navigate(`/usuario/${cell.value}`) } className="h-6 w-6 cursor-pointer" />
                       );
                     }
                     return (

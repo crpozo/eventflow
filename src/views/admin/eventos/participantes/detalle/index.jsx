@@ -2,21 +2,17 @@ import React from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from "aws-amplify";
-import { Attendee } from "models"
-import {
-  AttendeeUpdateForm 
- } from 'ui-components';
+import { Attendee, EventAttendee } from "models"
  import {
-  MdOutlineModeEditOutline,
-  MdChevronLeft
-} from "react-icons/md";
+  BiUser
+} from "react-icons/bi";
 
 const Dashboard = () => {
 
   const [attendee, setAttendee] = React.useState(null);
+  const [eventAttende, setEventAttendee] = React.useState(null);
   const navigate = useNavigate();
   const { id } = useParams();
-  const eventID = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
 
   React.useEffect(() => {
 
@@ -25,54 +21,44 @@ const Dashboard = () => {
     }
 
     DataStore.query(Attendee, (a) => a.id.eq(id)).then( results => {
-      setAttendee(results[0]);
-      console.log("Attendee: ", results)
+      if(results.length > 0){
+        setAttendee(results[0]);
+        DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results[0].id)).then(results => {
+          if(results.length > 0){
+            setEventAttendee(results[0])
+            console.log("EventAttendee: ", results)
+          }
+        })
+      }
     });
-
   }, [navigate]);
-
-  const deleteAttendee = () => {
-    DataStore.delete(attendee);
-    alert("Participante eliminada con éxito")
-    navigate(`/admin/eventos/${eventID}/participantes`);
-  }
 
   if(!attendee){
     return <p>Loading...</p>
   }
 
   return (
-    <div className="area-page">
-      <div className="grid h-full">
+    <div className="area-page container mt-5 mb-[70px]">
+      {/* <div className="grid h-full">
         <Banner />
-      </div>
-      <Link
-        to={`/admin/eventos/${eventID}/participantes`}
-        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
-      >
-        <MdChevronLeft className="h-7 w-7" /> Lista de participantes
-      </Link>
-      {attendee && attendee.length !== 0 &&
-        <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+      </div> */}
+      {EventAttendee && EventAttendee.length !== 0 &&
+        <div className="!z-5 max-w-3xl mx-auto relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
           <div className="flex items-center justify-between px-3 mb-4">
             <p className="text-3xl flex items-center font-bold text-black dark:text-white">
-              <MdOutlineModeEditOutline className="h-11 w-11 mr-3" /> Acerca del participante
+              <BiUser className="h-11 w-11 mr-3" /> Acerca del participante
             </p>
+            {EventAttendee.map((eventAttendee, i) => (
+              <div key={i}>
+                {eventAttendee.formAnswer.find(item => item.name === "nombres") && (
+                <p className="text-md mb-3 w-full text-right font-bold capitalize">
+                  {/* {eventAttendee.formAnswer.find(item => item.name === "nombres").userData[0]} */}
+                </p>
+              )}
+              </div>
+            ))}
           </div>
-
-          <AttendeeUpdateForm
-              attendee={attendee}
-              onSuccess={() => {
-                navigate(`/admin/eventos/${eventID}/participantes`);
-              }}
-              onCancel={() => {
-                navigate(`/admin/eventos/${eventID}/participantes`);
-              }}
-            />
-              <button onClick={deleteAttendee} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
-                Eliminar
-              </button>
 
         </div>
       }
