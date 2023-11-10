@@ -20,12 +20,13 @@ import {
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
+import { Event, Career } from "../models";
 import {
+  fetchByPath,
   getOverrideProps,
   useDataStoreBinding,
-} from "@aws-amplify/ui-react/internal";
-import { Event, Career } from "../models";
-import { fetchByPath, validateField } from "./utils";
+  validateField,
+} from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
   items = [],

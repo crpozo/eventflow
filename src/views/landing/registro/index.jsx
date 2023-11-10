@@ -12,7 +12,7 @@ import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
 import { DataStore } from "aws-amplify";
 import { Form } from "models";
-import $ from "jquery";
+import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils"
 
@@ -27,6 +27,7 @@ const Registro = (props) => {
   const [formData, setFormData] = React.useState([]);
   const [eventAttende, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
+  const [trs, setTrs] = React.useState(null);
   const [formRegister, setFormRegister] = React.useState(false);
   const [quantity, setQuantity] = React.useState(quantityProp);
   const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
@@ -104,7 +105,15 @@ const Registro = (props) => {
       handleExport();
     }
   }, [authorized]);
-  
+
+  React.useEffect( () => {
+    if(trs && eventAttende){
+      console.log("trs: ",trs, " EventAttende: ",eventAttende)
+      window.location.href = `
+        https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}
+      `; 
+    }
+  }, [trs, eventAttende])
 
   if (!formData) {
     return <p>Loading...</p>;
@@ -150,23 +159,13 @@ const Registro = (props) => {
   
       const responseData = await response.json();
       console.log("postRegistroFinanciero: ", responseData)
+
       return responseData[0].valor;
     } catch (err) {
       console.error("postRegistroFinanciero: ", err);
       throw err;
     }
   };
-
-  async function updateEventAttendee(ticket) {
-
-    const updatedEventAttendee= await DataStore.save(
-      EventAttendee.copyOf(eventAttende, updated => {
-        updated.ticket = ticket;
-      })
-    );
-
-    console.log("updatedEventAttendee: ",updatedEventAttendee)
-  }
 
   const handleExport = async () => {
     try{      
@@ -199,10 +198,22 @@ const Registro = (props) => {
     }catch(e){ console.error("handleExport error: ",e) }
   };
 
-  const clearErrorMessages = () => {
-    const errorMessages = document.querySelectorAll(".error-message");
-    errorMessages.forEach((error) => error.remove());
-  };
+
+  async function updateEventAttendee(ticket) {
+
+    console.log("updateEventAttendee EXECUTED")
+    console.log("eventAttende id: ",eventAttende.id)
+    const original = await DataStore.query(EventAttendee, eventAttende.id);
+    console.log("Original: ", original)
+
+    const updatedEventAttendee= await DataStore.save(
+      EventAttendee.copyOf(original, updated => {
+        updated.ticket = ticket;
+      })
+    );
+
+    console.log("updatedEventAttendee: ",updatedEventAttendee)
+  }
 
   // Submit Form
   const handleSubmit = async () => {
@@ -220,7 +231,8 @@ const Registro = (props) => {
       }
 
       // Make sure to await the creation of the attendee
-      const attendee = await createAttende(); 
+      const attendee = await createAttende();
+      console.log("attendee: ",attendee) 
 
       if (attendee) {
         try {
@@ -240,6 +252,7 @@ const Registro = (props) => {
               scanned: 0,
             })
           );
+
           setEventAttende(newEventAttendee)
 
           setFormRegister(true);
@@ -270,7 +283,7 @@ const Registro = (props) => {
           }];
 
           const trs = await postRegistroFinanciero(requestBody, accessToken)
-          window.location.href = `https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}`; 
+          setTrs(trs)
 
         } catch (error) {
           console.error("HandleSubmit:", error);
@@ -280,6 +293,12 @@ const Registro = (props) => {
       console.log("Form is not valid");
     }
   };
+
+  const clearErrorMessages = () => {
+    const errorMessages = document.querySelectorAll(".error-message");
+    errorMessages.forEach((error) => error.remove());
+  };
+
 
   return (
     <div className={`campus-page `}>

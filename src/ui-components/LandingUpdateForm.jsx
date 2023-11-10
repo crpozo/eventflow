@@ -21,9 +21,14 @@ import {
   useTheme,
 } from "@aws-amplify/ui-react";
 import { StorageManager } from "@aws-amplify/ui-react-storage";
-import { Field, getOverrideProps } from "@aws-amplify/ui-react/internal";
 import { Landing } from "../models";
-import { fetchByPath, processFile, validateField } from "./utils";
+import {
+  fetchByPath,
+  getOverrideProps,
+  processFile,
+  validateField,
+} from "./utils";
+import { Field } from "@aws-amplify/ui-react/internal";
 import { DataStore } from "aws-amplify";
 function ArrayField({
   items = [],

@@ -19,12 +19,13 @@ import {
   TextAreaField,
   useTheme,
 } from "@aws-amplify/ui-react";
+import { Form, Event as Event0 } from "../models";
 import {
+  fetchByPath,
   getOverrideProps,
   useDataStoreBinding,
-} from "@aws-amplify/ui-react/internal";
-import { Form, Event as Event0 } from "../models";
-import { fetchByPath, validateField } from "./utils";
+  validateField,
+} from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
   items = [],

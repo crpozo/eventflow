@@ -18,12 +18,13 @@ import {
   Text,
   useTheme,
 } from "@aws-amplify/ui-react";
+import { Attendee, EventAttendee } from "../models";
 import {
+  fetchByPath,
   getOverrideProps,
   useDataStoreBinding,
-} from "@aws-amplify/ui-react/internal";
-import { Attendee, EventAttendee } from "../models";
-import { fetchByPath, validateField } from "./utils";
+  validateField,
+} from "./utils";
 import { DataStore } from "aws-amplify";
 function ArrayField({
   items = [],
