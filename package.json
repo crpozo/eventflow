@@ -22,7 +22,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "apexcharts": "3.35.5",
-    "aws-amplify": "^5.3.3",
+    "aws-amplify": "^5.3.12",
     "dayjs": "^1.11.9",
     "dom-to-image": "^2.6.0",
     "dom-to-svg": "^0.12.2",

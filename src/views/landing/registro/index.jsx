@@ -33,6 +33,7 @@ const Registro = (props) => {
   const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
 
   const currentUrl = window.location.href;
+  const domain = new URL(currentUrl).origin;
   const id = useParams().id;
   const searchParams = new URLSearchParams(document.location.search);
   let eventAttendeeDataStore = null;
@@ -86,7 +87,6 @@ const Registro = (props) => {
       e.id.eq(eventAttende.id)
       ).subscribe((results) => {
         if(results.items.length > 0){
-          console.log("OBSERVE EXECUTED")
           setEventAttende(results.items[0])
           setAuthorized(results.items[0].authorized)
         }
@@ -189,7 +189,7 @@ const Registro = (props) => {
       }
       pdf.outputPdf().then(function(pdf) {
         // Save ticket base 64 in eventAttende only when creating attendee
-        if(!searchParams.get('EventAttendee')){
+        if(!searchParams.get('EventAttendee')){          
           updateEventAttendee(btoa(pdf))
         }
       })
@@ -198,15 +198,11 @@ const Registro = (props) => {
     }catch(e){ console.error("handleExport error: ",e) }
   };
 
-
   async function updateEventAttendee(ticket) {
 
-    console.log("updateEventAttendee EXECUTED")
-    console.log("eventAttende id: ",eventAttende.id)
     const original = await DataStore.query(EventAttendee, eventAttende.id);
-    console.log("Original: ", original)
-
-    const updatedEventAttendee= await DataStore.save(
+    console.log("original: ",original)
+    const updatedEventAttendee = await DataStore.save(
       EventAttendee.copyOf(original, updated => {
         updated.ticket = ticket;
       })
@@ -245,11 +241,12 @@ const Registro = (props) => {
               authorized: false,
               checkIn: false,
               formAnswers: userData,
-              ticket: '', // Store the PDF as a base64 string
+              ticket: '', 
               email: userData.find(item => item.name === 'email').userData[0].toString(),
               allowContact: false,
               quantity,
               scanned: 0,
+              profileURL: `${domain}/usuario/${attendee.id}`
             })
           );
 
@@ -434,16 +431,6 @@ const Registro = (props) => {
                                 {data.userData[0]}
                               </p>
                             )}
-                            {/* {data.name == "empresa" && (
-                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
-                                {data.userData[0]}
-                              </p>
-                            )}
-                            {data.name == "cargo" && (
-                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
-                                {data.userData[0]}
-                              </p>
-                            )} */}
                           </div>
                         ))}
                         {eventAttende && (

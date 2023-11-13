@@ -10,8 +10,9 @@ import UserLayout from "layouts/usuario";
 import demo from "assets/img/auth/demo.png";
 
 import Hotjar from '@hotjar/browser'
-import { I18n, DataStore } from 'aws-amplify';
+import { I18n, DataStore} from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
+import { Hub } from 'aws-amplify';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 I18n.putVocabularies(translations);
@@ -25,7 +26,7 @@ function App() {
   const isLandingRoute = location.pathname.includes('/landing');
   const isLegalRoute = location.pathname.includes('/privacidad');
   const isUserRoute = location.pathname.includes('/usuario');
-
+  const [dataCleared, setDataCleared] = React.useState(true);
   // Hotjar init
   const siteId = 123;
   const hotjarVersion = 6;
@@ -34,30 +35,124 @@ function App() {
   // Live chat Tidio
   React.useEffect(() => {
     const script = document.createElement('script');
-    script.src = '//code.tidio.co/bobrsdf7yom6r9hq2y6rcwp6b9wnvfnu.js';
+    script.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
     script.async = true;
     document.body.appendChild(script);
 
     return () => {
       document.body.removeChild(script);
     };
+
   }, []);
 
-  // await DataStore.clear();
-  // If your app has authentication implemented, it is recommended to call DataStore.clear() on sign-in/sign-out to remove any user-specific data. This method is often important to use for shared device scenarios or where you need to purge the local on-device storage of records for security/privacy concerns.
+  const listener = async (data) => {
 
-  if(!route || authStatus === 'configuring' && 'Loading...'){
+    switch (data?.payload?.event) {
+      case 'configured':
+        console.log('the Auth module is configured');
+        break;
+      case 'signIn':
+        console.log('user signed in'); 
+        setDataCleared(false)
+        await DataStore.clear();
+        await new Promise(resolve => setTimeout(resolve, 1000));  
+        await DataStore.start();
+        setDataCleared(true)
+        break;
+      case 'signIn_failure':
+        console.log('user sign in failed');
+        break;
+      case 'signUp':
+        console.log('user signed up');
+        break;
+      case 'signUp_failure':
+        console.log('user sign up failed');
+        break;
+      case 'confirmSignUp':
+        console.log('user confirmation successful');
+        break;
+      case 'completeNewPassword_failure':
+        console.log('user did not complete new password flow');
+        break;
+      case 'autoSignIn':
+        console.log('auto sign in successful');
+        break;
+      case 'autoSignIn_failure':
+        console.log('auto sign in failed');
+        break;
+      case 'forgotPassword':
+        console.log('password recovery initiated');
+        break;
+      case 'forgotPassword_failure':
+        console.log('password recovery failed');
+        break;
+      case 'forgotPasswordSubmit':
+        console.log('password confirmation successful');
+        break;
+      case 'forgotPasswordSubmit_failure':
+        console.log('password confirmation failed');
+        break;
+      case 'verify':
+        console.log('TOTP token verification successful');
+        break;
+      case 'tokenRefresh':
+        console.log('token refresh succeeded');
+        break;
+      case 'tokenRefresh_failure':
+        console.log('token refresh failed');
+        break;
+      case 'cognitoHostedUI':
+        console.log('Cognito Hosted UI sign in successful');
+        break;
+      case 'cognitoHostedUI_failure':
+        console.log('Cognito Hosted UI sign in failed');
+        break;
+      case 'customOAuthState':
+        console.log('custom state returned from CognitoHosted UI');
+        break;
+      case 'customState_failure':
+        console.log('custom state failure');
+        break;
+      case 'parsingCallbackUrl':
+        console.log('Cognito Hosted UI OAuth url parsing initiated');
+        break;
+      case 'userDeleted':
+        console.log('user deletion successful');
+        break;
+      case 'updateUserAttributes':
+        console.log('user attributes update successful');
+        break;
+      case 'updateUserAttributes_failure':
+        console.log('user attributes update failed');
+        break;
+      case 'signOut':
+        console.log('user signed out');
+        setDataCleared(false)
+        await DataStore.clear();
+        await new Promise(resolve => setTimeout(resolve, 1000));  
+        await DataStore.start();
+        setDataCleared(true)
+        break;
+      default:
+        console.log('unknown event type');
+        break;
+    }
+  };
+
+  Hub.listen('auth', listener)
+
+  if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !dataCleared){
     return(
       <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-lightPrimary opacity-80 flex flex-col items-center justify-center">
         <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
         <h2 className="text-center text-black text-xl font-semibold mb-2">Cargando...</h2>
-        <p className="w-1/3 text-center text-black">Esto puede tardar unos segundos, por favor no cierre esta página.</p>
+        <p className="w-1/3 text-center text-black"> Esto puede tardar unos segundos, por favor no cierre esta página.</p>
       </div>
     );
   }
 
   // Use the value of route to decide which page to render
-  return route === 'authenticated' 
+  return route === 'authenticated'
     ? (
       <Routes>
         <Route path="auth/*" element={<AuthLayout />} />
