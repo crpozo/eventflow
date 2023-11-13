@@ -108,10 +108,16 @@ const Registro = (props) => {
 
   React.useEffect( () => {
     if(trs && eventAttende){
-      console.log("trs: ",trs, " EventAttende: ",eventAttende)
-      window.location.href = `
+      if(domain.includes("eventflow")){
+        window.location.href = `
+        https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}
+      `;  
+      } else {
+        window.location.href = `
         https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}
       `; 
+      }
+     
     }
   }, [trs, eventAttende])
 
