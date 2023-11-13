@@ -198,6 +198,7 @@ export default function EventUpdateForm(props) {
     contactName: [],
     contactNumber: [],
     termsCondition: "",
+    eventIdUSFQ: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -215,6 +216,9 @@ export default function EventUpdateForm(props) {
   const [termsCondition, setTermsCondition] = React.useState(
     initialValues.termsCondition
   );
+  const [eventIdUSFQ, setEventIdUSFQ] = React.useState(
+    initialValues.eventIdUSFQ
+  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = eventRecord
@@ -230,6 +234,7 @@ export default function EventUpdateForm(props) {
     setContactNumber(cleanValues.contactNumber ?? []);
     setCurrentContactNumberValue("");
     setTermsCondition(cleanValues.termsCondition);
+    setEventIdUSFQ(cleanValues.eventIdUSFQ);
     setErrors({});
   };
   const [eventRecord, setEventRecord] = React.useState(eventModelProp);
@@ -258,6 +263,7 @@ export default function EventUpdateForm(props) {
     contactName: [],
     contactNumber: [],
     termsCondition: [],
+    eventIdUSFQ: [{ type: "Required" }],
   };
   const runValidationTasks = async (
     fieldName,
@@ -310,6 +316,7 @@ export default function EventUpdateForm(props) {
           contactName,
           contactNumber,
           termsCondition,
+          eventIdUSFQ,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -374,6 +381,7 @@ export default function EventUpdateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -406,6 +414,7 @@ export default function EventUpdateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -438,6 +447,7 @@ export default function EventUpdateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.category ?? value;
@@ -470,6 +480,7 @@ export default function EventUpdateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -503,6 +514,7 @@ export default function EventUpdateForm(props) {
               contactName,
               contactNumber,
               termsCondition,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.date ?? value;
@@ -530,6 +542,7 @@ export default function EventUpdateForm(props) {
               contactName: values,
               contactNumber,
               termsCondition,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             values = result?.contactName ?? values;
@@ -584,6 +597,7 @@ export default function EventUpdateForm(props) {
               contactName,
               contactNumber: values,
               termsCondition,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             values = result?.contactNumber ?? values;
@@ -647,6 +661,7 @@ export default function EventUpdateForm(props) {
               contactName,
               contactNumber,
               termsCondition: value,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.termsCondition ?? value;
@@ -660,6 +675,43 @@ export default function EventUpdateForm(props) {
         errorMessage={errors.termsCondition?.errorMessage}
         hasError={errors.termsCondition?.hasError}
         {...getOverrideProps(overrides, "termsCondition")}
+      ></TextField>
+      <TextField
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Event id usfq</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
+        isReadOnly={false}
+        value={eventIdUSFQ}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
+              eventIdUSFQ: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.eventIdUSFQ ?? value;
+          }
+          if (errors.eventIdUSFQ?.hasError) {
+            runValidationTasks("eventIdUSFQ", value);
+          }
+          setEventIdUSFQ(value);
+        }}
+        onBlur={() => runValidationTasks("eventIdUSFQ", eventIdUSFQ)}
+        errorMessage={errors.eventIdUSFQ?.errorMessage}
+        hasError={errors.eventIdUSFQ?.hasError}
+        {...getOverrideProps(overrides, "eventIdUSFQ")}
       ></TextField>
       <Flex
         justifyContent="space-between"

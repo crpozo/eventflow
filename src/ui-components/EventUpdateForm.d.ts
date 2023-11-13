@@ -31,6 +31,7 @@ export declare type EventUpdateFormInputValues = {
     contactName?: string[];
     contactNumber?: number[];
     termsCondition?: string;
+    eventIdUSFQ?: string;
 };
 export declare type EventUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -41,6 +42,7 @@ export declare type EventUpdateFormValidationValues = {
     contactName?: ValidationFunction<string>;
     contactNumber?: ValidationFunction<number>;
     termsCondition?: ValidationFunction<string>;
+    eventIdUSFQ?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventUpdateFormOverridesProps = {
@@ -53,6 +55,7 @@ export declare type EventUpdateFormOverridesProps = {
     contactName?: PrimitiveOverrideProps<TextFieldProps>;
     contactNumber?: PrimitiveOverrideProps<TextFieldProps>;
     termsCondition?: PrimitiveOverrideProps<TextFieldProps>;
+    eventIdUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type EventUpdateFormProps = React.PropsWithChildren<{
     overrides?: EventUpdateFormOverridesProps | undefined | null;

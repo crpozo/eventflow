@@ -256,6 +256,8 @@ const Registro = (props) => {
             })
           );
 
+          console.log("newEventAttendee: ", newEventAttendee)
+
           setEventAttende(newEventAttendee)
 
           setFormRegister(true);
