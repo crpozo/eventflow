@@ -109,18 +109,23 @@ const Registro = (props) => {
     }
   }, [authorized]);
 
+  // Redirect after creating eventAttende and getting token USFQ
   React.useEffect( () => {
     if(trs && eventAttendee){
-      if(domain.includes("eventflow")){
-        window.location.href = `
-        https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}
-      `;  
-      } else {
-        window.location.href = `
-        https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}
-      `; 
+
+      async function redirectUSFQ() {
+        const domain = window.location.href;
+        const redirectUrl = domain.includes('eventflow')
+          ? 'https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS='
+          : 'https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=';
+
+        const delayPromise = () => new Promise(resolve => setTimeout(resolve, 1000));
+        await delayPromise();
+        window.location.href = `${redirectUrl}${trs}`;
       }
-     
+
+      redirectUSFQ();
+      
     }
   }, [trs, eventAttendee])
 
