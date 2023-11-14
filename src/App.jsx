@@ -54,6 +54,8 @@ function App() {
       case 'signIn':
         console.log('user signed in'); 
         setDataCleared(false)
+        await DataStore.stop();
+        await new Promise(resolve => setTimeout(resolve, 1000));  
         await DataStore.clear();
         await new Promise(resolve => setTimeout(resolve, 1000));  
         await DataStore.start();
@@ -128,6 +130,8 @@ function App() {
       case 'signOut':
         console.log('user signed out');
         setDataCleared(false)
+        await DataStore.stop();
+        await new Promise(resolve => setTimeout(resolve, 1000));  
         await DataStore.clear();
         await new Promise(resolve => setTimeout(resolve, 1000));  
         await DataStore.start();
