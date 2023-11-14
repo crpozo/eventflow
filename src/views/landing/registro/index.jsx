@@ -81,6 +81,7 @@ const Registro = (props) => {
   }, [id]);
 
   React.useEffect(() => {
+    console.log("OBSERVE: ",eventAttendee)
     if(eventAttendee 
       && eventAttendee.id 
       && eventAttendeeDataStore == null){
@@ -199,7 +200,7 @@ const Registro = (props) => {
         // Save ticket base 64 in eventAttendee only when creating attendee
         console.log("eventAttendee: ", eventAttendee)
         if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){          
-          updateEventAttendee(btoa(pdf))
+          updateEventAttendee(btoa(pdf).toString())
         }
       })
       pdf.save(`${props.landing.title + " - ticket "}.pdf`);
@@ -209,22 +210,41 @@ const Registro = (props) => {
 
   async function updateEventAttendee(ticket) {
 
-
+    await new Promise(resolve => setTimeout(resolve, 2000));
     const original = await DataStore.query(EventAttendee, eventAttendee.id);
-    console.log("original: ",original)
-    console.log("version: ",original._version)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+
     try {
       const updatedEventAttendee = await DataStore.save(
         EventAttendee.copyOf(original, updated => {
           updated.ticket = ticket;
         })
       );
-      console.log("updatedEventAttendee: ", updatedEventAttendee);
-      console.log("version: ", updatedEventAttendee._version);
+
+      sendTicketEmail();
+
     } catch (error) {
       console.error("Error updating EventAttendee: ", error);
     }
+  }
+
+  const sendTicketEmail = async () => {
+    try{
+       // Send email
+      const payloadEmail = {
+        eventAttendeeId: eventAttendee.id
+      };
+    
+      const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payloadEmail)
+      });
+      
+      const data = await response.json()
+
+    }catch(e){ console.error("sendTicketEmail: ", e)}
   }
 
   // Submit Form
@@ -257,7 +277,7 @@ const Registro = (props) => {
               authorized: false,
               checkIn: false,
               formAnswers: userData,
-              ticket: '', 
+              ticket: ``, 
               email: userData.find(item => item.name === 'email').userData[0].toString(),
               allowContact: false,
               quantity,
