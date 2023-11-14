@@ -119,7 +119,7 @@ const Registro = (props) => {
           ? 'https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS='
           : 'https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=';
 
-        const delayPromise = () => new Promise(resolve => setTimeout(resolve, 1000));
+        const delayPromise = () => new Promise(resolve => setTimeout(resolve, 3000));
         await delayPromise();
         window.location.href = `${redirectUrl}${trs}`;
       }
