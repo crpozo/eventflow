@@ -23,7 +23,7 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantityProp, price, eventID, setShowRegister } = props;
+  const { userData, setUserData, quantityProp, price, eventID, setShowRegister, event } = props;
   const [formData, setFormData] = React.useState([]);
   const [eventAttende, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
@@ -271,7 +271,7 @@ const Registro = (props) => {
             correo: userData.find(item => item.name === 'email').userData[0].toString(),
             valor: price.replace(/\$/g, ''),
             evento_descripcion: "TEST",
-            evento_id: "810110188",
+            evento_id: event.eventIdUSFQ.toString(),
             trs_unico: "",
             codigo: "0",
             clave: "SEOP",
