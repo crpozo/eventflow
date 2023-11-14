@@ -209,15 +209,22 @@ const Registro = (props) => {
 
   async function updateEventAttendee(ticket) {
 
-    const original = await DataStore.query(EventAttendee, eventAttendee.id);
-    console.log("original: ",original._version)
-    const updatedEventAttendee = await DataStore.save(
-      EventAttendee.copyOf(original, updated => {
-        updated.ticket = ticket;
-      })
-    );
 
-    console.log("updatedEventAttendee: ",updatedEventAttendee)
+    const original = await DataStore.query(EventAttendee, eventAttendee.id);
+    console.log("original: ",original)
+    console.log("version: ",original._version)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const updatedEventAttendee = await DataStore.save(
+        EventAttendee.copyOf(original, updated => {
+          updated.ticket = ticket;
+        })
+      );
+      console.log("updatedEventAttendee: ", updatedEventAttendee);
+      console.log("version: ", updatedEventAttendee._version);
+    } catch (error) {
+      console.error("Error updating EventAttendee: ", error);
+    }
   }
 
   // Submit Form
