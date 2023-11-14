@@ -263,7 +263,7 @@ export default function EventUpdateForm(props) {
     contactName: [],
     contactNumber: [],
     termsCondition: [],
-    eventIdUSFQ: [{ type: "Required" }],
+    eventIdUSFQ: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -677,13 +677,8 @@ export default function EventUpdateForm(props) {
         {...getOverrideProps(overrides, "termsCondition")}
       ></TextField>
       <TextField
-        label={
-          <span style={{ display: "inline-flex" }}>
-            <span>Event id usfq</span>
-            <span style={{ color: "red" }}>*</span>
-          </span>
-        }
-        isRequired={true}
+        label="Event id usfq"
+        isRequired={false}
         isReadOnly={false}
         value={eventIdUSFQ}
         onChange={(e) => {

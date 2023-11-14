@@ -273,7 +273,7 @@ export default function EventCreateForm(props) {
     contactNumber: [],
     termsCondition: [],
     careerID: [{ type: "Required" }],
-    eventIdUSFQ: [{ type: "Required" }],
+    eventIdUSFQ: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -793,13 +793,8 @@ export default function EventCreateForm(props) {
         ></Autocomplete>
       </ArrayField>
       <TextField
-        label={
-          <span style={{ display: "inline-flex" }}>
-            <span>Event id usfq</span>
-            <span style={{ color: "red" }}>*</span>
-          </span>
-        }
-        isRequired={true}
+        label="Event id usfq"
+        isRequired={false}
         isReadOnly={false}
         value={eventIdUSFQ}
         onChange={(e) => {
