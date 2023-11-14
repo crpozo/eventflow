@@ -25,7 +25,7 @@ require("formBuilder/dist/form-render.min.js");
 const Registro = (props) => {
   const { userData, setUserData, quantityProp, price, eventID, setShowRegister, event } = props;
   const [formData, setFormData] = React.useState([]);
-  const [eventAttende, setEventAttende] = React.useState(null);
+  const [eventAttendee, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [trs, setTrs] = React.useState(null);
   const [formRegister, setFormRegister] = React.useState(false);
@@ -81,10 +81,12 @@ const Registro = (props) => {
   }, [id]);
 
   React.useEffect(() => {
-    if(eventAttende && eventAttende.id && eventAttendeeDataStore == null){
+    if(eventAttendee 
+      && eventAttendee.id 
+      && eventAttendeeDataStore == null){
 
       eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
-      e.id.eq(eventAttende.id)
+      e.id.eq(eventAttendee.id)
       ).subscribe((results) => {
         if(results.items.length > 0){
           setEventAttende(results.items[0])
@@ -107,7 +109,7 @@ const Registro = (props) => {
   }, [authorized]);
 
   React.useEffect( () => {
-    if(trs && eventAttende){
+    if(trs && eventAttendee){
       if(domain.includes("eventflow")){
         window.location.href = `
         https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}
@@ -119,7 +121,7 @@ const Registro = (props) => {
       }
      
     }
-  }, [trs, eventAttende])
+  }, [trs, eventAttendee])
 
   if (!formData) {
     return <p>Loading...</p>;
@@ -194,8 +196,9 @@ const Registro = (props) => {
         });
       }
       pdf.outputPdf().then(function(pdf) {
-        // Save ticket base 64 in eventAttende only when creating attendee
-        if(!searchParams.get('EventAttendee')){          
+        // Save ticket base 64 in eventAttendee only when creating attendee
+        console.log("eventAttendee: ", eventAttendee)
+        if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){          
           updateEventAttendee(btoa(pdf))
         }
       })
@@ -206,8 +209,8 @@ const Registro = (props) => {
 
   async function updateEventAttendee(ticket) {
 
-    const original = await DataStore.query(EventAttendee, eventAttende.id);
-    console.log("original: ",original)
+    const original = await DataStore.query(EventAttendee, eventAttendee.id);
+    console.log("original: ",original._version)
     const updatedEventAttendee = await DataStore.save(
       EventAttendee.copyOf(original, updated => {
         updated.ticket = ticket;
@@ -255,8 +258,6 @@ const Registro = (props) => {
               profileURL: `${domain}/usuario/${attendee.id}`
             })
           );
-
-          console.log("newEventAttendee: ", newEventAttendee)
 
           setEventAttende(newEventAttendee)
 
@@ -367,7 +368,7 @@ const Registro = (props) => {
           </div>
         }
 
-        {authorized && eventAttende && userData.length !== 0 && (
+        {authorized && eventAttendee && userData.length !== 0 && (
           <>
             <div className="mb-[35px] flex flex-col items-center justify-center text-center">
               <h1 className="mb-3 text-2xl font-semibold">Compra éxitosa!</h1>
@@ -413,13 +414,13 @@ const Registro = (props) => {
                       <div className="flex w-full flex-col items-center justify-start ">
                         {/* => QrCode + Name of event + Logo  */}
                         <div className="flex items-center justify-center bg-white p-1">
-                          {eventAttende.id && 
+                          {eventAttendee.id && 
                             <QRCode
                               id="qrcode"
                               className="mb-[24px]"
                               size={170}
                               style={{ height: "auto" }}
-                              value={eventAttende.id}
+                              value={eventAttendee.id}
                               viewBox={`0 0 200 200`}
                             />
                           }
@@ -441,9 +442,9 @@ const Registro = (props) => {
                             )}
                           </div>
                         ))}
-                        {eventAttende && (
+                        {eventAttendee && (
                           <p className="text-md mb-1 w-full text-center font-bold">
-                            Código de ticket: <span className="d-block font-normal">{eventAttende.id}</span>
+                            Código de ticket: <span className="d-block font-normal">{eventAttendee.id}</span>
                           </p>
                         )}
                         <p className="mb-1 mb-2 mt-3 text-right text-sm font-normal">
