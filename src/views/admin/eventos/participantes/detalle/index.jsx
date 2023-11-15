@@ -19,35 +19,23 @@ const Profile = () => {
       navigate('/');
     }
 
-    const removeListener = Hub.listen("datastore", async (capsule) => {
-      const {
-        payload: { event, data },
-      } = capsule;
- 
-      console.log("DataStore event", event, data);
- 
-      if (event === "ready") {
-        DataStore.query(Attendee, (a) => a.id.eq(id)).then( results => {
+    const subscription = DataStore.observeQuery(Attendee, (a) => a.id.eq(id)).subscribe( results => {
+      if(results.items.length > 0 ){
+        setAttendee(results.items[0]);
+        DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results.items[0].id)).then(results => {
           if(results.length > 0 ){
-            setAttendee(results[0]);
-            DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results[0].id)).then(results => {
-              if(results.length > 0 ){
-                setEventAttendee(results[0])
-                console.log("EventAttendee: ", results)
-              }
-            })
+            setEventAttendee(results[0])
+            console.log("EventAttendee: ", results)
           }
-        }); 
+        })
       }
-    });
- 
-    DataStore.start();
- 
-    return () => {
-      removeListener();
-    };
+    }); 
+
+    if(attendee){
+      subscription.unsubscribe();
+    }
     
-  }, [navigate]);
+  }, []);
 
   if (!attendee) {
     return (
@@ -64,7 +52,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="profile-page container mt-5 mb-[30px]">
+    <div className="profile-page container mt-[100px] md:mt-[50px] mb-[30px]">
       {/* <div className="grid h-full">
         <Banner />
       </div> */}
