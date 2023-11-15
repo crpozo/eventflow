@@ -31,6 +31,7 @@ export declare type EventCreateFormInputValues = {
     contactNumber?: number[];
     termsCondition?: string;
     careerID?: string;
+    eventIdUSFQ?: string;
 };
 export declare type EventCreateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -42,6 +43,7 @@ export declare type EventCreateFormValidationValues = {
     contactNumber?: ValidationFunction<number>;
     termsCondition?: ValidationFunction<string>;
     careerID?: ValidationFunction<string>;
+    eventIdUSFQ?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventCreateFormOverridesProps = {
@@ -55,6 +57,7 @@ export declare type EventCreateFormOverridesProps = {
     contactNumber?: PrimitiveOverrideProps<TextFieldProps>;
     termsCondition?: PrimitiveOverrideProps<TextAreaFieldProps>;
     careerID?: PrimitiveOverrideProps<AutocompleteProps>;
+    eventIdUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type EventCreateFormProps = React.PropsWithChildren<{
     overrides?: EventCreateFormOverridesProps | undefined | null;

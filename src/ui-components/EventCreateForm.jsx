@@ -205,6 +205,7 @@ export default function EventCreateForm(props) {
     contactNumber: [],
     termsCondition: "",
     careerID: undefined,
+    eventIdUSFQ: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -223,6 +224,9 @@ export default function EventCreateForm(props) {
     initialValues.termsCondition
   );
   const [careerID, setCareerID] = React.useState(initialValues.careerID);
+  const [eventIdUSFQ, setEventIdUSFQ] = React.useState(
+    initialValues.eventIdUSFQ
+  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
@@ -238,6 +242,7 @@ export default function EventCreateForm(props) {
     setCareerID(initialValues.careerID);
     setCurrentCareerIDValue(undefined);
     setCurrentCareerIDDisplayValue("");
+    setEventIdUSFQ(initialValues.eventIdUSFQ);
     setErrors({});
   };
   const [currentContactNameValue, setCurrentContactNameValue] =
@@ -268,6 +273,7 @@ export default function EventCreateForm(props) {
     contactNumber: [],
     termsCondition: [],
     careerID: [{ type: "Required" }],
+    eventIdUSFQ: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -321,6 +327,7 @@ export default function EventCreateForm(props) {
           contactNumber,
           termsCondition,
           careerID,
+          eventIdUSFQ,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -385,6 +392,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -417,6 +425,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -450,6 +459,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.category ?? value;
@@ -483,6 +493,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -517,6 +528,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.date ?? value;
@@ -545,6 +557,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             values = result?.contactName ?? values;
@@ -600,6 +613,7 @@ export default function EventCreateForm(props) {
               contactNumber: values,
               termsCondition,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             values = result?.contactNumber ?? values;
@@ -663,6 +677,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition: value,
               careerID,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.termsCondition ?? value;
@@ -692,6 +707,7 @@ export default function EventCreateForm(props) {
               contactNumber,
               termsCondition,
               careerID: value,
+              eventIdUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.careerID ?? value;
@@ -776,6 +792,39 @@ export default function EventCreateForm(props) {
           {...getOverrideProps(overrides, "careerID")}
         ></Autocomplete>
       </ArrayField>
+      <TextField
+        label="Event id usfq"
+        isRequired={false}
+        isReadOnly={false}
+        value={eventIdUSFQ}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
+              careerID,
+              eventIdUSFQ: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.eventIdUSFQ ?? value;
+          }
+          if (errors.eventIdUSFQ?.hasError) {
+            runValidationTasks("eventIdUSFQ", value);
+          }
+          setEventIdUSFQ(value);
+        }}
+        onBlur={() => runValidationTasks("eventIdUSFQ", eventIdUSFQ)}
+        errorMessage={errors.eventIdUSFQ?.errorMessage}
+        hasError={errors.eventIdUSFQ?.hasError}
+        {...getOverrideProps(overrides, "eventIdUSFQ")}
+      ></TextField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

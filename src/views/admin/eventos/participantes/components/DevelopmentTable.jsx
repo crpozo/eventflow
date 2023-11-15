@@ -48,11 +48,11 @@ const DevelopmentTable = (props) => {
         <div className="text-2xl font-bold text-navy-700 dark:text-white">
           Tabla de participantes
         </div>
-        <Link className="hover:no-underline" to="crear">
+        {/* <Link className="hover:no-underline" to="crear">
           <button href="crear" className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
             Crear usuario <MdAdd className="h-5 w-5" />
           </button>
-        </Link>
+        </Link> */}
       </div>
 
       <div className="h-full overflow-x-scroll xl:overflow-x-hidden">

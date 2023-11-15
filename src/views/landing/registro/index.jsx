@@ -23,9 +23,9 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantityProp, price, eventID, setShowRegister } = props;
+  const { userData, setUserData, quantityProp, price, eventID, setShowRegister, event } = props;
   const [formData, setFormData] = React.useState([]);
-  const [eventAttende, setEventAttende] = React.useState(null);
+  const [eventAttendee, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [trs, setTrs] = React.useState(null);
   const [formRegister, setFormRegister] = React.useState(false);
@@ -33,6 +33,7 @@ const Registro = (props) => {
   const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
 
   const currentUrl = window.location.href;
+  const domain = new URL(currentUrl).origin;
   const id = useParams().id;
   const searchParams = new URLSearchParams(document.location.search);
   let eventAttendeeDataStore = null;
@@ -80,13 +81,15 @@ const Registro = (props) => {
   }, [id]);
 
   React.useEffect(() => {
-    if(eventAttende && eventAttende.id && eventAttendeeDataStore == null){
+    console.log("OBSERVE: ",eventAttendee)
+    if(eventAttendee 
+      && eventAttendee.id 
+      && eventAttendeeDataStore == null){
 
       eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
-      e.id.eq(eventAttende.id)
+      e.id.eq(eventAttendee.id)
       ).subscribe((results) => {
         if(results.items.length > 0){
-          console.log("OBSERVE EXECUTED")
           setEventAttende(results.items[0])
           setAuthorized(results.items[0].authorized)
         }
@@ -106,14 +109,25 @@ const Registro = (props) => {
     }
   }, [authorized]);
 
+  // Redirect after creating eventAttende and getting token USFQ
   React.useEffect( () => {
-    if(trs && eventAttende){
-      console.log("trs: ",trs, " EventAttende: ",eventAttende)
-      window.location.href = `
-        https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=${trs}
-      `; 
+    if(trs && eventAttendee){
+
+      async function redirectUSFQ() {
+        const domain = window.location.href;
+        const redirectUrl = domain.includes('eventflow')
+          ? 'https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS='
+          : 'https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=';
+
+        const delayPromise = () => new Promise(resolve => setTimeout(resolve, 3000));
+        await delayPromise();
+        window.location.href = `${redirectUrl}${trs}`;
+      }
+
+      redirectUSFQ();
+      
     }
-  }, [trs, eventAttende])
+  }, [trs, eventAttendee])
 
   if (!formData) {
     return <p>Loading...</p>;
@@ -188,9 +202,10 @@ const Registro = (props) => {
         });
       }
       pdf.outputPdf().then(function(pdf) {
-        // Save ticket base 64 in eventAttende only when creating attendee
-        if(!searchParams.get('EventAttendee')){
-          updateEventAttendee(btoa(pdf))
+        // Save ticket base 64 in eventAttendee only when creating attendee
+        console.log("eventAttendee: ", eventAttendee)
+        if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){          
+          updateEventAttendee(btoa(pdf).toString())
         }
       })
       pdf.save(`${props.landing.title + " - ticket "}.pdf`);
@@ -198,21 +213,45 @@ const Registro = (props) => {
     }catch(e){ console.error("handleExport error: ",e) }
   };
 
-
   async function updateEventAttendee(ticket) {
 
-    console.log("updateEventAttendee EXECUTED")
-    console.log("eventAttende id: ",eventAttende.id)
-    const original = await DataStore.query(EventAttendee, eventAttende.id);
-    console.log("Original: ", original)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const original = await DataStore.query(EventAttendee, eventAttendee.id);
 
-    const updatedEventAttendee= await DataStore.save(
-      EventAttendee.copyOf(original, updated => {
-        updated.ticket = ticket;
-      })
-    );
+    try {
+      const updatedEventAttendee = await DataStore.save(
+        EventAttendee.copyOf(original, updated => {
+          updated.ticket = ticket;
+        })
+      );
 
-    console.log("updatedEventAttendee: ",updatedEventAttendee)
+      sendTicketEmail();
+
+    } catch (error) {
+      console.error("Error updating EventAttendee: ", error);
+    }
+  }
+
+  const sendTicketEmail = async () => {
+    try{
+       // Send email
+      const payloadEmail = {
+        eventAttendeeId: eventAttendee.id
+      };
+    
+      const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payloadEmail)
+      });
+      
+      const data = await response.json()
+
+      console.log("sendTicketEmail response :", data)
+
+    }catch(e){ console.error("sendTicketEmail: ", e)}
   }
 
   // Submit Form
@@ -245,11 +284,12 @@ const Registro = (props) => {
               authorized: false,
               checkIn: false,
               formAnswers: userData,
-              ticket: '', // Store the PDF as a base64 string
+              ticket: ``, 
               email: userData.find(item => item.name === 'email').userData[0].toString(),
               allowContact: false,
               quantity,
               scanned: 0,
+              profileURL: `${domain}/usuario/${attendee.id}`
             })
           );
 
@@ -266,7 +306,7 @@ const Registro = (props) => {
             correo: userData.find(item => item.name === 'email').userData[0].toString(),
             valor: price.replace(/\$/g, ''),
             evento_descripcion: "TEST",
-            evento_id: "810110188",
+            evento_id: event.eventIdUSFQ.toString(),
             trs_unico: "",
             codigo: "0",
             clave: "SEOP",
@@ -362,7 +402,7 @@ const Registro = (props) => {
           </div>
         }
 
-        {authorized && eventAttende && userData.length !== 0 && (
+        {authorized && eventAttendee && userData.length !== 0 && (
           <>
             <div className="mb-[35px] flex flex-col items-center justify-center text-center">
               <h1 className="mb-3 text-2xl font-semibold">Compra éxitosa!</h1>
@@ -408,13 +448,13 @@ const Registro = (props) => {
                       <div className="flex w-full flex-col items-center justify-start ">
                         {/* => QrCode + Name of event + Logo  */}
                         <div className="flex items-center justify-center bg-white p-1">
-                          {eventAttende.id && 
+                          {eventAttendee.id && 
                             <QRCode
                               id="qrcode"
                               className="mb-[24px]"
                               size={170}
                               style={{ height: "auto" }}
-                              value={eventAttende.id}
+                              value={eventAttendee.id}
                               viewBox={`0 0 200 200`}
                             />
                           }
@@ -434,21 +474,11 @@ const Registro = (props) => {
                                 {data.userData[0]}
                               </p>
                             )}
-                            {/* {data.name == "empresa" && (
-                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
-                                {data.userData[0]}
-                              </p>
-                            )}
-                            {data.name == "cargo" && (
-                              <p className="text-md mb-1 w-full text-right font-bold capitalize">
-                                {data.userData[0]}
-                              </p>
-                            )} */}
                           </div>
                         ))}
-                        {eventAttende && (
+                        {eventAttendee && (
                           <p className="text-md mb-1 w-full text-center font-bold">
-                            Código de ticket: <span className="d-block font-normal">{eventAttende.id}</span>
+                            Código de ticket: <span className="d-block font-normal">{eventAttendee.id}</span>
                           </p>
                         )}
                         <p className="mb-1 mb-2 mt-3 text-right text-sm font-normal">

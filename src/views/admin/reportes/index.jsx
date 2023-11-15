@@ -200,9 +200,11 @@ const Dashboard = () => {
 
   React.useEffect(() => {
     DataStore.query(Campus).then((results) => {
-      setCampusList(results);
-      setCampusSelectID(results[0].id);
-      console.log("Campus: ", results);
+      if(results.length > 0){
+        setCampusList(results);
+        setCampusSelectID(results[0].id);
+        console.log("Campus: ", results);
+      }
     });
   }, []);
 
@@ -247,7 +249,6 @@ const Dashboard = () => {
     DataStore.query(Event, (e) => e.careerID.eq(careerSelectID)).then(
       (results) => {
         if (results.length > 0) {
-          console.log("Event results: " + results);
           // setAttendees(results);
           setEventList(results);
           setEventSelectID(results[0].id);
@@ -394,7 +395,14 @@ const Dashboard = () => {
     const flattenedData = [];
 
     data.forEach((array) => {
-      const flatArray = array.map((item) => {
+
+      // We remove header and paragraph from array
+      let filteredArray = array.filter(item => {
+        let type = item.type;
+        return type !== "header" && type !== "paragraph";
+      });
+
+      const flatArray = filteredArray.map((item) => {
         const flatItem = {
           Tipo: item.type,
           Campo: item.label,

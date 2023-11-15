@@ -562,6 +562,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "eventIdUSFQ": {
+                    "name": "eventIdUSFQ",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -937,5 +944,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "ed8f94ea9509cd290e900786846f1cc6"
+    "version": "33d0055e206f11e80b9280f700ab335b"
 };

@@ -47,7 +47,6 @@ export default function SignIn() {
     ).subscribe((results) => {
       if (results.items.length > 0) {
         setEvent(results.items[0]);
-        console.log(results.items[0]);
       }
     });
 
