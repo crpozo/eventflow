@@ -34,7 +34,7 @@ const Dashboard = () => {
   const [attendees, setAttendees] = useState(null);
   const [chartsData, setChartsData] = useState([]);
 
-  const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id;
+  const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
 
   const navigate = useNavigate();
 
@@ -199,6 +199,7 @@ const Dashboard = () => {
   /* Logic filters + data */
 
   React.useEffect(() => {
+    console.log("query")
     DataStore.query(Campus).then((results) => {
       if(results.length > 0){
         setCampusList(results);

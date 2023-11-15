@@ -20,7 +20,7 @@ const Marketplace = () => {
   window.localStorage.removeItem('EVENTFLOW.event');
 
   React.useEffect( () => {
-    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id;
+    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
     if(!subAreaId){
       navigate(`/page/campus`);
     } else {

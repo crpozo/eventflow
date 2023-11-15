@@ -9,9 +9,8 @@ import LegalLayout from "layouts/privacidad";
 import UserLayout from "layouts/usuario";
 import demo from "assets/img/auth/demo.png";
 import Hotjar from '@hotjar/browser'
-import { I18n, DataStore, Logger} from 'aws-amplify';
+import { I18n, DataStore, Logger, Hub} from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
-import { Hub } from 'aws-amplify';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 I18n.putVocabularies(translations);
@@ -28,6 +27,7 @@ function App() {
   const [dataCleared, setDataCleared] = React.useState(true);
   const [onReady, setOnReady] = React.useState(Promise.resolve());
   const [isReady, setIsReady] = React.useState(true);
+
   // Hotjar init
   const siteId = 123;
   const hotjarVersion = 6;
@@ -50,15 +50,20 @@ function App() {
   // Logger.LOG_LEVEL = 'DEBUG'
 
   const clearDataStore = async () => {
-    setIsReady(false);
-    setOnReady(DataStore.clear());
-    await onReady; // Wait for the clear operation to complete
-    setIsReady(true);
+    try {
+      setIsReady(false);
+      setOnReady(DataStore.clear());
+      await onReady; // Wait for the clear operation to complete
+      console.log("DataStore cleared successfully");
+    } catch (error) {
+      console.error("Error clearing DataStore", error);
+    } finally {
+      console.log("isReady:" ,isReady)
+      setIsReady(true);
+    }
   };
 
-
   const listener = async (data) => {
-
     switch (data?.payload?.event) {
       case 'configured':
         console.log('the Auth module is configured');
@@ -67,7 +72,9 @@ function App() {
         console.log('user signed in'); 
         // setDataCleared(false)
         // await DataStore.stop();
+        setIsReady(false);
         clearDataStore();
+        
         // await new Promise(resolve => setTimeout(resolve, 2000));  
         // await DataStore.clear();
         // await new Promise(resolve => setTimeout(resolve, 1000));  
@@ -169,7 +176,7 @@ function App() {
   }
 
   // Use the value of route to decide which page to render
-  return route === 'authenticated'
+  return isReady && route === 'authenticated'
   ? (
     <Routes>
       <Route path="auth/*" element={<AuthLayout />} />

@@ -225,34 +225,34 @@ const Registro = (props) => {
         })
       );
 
-      sendTicketEmail();
+      // sendTicketEmail();
 
     } catch (error) {
       console.error("Error updating EventAttendee: ", error);
     }
   }
 
-  const sendTicketEmail = async () => {
-    try{
-       // Send email
-      const payloadEmail = {
-        eventAttendeeId: eventAttendee.id
-      };
+  // const sendTicketEmail = async () => {
+  //   try{
+  //      // Send email
+  //     const payloadEmail = {
+  //       eventAttendeeId: eventAttendee.id
+  //     };
     
-      const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payloadEmail)
-      });
+  //     const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify(payloadEmail)
+  //     });
       
-      const data = await response.json()
+  //     const data = await response.json()
 
-      console.log("sendTicketEmail response :", data)
+  //     console.log("sendTicketEmail response :", data)
 
-    }catch(e){ console.error("sendTicketEmail: ", e)}
-  }
+  //   }catch(e){ console.error("sendTicketEmail: ", e)}
+  // }
 
   // Submit Form
   const handleSubmit = async () => {

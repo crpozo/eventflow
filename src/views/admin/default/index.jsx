@@ -15,13 +15,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   React.useEffect( () => {
-
     if(!localStorage.getItem("EVENTFLOW.subarea") || localStorage.getItem("EVENTFLOW.subarea") === undefined){
       navigate(`/page/campus`);
       return
     }
 
-    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id;
+    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
     if(!subAreaId){
       console.log("subAreaId: ",subAreaId)
       navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos"} });
