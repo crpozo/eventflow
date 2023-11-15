@@ -8,9 +8,8 @@ import LandingLayout from "layouts/landing";
 import LegalLayout from "layouts/privacidad";
 import UserLayout from "layouts/usuario";
 import demo from "assets/img/auth/demo.png";
-
 import Hotjar from '@hotjar/browser'
-import { I18n, DataStore} from 'aws-amplify';
+import { I18n, DataStore, Logger} from 'aws-amplify';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { Hub } from 'aws-amplify';
 import { useAuthenticator } from '@aws-amplify/ui-react';
@@ -44,6 +43,9 @@ function App() {
     };
 
   }, []);
+
+  // Log errors Amplify
+  Logger.LOG_LEVEL = 'DEBUG'
 
   const listener = async (data) => {
 
