@@ -1,0 +1,21 @@
+{
+    "appName": "eventflow",
+    "roleName": "pinpointLambdaRolee5b4eac0",
+    "cloudformationPolicyName": "cloudformationPolicye5b4eac0",
+    "cloudWatchPolicyName": "cloudWatchPolicye5b4eac0",
+    "pinpointPolicyName": "pinpointPolicye5b4eac0",
+    "authPolicyName": "pinpoint_amplify_e5b4eac0",
+    "unauthPolicyName": "pinpoint_amplify_e5b4eac0",
+    "authRoleName": {
+        "Ref": "AuthRoleName"
+    },
+    "unauthRoleName": {
+        "Ref": "UnauthRoleName"
+    },
+    "authRoleArn": {
+        "Fn::GetAtt": [
+            "AuthRole",
+            "Arn"
+        ]
+    }
+}
