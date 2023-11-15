@@ -55,13 +55,13 @@ function App() {
         break;
       case 'signIn':
         console.log('user signed in'); 
-        setDataCleared(false)
-        await DataStore.stop();
+        // setDataCleared(false)
+        // await DataStore.stop();
         await new Promise(resolve => setTimeout(resolve, 1000));  
         await DataStore.clear();
-        await new Promise(resolve => setTimeout(resolve, 1000));  
-        await DataStore.start();
-        setDataCleared(true)
+        // await new Promise(resolve => setTimeout(resolve, 1000));  
+        // await DataStore.start();
+        // setDataCleared(true)
         break;
       case 'signIn_failure':
         console.log('user sign in failed');
@@ -131,13 +131,13 @@ function App() {
         break;
       case 'signOut':
         console.log('user signed out');
-        setDataCleared(false)
-        await DataStore.stop();
-        await new Promise(resolve => setTimeout(resolve, 1000));  
-        await DataStore.clear();
-        await new Promise(resolve => setTimeout(resolve, 1000));  
-        await DataStore.start();
-        setDataCleared(true)
+        // setDataCleared(false)
+        // await DataStore.stop();
+        // await new Promise(resolve => setTimeout(resolve, 1000));  
+        // await DataStore.clear();
+        // await new Promise(resolve => setTimeout(resolve, 1000));  
+        // await DataStore.start();
+        // setDataCleared(true)
         break;
       default:
         console.log('unknown event type');

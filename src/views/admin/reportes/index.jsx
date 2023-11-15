@@ -247,7 +247,6 @@ const Dashboard = () => {
     DataStore.query(Event, (e) => e.careerID.eq(careerSelectID)).then(
       (results) => {
         if (results.length > 0) {
-          console.log("Event results: " + results);
           // setAttendees(results);
           setEventList(results);
           setEventSelectID(results[0].id);
