@@ -1,4 +1,10 @@
 {
+  "analytics": {
+    "eventflow": {
+      "providerPlugin": "awscloudformation",
+      "service": "Pinpoint"
+    }
+  },
   "api": {
     "eventflow": {
       "dependsOn": [],
