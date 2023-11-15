@@ -249,6 +249,8 @@ const Registro = (props) => {
       
       const data = await response.json()
 
+      console.log("sendTicketEmail response :", data)
+
     }catch(e){ console.error("sendTicketEmail: ", e)}
   }
 
