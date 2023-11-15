@@ -200,9 +200,11 @@ const Dashboard = () => {
 
   React.useEffect(() => {
     DataStore.query(Campus).then((results) => {
-      setCampusList(results);
-      setCampusSelectID(results[0].id);
-      console.log("Campus: ", results);
+      if(results.length > 0){
+        setCampusList(results);
+        setCampusSelectID(results[0].id);
+        console.log("Campus: ", results);
+      }
     });
   }, []);
 
