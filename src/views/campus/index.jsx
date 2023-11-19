@@ -8,7 +8,7 @@ import {
   MdAdd
 } from "react-icons/md";
 
-const Dashboard = () => {
+const CampusComponent = () => {
 
   const [campus, setCampus] = React.useState(null);
 
@@ -75,4 +75,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default CampusComponent;

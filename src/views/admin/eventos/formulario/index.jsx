@@ -139,6 +139,16 @@ const Dashboard = () => {
               "subtype": "text"
             },
             {
+              "type":"text",
+              "required":true,
+              "label":"Email",
+              "className":"form-control",
+              "access":false,
+              "name":"email",
+              "subtype":"email",
+              "placeholder":"promero@yanbal.com",
+            },
+            {
               "type": "text",
               "required": true,
               "label": "Nombre y apellido",

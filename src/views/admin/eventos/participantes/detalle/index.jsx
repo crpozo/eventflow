@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import Banner from "./components/Banner";
-import { DataStore } from "aws-amplify";
+import { DataStore, Hub } from "aws-amplify";
 import { Attendee, EventAttendee } from "models"
 import avatar from "assets/img/usfq/avatar.png";
 
@@ -19,18 +19,23 @@ const Profile = () => {
       navigate('/');
     }
 
-    DataStore.query(Attendee, (a) => a.id.eq(id)).then( results => {
-      if(results.length > 0 ){
-        setAttendee(results[0]);
-        DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results[0].id)).then(results => {
+    const subscription = DataStore.observeQuery(Attendee, (a) => a.id.eq(id)).subscribe( results => {
+      if(results.items.length > 0 ){
+        setAttendee(results.items[0]);
+        DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results.items[0].id)).then(results => {
           if(results.length > 0 ){
             setEventAttendee(results[0])
             console.log("EventAttendee: ", results)
           }
         })
       }
-    });
-  }, [navigate]);
+    }); 
+
+    if(attendee){
+      subscription.unsubscribe();
+    }
+    
+  }, []);
 
   if (!attendee) {
     return (
@@ -47,7 +52,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="profile-page container mt-5 mb-[30px]">
+    <div className="profile-page container mt-[100px] md:mt-[50px] mb-[30px]">
       {/* <div className="grid h-full">
         <Banner />
       </div> */}

@@ -2,7 +2,7 @@ import React from "react";
 
 // Admin Imports
 import MainDashboard from "views/admin/default";
-import Reports from "views/admin/reportes";
+import Reportes from "views/admin/reportes";
 
 // Area Imports
 import Campus from "views/campus";
@@ -114,7 +114,7 @@ const routes = [
     layout: "/admin",
     path: "reportes",
     icon: <MdBarChart className="h-6 w-6" />,
-    component: <Reports />,
+    component: <Reportes />,
   },
   {
     name: "Evento crear",
