@@ -314,20 +314,26 @@ const Reportes = () => {
         processChart(results, setOptionTipo, "type");
       });
 
-      DataStore.query(EventAttendee, (e) => e.eventID.eq(eventSelectID)).then(
+      const subscriptionEventAttendee = DataStore.observeQuery(EventAttendee, (e) => e.eventID.eq(eventSelectID)).subscribe(
         (results) => {
-          console.log("EventAttendee: ", results);
-          setTotalRegistros(results.length);
-
-          setTotalCheckIn(
-            results.filter((item) => item.checkIn === true).length
-          );
-          setChartsData([]);
-          setAttendees(
-            results.length > 0 ? results.map((item) => item.formAnswers) : null
-          );
+          if(results.items.length > 0){
+            console.log("EventAttendee: ", results.items);
+            setTotalRegistros(results.items.length);
+            setTotalCheckIn(
+              results.items.filter((item) => item.checkIn === true).length
+            );
+            setChartsData([]);
+            setAttendees(
+              results.items.length > 0 ? results.items.map((item) => item.formAnswers) : null
+            );
+          }
         }
       );
+
+      if(totalCheckIn > 0){
+        subscriptionEventAttendee.unsubscribe();
+      }
+
     }
   }, [eventSelectID]);
 
