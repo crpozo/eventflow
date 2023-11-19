@@ -21,7 +21,7 @@ import { MdFileDownload } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
 
-const Dashboard = () => {
+const Reportes = () => {
 
   const [campusList, setCampusList] = useState(null);
   const [campusSelectID, setCampusSelectID] = useState("");
@@ -37,13 +37,6 @@ const Dashboard = () => {
   const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
 
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!subAreaId) {
-      navigate(`/page/campus`);
-    }
-  }, [navigate]);
-
   const [totalCheckIn, setTotalCheckIn] = React.useState(0);
   const [totalRegistros, setTotalRegistros] = React.useState(0);
 
@@ -199,15 +192,22 @@ const Dashboard = () => {
   /* Logic filters + data */
 
   React.useEffect(() => {
-    console.log("query")
-    DataStore.query(Campus).then((results) => {
-      if(results.length > 0){
-        setCampusList(results);
-        setCampusSelectID(results[0].id);
-        console.log("Campus: ", results);
+    if (!subAreaId) {
+      navigate(`/page/campus`);
+    } else {
+      const subscription  = DataStore.observeQuery(Campus).subscribe((results) => {
+        if(results.items.length > 0){
+          setCampusList(results.items);
+          setCampusSelectID(results.items[0].id);
+          console.log("Campus: ", results.items);
+        }
+      });
+  
+      if(campusList){
+        subscription.unsubscribe();
       }
-    });
-  }, []);
+    }
+  }, [navigate]);
 
   // Get area depending on the the campus ID
   React.useEffect(() => {
@@ -225,6 +225,7 @@ const Dashboard = () => {
         setChartsData([]);
       }
     );
+
   }, [campusSelectID]);
 
   // Get subarea depending on the the area ID
@@ -729,4 +730,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Reportes;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import RtlLayout from "layouts/rtl";
 import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
@@ -21,12 +21,14 @@ function App() {
   const { route } = useAuthenticator(context => [context.route]);
   const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const location = useLocation();
+  const navigate = useNavigate();
   const isLandingRoute = location.pathname.includes('/landing');
   const isLegalRoute = location.pathname.includes('/privacidad');
   const isUserRoute = location.pathname.includes('/usuario');
   const [dataCleared, setDataCleared] = React.useState(true);
   const [onReady, setOnReady] = React.useState(Promise.resolve());
   const [isReady, setIsReady] = React.useState(true);
+
 
   // Hotjar init
   const siteId = 123;
@@ -43,23 +45,19 @@ function App() {
     return () => {
       document.body.removeChild(script);
     };
-
   }, []);
-
-  // Log errors Amplify
-  // Logger.LOG_LEVEL = 'DEBUG'
 
   const clearDataStore = async () => {
     try {
-      setIsReady(false);
-      setOnReady(DataStore.clear());
-      await onReady; // Wait for the clear operation to complete
+      setOnReady(DataStore?.clear());
+      await onReady;
       console.log("DataStore cleared successfully");
     } catch (error) {
       console.error("Error clearing DataStore", error);
     } finally {
-      console.log("isReady:" ,isReady)
-      setIsReady(true);
+      setTimeout( () => {
+        setIsReady(true);
+      }, 1000)   
     }
   };
 
@@ -70,16 +68,8 @@ function App() {
         break;
       case 'signIn':
         console.log('user signed in'); 
-        // setDataCleared(false)
-        // await DataStore.stop();
         setIsReady(false);
         clearDataStore();
-        
-        // await new Promise(resolve => setTimeout(resolve, 2000));  
-        // await DataStore.clear();
-        // await new Promise(resolve => setTimeout(resolve, 1000));  
-        // await DataStore.start();
-        // setDataCleared(true)
         break;
       case 'signIn_failure':
         console.log('user sign in failed');
@@ -149,13 +139,7 @@ function App() {
         break;
       case 'signOut':
         console.log('user signed out');
-        // setDataCleared(false)
-        // await DataStore.stop();
-        // await new Promise(resolve => setTimeout(resolve, 1000));  
-        // await DataStore.clear();
-        // await new Promise(resolve => setTimeout(resolve, 1000));  
-        // await DataStore.start();
-        // setDataCleared(true)
+        navigate(`/page/campus`);
         break;
       default:
         console.log('unknown event type');
@@ -227,7 +211,7 @@ function App() {
       </div>
     )}
     </>
-  
+
 }
 
 export default App;
