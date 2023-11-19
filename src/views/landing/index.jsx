@@ -108,16 +108,6 @@ export default function SignIn() {
     );
   }
 
-  // if(landing.length === 0 ){
-  //   return (
-  //   <div className="flex h-screen">
-  //     <div className="m-auto">
-  //       <h1 className="text-xl">No existe una landing page con el id: {id}</h1>
-  //     </div>
-  //   </div>
-  //   );
-  // }
-
   return (
     <>
       <div className="flex h-[140px] w-full bg-usfqPrimary">

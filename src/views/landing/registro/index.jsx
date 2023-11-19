@@ -254,6 +254,39 @@ const Registro = (props) => {
   //   }catch(e){ console.error("sendTicketEmail: ", e)}
   // }
 
+
+  // TESTING multiple users creation
+  // async function iterateWithDelay(userData) {
+  //   for (let i = 0; i < 10; i++) {
+
+  //     async function createAttende() {
+  //       const attendee = await DataStore.save(new Attendee({}));
+  //       return attendee;
+  //     }
+
+  //     // Make sure to await the creation of the attendee
+  //     const attendee = await createAttende();
+
+  //     const newEventAttendee = await DataStore.save(
+  //       new EventAttendee({
+  //         eventID: eventID,
+  //         attendeeID: attendee.id,
+  //         authorized: false,
+  //         checkIn: false,
+  //         formAnswers: userData,
+  //         ticket: ``, 
+  //         email: userData.find(item => item.name === 'email').userData[0].toString(),
+  //         allowContact: false,
+  //         quantity,
+  //         scanned: 0,
+  //         profileURL: `${domain}/usuario/${attendee.id}`
+  //       })
+  //     );
+  //     console.log("nuevi newEventAttendee: ", i + newEventAttendee)
+  //     await new Promise(resolve => setTimeout(resolve, 1000)); // 1000 milliseconds = 1 second
+  //   }
+  // }
+
   // Submit Form
   const handleSubmit = async () => {
     clearErrorMessages();
@@ -276,6 +309,9 @@ const Registro = (props) => {
       if (attendee) {
         try {
 
+          // Testing multiple users
+          //iterateWithDelay(userData)
+          
           // Create and save the EventAttendee record
           const newEventAttendee = await DataStore.save(
             new EventAttendee({
