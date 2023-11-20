@@ -25,10 +25,8 @@ function App() {
   const isLandingRoute = location.pathname.includes('/landing');
   const isLegalRoute = location.pathname.includes('/privacidad');
   const isUserRoute = location.pathname.includes('/usuario');
-  const [dataCleared, setDataCleared] = React.useState(true);
   const [onReady, setOnReady] = React.useState(Promise.resolve());
   const [isReady, setIsReady] = React.useState(true);
-
 
   // Hotjar init
   const siteId = 123;
@@ -47,17 +45,26 @@ function App() {
     };
   }, []);
 
+  // If datastore is cleared and the browser is refreshed variables reset and we to reinit datastore
+  React.useEffect( () => {
+    async function startData() {
+      if(authStatus == 'unauthenticated'){
+        await DataStore.start();
+      }
+    }
+    startData();
+  }, [authStatus]);
+ 
+
   const clearDataStore = async () => {
     try {
-      setOnReady(DataStore?.clear());
+      setOnReady(DataStore.clear());
       await onReady;
-      console.log("DataStore cleared successfully");
+      console.log("DataStore cleared successfully");  
     } catch (error) {
       console.error("Error clearing DataStore", error);
     } finally {
-      setTimeout( () => {
-        setIsReady(true);
-      }, 1000)   
+      setIsReady(true); 
     }
   };
 
@@ -67,7 +74,7 @@ function App() {
         console.log('the Auth module is configured');
         break;
       case 'signIn':
-        console.log('user signed in'); 
+        console.log('user signed in');
         setIsReady(false);
         clearDataStore();
         break;
