@@ -180,7 +180,7 @@ const routes = [
     component: <LandingRegistro />,
   },
   {
-    name: "Campus",
+    name: "Restablecer",
     layout: "/page",
     path: "campus",
     icon: <MdAccountBalance className="h-6 w-6" />,
