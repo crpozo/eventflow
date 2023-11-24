@@ -181,6 +181,8 @@ type EagerEvent = {
   readonly contactNumber?: (number | null)[] | null;
   readonly termsCondition?: string | null;
   readonly eventIdUSFQ?: string | null;
+  readonly periodoUSFQ?: string | null;
+  readonly usuarioUSFQ?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
@@ -206,6 +208,8 @@ type LazyEvent = {
   readonly contactNumber?: (number | null)[] | null;
   readonly termsCondition?: string | null;
   readonly eventIdUSFQ?: string | null;
+  readonly periodoUSFQ?: string | null;
+  readonly usuarioUSFQ?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;

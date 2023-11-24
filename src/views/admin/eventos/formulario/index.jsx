@@ -34,7 +34,7 @@ const Dashboard = () => {
         setForm(items[0])
         setFormData(items[0].questions);
         setFormExist(true);
-        console.log("Form: ", items[0])
+        console.log("Form observe query: ", items[0])
       } else {
         console.log("No form data found");
       }

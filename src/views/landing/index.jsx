@@ -126,9 +126,12 @@ export default function SignIn() {
 
       {landing && (
         <div className="absolute w-full">
-          <img 
-            className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]" 
-            src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}/>
+          {landing.mainBanner && 
+            <img 
+              className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]" 
+              src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}
+            />
+          }
           {/* {!imageLoaded && (
             <div className="!min-h-[500px] w-full  bg-lightGray  md:!max-h-[600px]" />
           )}          

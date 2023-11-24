@@ -7,8 +7,8 @@ import {
   useSortBy,
   useTable,
 } from "react-table";
+import { IoEnterOutline } from "react-icons/io5";
 import {
-  MdEditCalendar,
   MdAdd,
 } from "react-icons/md";
 
@@ -99,10 +99,10 @@ const DevelopmentTable = (props) => {
                     }
                     else if (cell.column.Header === "EDITAR") {
                       data = (
-                        <MdEditCalendar onClick={() => {
+                        <IoEnterOutline onClick={() => {
                           navigate(`${cell.value}/detalle/`); 
                           localStorage.setItem(`EVENTFLOW.event`, JSON.stringify(cell.row.original.model))
-                        }} className="h-6 w-6 cursor-pointer" />
+                        }} className="h-7 w-7 cursor-pointer ml-[10px] hover:text-blue-500" />
                       );
                     }
                     return (

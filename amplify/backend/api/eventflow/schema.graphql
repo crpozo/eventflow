@@ -53,6 +53,8 @@ type Event @model @auth(rules: [{allow: public}]) {
   contactNumber: [Float]
   termsCondition: String
   eventIdUSFQ: String
+  periodoUSFQ: String
+  usuarioUSFQ: String
 }
 
 type Career @model @auth(rules: [{allow: public}]) {

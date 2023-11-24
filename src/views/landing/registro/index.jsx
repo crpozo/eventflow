@@ -57,7 +57,7 @@ const Registro = (props) => {
     if(searchParams.get('EventAttendee')){
       DataStore.query(EventAttendee,searchParams.get('EventAttendee')).then(results => {
         if(results){
-          console.log("get query and search ",results)
+          console.log("Search params event attendee changed",results)
           setEventAttende(results)
           setFormRegister(true)
           setShowRegister(true)
@@ -81,16 +81,17 @@ const Registro = (props) => {
   }, [id]);
 
   React.useEffect(() => {
-    console.log("OBSERVE: ",eventAttendee)
     if(eventAttendee 
       && eventAttendee.id 
-      && eventAttendeeDataStore == null){
+      && eventAttendeeDataStore == null 
+      && !authorized){
 
       eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
       e.id.eq(eventAttendee.id)
       ).subscribe((results) => {
         if(results.items.length > 0){
           setEventAttende(results.items[0])
+          console.log("OBSERVE: event attende change", results.items[0])
           setAuthorized(results.items[0].authorized)
         }
       });
@@ -106,6 +107,8 @@ const Registro = (props) => {
   React.useEffect(() => {
     if (authorized) {
       handleExport();
+      // Testing 
+      eventAttendeeDataStore?.unsubscribe();
     }
   }, [authorized]);
 
@@ -215,9 +218,10 @@ const Registro = (props) => {
 
   async function updateEventAttendee(ticket) {
 
+    console.log("UPDATE TICKET")
     await new Promise(resolve => setTimeout(resolve, 2000));
     const original = await DataStore.query(EventAttendee, eventAttendee.id);
-
+    console.log("original: ",original)
     try {
       const updatedEventAttendee = await DataStore.save(
         EventAttendee.copyOf(original, updated => {
@@ -225,34 +229,34 @@ const Registro = (props) => {
         })
       );
 
-      // sendTicketEmail();
+      //sendTicketEmail();
 
     } catch (error) {
       console.error("Error updating EventAttendee: ", error);
     }
   }
 
-  // const sendTicketEmail = async () => {
-  //   try{
-  //      // Send email
-  //     const payloadEmail = {
-  //       eventAttendeeId: eventAttendee.id
-  //     };
+  const sendTicketEmail = async () => {
+    try{
+       // Send email
+      const payloadEmail = {
+        eventAttendeeId: eventAttendee.id
+      };
     
-  //     const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify(payloadEmail)
-  //     });
+      const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payloadEmail)
+      });
       
-  //     const data = await response.json()
+      const data = await response.json()
 
-  //     console.log("sendTicketEmail response :", data)
+      console.log("sendTicketEmail response :", data)
 
-  //   }catch(e){ console.error("sendTicketEmail: ", e)}
-  // }
+    }catch(e){ console.error("sendTicketEmail: ", e)}
+  }
 
 
   // TESTING multiple users creation
@@ -304,7 +308,6 @@ const Registro = (props) => {
 
       // Make sure to await the creation of the attendee
       const attendee = await createAttende();
-      console.log("attendee: ",attendee) 
 
       if (attendee) {
         try {
@@ -342,18 +345,18 @@ const Registro = (props) => {
             correo: userData.find(item => item.name === 'email').userData[0].toString(),
             valor: price.replace(/\$/g, ''),
             evento_descripcion: "TEST",
-            evento_id: event.eventIdUSFQ.toString(),
+            evento_id: event?.eventIdUSFQ?.toString(),
             trs_unico: "",
             codigo: "0",
             clave: "SEOP",
             tipo_pago: "O",
             diferido: "BTNS",
-            periodo: "202320",
+            periodo: event?.periodoUSFQ?.toString(),
             correo_adicional: "",
             colegio: "",
             especialidad: "",
             envio: "N",
-            usuario: "OPIEVENTOS",
+            usuario: event?.usuarioUSFQ?.toString(),
             reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
             reg_id_externo: newEventAttendee.id
           }];
