@@ -27,7 +27,7 @@ import {
   useDataStoreBinding,
   validateField,
 } from "./utils";
-import { DataStore } from "aws-amplify";
+import { DataStore } from "aws-amplify/datastore";
 function ArrayField({
   items = [],
   onChange,
@@ -206,6 +206,8 @@ export default function EventCreateForm(props) {
     termsCondition: "",
     careerID: undefined,
     eventIdUSFQ: "",
+    periodoUSFQ: "",
+    usuarioUSFQ: "",
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -227,6 +229,12 @@ export default function EventCreateForm(props) {
   const [eventIdUSFQ, setEventIdUSFQ] = React.useState(
     initialValues.eventIdUSFQ
   );
+  const [periodoUSFQ, setPeriodoUSFQ] = React.useState(
+    initialValues.periodoUSFQ
+  );
+  const [usuarioUSFQ, setUsuarioUSFQ] = React.useState(
+    initialValues.usuarioUSFQ
+  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
@@ -243,6 +251,8 @@ export default function EventCreateForm(props) {
     setCurrentCareerIDValue(undefined);
     setCurrentCareerIDDisplayValue("");
     setEventIdUSFQ(initialValues.eventIdUSFQ);
+    setPeriodoUSFQ(initialValues.periodoUSFQ);
+    setUsuarioUSFQ(initialValues.usuarioUSFQ);
     setErrors({});
   };
   const [currentContactNameValue, setCurrentContactNameValue] =
@@ -274,6 +284,8 @@ export default function EventCreateForm(props) {
     termsCondition: [],
     careerID: [{ type: "Required" }],
     eventIdUSFQ: [],
+    periodoUSFQ: [],
+    usuarioUSFQ: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -328,6 +340,8 @@ export default function EventCreateForm(props) {
           termsCondition,
           careerID,
           eventIdUSFQ,
+          periodoUSFQ,
+          usuarioUSFQ,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -393,6 +407,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -426,6 +442,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -460,6 +478,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.category ?? value;
@@ -494,6 +514,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -529,6 +551,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.date ?? value;
@@ -558,6 +582,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             values = result?.contactName ?? values;
@@ -614,6 +640,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             values = result?.contactNumber ?? values;
@@ -678,6 +706,8 @@ export default function EventCreateForm(props) {
               termsCondition: value,
               careerID,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.termsCondition ?? value;
@@ -708,6 +738,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID: value,
               eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.careerID ?? value;
@@ -811,6 +843,8 @@ export default function EventCreateForm(props) {
               termsCondition,
               careerID,
               eventIdUSFQ: value,
+              periodoUSFQ,
+              usuarioUSFQ,
             };
             const result = onChange(modelFields);
             value = result?.eventIdUSFQ ?? value;
@@ -824,6 +858,76 @@ export default function EventCreateForm(props) {
         errorMessage={errors.eventIdUSFQ?.errorMessage}
         hasError={errors.eventIdUSFQ?.hasError}
         {...getOverrideProps(overrides, "eventIdUSFQ")}
+      ></TextField>
+      <TextField
+        label="Periodo usfq"
+        isRequired={false}
+        isReadOnly={false}
+        value={periodoUSFQ}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
+              careerID,
+              eventIdUSFQ,
+              periodoUSFQ: value,
+              usuarioUSFQ,
+            };
+            const result = onChange(modelFields);
+            value = result?.periodoUSFQ ?? value;
+          }
+          if (errors.periodoUSFQ?.hasError) {
+            runValidationTasks("periodoUSFQ", value);
+          }
+          setPeriodoUSFQ(value);
+        }}
+        onBlur={() => runValidationTasks("periodoUSFQ", periodoUSFQ)}
+        errorMessage={errors.periodoUSFQ?.errorMessage}
+        hasError={errors.periodoUSFQ?.hasError}
+        {...getOverrideProps(overrides, "periodoUSFQ")}
+      ></TextField>
+      <TextField
+        label="Usuario usfq"
+        isRequired={false}
+        isReadOnly={false}
+        value={usuarioUSFQ}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
+              careerID,
+              eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.usuarioUSFQ ?? value;
+          }
+          if (errors.usuarioUSFQ?.hasError) {
+            runValidationTasks("usuarioUSFQ", value);
+          }
+          setUsuarioUSFQ(value);
+        }}
+        onBlur={() => runValidationTasks("usuarioUSFQ", usuarioUSFQ)}
+        errorMessage={errors.usuarioUSFQ?.errorMessage}
+        hasError={errors.usuarioUSFQ?.hasError}
+        {...getOverrideProps(overrides, "usuarioUSFQ")}
       ></TextField>
       <Flex
         justifyContent="space-between"

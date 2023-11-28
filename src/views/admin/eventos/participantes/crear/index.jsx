@@ -1,7 +1,8 @@
 import React from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import Banner from "./components/Banner";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
+
 import { Event, Attendee, EventAttendee } from "models"
 import {
   AttendeeCreateForm

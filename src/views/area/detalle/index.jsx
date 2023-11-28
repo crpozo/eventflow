@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import Banner from "./components/Banner";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import { Area } from "models"
 import {
   AreaUpdateForm 

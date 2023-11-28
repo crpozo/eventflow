@@ -32,6 +32,8 @@ export declare type EventCreateFormInputValues = {
     termsCondition?: string;
     careerID?: string;
     eventIdUSFQ?: string;
+    periodoUSFQ?: string;
+    usuarioUSFQ?: string;
 };
 export declare type EventCreateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -44,6 +46,8 @@ export declare type EventCreateFormValidationValues = {
     termsCondition?: ValidationFunction<string>;
     careerID?: ValidationFunction<string>;
     eventIdUSFQ?: ValidationFunction<string>;
+    periodoUSFQ?: ValidationFunction<string>;
+    usuarioUSFQ?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventCreateFormOverridesProps = {
@@ -58,6 +62,8 @@ export declare type EventCreateFormOverridesProps = {
     termsCondition?: PrimitiveOverrideProps<TextAreaFieldProps>;
     careerID?: PrimitiveOverrideProps<AutocompleteProps>;
     eventIdUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
+    periodoUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
+    usuarioUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type EventCreateFormProps = React.PropsWithChildren<{
     overrides?: EventCreateFormOverridesProps | undefined | null;

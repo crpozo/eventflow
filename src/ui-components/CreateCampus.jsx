@@ -10,7 +10,7 @@ import { Button, Flex, Grid, TextField } from "@aws-amplify/ui-react";
 import { getOverrideProps } from "@aws-amplify/ui-react/internal";
 import { Campus } from "../models";
 import { fetchByPath, validateField } from "./utils";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 export default function CreateCampus(props) {
   const {
     clearOnSuccess = true,

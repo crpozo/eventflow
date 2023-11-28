@@ -569,6 +569,20 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "periodoUSFQ": {
+                    "name": "periodoUSFQ",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "usuarioUSFQ": {
+                    "name": "usuarioUSFQ",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -944,5 +958,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "33d0055e206f11e80b9280f700ab335b"
+    "version": "5d08d58cef9cfc4dee6e0c2588ca3670"
 };

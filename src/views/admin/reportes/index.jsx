@@ -3,7 +3,7 @@ import { graphic } from "echarts";
 import { MdBarChart } from "react-icons/md";
 import Widget from "components/widget/Widget";
 import { useNavigate } from "react-router-dom";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import {
   Campus,
   Area,
@@ -22,6 +22,10 @@ import { AiOutlineWarning } from "react-icons/ai";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
 
 const Reportes = () => {
+
+  /*******************************************/
+  /************** INIT VARIABLES *************/
+  /*******************************************/
 
   const [campusList, setCampusList] = useState(null);
   const [campusSelectID, setCampusSelectID] = useState("");
@@ -189,17 +193,20 @@ const Reportes = () => {
     ],
   });
 
-  /* Logic filters + data */
+  /*******************************************/
+  /************ FILTERS * GET DATA ***********/
+  /*******************************************/
 
+  // Get campus results as observeQueryr
   React.useEffect(() => {
     if (!subAreaId) {
       navigate(`/page/campus`);
     } else {
       const subscription  = DataStore.observeQuery(Campus).subscribe((results) => {
+        console.log("Campus: ", results.items);
         if(results.items.length > 0){
           setCampusList(results.items);
           setCampusSelectID(results.items[0].id);
-          console.log("Campus: ", results.items);
         }
       });
   
@@ -251,7 +258,6 @@ const Reportes = () => {
     DataStore.query(Event, (e) => e.careerID.eq(careerSelectID)).then(
       (results) => {
         if (results.length > 0) {
-          // setAttendees(results);
           setEventList(results);
           setEventSelectID(results[0].id);
         } else {
@@ -293,17 +299,19 @@ const Reportes = () => {
     );
   }, [careerSelectID]);
 
-  // Get Diagrams
+  // Get EventAttendee data on loading or selecting an event
   React.useEffect(() => {
     if (eventSelectID == 0) {
       const eventListID = eventList.map((event) => event.id);
 
+
       DataStore.query(EventAttendee).then((results) => {
-        console.log(results);
+        console.log("EventAttendee ALL: ",results)
         const filteredData = results.filter((item) =>
           eventListID.includes(item.eventID)
         );
       });
+
     } else {
 
       DataStore.query(Attendee, (a) =>
@@ -314,29 +322,30 @@ const Reportes = () => {
         processChart(results, setOptionTipo, "type");
       });
 
-      const subscriptionEventAttendee = DataStore.observeQuery(EventAttendee, (e) => e.eventID.eq(eventSelectID)).subscribe(
+      DataStore.query(EventAttendee, (e) => e.eventID.eq(eventSelectID)).then(
         (results) => {
-          if(results.items.length > 0){
-            console.log("EventAttendee: ", results.items);
-            setTotalRegistros(results.items.length);
+          setChartsData([]);
+          console.log("EventAttendee: ", results);
+          if(results.length > 0){
+            setTotalRegistros(results.length);
             setTotalCheckIn(
-              results.items.filter((item) => item.checkIn === true).length
+              results.filter((item) => item.checkIn === true).length
             );
-            setChartsData([]);
             setAttendees(
-              results.items.length > 0 ? results.items.map((item) => item.formAnswers) : null
+              results.length > 0 ? results.map((item) => item.formAnswers) : null
             );
+          } else {
+            setTotalCheckIn(0);
+            setTotalRegistros(0)
           }
         }
       );
 
-      if(totalCheckIn > 0){
-        subscriptionEventAttendee.unsubscribe();
-      }
-
     }
+
   }, [eventSelectID]);
 
+  // Set charts with new data
   function processChart(results, setOptionFunction, type) {
     const countMap = {};
     let value;
@@ -398,7 +407,11 @@ const Reportes = () => {
     }
   }
 
-  // ==> Excel data flatten handler
+  /*******************************************/
+  /*************** EXCEL EXPORT **************/
+  /*******************************************/
+
+  // Excel data flatten handler
   function flattenData(data) {
     const flattenedData = [];
 
@@ -426,7 +439,7 @@ const Reportes = () => {
     return flattenedData;
   }
 
-  // ==> With header variant
+  // With header variant
   function exportToExcel(data, charsData) {
     if (!charsData || charsData.length == 0) {
       alert("No existen datos en el evento seleccionado");
@@ -449,21 +462,37 @@ const Reportes = () => {
     saveAs(blob, `${eventName}.xlsx`);
   }
 
-  // ==> Chart data handler
-
-  function groupEventData(eventData) {
+  // Chart data handler
+  function groupEventData(eventData, formData) {
     const groupedData = {};
-    if (eventData && eventData.length > 0) {
+
+    const updatedArray = eventData.map(questions => {
+      return questions.map(question => {
+        const matchingFormQuestion = formData.find(formQuestion => formQuestion.name.includes(question.name));
+        if (matchingFormQuestion) {
+          // Create a shallow copy of the object
+          const modifiedQuestion = { ...question };
+          // Modify the property in the copy
+          modifiedQuestion.className = matchingFormQuestion.className;
+          // Return the modified question
+          return modifiedQuestion;
+        } else {
+          // If there is no match, return the question unchanged.
+          return question;
+        }
+      });
+    });
+
+    if (updatedArray && updatedArray.length > 0) {
       // Iterate through each event item
-      eventData.forEach((eventItem, index) => {
-        eventItem.forEach((question) => {
+      updatedArray.forEach( (eventItem, index) => {
+        eventItem.forEach( question => {
           // Check if the question is required
           if (question.type === "number" || question.type === "select") {
             const label = question.label;
             const userData = question.userData[0]; // Assuming there's only one value in userData
-            const type = question.className.includes("bar-chart")
-              ? "bar-chart"
-              : "pie-chart";
+            const match = question.className.match(/(.*)-chart/);
+            const type = (match ? match[1] : "default") + '-chart';
             let options;
 
             // Determine the chart options based on the chart type
@@ -528,9 +557,8 @@ const Reportes = () => {
                   },
                 },
                 color: new graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: "#83bff6" },
-                  { offset: 0.5, color: "#188df0" },
-                  { offset: 1, color: "#188df0" },
+                  { offset: 0, color: "rgb(200, 180, 255)" },         // Morado claro
+                  { offset: 0.5, color: "rgb(167, 159, 254)" },       // Morado medio
                 ]),
                 tooltip: {
                   trigger: "item",
@@ -558,45 +586,51 @@ const Reportes = () => {
                 ],
               };
             }
- 
-            // Check if an entry with the same label already exists in groupedData
-            if (!groupedData[label]) {
-              // If it doesn't exist, create a new entry with options and userData
-              groupedData[label] = {
-                title: label,
-                type: type,
-                options: options,
-                userDataCounts: {}, // Object to store userData counts
-              };
+
+            // If no chart is selected dont push a chart.
+            if(type != "no-chart"){
+               
+              // Check if an entry with the same label already exists in groupedData
+              if (!groupedData[label]) {
+                // If it doesn't exist, create a new entry with options and userData
+                groupedData[label] = {
+                  title: label,
+                  type: type,
+                  options: options,
+                  userDataCounts: {}, // Object to store userData counts
+                };
+              }
+
+              // Populate the chart data for the specific question
+              const chartData = groupedData[label].options.series[0].data;
+              const userDataCounts = groupedData[label].userDataCounts;
+              let barChartXaxisData;
+              if (type === "bar-chart") {
+                barChartXaxisData = groupedData[label].options?.xAxis?.data;
+              }
+              if (userDataCounts[userData]) {
+                userDataCounts[userData]++;
+                if (index === eventData.length - 1 && groupedData[label]) {
+                  const keys = Object.keys(userDataCounts);
+                  const data = keys.map((key) => ({
+                    name: key,
+                    value: userDataCounts[key],
+                  }));
+                  groupedData[label].options.series[0].data = data;
+                }
+              } else {
+                if (barChartXaxisData) {
+                  barChartXaxisData.push(userData);
+                }
+                userDataCounts[userData] = 1;
+                chartData.push({
+                  name: userData,
+                  value: 1,
+                });
+              }
+
             }
 
-            // Populate the chart data for the specific question
-            const chartData = groupedData[label].options.series[0].data;
-            const userDataCounts = groupedData[label].userDataCounts;
-            let barChartXaxisData;
-            if (type === "bar-chart") {
-              barChartXaxisData = groupedData[label].options.xAxis.data;
-            }
-            if (userDataCounts[userData]) {
-              userDataCounts[userData]++;
-              if (index === eventData.length - 1 && groupedData[label]) {
-                const keys = Object.keys(userDataCounts);
-                const data = keys.map((key) => ({
-                  name: key,
-                  value: userDataCounts[key],
-                }));
-                groupedData[label].options.series[0].data = data;
-              }
-            } else {
-              if (barChartXaxisData) {
-                barChartXaxisData.push(userData);
-              }
-              userDataCounts[userData] = 1;
-              chartData.push({
-                name: userData,
-                value: 1,
-              });
-            }
           }
         });
       });
@@ -604,17 +638,36 @@ const Reportes = () => {
 
     // Convert the groupedData object to an array
     let groupedDataArray = Object.values(groupedData);
-    // Only for DEMO = REMOVE
-    groupedDataArray = groupedDataArray.filter(item => item.title !== "Identificación");
 
     return groupedDataArray;
   }
 
-  // ==> Use Effect  to execute events data
+  // Use Effect  to execute events data
   useEffect(() => {
     if (attendees) {
-      const groupedData = groupEventData(attendees);
-      setChartsData(groupedData);
+      DataStore.query(Form, (f) => f.Event.id.eq(eventSelectID)).then((results) => {
+        if(results.length > 0){
+
+          // Obtain questions from Form only to match className and remove any informative field
+          const filteredArray = results[0].questions.map(obj => ({
+            className: obj.className,
+            name: obj.name
+          })).filter(item => {
+            let type = item.type;
+            return type !== "header" && type !== "paragraph" && Object.values(item).every(value => value !== undefined);
+          });
+
+          // Obtain questions from EventAttendees and remove any informative field
+          let eventAttendes =  [];
+          attendees.forEach(arrayInterno => {
+            let nuevoArrayInterno = arrayInterno.filter(elemento => elemento.type !== "header" && elemento.type !== "paragraph");
+            eventAttendes.push(nuevoArrayInterno);
+          });
+
+          const groupedData = groupEventData(eventAttendes, filteredArray);
+          setChartsData(groupedData);
+        }
+      });
     }
   }, [attendees]);
 

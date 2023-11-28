@@ -6,7 +6,7 @@ import { Link, useParams } from "react-router-dom";
 import routes from "routes.js";
 import { Landing } from "models"
 import { formatDateHour } from 'scripts/utils'
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import {
   MdChevronLeft
 } from "react-icons/md";

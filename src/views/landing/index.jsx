@@ -3,8 +3,7 @@ import logo from "assets/img/usfq/logo.svg";
 import { useParams, Link } from "react-router-dom";
 import Registro from "./registro/index";
 import { formatDateHour } from 'scripts/utils';
-import { DataStore } from "aws-amplify";
-import { StorageImage } from "@aws-amplify/ui-react-storage";
+import { DataStore } from 'aws-amplify/datastore';
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { Landing, Event } from "models";
 import { FiExternalLink } from "react-icons/fi";
@@ -42,9 +41,18 @@ export default function SignIn() {
   };
 
   React.useEffect(() => {
+
+    async function startData() {
+      const events = await DataStore.query(Event);
+      console.log("events: ",events)
+
+    }
+    startData();
+
     const subEvent = DataStore.observeQuery(Event, (e) =>
       e.id.eq(id)
     ).subscribe((results) => {
+      console.log("event: ",results)
       if (results.items.length > 0) {
         setEvent(results.items[0]);
       }
@@ -59,9 +67,9 @@ export default function SignIn() {
     const sub = DataStore.observeQuery(Landing, (l) =>
       l.landingEventId.eq(id)
     ).subscribe((results) => {
+      console.log("Landing: ", results.items);
       if (results.items.length > 0) {
         setLanding(results.items[0]);
-        console.log("Landing: ", results.items);
         const tickets = results.items[0].ticketTitle.map((title, index) => {
           const cost =
             results.items[0].ticketPrice[index] !== undefined
@@ -85,7 +93,7 @@ export default function SignIn() {
 
   if (loading && landing.length === 0) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-80">
+      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[85%]">
         <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           Cargando...
@@ -126,21 +134,12 @@ export default function SignIn() {
 
       {landing && (
         <div className="absolute w-full">
-          <img 
-            className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]" 
-            src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}/>
-          {/* {!imageLoaded && (
-            <div className="!min-h-[500px] w-full  bg-lightGray  md:!max-h-[600px]" />
-          )}          
-           <StorageImage
-            className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]"
-            alt="banner"
-            imgKey={landing.mainBanner}
-            accessLevel="public"
-            onStorageGetError={(error) => console.error(error)}
-            onLoad={() => setImageLoaded(true)}
-            style={{ display: imageLoaded ? "block" : "none" }}
-          /> */}
+          {landing.mainBanner && 
+            <img 
+              className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]" 
+              src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}
+            />
+          }
         </div>
       )}
 

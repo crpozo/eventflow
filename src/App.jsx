@@ -8,8 +8,10 @@ import LandingLayout from "layouts/landing";
 import LegalLayout from "layouts/privacidad";
 import UserLayout from "layouts/usuario";
 import demo from "assets/img/auth/demo.png";
-import Hotjar from '@hotjar/browser'
-import { I18n, DataStore, Logger, Hub} from 'aws-amplify';
+import Hotjar from '@hotjar/browser';
+import { Player } from '@lottiefiles/react-lottie-player';
+import { I18n, Hub } from 'aws-amplify/utils';
+import { DataStore } from 'aws-amplify/datastore';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
@@ -25,129 +27,100 @@ function App() {
   const isLandingRoute = location.pathname.includes('/landing');
   const isLegalRoute = location.pathname.includes('/privacidad');
   const isUserRoute = location.pathname.includes('/usuario');
-  const [dataCleared, setDataCleared] = React.useState(true);
   const [onReady, setOnReady] = React.useState(Promise.resolve());
   const [isReady, setIsReady] = React.useState(true);
-
 
   // Hotjar init
   const siteId = 123;
   const hotjarVersion = 6;
   Hotjar.init(siteId, hotjarVersion);
 
-  // Live chat Tidio
   React.useEffect(() => {
-    const script = document.createElement('script');
-    script.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
-    script.async = true;
-    document.body.appendChild(script);
+    // Cookiebot
+    const cookiebotScript = document.createElement('script');
+    cookiebotScript.id = 'Cookiebot';
+    cookiebotScript.src = 'https://consent.cookiebot.com/uc.js';
+    cookiebotScript.setAttribute('data-cbid', '7f732229-5a1e-49cc-9a04-cbd43a1eb610');
+    document.head.appendChild(cookiebotScript);
+
+    const cookieDeclarationScript = document.createElement('script');
+    cookieDeclarationScript.id = 'CookieDeclaration';
+    cookieDeclarationScript.src = 'https://consent.cookiebot.com/7f732229-5a1e-49cc-9a04-cbd43a1eb610/cd.js';
+    cookieDeclarationScript.async = true;
+    document.head.appendChild(cookieDeclarationScript);
+
+    // Live chat Tidio
+    const tidioScript = document.createElement('script');
+    tidioScript.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
+    tidioScript.async = true;
+    document.body.appendChild(tidioScript);
 
     return () => {
-      document.body.removeChild(script);
+      // Limpiar scripts al desmontar el componente
+      document.head.removeChild(cookiebotScript);
+      document.head.removeChild(cookieDeclarationScript);
+      document.body.removeChild(tidioScript);
     };
   }, []);
 
+  // If datastore is cleared and the browser is refreshed variables reset and we to reinit datastore
+  React.useEffect( () => {
+    async function startData() {
+      if(authStatus == 'unauthenticated'){
+        await DataStore.start();
+        console.log("START executed")
+      }
+    }
+    startData();
+  }, [authStatus]);
+ 
+
   const clearDataStore = async () => {
     try {
-      setOnReady(DataStore?.clear());
-      await onReady;
-      console.log("DataStore cleared successfully");
+      await DataStore?.clear();
+      // setOnReady(DataStore.clear());
+      // await onReady;
     } catch (error) {
       console.error("Error clearing DataStore", error);
     } finally {
-      setTimeout( () => {
-        setIsReady(true);
-      }, 1000)   
+      setIsReady(true);
+      console.log("DataStore cleared successfully");
+      // setTimeout(() => {
+      //    console.log("DataStore cleared successfully");
+      //    setIsReady(true);
+      //  }, 2000);
     }
   };
 
-  const listener = async (data) => {
-    switch (data?.payload?.event) {
-      case 'configured':
-        console.log('the Auth module is configured');
-        break;
-      case 'signIn':
-        console.log('user signed in'); 
+  Hub.listen('auth', ({ payload }) => {
+    switch (payload.event) {
+      case 'signedIn':
         setIsReady(false);
         clearDataStore();
+        console.log('user have been signedIn successfully.');
         break;
-      case 'signIn_failure':
-        console.log('user sign in failed');
-        break;
-      case 'signUp':
-        console.log('user signed up');
-        break;
-      case 'signUp_failure':
-        console.log('user sign up failed');
-        break;
-      case 'confirmSignUp':
-        console.log('user confirmation successful');
-        break;
-      case 'completeNewPassword_failure':
-        console.log('user did not complete new password flow');
-        break;
-      case 'autoSignIn':
-        console.log('auto sign in successful');
-        break;
-      case 'autoSignIn_failure':
-        console.log('auto sign in failed');
-        break;
-      case 'forgotPassword':
-        console.log('password recovery initiated');
-        break;
-      case 'forgotPassword_failure':
-        console.log('password recovery failed');
-        break;
-      case 'forgotPasswordSubmit':
-        console.log('password confirmation successful');
-        break;
-      case 'forgotPasswordSubmit_failure':
-        console.log('password confirmation failed');
-        break;
-      case 'verify':
-        console.log('TOTP token verification successful');
+      case 'signedOut':
+        navigate(`/page/campus`);
+        // clearDataStore();
+        console.log('user have been signedOut successfully.');
         break;
       case 'tokenRefresh':
-        console.log('token refresh succeeded');
+        console.log('auth tokens have been refreshed.');
         break;
       case 'tokenRefresh_failure':
-        console.log('token refresh failed');
+        console.log('failure while refreshing auth tokens.');
         break;
-      case 'cognitoHostedUI':
-        console.log('Cognito Hosted UI sign in successful');
+      case 'signInWithRedirect':
+        console.log('signInWithRedirect API has successfully been resolved.');
         break;
-      case 'cognitoHostedUI_failure':
-        console.log('Cognito Hosted UI sign in failed');
+      case 'signInWithRedirect_failure':
+        console.log('failure while trying to resolve signInWithRedirect API.');
         break;
       case 'customOAuthState':
         console.log('custom state returned from CognitoHosted UI');
         break;
-      case 'customState_failure':
-        console.log('custom state failure');
-        break;
-      case 'parsingCallbackUrl':
-        console.log('Cognito Hosted UI OAuth url parsing initiated');
-        break;
-      case 'userDeleted':
-        console.log('user deletion successful');
-        break;
-      case 'updateUserAttributes':
-        console.log('user attributes update successful');
-        break;
-      case 'updateUserAttributes_failure':
-        console.log('user attributes update failed');
-        break;
-      case 'signOut':
-        console.log('user signed out');
-        navigate(`/page/campus`);
-        break;
-      default:
-        console.log('unknown event type');
-        break;
     }
-  };
-
-  Hub.listen('auth', listener)
+  });
   
   if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !isReady){
     return(
@@ -191,19 +164,29 @@ function App() {
     ) :(
       <div className="bg-lightPrimary">
         <div className="container grid h-screen xl:grid-cols-2 xl:px-1 xl:py-[40px]">
-          <div className="flex flex-col justify-center items-center xl:items-start bg-purplePrimary px-3 xl:shadow-2xl xl:!px-[60px] pt-4 pb-3 rounded-xl xl:rounded-none xl:rounded-l-2xl">
-            <h1 className="font-bold text-2xl mb-2">La forma más fácil de gestionar tus eventos</h1>
-            <p className="xl:mb-[40px]">Ingresa los credenciales para acceder a tu cuenta</p>
-            <img className="hidden xl:block max-w-[420px] mt-0 mb-[30px] mx-auto" src={demo}/>
-            <h2 className="font-black text-3xl hidden xl:block">Bienvenido a EventFlow</h2>
+          <div className="hidden xl:flex flex-col justify-center items-center xl:items-start bg-purplePrimary px-3 login-container xl:!px-[60px] pt-4 pb-3 rounded-t-xl xl:rounded-none xl:rounded-l-2xl">
+
+            <h1 className="font-bold text-2xl mb-2">Gestión de eventos simplificada</h1>
+              <p className="xl:mb-[40px]">Con nuestro software, podrás organizar, crear y disfrutar de eventos de manera más eficiente que nunca.</p>
+            {/* <img className="hidden xl:block max-w-[420px] mt-0 mb-[30px] mx-auto" src={demo}/> */}
+            <div className="relative">
+              <Player
+                src='https://lottie.host/3c7fa75c-9df1-409c-bab7-ecaf7001f6e2/4NtSp21OH8.json'
+                className="player mb-5"
+                loop
+                autoplay
+              />
+            </div>
+            <h2 className="font-black text-3xl hidden xl:block">Hola y Bienvenido/a!</h2> 
+
           </div>
-          <div className="flex flex-col justify-center items-center bg-white p-2 sm:p-5 xl:shadow-2xl rounded-xl xl:rounded-none xl:rounded-r-2xl">
-            <div className="mt-3 xl:!mt-0 mb-[40px] xl:mb-[80px]">
+          <div className="flex flex-col justify-center items-center bg-white px-2 py-[24px] sm:p-5 xl:shadow-2xl rounded-b-xl xl:rounded-none xl:rounded-r-2xl">
+            <div className="mt-3 xl:!mt-0 mb-[40px] xl:mb-[93px]">
               <h1 className="text-4xl font-black text-center">EventFlow</h1>
             </div>
-            <div className="w-[80%]">
+            <div className="w-[80%] mb-[20px]">
               <h2 className="font-bold text-2xl mb-2">Autenticación</h2>
-              <p className="text-gray-500">Ingresa los credenciales para acceder a tu cuenta</p>
+              <p className="text-gray-500">Le damos la bienvenida a una plataforma diseñada para hacer que la planificación de eventos sea accesible y rápida.</p>
               <Authenticator hideSignUp={true}/> 
             </div>
           </div>

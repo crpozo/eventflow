@@ -29,7 +29,7 @@ import {
   validateField,
 } from "./utils";
 import { Field } from "@aws-amplify/ui-react/internal";
-import { DataStore } from "aws-amplify";
+import { DataStore } from "aws-amplify/datastore";
 function ArrayField({
   items = [],
   onChange,

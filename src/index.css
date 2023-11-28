@@ -33,16 +33,16 @@ div[data-amplify-authenticator] [data-amplify-container] {
   width: 100%;
 }
 
-.amplify-button[data-variation="primary"] {
+.amplify-button[data-variation="primary"], button.amplify-button--primary {
   background: #028cff;
   color: white;
 }
 
-.amplify-button[data-variation="primary"]:hover {
+.amplify-button[data-variation="primary"]:hover, button.amplify-button--primary:hover{
   background: black;
 }
 
-.amplify-button[data-variation="primary"]:focus {
+.amplify-button[data-variation="primary"]:focus, button.amplify-button--primary:focus {
   background: #028cff;
   border: none;
 }
@@ -98,6 +98,15 @@ button.amplify-button--link:hover {
   border: none;
   box-shadow: none;
 }
+
+/* Login */
+
+@media (min-width: 978px){
+  .login-container{
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
+  }
+}
+
 
 /* Dashboard */
 
@@ -428,3 +437,5 @@ button:focus-visible {
   padding: 0 2rem 2.5rem;
   order: 100;
 }
+
+/* Lottie animation */

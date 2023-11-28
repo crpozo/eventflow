@@ -1,7 +1,7 @@
 import React,{ Component, createRef} from "react";
 import { useNavigate } from "react-router-dom";
 import Banner from "./components/Banner";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import { Form } from "models"
 import {
   MdEditCalendar
@@ -34,7 +34,7 @@ const Dashboard = () => {
         setForm(items[0])
         setFormData(items[0].questions);
         setFormExist(true);
-        console.log("Form: ", items[0])
+        console.log("Form observeQuery query: ", items[0])
       } else {
         console.log("No form data found");
       }

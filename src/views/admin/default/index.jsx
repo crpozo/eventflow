@@ -2,7 +2,7 @@ import React from "react";
 import Banner from "./components/Banner";
 import NftCard from "components/card/NftCard";
 import { useNavigate, Link } from "react-router-dom";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import { Event } from "models"
 import {
   MdEast
