@@ -20,7 +20,7 @@ import {
 } from "@aws-amplify/ui-react";
 import { Event } from "../models";
 import { fetchByPath, getOverrideProps, validateField } from "./utils";
-import { DataStore } from "aws-amplify";
+import { DataStore } from "aws-amplify/datastore";
 function ArrayField({
   items = [],
   onChange,

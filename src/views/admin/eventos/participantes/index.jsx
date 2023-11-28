@@ -1,6 +1,6 @@
 import React from "react";
 import Banner from "./components/Banner";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import { Attendee } from "models"
 import { useNavigate, useParams } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";

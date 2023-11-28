@@ -10,11 +10,12 @@ import html2pdf from "html2pdf.js";
 import { useParams, Link } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import { Form } from "models";
 import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils"
+import { uploadData } from 'aws-amplify/storage';
 
 window.jQuery = $;
 window.$ = $;
@@ -31,6 +32,7 @@ const Registro = (props) => {
   const [formRegister, setFormRegister] = React.useState(false);
   const [quantity, setQuantity] = React.useState(quantityProp);
   const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
+  const [uploadProgress, setUploadProgress] = React.useState(100);
 
   const currentUrl = window.location.href;
   const domain = new URL(currentUrl).origin;
@@ -91,14 +93,14 @@ const Registro = (props) => {
       ).subscribe((results) => {
         if(results.items.length > 0){
           setEventAttende(results.items[0])
-          console.log("OBSERVE: event attende change", results.items[0])
+          console.log("observeQuery: event attende change", results.items[0])
           setAuthorized(results.items[0].authorized)
         }
       });
     }
 
     if(authorized){
-      eventAttendeeDataStore?.unsubscribe();
+      eventAttendeeDataStore.unsubscribe();
     }
 
   }, [formRegister]);
@@ -107,8 +109,6 @@ const Registro = (props) => {
   React.useEffect(() => {
     if (authorized) {
       handleExport();
-      // Testing 
-      eventAttendeeDataStore?.unsubscribe();
     }
   }, [authorized]);
 
@@ -135,6 +135,90 @@ const Registro = (props) => {
   if (!formData) {
     return <p>Loading...</p>;
   }
+
+    // Submit Form
+    const handleSubmit = async () => {
+      clearErrorMessages();
+      const isValid = validateForm();
+  
+      if (isValid) {
+        const fbRender = document.querySelector("#fb-editor");
+        const userData = $(fbRender).formRender("userData");
+        setUserData(userData);
+  
+        async function createAttende() {
+          const attendee = await DataStore.save(new Attendee({}));
+          return attendee;
+        }
+  
+        // Make sure to await the creation of the attendee
+        const attendee = await createAttende();
+  
+        if (attendee) {
+          try {
+  
+            // Testing multiple users
+            //iterateWithDelay(userData)
+            
+            // Create and save the EventAttendee record
+            const newEventAttendee = await DataStore.save(
+              new EventAttendee({
+                eventID: eventID,
+                attendeeID: attendee.id,
+                authorized: false,
+                checkIn: false,
+                formAnswers: userData,
+                ticket: ``, 
+                email: userData.find(item => item.name === 'email').userData[0].toString(),
+                allowContact: false,
+                quantity,
+                scanned: 0,
+                profileURL: `${domain}/usuario/${attendee.id}`
+              })
+            );
+  
+            setEventAttende(newEventAttendee)
+  
+            setFormRegister(true);
+            // get token from USFQ
+            const accessToken = await getTokenFinancial();
+            const requestBody = [{
+              identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
+              nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
+              direccion: userData.find(item => item.name === 'direccion').userData[0].toString(),
+              telefono: userData.find(item => item.name === 'telefono').userData[0].toString(),
+              correo: userData.find(item => item.name === 'email').userData[0].toString(),
+              valor: price.replace(/\$/g, ''),
+              evento_descripcion: "TEST",
+              evento_id: event?.eventIdUSFQ?.toString(),
+              trs_unico: "",
+              codigo: "0",
+              clave: "SEOP",
+              tipo_pago: "O",
+              diferido: "BTNS",
+              periodo: event?.periodoUSFQ?.toString(),
+              correo_adicional: "",
+              colegio: "",
+              especialidad: "",
+              envio: "N",
+              usuario: event?.usuarioUSFQ?.toString(),
+              reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
+              reg_id_externo: newEventAttendee.id
+            }];
+  
+            const trs = await postRegistroFinanciero(requestBody, accessToken)
+            setTrs(trs);
+
+            // Add loading screen until file is uploaded
+  
+          } catch (error) {
+            console.error("HandleSubmit:", error);
+          }
+        }
+      } else {
+        console.log("Form is not valid");
+      }
+    };
 
   const getTokenFinancial = async () => {
     try {
@@ -205,10 +289,9 @@ const Registro = (props) => {
         });
       }
       pdf.outputPdf().then(function(pdf) {
-        // Save ticket base 64 in eventAttendee only when creating attendee
-        console.log("eventAttendee: ", eventAttendee)
-        if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){          
-          updateEventAttendee(btoa(pdf).toString())
+        if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){   
+          setUploadProgress(0);       
+          savePDFStorage(btoa(pdf).toString())
         }
       })
       pdf.save(`${props.landing.title + " - ticket "}.pdf`);
@@ -216,23 +299,31 @@ const Registro = (props) => {
     }catch(e){ console.error("handleExport error: ",e) }
   };
 
-  async function updateEventAttendee(ticket) {
-
-    console.log("UPDATE TICKET")
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const original = await DataStore.query(EventAttendee, eventAttendee.id);
-    console.log("original: ",original)
+  async function savePDFStorage(ticket) {
     try {
+        const resultUpload = await uploadData({
+          key: eventAttendee.id + '_' + event.id + "_ticket.txt",
+          data: ticket,
+          options: {
+            accessLevel: 'private',
+            metadata: {key: event.id},
+          }
+        }).result;
+
+      setUploadProgress(100)
+      console.log('Succeeded: ', resultUpload);
+
+      const original = await DataStore.query(EventAttendee, eventAttendee.id);
       const updatedEventAttendee = await DataStore.save(
         EventAttendee.copyOf(original, updated => {
-          updated.ticket = ticket;
+          updated.ticket = resultUpload.key;
         })
       );
-
-      //sendTicketEmail();
+ 
+      sendTicketEmail();
 
     } catch (error) {
-      console.error("Error updating EventAttendee: ", error);
+      console.error("Error uploading file: ", error);
     }
   }
 
@@ -291,88 +382,6 @@ const Registro = (props) => {
   //   }
   // }
 
-  // Submit Form
-  const handleSubmit = async () => {
-    clearErrorMessages();
-    const isValid = validateForm();
-
-    if (isValid) {
-      const fbRender = document.querySelector("#fb-editor");
-      const userData = $(fbRender).formRender("userData");
-      setUserData(userData);
-
-      async function createAttende() {
-        const attendee = await DataStore.save(new Attendee({}));
-        return attendee;
-      }
-
-      // Make sure to await the creation of the attendee
-      const attendee = await createAttende();
-
-      if (attendee) {
-        try {
-
-          // Testing multiple users
-          //iterateWithDelay(userData)
-          
-          // Create and save the EventAttendee record
-          const newEventAttendee = await DataStore.save(
-            new EventAttendee({
-              eventID: eventID,
-              attendeeID: attendee.id,
-              authorized: false,
-              checkIn: false,
-              formAnswers: userData,
-              ticket: ``, 
-              email: userData.find(item => item.name === 'email').userData[0].toString(),
-              allowContact: false,
-              quantity,
-              scanned: 0,
-              profileURL: `${domain}/usuario/${attendee.id}`
-            })
-          );
-
-          setEventAttende(newEventAttendee)
-
-          setFormRegister(true);
-          // get token from USFQ
-          const accessToken = await getTokenFinancial();
-          const requestBody = [{
-            identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
-            nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
-            direccion: userData.find(item => item.name === 'direccion').userData[0].toString(),
-            telefono: userData.find(item => item.name === 'telefono').userData[0].toString(),
-            correo: userData.find(item => item.name === 'email').userData[0].toString(),
-            valor: price.replace(/\$/g, ''),
-            evento_descripcion: "TEST",
-            evento_id: event?.eventIdUSFQ?.toString(),
-            trs_unico: "",
-            codigo: "0",
-            clave: "SEOP",
-            tipo_pago: "O",
-            diferido: "BTNS",
-            periodo: event?.periodoUSFQ?.toString(),
-            correo_adicional: "",
-            colegio: "",
-            especialidad: "",
-            envio: "N",
-            usuario: event?.usuarioUSFQ?.toString(),
-            reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
-            reg_id_externo: newEventAttendee.id
-          }];
-
-          const trs = await postRegistroFinanciero(requestBody, accessToken)
-          setTrs(trs)
-
-        } catch (error) {
-          console.error("HandleSubmit:", error);
-        }
-      }
-    } else {
-      console.log("Form is not valid");
-    }
-  };
-
   const clearErrorMessages = () => {
     const errorMessages = document.querySelectorAll(".error-message");
     errorMessages.forEach((error) => error.remove());
@@ -417,7 +426,7 @@ const Registro = (props) => {
           </>
         )}
 
-        {!authorized && searchParams.get('EventAttendee') &&
+        {!authorized && searchParams.get('EventAttendee') || uploadProgress !== 100 &&
           <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-80">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
@@ -430,7 +439,7 @@ const Registro = (props) => {
         }
 
         {!authorized && formRegister && !searchParams.get('EventAttendee') &&
-          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-80">
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[85%]">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
               Esperando recibir el pago desde la plataforma USFQ...
@@ -508,7 +517,7 @@ const Registro = (props) => {
                       <div className="items-center flex w-full flex-col justify-center">
                         {userData.map((data, i) => (
                           <div key={i}>
-                            {data.name == "nombres" && (
+                            {data.name === "nombres" && (
                               <p className="text-md mb-3 w-full text-right font-bold capitalize">
                                 {data.userData[0]}
                               </p>

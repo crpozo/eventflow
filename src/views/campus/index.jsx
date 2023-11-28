@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Banner from "./components/Banner";
 import NftCard from "components/card/NftCard";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import { Campus } from "models"
 import {
   MdAdd

@@ -25,7 +25,7 @@ import {
 } from "@aws-amplify/ui-react/internal";
 import { EventAttende, Event, Attendee } from "../models";
 import { fetchByPath, validateField } from "./utils";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 function ArrayField({
   items = [],
   onChange,

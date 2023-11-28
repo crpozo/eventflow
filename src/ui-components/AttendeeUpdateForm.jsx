@@ -25,7 +25,7 @@ import {
   useDataStoreBinding,
   validateField,
 } from "./utils";
-import { DataStore } from "aws-amplify";
+import { DataStore } from "aws-amplify/datastore";
 function ArrayField({
   items = [],
   onChange,

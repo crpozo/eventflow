@@ -10,7 +10,8 @@ import UserLayout from "layouts/usuario";
 import demo from "assets/img/auth/demo.png";
 import Hotjar from '@hotjar/browser';
 import { Player } from '@lottiefiles/react-lottie-player';
-import { I18n, DataStore, Logger, Hub} from 'aws-amplify';
+import { I18n, Hub } from 'aws-amplify/utils';
+import { DataStore } from 'aws-amplify/datastore';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
@@ -34,15 +35,31 @@ function App() {
   const hotjarVersion = 6;
   Hotjar.init(siteId, hotjarVersion);
 
-  // Live chat Tidio
   React.useEffect(() => {
-    const script = document.createElement('script');
-    script.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
-    script.async = true;
-    document.body.appendChild(script);
+    // Cookiebot
+    const cookiebotScript = document.createElement('script');
+    cookiebotScript.id = 'Cookiebot';
+    cookiebotScript.src = 'https://consent.cookiebot.com/uc.js';
+    cookiebotScript.setAttribute('data-cbid', '7f732229-5a1e-49cc-9a04-cbd43a1eb610');
+    document.head.appendChild(cookiebotScript);
+
+    const cookieDeclarationScript = document.createElement('script');
+    cookieDeclarationScript.id = 'CookieDeclaration';
+    cookieDeclarationScript.src = 'https://consent.cookiebot.com/7f732229-5a1e-49cc-9a04-cbd43a1eb610/cd.js';
+    cookieDeclarationScript.async = true;
+    document.head.appendChild(cookieDeclarationScript);
+
+    // Live chat Tidio
+    const tidioScript = document.createElement('script');
+    tidioScript.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
+    tidioScript.async = true;
+    document.body.appendChild(tidioScript);
 
     return () => {
-      document.body.removeChild(script);
+      // Limpiar scripts al desmontar el componente
+      document.head.removeChild(cookiebotScript);
+      document.head.removeChild(cookieDeclarationScript);
+      document.body.removeChild(tidioScript);
     };
   }, []);
 
@@ -51,6 +68,7 @@ function App() {
     async function startData() {
       if(authStatus == 'unauthenticated'){
         await DataStore.start();
+        console.log("START executed")
       }
     }
     startData();
@@ -59,103 +77,50 @@ function App() {
 
   const clearDataStore = async () => {
     try {
-      setOnReady(DataStore.clear());
-      await onReady;
-      console.log("DataStore cleared successfully");  
+      await DataStore?.clear();
+      // setOnReady(DataStore.clear());
+      // await onReady;
     } catch (error) {
       console.error("Error clearing DataStore", error);
     } finally {
-      setIsReady(true); 
+      setIsReady(true);
+      console.log("DataStore cleared successfully");
+      // setTimeout(() => {
+      //    console.log("DataStore cleared successfully");
+      //    setIsReady(true);
+      //  }, 2000);
     }
   };
 
-  const listener = async (data) => {
-    switch (data?.payload?.event) {
-      case 'configured':
-        console.log('the Auth module is configured');
-        break;
-      case 'signIn':
-        console.log('user signed in');
+  Hub.listen('auth', ({ payload }) => {
+    switch (payload.event) {
+      case 'signedIn':
         setIsReady(false);
         clearDataStore();
+        console.log('user have been signedIn successfully.');
         break;
-      case 'signIn_failure':
-        console.log('user sign in failed');
-        break;
-      case 'signUp':
-        console.log('user signed up');
-        break;
-      case 'signUp_failure':
-        console.log('user sign up failed');
-        break;
-      case 'confirmSignUp':
-        console.log('user confirmation successful');
-        break;
-      case 'completeNewPassword_failure':
-        console.log('user did not complete new password flow');
-        break;
-      case 'autoSignIn':
-        console.log('auto sign in successful');
-        break;
-      case 'autoSignIn_failure':
-        console.log('auto sign in failed');
-        break;
-      case 'forgotPassword':
-        console.log('password recovery initiated');
-        break;
-      case 'forgotPassword_failure':
-        console.log('password recovery failed');
-        break;
-      case 'forgotPasswordSubmit':
-        console.log('password confirmation successful');
-        break;
-      case 'forgotPasswordSubmit_failure':
-        console.log('password confirmation failed');
-        break;
-      case 'verify':
-        console.log('TOTP token verification successful');
+      case 'signedOut':
+        navigate(`/page/campus`);
+        // clearDataStore();
+        console.log('user have been signedOut successfully.');
         break;
       case 'tokenRefresh':
-        console.log('token refresh succeeded');
+        console.log('auth tokens have been refreshed.');
         break;
       case 'tokenRefresh_failure':
-        console.log('token refresh failed');
+        console.log('failure while refreshing auth tokens.');
         break;
-      case 'cognitoHostedUI':
-        console.log('Cognito Hosted UI sign in successful');
+      case 'signInWithRedirect':
+        console.log('signInWithRedirect API has successfully been resolved.');
         break;
-      case 'cognitoHostedUI_failure':
-        console.log('Cognito Hosted UI sign in failed');
+      case 'signInWithRedirect_failure':
+        console.log('failure while trying to resolve signInWithRedirect API.');
         break;
       case 'customOAuthState':
         console.log('custom state returned from CognitoHosted UI');
         break;
-      case 'customState_failure':
-        console.log('custom state failure');
-        break;
-      case 'parsingCallbackUrl':
-        console.log('Cognito Hosted UI OAuth url parsing initiated');
-        break;
-      case 'userDeleted':
-        console.log('user deletion successful');
-        break;
-      case 'updateUserAttributes':
-        console.log('user attributes update successful');
-        break;
-      case 'updateUserAttributes_failure':
-        console.log('user attributes update failed');
-        break;
-      case 'signOut':
-        console.log('user signed out');
-        navigate(`/page/campus`);
-        break;
-      default:
-        console.log('unknown event type');
-        break;
     }
-  };
-
-  Hub.listen('auth', listener)
+  });
   
   if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !isReady){
     return(

@@ -102,7 +102,7 @@ const DevelopmentTable = (props) => {
                         <IoEnterOutline onClick={() => {
                           navigate(`${cell.value}/detalle/`); 
                           localStorage.setItem(`EVENTFLOW.event`, JSON.stringify(cell.row.original.model))
-                        }} className="h-7 w-7 cursor-pointer ml-[10px] hover:text-blue-500" />
+                        }} className="h-[30px] w-[30px] cursor-pointer ml-[10px] hover:text-blue-500" />
                       );
                     }
                     return (

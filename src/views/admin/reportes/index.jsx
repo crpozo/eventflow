@@ -3,7 +3,7 @@ import { graphic } from "echarts";
 import { MdBarChart } from "react-icons/md";
 import Widget from "components/widget/Widget";
 import { useNavigate } from "react-router-dom";
-import { DataStore } from "aws-amplify";
+import { DataStore } from 'aws-amplify/datastore';
 import {
   Campus,
   Area,
@@ -197,7 +197,7 @@ const Reportes = () => {
   /************ FILTERS * GET DATA ***********/
   /*******************************************/
 
-  // Get campus results as observer
+  // Get campus results as observeQueryr
   React.useEffect(() => {
     if (!subAreaId) {
       navigate(`/page/campus`);
@@ -304,6 +304,7 @@ const Reportes = () => {
     if (eventSelectID == 0) {
       const eventListID = eventList.map((event) => event.id);
 
+
       DataStore.query(EventAttendee).then((results) => {
         console.log("EventAttendee ALL: ",results)
         const filteredData = results.filter((item) =>
@@ -341,6 +342,7 @@ const Reportes = () => {
       );
 
     }
+
   }, [eventSelectID]);
 
   // Set charts with new data
@@ -600,7 +602,6 @@ const Reportes = () => {
               }
 
               // Populate the chart data for the specific question
-              console.log("groupedData: ",groupedData)
               const chartData = groupedData[label].options.series[0].data;
               const userDataCounts = groupedData[label].userDataCounts;
               let barChartXaxisData;
@@ -627,9 +628,6 @@ const Reportes = () => {
                   value: 1,
                 });
               }
-
-              console.log("groupedData: ",groupedData)
-
 
             }
 
