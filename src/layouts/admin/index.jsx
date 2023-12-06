@@ -31,22 +31,6 @@ export default function Admin(props) {
     }
   }, [routeResult]);
 
-  const getActiveRoute = (routes) => {
-    let activeRoute = "Main Dashboard";
-    for (let i = 0; i < routes.length; i++) {
-      console.log(routeResult)
-      console.log(routeResult.props.match.route.path, routes[i].path)
-      if (
-        window.location.href.indexOf(
-          routes[i].layout + "/" + routes[i].path
-        ) !== -1
-      ) {
-        console.log("routes[i].name: ",routes[i])
-        setCurrentRoute(routes[i].name);
-      }
-    }
-    return activeRoute;
-  };
   const getActiveNavbar = (routes) => {
     let activeNavbar = false;
     for (let i = 0; i < routes.length; i++) {
