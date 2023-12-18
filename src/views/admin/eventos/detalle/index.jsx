@@ -26,8 +26,6 @@ const Dashboard = () => {
     DataStore.query(Event, (e) => e.id.eq(id)).then( results => {
       setEvent(results[0]);
       localStorage.setItem("EVENTFLOW.event", JSON.stringify(results[0]))
-      console.log("DETALLE: ", JSON.stringify(results))
-      console.log("Event: ", results)
     });
   }, [id, navigate]);
 
