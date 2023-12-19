@@ -15,7 +15,7 @@ import { Form } from "models";
 import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils"
-import { uploadData } from 'aws-amplify/storage';
+import { uploadData, getUrl } from 'aws-amplify/storage';
 
 window.jQuery = $;
 window.$ = $;
@@ -313,14 +313,21 @@ const Registro = (props) => {
       setUploadProgress(100)
       console.log('Succeeded: ', resultUpload);
 
+      const getUrlResult = await getUrl({
+        key: eventAttendee.id + '_' + event.id + "_ticket.txt",
+        options: {
+          accessLevel: 'private' ,
+        },
+      });
+
       const original = await DataStore.query(EventAttendee, eventAttendee.id);
       const updatedEventAttendee = await DataStore.save(
         EventAttendee.copyOf(original, updated => {
-          updated.ticket = resultUpload.key;
+          updated.ticket = decodeURIComponent(getUrlResult.url.pathname.substring(1));
         })
       );
- 
-      sendTicketEmail();
+
+      //sendTicketEmail();
 
     } catch (error) {
       console.error("Error uploading file: ", error);
