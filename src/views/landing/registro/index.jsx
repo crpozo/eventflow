@@ -100,7 +100,7 @@ const Registro = (props) => {
     }
 
     if(authorized){
-      eventAttendeeDataStore.unsubscribe();
+      eventAttendeeDataStore?.unsubscribe();
     }
 
   }, [formRegister]);
@@ -281,20 +281,20 @@ const Registro = (props) => {
       const pdf = html2pdf().set(pdfOptions);
     
       for (const [index, ticket] of tickets.entries() ) {
-
-        await pdf.from(ticket).toContainer().toCanvas().toPdf().get('pdf').then(function (pdf) {
+        await pdf?.from(ticket)?.toContainer().toCanvas().toPdf().get('pdf').then(function (pdf) {
           if(index != quantity-1){
             pdf.addPage();
           }
         });
+
       }
-      pdf.outputPdf().then(function(pdf) {
+      pdf?.outputPdf().then(function(pdf) {
         if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){   
           setUploadProgress(0);       
           savePDFStorage(btoa(pdf).toString())
         }
       })
-      pdf.save(`${props.landing.title + " - ticket "}.pdf`);
+      pdf?.save(`${props.landing.title + " - ticket "}.pdf`);
     
     }catch(e){ console.error("handleExport error: ",e) }
   };
