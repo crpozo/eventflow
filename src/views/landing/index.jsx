@@ -184,14 +184,14 @@ export default function SignIn() {
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
-                  {event && <p className="text-lg">{formatDateHour(event.date)}</p>}
+                  {event && <p className="text-md">{formatDateHour(event.date)}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Ubicación</h3>
-                  <p className="text-lg">{landing.location}</p>
+                  <p className="text-md">{landing.location}</p>
                 </div>
               </div>
               {/* Checkout  */}

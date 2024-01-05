@@ -33,7 +33,7 @@ const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date,
               <p className="mt-1 mb-2 text-sm font-medium text-gray-500 md:mt-2">
                 Última actualización: {formatDate(date)}
               </p>
-              <p className="text-xl font-semibold text-black break-all	dark:text-white">
+              <p className="text-xl font-normal text-black break-all	dark:text-white">
                 {" "}
                 {title}{" "}
               </p>
