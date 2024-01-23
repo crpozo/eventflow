@@ -239,7 +239,7 @@ export default function SignIn() {
                   onClick={() => setShowRegister(true)}
                   className="linear text-md flex w-full items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
                 >
-                  Reserver un lugar
+                  Reservar un lugar
                 </button>
               </div>
             </div>
