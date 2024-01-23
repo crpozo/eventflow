@@ -184,14 +184,14 @@ export default function SignIn() {
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
-                  {event && <p className="text-lg">{formatDateHour(event.date)}</p>}
+                  {event && <p className="text-md">{formatDateHour(event.date)}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Ubicación</h3>
-                  <p className="text-lg">{landing.location}</p>
+                  <p className="text-md">{landing.location}</p>
                 </div>
               </div>
               {/* Checkout  */}
@@ -239,7 +239,7 @@ export default function SignIn() {
                   onClick={() => setShowRegister(true)}
                   className="linear text-md flex w-full items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
                 >
-                  Reserver un lugar
+                  Reservar un lugar
                 </button>
               </div>
             </div>

@@ -45,7 +45,7 @@ const DevelopmentTable = (props) => {
   return (
     <Card extra={"w-full h-full p-4"}>
       <div className="relative flex items-center justify-between">
-        <div className="text-2xl font-bold text-navy-700 dark:text-white">
+        <div className="text-2xl font-medium text-navy-700 dark:text-white">
           Tabla de participantes
         </div>
         {/* <Link className="hover:no-underline" to="crear">
@@ -90,13 +90,13 @@ const DevelopmentTable = (props) => {
                     console.log("Cell: ",cell)
                     if (cell.column.Header === "ID") {
                       data = (
-                        <p className="text-sm font-bold text-navy-700 dark:text-white">
+                        <p className="text-sm text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     } else if (cell.column.Header === "Creacion") {
                       data = (
-                        <p className="text-sm font-bold text-navy-700 dark:text-white">
+                        <p className="text-sm text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );

@@ -54,7 +54,7 @@ const Dashboard = () => {
       <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
         <div className="flex flex-col items-center justify-between gap-3 mb-4 sm:flex-row sm:gap-0">
-          <p className="text-2xl font-bold text-navy-700 dark:text-white">
+          <p className="text-2xl font-medium text-navy-700 dark:text-white">
             Selecciona un área
           </p>
           <Link className="hover:no-underline" to="crear"> 

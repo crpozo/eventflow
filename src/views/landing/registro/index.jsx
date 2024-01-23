@@ -85,7 +85,6 @@ const Registro = (props) => {
   React.useEffect(() => {
     if(eventAttendee 
       && eventAttendee.id 
-      && eventAttendeeDataStore == null 
       && !authorized){
 
       eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
@@ -100,6 +99,7 @@ const Registro = (props) => {
     }
 
     if(authorized){
+      console.log("unsubscribe: ", eventAttendeeDataStore)
       eventAttendeeDataStore?.unsubscribe();
     }
 
@@ -286,7 +286,6 @@ const Registro = (props) => {
             pdf.addPage();
           }
         });
-
       }
       pdf?.outputPdf().then(function(pdf) {
         if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){   

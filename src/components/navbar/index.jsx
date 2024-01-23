@@ -2,6 +2,7 @@ import React from "react";
 import Dropdown from "components/dropdown";
 import { FiAlignJustify } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import logo from "assets/img/logo.png";
 // Icon Imports
 import {
   MdPerson
@@ -47,9 +48,9 @@ const Navbar = (props) => {
         <p className="shrink text-[33px] capitalize text-navy-700 dark:text-white">
           <Link
             to="/"
-            className="font-black text-3xl	capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
+            className="font-bold text-3xl	capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
           >
-            EventFlow
+            <img className="max-w-[200px]" src={logo} />
           </Link>
         </p> 
       </div>

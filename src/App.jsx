@@ -7,7 +7,7 @@ import PageLayout from "layouts/page";
 import LandingLayout from "layouts/landing";
 import LegalLayout from "layouts/privacidad";
 import UserLayout from "layouts/usuario";
-import demo from "assets/img/auth/demo.png";
+import logo from "assets/img/logo.png";
 import Hotjar from '@hotjar/browser';
 import { Player } from '@lottiefiles/react-lottie-player';
 import { I18n, Hub } from 'aws-amplify/utils';
@@ -180,9 +180,10 @@ function App() {
             <h2 className="font-black text-3xl hidden xl:block">Hola y Bienvenido/a!</h2> 
 
           </div>
-          <div className="flex flex-col justify-center items-center bg-white px-2 py-[24px] sm:p-5 xl:shadow-2xl rounded-b-xl xl:rounded-none xl:rounded-r-2xl">
-            <div className="mt-3 xl:!mt-0 mb-[40px] xl:mb-[93px]">
-              <h1 className="text-4xl font-black text-center">EventFlow</h1>
+          <div className="flex flex-col justify-center items-center bg-white px-2 py-[24px] pt-5 sm:p-5 xl:shadow-2xl rounded-b-xl xl:rounded-none xl:rounded-r-2xl">
+            <div className="mt-3 xl:!mt-0 mb-[30px] xl:mb-[93px]">
+              <img className="max-w-[300px]" src={logo} />
+              {/* <h1 className="text-4xl font-black text-center">EventFlow</h1> */}
             </div>
             <div className="w-[80%] mb-[20px]">
               <h2 className="font-bold text-2xl mb-2">Autenticación</h2>
