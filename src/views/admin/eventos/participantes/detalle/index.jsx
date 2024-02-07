@@ -1,6 +1,5 @@
 import React from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
-import Banner from "./components/Banner";
+import { useNavigate, useParams } from "react-router-dom";
 import { Hub } from 'aws-amplify/utils';
 import { DataStore } from 'aws-amplify/datastore';
 import { Attendee, EventAttendee } from "models"
@@ -9,8 +8,20 @@ const Profile = () => {
 
   const [attendee, setAttendee] = React.useState(null);
   const [eventAttende, setEventAttendee] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
   const navigate = useNavigate();
   const { id } = useParams();
+
+  React.useEffect( () => {
+    async function startData() {
+      // If datastore is already started we stop to trigger hub event
+      if(DataStore.state == 'Starting'){
+        await DataStore.stop();
+      }
+      await DataStore.start();
+    }
+    startData();
+  }, []);
 
   React.useEffect(() => {
 
@@ -18,25 +29,42 @@ const Profile = () => {
       navigate('/');
     }
 
-    const subscription = DataStore.observeQuery(Attendee, (a) => a.id.eq(id)).subscribe( results => {
-      if(results.items.length > 0 ){
-        setAttendee(results.items[0]);
-        DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results.items[0].id)).then(results => {
+    Hub.listen('datastore', async hubData => {
+      const  { event } = hubData.payload;
+      if (event === "ready") {
+        DataStore.query(Attendee, (a) => a.id.eq(id)).then( results => {
           if(results.length > 0 ){
-            setEventAttendee(results[0])
-            console.log("EventAttendee: ", results)
+            setAttendee(results[0]);
+            DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results[0].id)).then(results => {
+              if(results.length > 0 ){
+                setEventAttendee(results[0])
+                console.log("EventAttendee: ", results)
+              }
+            })
           }
-        })
+          setLoading(false);
+        }); 
       }
-    }); 
+    })
 
-    if(attendee){
-      subscription.unsubscribe();
-    }
     
   }, []);
 
-  if (!attendee) {
+  if (loading) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[85%]">
+        <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
+        <h2 className="mb-2 text-center text-xl font-semibold text-black">
+          Cargando...
+        </h2>
+        <p className="w-1/3 text-center text-black">
+          Esto puede tardar unos segundos, por favor no cierre esta página.
+        </p>
+      </div>
+    );
+  }
+
+  if (attendee == null && loading == false) {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[85%]">
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
