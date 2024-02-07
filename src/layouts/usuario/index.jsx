@@ -21,7 +21,7 @@ export default function Landing() {
       <div className="relative float-right h-full min-h-screen w-full !bg-usfqPrimary dark:!bg-navy-900">
         <main className={`mx-auto d-flex flex-col	justify-center min-h-screen`}>
             <div className="flex h-[100px] w-full bg-usfqPrimary">
-              <div className="container flex items-center justify-between">
+              <div className="container flex items-center justify-between pt-3">
                 <img src={logo} className="w-[120px]" />
                 <Link
                   to="https://www.usfq.edu.ec/es"

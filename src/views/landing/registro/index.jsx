@@ -415,7 +415,7 @@ const Registro = (props) => {
               <HiOutlineDocumentText className="h-10 w-10" /> Formulario de
               Registro
             </h2>
-            <div className="mx-auto w-full max-w-[1000px]">
+            <div className="mx-auto w-full max-w-[1000px] py-[40px] px-[60px] box-shadow-0">
               <FormBuilder />
               <div className="mb-5"></div>
               <button
