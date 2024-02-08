@@ -403,19 +403,20 @@ const Registro = (props) => {
               onClick={() => {
                 props.setShowRegister(false);
               }}
-              className="gap mb-4 flex items-center font-medium text-brand-500 hover:text-navy-700 hover:no-underline dark:hover:text-white"
+              className="gap mb-4 flex items-center font-medium text-brand-500 z-10	md:w-[20%] hover:text-navy-700 hover:no-underline dark:hover:text-white"
             >
               <MdChevronLeft className="h-7 w-7" /> Regresar
             </Link>
 
             <h2
               id="title-form"
-              className="mb-5 flex justify-center gap-2 text-4xl font-bold"
+              className="mb-[40px] md:mb-[60px] md:mt-[-60px] flex justify-center gap-2 text-4xl font-bold"
             >
               <HiOutlineDocumentText className="h-10 w-10" /> Formulario de
               Registro
             </h2>
-            <div className="mx-auto w-full max-w-[1000px] py-[40px] px-[60px] box-shadow-0">
+            
+            <div className="mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0">
               <FormBuilder />
               <div className="mb-5"></div>
               <button
@@ -424,7 +425,7 @@ const Registro = (props) => {
                 onClick={() => {
                   handleSubmit();
                 }}
-                className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
+                className="clear-both	linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
                 Enviar y completar pago
               </button>
