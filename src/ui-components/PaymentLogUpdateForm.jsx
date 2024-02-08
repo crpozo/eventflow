@@ -197,11 +197,13 @@ export default function PaymentLogUpdateForm(props) {
   const initialValues = {
     eventattendeeID: undefined,
     status: "",
+    type: "",
   };
   const [eventattendeeID, setEventattendeeID] = React.useState(
     initialValues.eventattendeeID
   );
   const [status, setStatus] = React.useState(initialValues.status);
+  const [type, setType] = React.useState(initialValues.type);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = paymentLogRecord
@@ -211,6 +213,7 @@ export default function PaymentLogUpdateForm(props) {
     setCurrentEventattendeeIDValue(undefined);
     setCurrentEventattendeeIDDisplayValue("");
     setStatus(cleanValues.status);
+    setType(cleanValues.type);
     setErrors({});
   };
   const [paymentLogRecord, setPaymentLogRecord] =
@@ -247,6 +250,7 @@ export default function PaymentLogUpdateForm(props) {
   const validations = {
     eventattendeeID: [{ type: "Required" }],
     status: [],
+    type: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -276,6 +280,7 @@ export default function PaymentLogUpdateForm(props) {
         let modelFields = {
           eventattendeeID,
           status,
+          type,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -330,6 +335,7 @@ export default function PaymentLogUpdateForm(props) {
             const modelFields = {
               eventattendeeID: value,
               status,
+              type,
             };
             const result = onChange(modelFields);
             value = result?.eventattendeeID ?? value;
@@ -421,6 +427,7 @@ export default function PaymentLogUpdateForm(props) {
             const modelFields = {
               eventattendeeID,
               status: value,
+              type,
             };
             const result = onChange(modelFields);
             value = result?.status ?? value;
@@ -434,6 +441,32 @@ export default function PaymentLogUpdateForm(props) {
         errorMessage={errors.status?.errorMessage}
         hasError={errors.status?.hasError}
         {...getOverrideProps(overrides, "status")}
+      ></TextField>
+      <TextField
+        label="Type"
+        isRequired={false}
+        isReadOnly={false}
+        value={type}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (onChange) {
+            const modelFields = {
+              eventattendeeID,
+              status,
+              type: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.type ?? value;
+          }
+          if (errors.type?.hasError) {
+            runValidationTasks("type", value);
+          }
+          setType(value);
+        }}
+        onBlur={() => runValidationTasks("type", type)}
+        errorMessage={errors.type?.errorMessage}
+        hasError={errors.type?.hasError}
+        {...getOverrideProps(overrides, "type")}
       ></TextField>
       <Flex
         justifyContent="space-between"

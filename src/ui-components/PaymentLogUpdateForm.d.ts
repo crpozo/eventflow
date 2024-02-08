@@ -25,16 +25,19 @@ export declare type ValidationFunction<T> = (value: T, validationResponse: Valid
 export declare type PaymentLogUpdateFormInputValues = {
     eventattendeeID?: string;
     status?: string;
+    type?: string;
 };
 export declare type PaymentLogUpdateFormValidationValues = {
     eventattendeeID?: ValidationFunction<string>;
     status?: ValidationFunction<string>;
+    type?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type PaymentLogUpdateFormOverridesProps = {
     PaymentLogUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
     eventattendeeID?: PrimitiveOverrideProps<AutocompleteProps>;
     status?: PrimitiveOverrideProps<TextFieldProps>;
+    type?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type PaymentLogUpdateFormProps = React.PropsWithChildren<{
     overrides?: PaymentLogUpdateFormOverridesProps | undefined | null;

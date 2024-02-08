@@ -14,6 +14,7 @@ type EagerPaymentLog = {
   readonly id: string;
   readonly eventattendeeID: string;
   readonly status?: string | null;
+  readonly type?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -26,6 +27,7 @@ type LazyPaymentLog = {
   readonly id: string;
   readonly eventattendeeID: string;
   readonly status?: string | null;
+  readonly type?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
