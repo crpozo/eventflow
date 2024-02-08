@@ -20,4 +20,6 @@ export { default as FormCreateForm } from "./FormCreateForm";
 export { default as FormUpdateForm } from "./FormUpdateForm";
 export { default as LandingCreateForm } from "./LandingCreateForm";
 export { default as LandingUpdateForm } from "./LandingUpdateForm";
+export { default as PaymentLogCreateForm } from "./PaymentLogCreateForm";
+export { default as PaymentLogUpdateForm } from "./PaymentLogUpdateForm";
 export { default as studioTheme } from "./studioTheme";

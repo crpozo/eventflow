@@ -21,7 +21,7 @@ import {
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
-import { EventAttendee, Event, Attendee } from "../models";
+import { EventAttendee, PaymentLog, Event, Attendee } from "../models";
 import {
   fetchByPath,
   getOverrideProps,
@@ -207,6 +207,7 @@ export default function EventAttendeeCreateForm(props) {
     quantity: "",
     scanned: "",
     profileURL: "",
+    PaymentLogs: [],
   };
   const [eventID, setEventID] = React.useState(initialValues.eventID);
   const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
@@ -223,6 +224,9 @@ export default function EventAttendeeCreateForm(props) {
   const [quantity, setQuantity] = React.useState(initialValues.quantity);
   const [scanned, setScanned] = React.useState(initialValues.scanned);
   const [profileURL, setProfileURL] = React.useState(initialValues.profileURL);
+  const [PaymentLogs, setPaymentLogs] = React.useState(
+    initialValues.PaymentLogs
+  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setEventID(initialValues.eventID);
@@ -240,6 +244,9 @@ export default function EventAttendeeCreateForm(props) {
     setQuantity(initialValues.quantity);
     setScanned(initialValues.scanned);
     setProfileURL(initialValues.profileURL);
+    setPaymentLogs(initialValues.PaymentLogs);
+    setCurrentPaymentLogsValue(undefined);
+    setCurrentPaymentLogsDisplayValue("");
     setErrors({});
   };
   const [currentEventIDDisplayValue, setCurrentEventIDDisplayValue] =
@@ -252,6 +259,19 @@ export default function EventAttendeeCreateForm(props) {
   const [currentAttendeeIDValue, setCurrentAttendeeIDValue] =
     React.useState(undefined);
   const attendeeIDRef = React.createRef();
+  const [currentPaymentLogsDisplayValue, setCurrentPaymentLogsDisplayValue] =
+    React.useState("");
+  const [currentPaymentLogsValue, setCurrentPaymentLogsValue] =
+    React.useState(undefined);
+  const PaymentLogsRef = React.createRef();
+  const getIDValue = {
+    PaymentLogs: (r) => JSON.stringify({ id: r?.id }),
+  };
+  const PaymentLogsIdSet = new Set(
+    Array.isArray(PaymentLogs)
+      ? PaymentLogs.map((r) => getIDValue.PaymentLogs?.(r))
+      : getIDValue.PaymentLogs?.(PaymentLogs)
+  );
   const eventRecords = useDataStoreBinding({
     type: "collection",
     model: Event,
@@ -260,9 +280,14 @@ export default function EventAttendeeCreateForm(props) {
     type: "collection",
     model: Attendee,
   }).items;
+  const paymentLogRecords = useDataStoreBinding({
+    type: "collection",
+    model: PaymentLog,
+  }).items;
   const getDisplayValue = {
     eventID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     attendeeID: (r) => r?.id,
+    PaymentLogs: (r) => `${r?.status ? r?.status + " - " : ""}${r?.id}`,
   };
   const validations = {
     eventID: [{ type: "Required" }],
@@ -276,6 +301,7 @@ export default function EventAttendeeCreateForm(props) {
     quantity: [],
     scanned: [],
     profileURL: [],
+    PaymentLogs: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -314,19 +340,28 @@ export default function EventAttendeeCreateForm(props) {
           quantity,
           scanned,
           profileURL,
+          PaymentLogs,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(fieldName, item)
+                  runValidationTasks(
+                    fieldName,
+                    item,
+                    getDisplayValue[fieldName]
+                  )
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(fieldName, modelFields[fieldName])
+              runValidationTasks(
+                fieldName,
+                modelFields[fieldName],
+                getDisplayValue[fieldName]
+              )
             );
             return promises;
           }, [])
@@ -343,7 +378,36 @@ export default function EventAttendeeCreateForm(props) {
               modelFields[key] = null;
             }
           });
-          await DataStore.save(new EventAttendee(modelFields));
+          const modelFieldsToSave = {
+            eventID: modelFields.eventID,
+            attendeeID: modelFields.attendeeID,
+            authorized: modelFields.authorized,
+            checkIn: modelFields.checkIn,
+            formAnswers: modelFields.formAnswers,
+            ticket: modelFields.ticket,
+            email: modelFields.email,
+            allowContact: modelFields.allowContact,
+            quantity: modelFields.quantity,
+            scanned: modelFields.scanned,
+            profileURL: modelFields.profileURL,
+          };
+          const eventAttendee = await DataStore.save(
+            new EventAttendee(modelFieldsToSave)
+          );
+          const promises = [];
+          promises.push(
+            ...PaymentLogs.reduce((promises, original) => {
+              promises.push(
+                DataStore.save(
+                  PaymentLog.copyOf(original, (updated) => {
+                    updated.eventattendeeID = eventAttendee.id;
+                  })
+                )
+              );
+              return promises;
+            }, [])
+          );
+          await Promise.all(promises);
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -376,6 +440,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.eventID ?? value;
@@ -465,6 +530,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.attendeeID ?? value;
@@ -561,6 +627,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.authorized ?? value;
@@ -595,6 +662,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.checkIn ?? value;
@@ -628,6 +696,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.formAnswers ?? value;
@@ -662,6 +731,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.ticket ?? value;
@@ -696,6 +766,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.email ?? value;
@@ -730,6 +801,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.allowContact ?? value;
@@ -768,6 +840,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity: value,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.quantity ?? value;
@@ -806,6 +879,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned: value,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.scanned ?? value;
@@ -840,6 +914,7 @@ export default function EventAttendeeCreateForm(props) {
               quantity,
               scanned,
               profileURL: value,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.profileURL ?? value;
@@ -854,6 +929,93 @@ export default function EventAttendeeCreateForm(props) {
         hasError={errors.profileURL?.hasError}
         {...getOverrideProps(overrides, "profileURL")}
       ></TextField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket,
+              email,
+              allowContact,
+              quantity,
+              scanned,
+              profileURL,
+              PaymentLogs: values,
+            };
+            const result = onChange(modelFields);
+            values = result?.PaymentLogs ?? values;
+          }
+          setPaymentLogs(values);
+          setCurrentPaymentLogsValue(undefined);
+          setCurrentPaymentLogsDisplayValue("");
+        }}
+        currentFieldValue={currentPaymentLogsValue}
+        label={"Payment logs"}
+        items={PaymentLogs}
+        hasError={errors?.PaymentLogs?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("PaymentLogs", currentPaymentLogsValue)
+        }
+        errorMessage={errors?.PaymentLogs?.errorMessage}
+        getBadgeText={getDisplayValue.PaymentLogs}
+        setFieldValue={(model) => {
+          setCurrentPaymentLogsDisplayValue(
+            model ? getDisplayValue.PaymentLogs(model) : ""
+          );
+          setCurrentPaymentLogsValue(model);
+        }}
+        inputFieldRef={PaymentLogsRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label="Payment logs"
+          isRequired={false}
+          isReadOnly={false}
+          placeholder="Search PaymentLog"
+          value={currentPaymentLogsDisplayValue}
+          options={paymentLogRecords
+            .filter((r) => !PaymentLogsIdSet.has(getIDValue.PaymentLogs?.(r)))
+            .map((r) => ({
+              id: getIDValue.PaymentLogs?.(r),
+              label: getDisplayValue.PaymentLogs?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentPaymentLogsValue(
+              paymentLogRecords.find((r) =>
+                Object.entries(JSON.parse(id)).every(
+                  ([key, value]) => r[key] === value
+                )
+              )
+            );
+            setCurrentPaymentLogsDisplayValue(label);
+            runValidationTasks("PaymentLogs", label);
+          }}
+          onClear={() => {
+            setCurrentPaymentLogsDisplayValue("");
+          }}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.PaymentLogs?.hasError) {
+              runValidationTasks("PaymentLogs", value);
+            }
+            setCurrentPaymentLogsDisplayValue(value);
+            setCurrentPaymentLogsValue(undefined);
+          }}
+          onBlur={() =>
+            runValidationTasks("PaymentLogs", currentPaymentLogsDisplayValue)
+          }
+          errorMessage={errors.PaymentLogs?.errorMessage}
+          hasError={errors.PaymentLogs?.hasError}
+          ref={PaymentLogsRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "PaymentLogs")}
+        ></Autocomplete>
+      </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -1,3 +1,9 @@
+type PaymentLog @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  eventattendeeID: ID! @index(name: "byEventAttendee")
+  status: String
+}
+
 type EventAttendee @model @auth(rules: [{allow: public}]) {
   id: ID!
   eventID: ID! @index(name: "byEvent")
@@ -11,6 +17,7 @@ type EventAttendee @model @auth(rules: [{allow: public}]) {
   quantity: Int
   scanned: Int
   profileURL: String
+  PaymentLogs: [PaymentLog] @hasMany(indexName: "byEventAttendee", fields: ["id"])
 }
 
 type Form @model @auth(rules: [{allow: public}]) {
