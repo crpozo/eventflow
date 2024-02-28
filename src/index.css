@@ -244,7 +244,7 @@ button:focus-visible {
 .rendered-form textarea.form-control {
   font-weight: 500;
   height: 46px;
-  border-color: #4a4b4c;
+  border-color: rgb(222, 226, 230);
 }
 
 .rendered-form select.form-control {
@@ -259,6 +259,12 @@ button:focus-visible {
   min-height: 120px;
 }
 
+.rendered-form .form-control:focus{
+  box-shadow: none !important; 
+  border: 1px solid;
+
+}
+
 .rendered-form h1{
   font-size: 30px;
   font-weight: bold;
@@ -267,6 +273,36 @@ button:focus-visible {
 
 .rendered-form p{
   margin-bottom: 15px;
+}
+
+.box-shadow-0{
+  box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+}
+
+@media (min-width: 779px and max-width: 992px){
+  .rendered-form .form-group:not(.formbuilder-textarea){
+    width: 47%;
+    float:left;
+  }
+
+  .rendered-form .form-group:not(.formbuilder-textarea){
+    margin-right: 15px;
+  }
+}
+
+@media (min-width: 993px){
+  .rendered-form .form-group:not(.formbuilder-textarea){
+    width: 48%;
+    float:left;
+  }
+
+  .rendered-form .form-group:not(.formbuilder-textarea){
+    margin-right: 15px;
+  }
+
+}
+.rendered-form .form-group.formbuilder-textarea{
+  clear: both;
 }
 
 /* Reportes */
@@ -300,26 +336,32 @@ button:focus-visible {
 
 /* User page */
 
+.bg-dragon{
+  background-image: url("/src/assets/img/usfq/dragon.png");
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-position: right;
+}
+
 .profile-page .card {
   background-color: #fff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border-radius: 2rem;
-  box-shadow: 0px 1rem 1.5rem rgba(0,0,0,0.5);
+  box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
 }
+
 .profile-page  .card .banner {
-  background: black;
-  /* background-image: url("https://images.unsplash.com/photo-1545703549-7bdb1d01b734?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=400&fit=max&ixid=eyJhcHBfaWQiOjE0NTg5fQ"); */
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  height: 8rem;
+  height: 4rem;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   box-sizing: border-box;
-  margin-bottom: 90px;
+  margin-bottom: 30px;
 }
 .profile-page  .card .banner img {
   background-color: #fff;
@@ -373,7 +415,7 @@ button:focus-visible {
 }
 .profile-page  .card h2.name {
   text-align: center;
-  font-size: 25px;
+  font-size: 28px;
   font-weight: bold;
   padding: 0 2rem 0.5rem;
   margin: 0;
@@ -385,7 +427,7 @@ button:focus-visible {
   padding: 0 2rem 1.2rem;
 }
 .profile-page  .card .actions {
-  padding: 0 2rem 1.2rem;
+  padding: 0 3rem 1.2rem;
   display: flex;
   flex-direction: column;
   order: 99;
@@ -433,7 +475,7 @@ button:focus-visible {
   background-color: #F53939;
   width: 100%;
   border: none;
-  padding: 1rem;
+  padding: 0.8rem;
   outline: none;
   box-sizing: border-box;
   border-radius: 1.5rem/50%;

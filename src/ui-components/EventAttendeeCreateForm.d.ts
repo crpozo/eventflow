@@ -6,6 +6,7 @@
 
 import * as React from "react";
 import { AutocompleteProps, GridProps, SwitchFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { PaymentLog } from "../models";
 export declare type EscapeHatchProps = {
     [elementHierarchy: string]: Record<string, unknown>;
 } | null;
@@ -33,6 +34,7 @@ export declare type EventAttendeeCreateFormInputValues = {
     quantity?: number;
     scanned?: number;
     profileURL?: string;
+    PaymentLogs?: PaymentLog[];
 };
 export declare type EventAttendeeCreateFormValidationValues = {
     eventID?: ValidationFunction<string>;
@@ -46,6 +48,7 @@ export declare type EventAttendeeCreateFormValidationValues = {
     quantity?: ValidationFunction<number>;
     scanned?: ValidationFunction<number>;
     profileURL?: ValidationFunction<string>;
+    PaymentLogs?: ValidationFunction<PaymentLog>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventAttendeeCreateFormOverridesProps = {
@@ -61,6 +64,7 @@ export declare type EventAttendeeCreateFormOverridesProps = {
     quantity?: PrimitiveOverrideProps<TextFieldProps>;
     scanned?: PrimitiveOverrideProps<TextFieldProps>;
     profileURL?: PrimitiveOverrideProps<TextFieldProps>;
+    PaymentLogs?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type EventAttendeeCreateFormProps = React.PropsWithChildren<{
     overrides?: EventAttendeeCreateFormOverridesProps | undefined | null;

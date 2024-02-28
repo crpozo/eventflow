@@ -21,7 +21,7 @@ import {
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
-import { EventAttendee, Event, Attendee } from "../models";
+import { EventAttendee, PaymentLog, Event, Attendee } from "../models";
 import {
   fetchByPath,
   getOverrideProps,
@@ -208,6 +208,7 @@ export default function EventAttendeeUpdateForm(props) {
     quantity: "",
     scanned: "",
     profileURL: "",
+    PaymentLogs: [],
   };
   const [eventID, setEventID] = React.useState(initialValues.eventID);
   const [attendeeID, setAttendeeID] = React.useState(initialValues.attendeeID);
@@ -224,10 +225,19 @@ export default function EventAttendeeUpdateForm(props) {
   const [quantity, setQuantity] = React.useState(initialValues.quantity);
   const [scanned, setScanned] = React.useState(initialValues.scanned);
   const [profileURL, setProfileURL] = React.useState(initialValues.profileURL);
+  const [PaymentLogs, setPaymentLogs] = React.useState(
+    initialValues.PaymentLogs
+  );
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = eventAttendeeRecord
-      ? { ...initialValues, ...eventAttendeeRecord, eventID, attendeeID }
+      ? {
+          ...initialValues,
+          ...eventAttendeeRecord,
+          eventID,
+          attendeeID,
+          PaymentLogs: linkedPaymentLogs,
+        }
       : initialValues;
     setEventID(cleanValues.eventID);
     setCurrentEventIDValue(undefined);
@@ -249,11 +259,16 @@ export default function EventAttendeeUpdateForm(props) {
     setQuantity(cleanValues.quantity);
     setScanned(cleanValues.scanned);
     setProfileURL(cleanValues.profileURL);
+    setPaymentLogs(cleanValues.PaymentLogs ?? []);
+    setCurrentPaymentLogsValue(undefined);
+    setCurrentPaymentLogsDisplayValue("");
     setErrors({});
   };
   const [eventAttendeeRecord, setEventAttendeeRecord] = React.useState(
     eventAttendeeModelProp
   );
+  const [linkedPaymentLogs, setLinkedPaymentLogs] = React.useState([]);
+  const canUnlinkPaymentLogs = false;
   React.useEffect(() => {
     const queryData = async () => {
       const record = idProp
@@ -264,10 +279,19 @@ export default function EventAttendeeUpdateForm(props) {
       setEventID(eventIDRecord);
       const attendeeIDRecord = record ? await record.attendeeID : undefined;
       setAttendeeID(attendeeIDRecord);
+      const linkedPaymentLogs = record
+        ? await record.PaymentLogs.toArray()
+        : [];
+      setLinkedPaymentLogs(linkedPaymentLogs);
     };
     queryData();
   }, [idProp, eventAttendeeModelProp]);
-  React.useEffect(resetStateValues, [eventAttendeeRecord, eventID, attendeeID]);
+  React.useEffect(resetStateValues, [
+    eventAttendeeRecord,
+    eventID,
+    attendeeID,
+    linkedPaymentLogs,
+  ]);
   const [currentEventIDDisplayValue, setCurrentEventIDDisplayValue] =
     React.useState("");
   const [currentEventIDValue, setCurrentEventIDValue] =
@@ -278,6 +302,19 @@ export default function EventAttendeeUpdateForm(props) {
   const [currentAttendeeIDValue, setCurrentAttendeeIDValue] =
     React.useState(undefined);
   const attendeeIDRef = React.createRef();
+  const [currentPaymentLogsDisplayValue, setCurrentPaymentLogsDisplayValue] =
+    React.useState("");
+  const [currentPaymentLogsValue, setCurrentPaymentLogsValue] =
+    React.useState(undefined);
+  const PaymentLogsRef = React.createRef();
+  const getIDValue = {
+    PaymentLogs: (r) => JSON.stringify({ id: r?.id }),
+  };
+  const PaymentLogsIdSet = new Set(
+    Array.isArray(PaymentLogs)
+      ? PaymentLogs.map((r) => getIDValue.PaymentLogs?.(r))
+      : getIDValue.PaymentLogs?.(PaymentLogs)
+  );
   const eventRecords = useDataStoreBinding({
     type: "collection",
     model: Event,
@@ -286,9 +323,14 @@ export default function EventAttendeeUpdateForm(props) {
     type: "collection",
     model: Attendee,
   }).items;
+  const paymentLogRecords = useDataStoreBinding({
+    type: "collection",
+    model: PaymentLog,
+  }).items;
   const getDisplayValue = {
     eventID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
     attendeeID: (r) => r?.id,
+    PaymentLogs: (r) => `${r?.status ? r?.status + " - " : ""}${r?.id}`,
   };
   const validations = {
     eventID: [{ type: "Required" }],
@@ -302,6 +344,7 @@ export default function EventAttendeeUpdateForm(props) {
     quantity: [],
     scanned: [],
     profileURL: [],
+    PaymentLogs: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -340,19 +383,28 @@ export default function EventAttendeeUpdateForm(props) {
           quantity,
           scanned,
           profileURL,
+          PaymentLogs,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(fieldName, item)
+                  runValidationTasks(
+                    fieldName,
+                    item,
+                    getDisplayValue[fieldName]
+                  )
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(fieldName, modelFields[fieldName])
+              runValidationTasks(
+                fieldName,
+                modelFields[fieldName],
+                getDisplayValue[fieldName]
+              )
             );
             return promises;
           }, [])
@@ -369,11 +421,71 @@ export default function EventAttendeeUpdateForm(props) {
               modelFields[key] = null;
             }
           });
-          await DataStore.save(
-            EventAttendee.copyOf(eventAttendeeRecord, (updated) => {
-              Object.assign(updated, modelFields);
-            })
+          const promises = [];
+          const paymentLogsToLink = [];
+          const paymentLogsToUnLink = [];
+          const paymentLogsSet = new Set();
+          const linkedPaymentLogsSet = new Set();
+          PaymentLogs.forEach((r) =>
+            paymentLogsSet.add(getIDValue.PaymentLogs?.(r))
           );
+          linkedPaymentLogs.forEach((r) =>
+            linkedPaymentLogsSet.add(getIDValue.PaymentLogs?.(r))
+          );
+          linkedPaymentLogs.forEach((r) => {
+            if (!paymentLogsSet.has(getIDValue.PaymentLogs?.(r))) {
+              paymentLogsToUnLink.push(r);
+            }
+          });
+          PaymentLogs.forEach((r) => {
+            if (!linkedPaymentLogsSet.has(getIDValue.PaymentLogs?.(r))) {
+              paymentLogsToLink.push(r);
+            }
+          });
+          paymentLogsToUnLink.forEach((original) => {
+            if (!canUnlinkPaymentLogs) {
+              throw Error(
+                `PaymentLog ${original.id} cannot be unlinked from EventAttendee because eventattendeeID is a required field.`
+              );
+            }
+            promises.push(
+              DataStore.save(
+                PaymentLog.copyOf(original, (updated) => {
+                  updated.eventattendeeID = null;
+                })
+              )
+            );
+          });
+          paymentLogsToLink.forEach((original) => {
+            promises.push(
+              DataStore.save(
+                PaymentLog.copyOf(original, (updated) => {
+                  updated.eventattendeeID = eventAttendeeRecord.id;
+                })
+              )
+            );
+          });
+          const modelFieldsToSave = {
+            eventID: modelFields.eventID,
+            attendeeID: modelFields.attendeeID,
+            authorized: modelFields.authorized,
+            checkIn: modelFields.checkIn,
+            formAnswers: modelFields.formAnswers,
+            ticket: modelFields.ticket,
+            email: modelFields.email,
+            allowContact: modelFields.allowContact,
+            quantity: modelFields.quantity,
+            scanned: modelFields.scanned,
+            profileURL: modelFields.profileURL,
+          };
+          promises.push(
+            DataStore.save(
+              EventAttendee.copyOf(eventAttendeeRecord, (updated) => {
+                Object.assign(updated, modelFieldsToSave);
+              })
+            )
+          );
+          await Promise.all(promises);
           if (onSuccess) {
             onSuccess(modelFields);
           }
@@ -403,6 +515,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.eventID ?? value;
@@ -493,6 +606,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.attendeeID ?? value;
@@ -590,6 +704,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.authorized ?? value;
@@ -624,6 +739,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.checkIn ?? value;
@@ -658,6 +774,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.formAnswers ?? value;
@@ -692,6 +809,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.ticket ?? value;
@@ -726,6 +844,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.email ?? value;
@@ -760,6 +879,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.allowContact ?? value;
@@ -798,6 +918,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity: value,
               scanned,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.quantity ?? value;
@@ -836,6 +957,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned: value,
               profileURL,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.scanned ?? value;
@@ -870,6 +992,7 @@ export default function EventAttendeeUpdateForm(props) {
               quantity,
               scanned,
               profileURL: value,
+              PaymentLogs,
             };
             const result = onChange(modelFields);
             value = result?.profileURL ?? value;
@@ -884,6 +1007,93 @@ export default function EventAttendeeUpdateForm(props) {
         hasError={errors.profileURL?.hasError}
         {...getOverrideProps(overrides, "profileURL")}
       ></TextField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              eventID,
+              attendeeID,
+              authorized,
+              checkIn,
+              formAnswers,
+              ticket,
+              email,
+              allowContact,
+              quantity,
+              scanned,
+              profileURL,
+              PaymentLogs: values,
+            };
+            const result = onChange(modelFields);
+            values = result?.PaymentLogs ?? values;
+          }
+          setPaymentLogs(values);
+          setCurrentPaymentLogsValue(undefined);
+          setCurrentPaymentLogsDisplayValue("");
+        }}
+        currentFieldValue={currentPaymentLogsValue}
+        label={"Payment logs"}
+        items={PaymentLogs}
+        hasError={errors?.PaymentLogs?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("PaymentLogs", currentPaymentLogsValue)
+        }
+        errorMessage={errors?.PaymentLogs?.errorMessage}
+        getBadgeText={getDisplayValue.PaymentLogs}
+        setFieldValue={(model) => {
+          setCurrentPaymentLogsDisplayValue(
+            model ? getDisplayValue.PaymentLogs(model) : ""
+          );
+          setCurrentPaymentLogsValue(model);
+        }}
+        inputFieldRef={PaymentLogsRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label="Payment logs"
+          isRequired={false}
+          isReadOnly={false}
+          placeholder="Search PaymentLog"
+          value={currentPaymentLogsDisplayValue}
+          options={paymentLogRecords
+            .filter((r) => !PaymentLogsIdSet.has(getIDValue.PaymentLogs?.(r)))
+            .map((r) => ({
+              id: getIDValue.PaymentLogs?.(r),
+              label: getDisplayValue.PaymentLogs?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentPaymentLogsValue(
+              paymentLogRecords.find((r) =>
+                Object.entries(JSON.parse(id)).every(
+                  ([key, value]) => r[key] === value
+                )
+              )
+            );
+            setCurrentPaymentLogsDisplayValue(label);
+            runValidationTasks("PaymentLogs", label);
+          }}
+          onClear={() => {
+            setCurrentPaymentLogsDisplayValue("");
+          }}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.PaymentLogs?.hasError) {
+              runValidationTasks("PaymentLogs", value);
+            }
+            setCurrentPaymentLogsDisplayValue(value);
+            setCurrentPaymentLogsValue(undefined);
+          }}
+          onBlur={() =>
+            runValidationTasks("PaymentLogs", currentPaymentLogsDisplayValue)
+          }
+          errorMessage={errors.PaymentLogs?.errorMessage}
+          hasError={errors.PaymentLogs?.hasError}
+          ref={PaymentLogsRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "PaymentLogs")}
+        ></Autocomplete>
+      </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -118,7 +118,7 @@ export default function SignIn() {
 
   return (
     <>
-      <div className="flex h-[140px] w-full bg-usfqPrimary">
+      <div className="flex h-[130px] w-full bg-usfqPrimary">
         <div className="container flex items-center justify-between">
           <img src={logo} className="w-[120px]" />
           <Link
@@ -177,7 +177,7 @@ export default function SignIn() {
           <div
             className={` mb-[60px] border-b border-gray-300 pb-[60px] transition-all duration-300`}
           >
-            <h2 className="mb-5 text-4xl font-bold">Dónde y cuándo</h2>
+            <h2 className="mb-3 text-4xl font-bold">Dónde y cuándo</h2>
 
             <div className="grid grid-cols-1 gap-6 sm:gap-0 md:grid-cols-3">
               <div className="flex items-center gap-5">
@@ -231,7 +231,7 @@ export default function SignIn() {
                   </div>
                 </div>
                 <p className="mb-3 text-xl font-bold">
-                  {selectedCost !== null ? selectedCost : "Vacio"}
+                  {selectedCost !== null ? selectedCost : "Vacio"} + IVA
                 </p>
                 {/* => Button  */}
                 <button
