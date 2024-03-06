@@ -7,7 +7,7 @@ import PageLayout from "layouts/page";
 import LandingLayout from "layouts/landing";
 import LegalLayout from "layouts/privacidad";
 import UserLayout from "layouts/usuario";
-import logo from "assets/img/logo.png";
+import logo from "assets/img/usfq/logo_usfq.svg";
 import Hotjar from '@hotjar/browser';
 import { Player } from '@lottiefiles/react-lottie-player';
 import { I18n, Hub } from 'aws-amplify/utils';
@@ -164,7 +164,7 @@ function App() {
     ) :(
       <div className="bg-lightPrimary">
         <div className="container grid h-screen xl:grid-cols-2 xl:px-1 xl:py-[40px]">
-          <div className="hidden xl:flex flex-col justify-center items-center xl:items-start bg-purplePrimary px-3 login-container xl:!px-[60px] pt-4 pb-3 rounded-t-xl xl:rounded-none xl:rounded-l-2xl">
+          <div className="hidden xl:flex flex-col justify-center items-center xl:items-start bg-usfqPrimary px-3 login-container xl:!px-[60px] pt-4 pb-3 rounded-t-xl xl:rounded-none xl:rounded-l-2xl">
 
             <h1 className="font-bold text-2xl mb-2">Gestión de eventos simplificada</h1>
               <p className="xl:mb-[40px]">Con nuestro software, podrás organizar, crear y disfrutar de eventos de manera más eficiente que nunca.</p>
@@ -181,8 +181,8 @@ function App() {
 
           </div>
           <div className="flex flex-col justify-center items-center bg-white px-2 py-[24px] pt-5 sm:p-5 xl:shadow-2xl rounded-b-xl xl:rounded-none xl:rounded-r-2xl">
-            <div className="mt-3 xl:!mt-0 mb-[30px] xl:mb-[93px]">
-              <img className="max-w-[300px]" src={logo} />
+            <div className="mt-3 xl:!mt-0 mb-[30px]">
+              <img className="max-w-[190px]" src={logo} />
               {/* <h1 className="text-4xl font-black text-center">EventFlow</h1> */}
             </div>
             <div className="w-[80%] mb-[20px]">

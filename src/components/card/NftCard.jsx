@@ -24,7 +24,7 @@ const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date,
     >
       <div className="h-full w-full">
         <div className="relative w-full">
-          <div className={`h-[40px] w-full rounded-t-md ${color}`}></div>
+          <div className={`h-[25px] w-full rounded-t-md ${color}`}></div>
         </div>
               
         <div className="pt-2 pb-3 px-4">

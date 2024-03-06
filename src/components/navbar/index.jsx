@@ -2,7 +2,7 @@ import React from "react";
 import Dropdown from "components/dropdown";
 import { FiAlignJustify } from "react-icons/fi";
 import { Link } from "react-router-dom";
-import logo from "assets/img/logo.png";
+import logo from "assets/img/usfq/logo_usfq.svg";
 // Icon Imports
 import {
   MdPerson
@@ -50,7 +50,7 @@ const Navbar = (props) => {
             to="/"
             className="font-bold text-3xl	capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
           >
-            <img className="max-w-[200px]" src={logo} />
+            <img className="max-w-[120px]" src={logo} />
           </Link>
         </p> 
       </div>

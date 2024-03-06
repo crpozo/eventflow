@@ -44,7 +44,7 @@ const Dashboard = () => {
         <Banner />
       </div>  
 
-      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
         {events.length !== 0 ? 
           <>
@@ -63,7 +63,7 @@ const Dashboard = () => {
                   modelId={event.id}
                   model={event}
                   key={event.id}
-                  color="bg-purplePrimary"
+                  color="bg-usfqPrimary"
                   pathSelect={`/admin/eventos/${event.id}/detalle`}
                   date={event.updatedAt}
                   title={event.title}

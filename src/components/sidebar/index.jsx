@@ -122,7 +122,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
               </select>
               <h2 className="text-2xl font-medium mb-3">{event?.title}</h2>
               <p className="text-sm text-gray-500 mb-3">{formatDateHour(event?.date)}</p>
-              <Link className="flex text-brand-500 pointer items-center hover:no-underline" to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
+              <Link className="flex text-brand-500 pointer items-center hover:no-underline hover:text-black" to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
                 Link del evento <LiaExternalLinkAltSolid className="ml-2 h-5 w-5" />
               </Link>
             </div>

@@ -36,7 +36,7 @@ const CampusComponent = () => {
         <Banner />
       </div>  
 
-      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
         <div className="flex flex-col items-center justify-between gap-3 mb-4 sm:flex-row sm:gap-0">
           <p className="text-2xl font-medium text-navy-700 dark:text-white">
@@ -59,7 +59,7 @@ const CampusComponent = () => {
                 pathSelect="area/"
                 pathEdit="editar/"
                 key={campus.id}
-                color="bg-pinkPrimary"
+                color="bg-usfqPrimary"
                 date={campus.updatedAt}
                 title={campus.title}
                 cat="Seleccionar"
