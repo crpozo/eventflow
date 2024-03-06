@@ -51,7 +51,7 @@ div[data-amplify-authenticator] [data-amplify-container] {
 }
 
 .amplify-button[data-variation="primary"], button.amplify-button--primary {
-  background: #028cff;
+  background: #000;
   color: white;
 }
 
@@ -60,7 +60,7 @@ div[data-amplify-authenticator] [data-amplify-container] {
 }
 
 .amplify-button[data-variation="primary"]:focus, button.amplify-button--primary:focus {
-  background: #028cff;
+  background: #DF1923;
   border: none;
 }
 
@@ -105,7 +105,7 @@ hr.amplify-divider--horizontal {
 }
 
 button.amplify-button--link {
-  color: #028cff;
+  color: #DF1923;
 }
 
 button.amplify-button--link:focus,
@@ -172,7 +172,7 @@ button:focus-visible {
 }
 
 .loader {
-  border-top-color: #028cff;
+  border-top-color: #DF1923;
   animation: spinner 1.5s linear infinite;
 }
 
@@ -226,7 +226,7 @@ button:focus-visible {
 }
 
 .form-wrap.form-builder .btn-group > .btn:last-child:not(:first-child) {
-  background: #028cff;
+  background: #DF1923;
 }
 
 .form-wrap.form-builder .frmb li.form-field:last-child{
@@ -466,7 +466,7 @@ button:focus-visible {
   background-color: #f2f2f2;
 }
 .profile-page  .card .actions .follow-info h2 a:hover span {
-  color: #007ad6;
+  color: black;
 }
 .profile-page  .card .actions .follow-btn a {
   color: white;
@@ -498,3 +498,9 @@ button:focus-visible {
 }
 
 /* Lottie animation */
+
+/* Card */
+
+.shadow-card{
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px;
+}

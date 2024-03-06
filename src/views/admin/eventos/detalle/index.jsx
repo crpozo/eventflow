@@ -46,7 +46,7 @@ const Dashboard = () => {
       </div>
 
       {event && event.length !== 0 &&
-        <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-3xl shadow-shadow-500 px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+        <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
           <div className="flex items-center justify-between px-3 mb-4">
             <p className="text-3xl flex items-center font-bold text-black dark:text-white">
