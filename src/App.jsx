@@ -171,7 +171,7 @@ function App() {
             {/* <img className="hidden xl:block max-w-[420px] mt-0 mb-[30px] mx-auto" src={demo}/> */}
             <div className="relative">
               <Player
-                src='https://lottie.host/3c7fa75c-9df1-409c-bab7-ecaf7001f6e2/4NtSp21OH8.json'
+                src='https://lottie.host/49238ac7-8a4c-41d3-baa2-db045be586c3/lb9k5cAVsT.json'
                 className="player mb-5"
                 loop
                 autoplay
