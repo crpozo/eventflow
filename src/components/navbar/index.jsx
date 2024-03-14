@@ -50,7 +50,7 @@ const Navbar = (props) => {
             to="/"
             className="font-bold text-3xl	capitalize hover:no-underline text-black hover:text-black dark:hover:text-white"
           >
-            <img className="max-w-[120px]" src={logo} />
+            <img className="max-w-[100px]" src={logo} />
           </Link>
         </p> 
       </div>
