@@ -57,17 +57,24 @@ const Registro = (props) => {
 
   React.useEffect(() => {
     if(searchParams.get('EventAttendee')){
-      DataStore.query(EventAttendee,searchParams.get('EventAttendee')).then(results => {
-        if(results){
-          console.log("Search params event attendee changed",results)
-          setEventAttende(results)
+
+      const sub = DataStore.observeQuery(EventAttendee, (e) => e.id.eq(searchParams.get('EventAttendee')) ).subscribe(results => {
+        console.log("HOLAAAA: ", results)
+        if(results.items.length > 0 ){
+          console.log("Search params event attendee changed",results.items[0])
+          setEventAttende(results.items[0])
           setFormRegister(true)
           setShowRegister(true)
-          setUserData(results.formAnswers)
-          setQuantity(results.quantity);
-          setTicketsArray(Array.from({ length: results.quantity }, (_, index) => index));
+          setUserData(results.items[0].formAnswers)
+          setQuantity(results.items[0].quantity);
+          setTicketsArray(Array.from({ length: results.items[0].quantity }, (_, index) => index));
         } 
       });
+
+      if(eventAttendee){
+        sub.unsubscribe();
+      }
+
     }
   }, []);
 
@@ -113,24 +120,27 @@ const Registro = (props) => {
   }, [authorized]);
 
   // Redirect after creating eventAttende and getting token USFQ
-  React.useEffect( () => {
-    if(trs && eventAttendee){
-
+  React.useEffect(() => {
+    if (trs && eventAttendee) {
       async function redirectUSFQ() {
         const domain = window.location.href;
         const redirectUrl = domain.includes('eventflow')
           ? 'https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS='
           : 'https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=';
-
+  
         const delayPromise = () => new Promise(resolve => setTimeout(resolve, 3000));
-        await delayPromise();
-        window.location.href = `${redirectUrl}${trs}`;
+        
+        try {
+          await delayPromise();
+          window.location.href = `${redirectUrl}${trs}`;
+        } catch (error) {
+          console.error('Error in redirectUSFQ:', error);
+        }
       }
-
+  
       redirectUSFQ();
-      
     }
-  }, [trs, eventAttendee])
+  }, [trs, eventAttendee]);
 
   if (!formData) {
     return <p>Loading...</p>;
@@ -269,34 +279,40 @@ const Registro = (props) => {
   };
 
   const handleExport = async () => {
-    try{      
+    try {  
 
       const tickets = document.querySelectorAll('[id^="pdf-content"]');
       const pdfOptions = {
-        image: { type: 'jpeg', quality: 1 },
-        margin: [5, -220, 0, 0],
-        jsPDF: { unit: 'mm', format: [520, 340] }
+          image: { type: 'jpeg', quality: 1 },
+          margin: [5, -220, 0, 0],
+          jsPDF: { unit: 'mm', format: [520, 340] }
       };
-      
-      const pdf = html2pdf().set(pdfOptions);
     
-      for (const [index, ticket] of tickets.entries() ) {
-        await pdf?.from(ticket)?.toContainer().toCanvas().toPdf().get('pdf').then(function (pdf) {
-          if(index != quantity-1){
-            pdf.addPage();
-          }
-        });
+      const pdf = html2pdf().set(pdfOptions);
+  
+      for (const [index, ticket] of tickets.entries()) {
+          await pdf?.from(ticket)?.toContainer().toCanvas().toPdf().get('pdf').then(function (pdf) {
+              if (index != quantity - 1) {
+                  pdf.addPage();
+              }
+          });
       }
-      pdf?.outputPdf().then(function(pdf) {
-        if(eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null ){   
-          setUploadProgress(0);       
-          savePDFStorage(btoa(pdf).toString())
-        }
-      })
+
+      await pdf?.outputPdf().then(async function(pdf) {
+          if (eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null) {
+              console.log("eventAttendee.ticket?: ",eventAttendee)
+              setUploadProgress(0);       
+              const base64PDF = btoa(pdf);
+              await savePDFStorage(base64PDF);
+          }
+      });
+
       pdf?.save(`${props.landing.title + " - ticket "}.pdf`);
     
-    }catch(e){ console.error("handleExport error: ",e) }
-  };
+    } catch(e) { 
+        console.error("handleExport error: ", e); 
+    }
+};
 
   async function savePDFStorage(ticket) {
     try {
@@ -304,7 +320,7 @@ const Registro = (props) => {
           key: eventAttendee.id + '_' + event.id + "_ticket.txt",
           data: ticket,
           options: {
-            accessLevel: 'private',
+            accessLevel: 'guest',
             metadata: {key: event.id},
           }
         }).result;
@@ -315,7 +331,7 @@ const Registro = (props) => {
       const getUrlResult = await getUrl({
         key: eventAttendee.id + '_' + event.id + "_ticket.txt",
         options: {
-          accessLevel: 'private' ,
+          accessLevel: 'guest' ,
         },
       });
 
@@ -337,7 +353,9 @@ const Registro = (props) => {
     try{
        // Send email
       const payloadEmail = {
-        eventAttendeeId: eventAttendee.id
+        eventAttendeeId: eventAttendee.id,
+        "typePayment": "CARD",
+        "statusPayment": "SUCCESSFUL"
       };
     
       const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
@@ -397,7 +415,7 @@ const Registro = (props) => {
   return (
     <div className={`campus-page `}>
       <div className="grid h-full">
-        {!formRegister && (
+        {!formRegister && !eventAttendee && (
           <>
             <Link
               onClick={() => {
@@ -417,6 +435,7 @@ const Registro = (props) => {
             </h2>
             
             <div className="mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0">
+              
               <FormBuilder />
               <div className="mb-5"></div>
               <button
