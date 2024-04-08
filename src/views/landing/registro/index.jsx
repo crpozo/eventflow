@@ -40,6 +40,7 @@ const Registro = (props) => {
   const searchParams = new URLSearchParams(document.location.search);
   let eventAttendeeDataStore = null;
   const pdfContentRef = useRef();
+  const ticketsRef = useRef(null);
 
   class FormBuilder extends Component {
     fb = createRef();
@@ -115,6 +116,13 @@ const Registro = (props) => {
   React.useEffect(() => {
     if (authorized) {
       handleExport();
+
+      // Move user view to ticket   
+      ticketsRef.current.scrollIntoView({ behavior: 'smooth' });
+      const elementRect = ticketsRef.current.getBoundingClientRect();
+      const desiredScrollPosition = window.scrollY + elementRect.top - 150;
+      window.scrollTo({ top: desiredScrollPosition, behavior: 'smooth' });
+      
     }
   }, [authorized]);
 
@@ -477,7 +485,10 @@ const Registro = (props) => {
 
         {authorized && eventAttendee && userData.length !== 0 && (
           <>
-            <div className="mb-[35px] flex flex-col items-center justify-center text-center">
+            <div 
+              ref = {ticketsRef}  
+              className="mb-[35px] flex flex-col items-center justify-center text-center"
+            >
               <h1 className="mb-3 text-2xl font-semibold">Compra éxitosa!</h1>
               <p className="text-lg">
                 Descargue su ticket y presentelo el día del evento para ingresar.
@@ -496,7 +507,6 @@ const Registro = (props) => {
               </button>
             </div>
             <div
-            
               className={`mt-2 grid w-full ${
                 quantity > 1 && " lg:grid-cols-3"
               } items-center gap-4`}
