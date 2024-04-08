@@ -165,6 +165,7 @@ export default function SignIn() {
           <Registro
             landing={landing}
             event={event}
+            showRegister = { showRegister }
             setShowRegister={setShowRegister}
             userData={userData}
             setUserData={setUserData}

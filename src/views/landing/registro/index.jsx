@@ -24,7 +24,7 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantityProp, price, eventID, setShowRegister, event } = props;
+  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event } = props;
   const [formData, setFormData] = React.useState([]);
   const [eventAttendee, setEventAttende] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
@@ -79,15 +79,19 @@ const Registro = (props) => {
   }, []);
 
   React.useEffect(() => {
-    // AWS amplify data
-    DataStore.query(Form, (c) => c.formEventId.eq(id)).then((results) => {
-      if (results.length > 0) {
-        setFormData(results[0].questions);
+    const subQuestions = DataStore.observeQuery(Form, (c) => c.formEventId.eq(id)).subscribe((results) => {
+      if (results.items.length > 0) {
+        setFormData(results.items[0].questions);
       } else {
         console.log("No form data found");
       }
     });
-  }, [id]);
+
+    if(formData.length > 0){
+      subQuestions.unsubscribe();
+    }
+
+  }, [showRegister]);
 
   React.useEffect(() => {
     if(eventAttendee 
