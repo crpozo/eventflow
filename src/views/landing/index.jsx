@@ -11,7 +11,6 @@ import { LuCalendarClock } from "react-icons/lu";
 import { BsPlusLg as PlusIcon } from "react-icons/bs";
 import {
   AiOutlineMinus as MinusIcon,
-  AiOutlineExclamationCircle,
 } from "react-icons/ai";
 
 export default function SignIn() {
@@ -58,9 +57,10 @@ export default function SignIn() {
       }
     });
 
-    return () => {
-      subEvent?.unsubscribe();
-    };
+    if(event.length > 0){
+      subEvent.unsubscribe();
+    }
+
   }, []);
 
   React.useEffect(() => {
@@ -86,9 +86,9 @@ export default function SignIn() {
       }
     });
 
-    return () => {
+    if(landing.length > 0){
       sub.unsubscribe();
-    };
+    }
   }, []);
 
   if (loading && landing.length === 0) {

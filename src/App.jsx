@@ -182,7 +182,7 @@ function App() {
           </div>
           <div className="flex flex-col justify-center items-center bg-white px-2 py-[24px] pt-5 sm:p-5 xl:shadow-2xl rounded-b-xl xl:rounded-none xl:rounded-r-2xl">
             <div className="mt-3 xl:!mt-0 mb-[30px]">
-              <img className="max-w-[190px]" src={logo} />
+              <img className="max-w-[170px]" src={logo} />
               {/* <h1 className="text-4xl font-black text-center">EventFlow</h1> */}
             </div>
             <div className="w-[80%] mb-[20px]">
