@@ -59,7 +59,6 @@ const Registro = (props) => {
     if(searchParams.get('EventAttendee')){
 
       const sub = DataStore.observeQuery(EventAttendee, (e) => e.id.eq(searchParams.get('EventAttendee')) ).subscribe(results => {
-        console.log("HOLAAAA: ", results)
         if(results.items.length > 0 ){
           console.log("Search params event attendee changed",results.items[0])
           setEventAttende(results.items[0])
