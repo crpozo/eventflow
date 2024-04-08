@@ -90,5 +90,4 @@ type Campus @model @auth(rules: [{allow: public}]) {
   description: String
   phone: AWSPhone
   email: AWSEmail
-}
- 
+} 
