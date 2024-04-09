@@ -17,6 +17,7 @@ const Dashboard = () => {
   const [form, setForm] = React.useState();
   const [formData, setFormData] = React.useState([]);
   const [formExist, setFormExist] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   const navigate = useNavigate();
   const eventId = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
 
@@ -34,6 +35,7 @@ const Dashboard = () => {
         setForm(items[0])
         setFormData(items[0].questions);
         setFormExist(true);
+        setLoading(false);
         console.log("Form observeQuery query: ", items[0])
       } else {
         console.log("No form data found");
@@ -204,6 +206,20 @@ const Dashboard = () => {
       return <div id="fb-editor" ref={this.fb} />;
     }
 
+  }
+
+  if (loading) {
+    return (
+      <div className="bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[85%]">
+        <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
+        <h2 className="mb-2 text-center text-xl font-semibold text-black">
+          Cargando...
+        </h2>
+        <p className="w-1/3 text-center text-black">
+          Esto puede tardar unos segundos, por favor no cierre esta página.
+        </p>
+      </div>
+    );
   }
 
   return (

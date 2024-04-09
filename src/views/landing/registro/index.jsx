@@ -79,6 +79,8 @@ const Registro = (props) => {
   }, []);
 
   React.useEffect(() => {
+
+    // Get form data
     const subQuestions = DataStore.observeQuery(Form, (c) => c.formEventId.eq(id)).subscribe((results) => {
       if (results.items.length > 0) {
         setFormData(results.items[0].questions);
@@ -90,6 +92,17 @@ const Registro = (props) => {
     if(formData.length > 0){
       subQuestions.unsubscribe();
     }
+
+    // Check price amount and fix identification consumidor final
+    if(parseFloat(price.replace(/[^\d.-]/g, '')) <= 50){
+      let identificacion = document.querySelector('#identificacion');
+      let tipo_idenfiticacion = document.querySelector('#tipo_identificacion');
+      if(!identificacion || !tipo_idenfiticacion) return;
+      identificacion.parentElement.hidden = true;
+      identificacion.value = '9999999999999';
+      tipo_idenfiticacion.parentElement.hidden = true;
+    }
+
 
   }, [showRegister]);
 
@@ -110,7 +123,6 @@ const Registro = (props) => {
     }
 
     if(authorized){
-      console.log("unsubscribe: ", eventAttendeeDataStore)
       eventAttendeeDataStore?.unsubscribe();
     }
 
@@ -119,8 +131,8 @@ const Registro = (props) => {
   
   React.useEffect(() => {
     if (authorized) {
+      // Download PDF and save it in S3 bucket
       handleExport();
-
       // Move user view to ticket   
       ticketsRef.current.scrollIntoView({ behavior: 'smooth' });
       const elementRect = ticketsRef.current.getBoundingClientRect();
@@ -478,8 +490,8 @@ const Registro = (props) => {
         {!authorized && formRegister && !searchParams.get('EventAttendee') &&
           <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[85%]">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
-            <h2 className="mb-2 text-center text-xl font-semibold text-black">
-              Esperando recibir el pago desde la plataforma USFQ...
+            <h2 className="mb-2 text-center text-2xl font-semibold text-black">
+            Redirigiendo a la pasarela de pagos USFQ
             </h2>
             <p className="w-1/3 text-center text-black">
               Por favor no cierre esta página.

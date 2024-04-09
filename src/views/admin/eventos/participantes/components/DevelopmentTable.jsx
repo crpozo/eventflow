@@ -8,11 +8,7 @@ import {
   useTable,
 } from "react-table";
 
-import {
-  MdAdd,
-  MdEditCalendar,
-} from "react-icons/md";
-
+import { IoEnterOutline } from "react-icons/io5";
 
 const DevelopmentTable = (props) => {
   const { columnsData, tableData } = props;
@@ -72,7 +68,7 @@ const DevelopmentTable = (props) => {
                     className="border-b border-gray-200 pr-32 pb-[10px] text-start dark:!border-navy-700 "
                     key={index}
                   >
-                    <div className="text-xs font-bold tracking-wide text-gray-600">
+                    <div className="text-sm font-bold tracking-wide text-gray-600">
                       {column.render("Header")}
                     </div>
                   </th>
@@ -84,26 +80,34 @@ const DevelopmentTable = (props) => {
             {page.map((row, index) => {
               prepareRow(row);
               return (
-                <tr {...row.getRowProps()} key={index}>
+                <tr className="border-b border-gray-200" {...row.getRowProps()} key={index}>
                   {row.cells.map((cell, index) => {
                     let data = "";
                     console.log("Cell: ",cell)
                     if (cell.column.Header === "ID") {
                       data = (
-                        <p className="text-sm text-navy-700 dark:text-white">
+                        <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     } else if (cell.column.Header === "Creacion") {
                       data = (
-                        <p className="text-sm text-navy-700 dark:text-white">
+                        <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     }
                     else if (cell.column.Header === "Detalle") {
                       data = (
-                        <MdEditCalendar onClick={() => navigate(`/usuario/${cell.value}`) } className="h-6 w-6 cursor-pointer" />
+                        <span
+                          onClick={() => {
+                            navigate(`/usuario/${cell.value}`);
+                          }}
+                          className="flex items-center gap-2 cursor-pointer hover:text-brand-500" 
+                          style={{ /* Add your inline styles here */ }}
+                        >
+                          Ingresar  <IoEnterOutline className="h-[20px] w-[20px]"/>
+                        </span>
                       );
                     }
                     return (

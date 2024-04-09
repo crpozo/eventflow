@@ -38,6 +38,7 @@ div[data-amplify-authenticator] [data-amplify-router] {
 }
 
 div[data-amplify-authenticator] [data-amplify-form] {
+  padding-top: 0;
   padding-left: 0;
   padding-right: 0;
 }
@@ -104,15 +105,20 @@ hr.amplify-divider--horizontal {
   }
 }
 
+.amplify-heading.amplify-heading--3{
+  font-size: x-large;
+}
+
 button.amplify-button--link {
   color: #DF1923;
+  border: none;
+  outline: none;
 }
 
 button.amplify-button--link:focus,
 button.amplify-button--link:hover {
   color: black;
   background-color: transparent;
-  border: none;
   box-shadow: none;
 }
 
@@ -272,7 +278,7 @@ button:focus-visible {
 }
 
 .rendered-form p{
-  margin-bottom: 15px;
+  margin-bottom: 25px;
 }
 
 .box-shadow-0{

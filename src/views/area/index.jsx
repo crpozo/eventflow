@@ -74,7 +74,7 @@ const Dashboard = () => {
                 pathSelect="subarea/"
                 pathEdit="editar/"
                 key={area.id}
-                color="bg-usfqPrimary"
+                color="bg-lightGray"
                 date={area.updatedAt}
                 title={area.title}
                 cat="Seleccionar"
