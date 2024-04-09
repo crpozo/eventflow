@@ -180,14 +180,14 @@ function App() {
             <h2 className="font-black text-3xl hidden xl:block">Hola y Bienvenido/a!</h2> 
 
           </div>
-          <div className="flex flex-col justify-center items-center bg-white px-2 py-[24px] pt-5 sm:p-5 xl:shadow-2xl rounded-b-xl xl:rounded-none xl:rounded-r-2xl">
-            <div className="mt-3 xl:!mt-0 mb-[30px]">
-              <img className="max-w-[170px]" src={logo} />
-              {/* <h1 className="text-4xl font-black text-center">EventFlow</h1> */}
+          <div className="flex flex-col justify-start items-center bg-white px-2 py-[24px] pt-5 sm:p-5 xl:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-b-xl xl:rounded-none xl:rounded-r-2xl">
+            <div className="mt-3 xl:!mt-0 mb-[15px] w-[80%]">
+              <img className="max-w-[160px] m-auto" src={logo} />
+              <p className="text-gray-500 text-center mt-3 mb-3">Le damos la bienvenida a una plataforma diseñada para hacer que la planificación de eventos sea accesible y rápida.</p>
             </div>
-            <div className="w-[80%] mb-[20px]">
-              <h2 className="font-bold text-2xl mb-2">Autenticación</h2>
-              <p className="text-gray-500">Le damos la bienvenida a una plataforma diseñada para hacer que la planificación de eventos sea accesible y rápida.</p>
+            <div className="w-[80%]">
+              {/* <h2 className="font-bold text-2xl mb-2">Autenticación</h2> */}
+              {/* <p className="text-gray-500">Le damos la bienvenida a una plataforma diseñada para hacer que la planificación de eventos sea accesible y rápida.</p> */}
               <Authenticator hideSignUp={true}/> 
             </div>
           </div>

@@ -63,7 +63,7 @@ const Dashboard = () => {
                   modelId={event.id}
                   model={event}
                   key={event.id}
-                  color="bg-usfqPrimary"
+                  color="bg-lightGray"
                   pathSelect={`/admin/eventos/${event.id}/detalle`}
                   date={event.updatedAt}
                   title={event.title}

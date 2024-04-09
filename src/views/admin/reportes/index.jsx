@@ -490,6 +490,8 @@ const Reportes = () => {
           // Check if the question is required
           if (question.type === "number" || question.type === "select") {
             const label = question.label;
+            if(!question.userData) return;
+            console.log(question.userData)
             const userData = question.userData[0]; // Assuming there's only one value in userData
             const match = question.className.match(/(.*)-chart/);
             const type = (match ? match[1] : "default") + '-chart';

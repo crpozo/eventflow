@@ -69,7 +69,7 @@ const DevelopmentTable = (props) => {
                     className="border-b border-gray-200 pr-32 pb-[10px] text-start dark:!border-navy-700 "
                     key={index}
                   >
-                    <div className="text-xs font-bold tracking-wide text-gray-600">
+                    <div className="text-sm font-bold tracking-wide text-gray-600">
                       {column.render("Header")}
                     </div>
                   </th>
@@ -81,28 +81,34 @@ const DevelopmentTable = (props) => {
             {page.map((row, index) => {
               prepareRow(row);
               return (
-                <tr {...row.getRowProps()} key={index}>
+                <tr  className="border-b border-gray-200" {...row.getRowProps()} key={index}>
                   {row.cells.map((cell, index) => {
                     let data = "";
                     if (cell.column.Header === "TITULO") {
                       data = (
-                        <p className="text-sm font-semibold text-navy-700 dark:text-white">
+                        <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     } else if (cell.column.Header === "CREACION") {
                       data = (
-                        <p className="text-sm font-semibold text-navy-700 dark:text-white">
+                        <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     }
                     else if (cell.column.Header === "EDITAR") {
                       data = (
-                        <IoEnterOutline onClick={() => {
-                          navigate(`${cell.value}/detalle/`); 
-                          localStorage.setItem(`EVENTFLOW.event`, JSON.stringify(cell.row.original.model))
-                        }} className="h-[30px] w-[30px] cursor-pointer ml-[10px] hover:text-blue-500" />
+                        <span
+                          onClick={() => {
+                            navigate(`${cell.value}/detalle/`);
+                            localStorage.setItem(`EVENTFLOW.event`, JSON.stringify(cell.row.original.model));
+                          }}
+                          className="flex items-center gap-2 text-[15px] cursor-pointer hover:text-brand-500" 
+                          style={{ /* Add your inline styles here */ }}
+                        >
+                          Ingresar  <IoEnterOutline className="h-[20px] w-[20px]"/>
+                        </span>
                       );
                     }
                     return (

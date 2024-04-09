@@ -59,7 +59,7 @@ const CampusComponent = () => {
                 pathSelect="area/"
                 pathEdit="editar/"
                 key={campus.id}
-                color="bg-usfqPrimary"
+                color="bg-lightGray"
                 date={campus.updatedAt}
                 title={campus.title}
                 cat="Seleccionar"

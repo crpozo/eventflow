@@ -114,8 +114,8 @@ export const formatSpanishDate = (dateString) => {
 
 // Validate Form
 
-export const validateForm = (id) => {
-  const form = document.querySelector("#fb-editor .rendered-form");
+export const validateForm = (price) => {
+    const form = document.querySelector("#fb-editor .rendered-form");
     const formElements = form.querySelectorAll("[required]");
     let isValid = true;
     let tipo_identificación = "";
@@ -129,7 +129,7 @@ export const validateForm = (id) => {
         error.textContent = "El campo no se ha rellenado correctamente";
         element.insertAdjacentElement("afterend", error);
       }
-      // Check type of id 
+      // Check type of user identification 
       if(element.id == "tipo_identificacion"){
         tipo_identificación = element.options[element.selectedIndex].value;        
       }
@@ -137,26 +137,27 @@ export const validateForm = (id) => {
       if(element.id == "identificacion"){
         switch (tipo_identificación) {
           case "cedula":
-              if(!/^\d{10}$/.test(element.value)){
-                const error = document.createElement("div");
-                error.className = "error-message text-red-500";
-                error.textContent = "El campo requiere de 10 digitos númericos";
-                element.insertAdjacentElement("afterend", error);
-              }
-              break;
+            if(!/^\d{10}$/.test(element.value)){
+              const error = document.createElement("div");
+              error.className = "error-message text-red-500";
+              error.textContent = "El campo requiere de 10 digitos númericos";
+              element.insertAdjacentElement("afterend", error);
+            }
+            break;
           case "pasaporte":
-              break;
+            break;
           case "ruc":
-              if(!/^\d{13}$/.test(element.value)){
-                const error = document.createElement("div");
-                error.className = "error-message text-red-500";
-                error.textContent = "El campo requiere de 13 digitos númericos";
-                element.insertAdjacentElement("afterend", error);
-              }
-              break;   
+            if(!/^\d{13}$/.test(element.value)){
+              const error = document.createElement("div");
+              error.className = "error-message text-red-500";
+              error.textContent = "El campo requiere de 13 digitos númericos";
+              element.insertAdjacentElement("afterend", error);
+            }
+            break;   
         } 
       }
     });
+    
 
     if(isValid == false){
       debounce(form.scrollIntoView({ behavior: 'smooth' }), 400)
