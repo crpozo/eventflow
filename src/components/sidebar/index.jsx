@@ -128,22 +128,22 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
             </div>
             <div className="flex flex-col">
               <Link 
-                className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/detalle` ? "bg-gray-200" : ""}`}
+                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/detalle` ? "bg-gray-200" : ""}`}
                to={ `eventos/${event?.id}/detalle/`}>
                   Detalle Evento
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[25px] py-[20px] hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/landing` ? "bg-gray-200" : ""}`}
+                className={`px-[25px] xl:px-[25px] py-[15px] hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/landing` ? "bg-gray-200" : ""}`}
                to={ `eventos/${event?.id}/landing/`}>
                   Landing page
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/formulario` ? "bg-gray-200" : ""}`}
+                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/formulario` ? "bg-gray-200" : ""}`}
                 to={ `eventos/${event?.id}/formulario/`}>
                   Formulario
               </Link>
               <Link 
-                className={`px-[25px] xl:px-[25px] py-[20px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`} 
+                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`} 
                 to={ `eventos/${event?.id}/participantes/`}>
                   Participantes
               </Link>
