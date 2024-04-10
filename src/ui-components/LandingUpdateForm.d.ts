@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, SwitchFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { GridProps, SelectFieldProps, SwitchFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { StorageManagerProps } from "@aws-amplify/ui-react-storage";
 import { Landing } from "../models";
 export declare type EscapeHatchProps = {
@@ -24,6 +24,7 @@ export declare type ValidationResponse = {
 };
 export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
 export declare type LandingUpdateFormInputValues = {
+    active?: boolean;
     title?: string;
     description?: string;
     mainBanner?: string;
@@ -32,9 +33,9 @@ export declare type LandingUpdateFormInputValues = {
     ticketTitle?: string[];
     ticketPrice?: number[];
     extraInfo?: string;
-    active?: boolean;
 };
 export declare type LandingUpdateFormValidationValues = {
+    active?: ValidationFunction<boolean>;
     title?: ValidationFunction<string>;
     description?: ValidationFunction<string>;
     mainBanner?: ValidationFunction<string>;
@@ -43,20 +44,19 @@ export declare type LandingUpdateFormValidationValues = {
     ticketTitle?: ValidationFunction<string>;
     ticketPrice?: ValidationFunction<number>;
     extraInfo?: ValidationFunction<string>;
-    active?: ValidationFunction<boolean>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type LandingUpdateFormOverridesProps = {
     LandingUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
+    active?: PrimitiveOverrideProps<SwitchFieldProps>;
     title?: PrimitiveOverrideProps<TextFieldProps>;
     description?: PrimitiveOverrideProps<TextAreaFieldProps>;
     mainBanner?: PrimitiveOverrideProps<StorageManagerProps>;
     location?: PrimitiveOverrideProps<TextFieldProps>;
-    cost?: PrimitiveOverrideProps<TextFieldProps>;
+    cost?: PrimitiveOverrideProps<SelectFieldProps>;
     ticketTitle?: PrimitiveOverrideProps<TextFieldProps>;
     ticketPrice?: PrimitiveOverrideProps<TextFieldProps>;
     extraInfo?: PrimitiveOverrideProps<TextAreaFieldProps>;
-    active?: PrimitiveOverrideProps<SwitchFieldProps>;
 } & EscapeHatchProps;
 export declare type LandingUpdateFormProps = React.PropsWithChildren<{
     overrides?: LandingUpdateFormOverridesProps | undefined | null;

@@ -29,16 +29,16 @@ type Form @model @auth(rules: [{allow: public}]) {
 
 type Landing @model @auth(rules: [{allow: public}]) {
   id: ID!
-  title: String
+  active: Boolean
   Event: Event @belongsTo
-  description: String
+  title: String!
+  description: String!
   mainBanner: String
-  location: String
+  location: String!
   cost: String
   ticketTitle: [String]
   ticketPrice: [Float]
   extraInfo: String
-  active: Boolean
 }
 
 type Attendee @model @auth(rules: [{allow: public}]) {
@@ -48,21 +48,21 @@ type Attendee @model @auth(rules: [{allow: public}]) {
 
 type Event @model @auth(rules: [{allow: public}]) {
   id: ID!
-  title: String
+  title: String!
   description: String
   Landing: Landing @hasOne
   careerID: ID! @index(name: "byCareer")
   Form: Form @hasOne
   EventAttendees: [EventAttendee] @hasMany(indexName: "byEvent", fields: ["id"])
   category: String
-  location: String
+  location: String!
   date: AWSDateTime
   contactName: [String]
   contactNumber: [Float]
-  termsCondition: String
-  eventIdUSFQ: String
-  periodoUSFQ: String
-  usuarioUSFQ: String
+  termsCondition: String!
+  eventIdUSFQ: String!
+  periodoUSFQ: String!
+  usuarioUSFQ: String!
 }
 
 type Career @model @auth(rules: [{allow: public}]) {
@@ -90,4 +90,5 @@ type Campus @model @auth(rules: [{allow: public}]) {
   description: String
   phone: AWSPhone
   email: AWSEmail
-} 
+}
+ 

@@ -14,6 +14,7 @@ import {
   Grid,
   Icon,
   ScrollView,
+  SelectField,
   SwitchField,
   Text,
   TextAreaField,
@@ -198,6 +199,7 @@ export default function LandingCreateForm(props) {
     ...rest
   } = props;
   const initialValues = {
+    active: false,
     title: "",
     description: "",
     mainBanner: undefined,
@@ -206,8 +208,8 @@ export default function LandingCreateForm(props) {
     ticketTitle: [],
     ticketPrice: [],
     extraInfo: "",
-    active: false,
   };
+  const [active, setActive] = React.useState(initialValues.active);
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
     initialValues.description
@@ -222,9 +224,9 @@ export default function LandingCreateForm(props) {
     initialValues.ticketPrice
   );
   const [extraInfo, setExtraInfo] = React.useState(initialValues.extraInfo);
-  const [active, setActive] = React.useState(initialValues.active);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
+    setActive(initialValues.active);
     setTitle(initialValues.title);
     setDescription(initialValues.description);
     setMainBanner(initialValues.mainBanner);
@@ -235,7 +237,6 @@ export default function LandingCreateForm(props) {
     setTicketPrice(initialValues.ticketPrice);
     setCurrentTicketPriceValue("");
     setExtraInfo(initialValues.extraInfo);
-    setActive(initialValues.active);
     setErrors({});
   };
   const [currentTicketTitleValue, setCurrentTicketTitleValue] =
@@ -245,15 +246,15 @@ export default function LandingCreateForm(props) {
     React.useState("");
   const ticketPriceRef = React.createRef();
   const validations = {
-    title: [],
-    description: [],
+    active: [],
+    title: [{ type: "Required" }],
+    description: [{ type: "Required" }],
     mainBanner: [],
-    location: [],
+    location: [{ type: "Required" }],
     cost: [],
     ticketTitle: [],
     ticketPrice: [],
     extraInfo: [],
-    active: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -281,6 +282,7 @@ export default function LandingCreateForm(props) {
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
+          active,
           title,
           description,
           mainBanner,
@@ -289,7 +291,6 @@ export default function LandingCreateForm(props) {
           ticketTitle,
           ticketPrice,
           extraInfo,
-          active,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -335,15 +336,53 @@ export default function LandingCreateForm(props) {
       {...getOverrideProps(overrides, "LandingCreateForm")}
       {...rest}
     >
+      <SwitchField
+        label="Publicar landing"
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={active}
+        onChange={(e) => {
+          let value = e.target.checked;
+          if (onChange) {
+            const modelFields = {
+              active: value,
+              title,
+              description,
+              mainBanner,
+              location,
+              cost,
+              ticketTitle,
+              ticketPrice,
+              extraInfo,
+            };
+            const result = onChange(modelFields);
+            value = result?.active ?? value;
+          }
+          if (errors.active?.hasError) {
+            runValidationTasks("active", value);
+          }
+          setActive(value);
+        }}
+        onBlur={() => runValidationTasks("active", active)}
+        errorMessage={errors.active?.errorMessage}
+        hasError={errors.active?.hasError}
+        {...getOverrideProps(overrides, "active")}
+      ></SwitchField>
       <TextField
-        label="Titulo principal"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Titulo principal</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         value={title}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
+              active,
               title: value,
               description,
               mainBanner,
@@ -352,7 +391,6 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
-              active,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -368,14 +406,22 @@ export default function LandingCreateForm(props) {
         {...getOverrideProps(overrides, "title")}
       ></TextField>
       <TextAreaField
-        label="Descripción corta que se mostrará en el banner principal"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>
+              Descripción corta que se mostrará en el banner principal
+            </span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         placeholder="De que se trata el evento?"
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
+              active,
               title,
               description: value,
               mainBanner,
@@ -384,7 +430,6 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
-              active,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -412,6 +457,7 @@ export default function LandingCreateForm(props) {
               let value = key;
               if (onChange) {
                 const modelFields = {
+                  active,
                   title,
                   description,
                   mainBanner: value,
@@ -420,7 +466,6 @@ export default function LandingCreateForm(props) {
                   ticketTitle,
                   ticketPrice,
                   extraInfo,
-                  active,
                 };
                 const result = onChange(modelFields);
                 value = result?.mainBanner ?? value;
@@ -433,6 +478,7 @@ export default function LandingCreateForm(props) {
               let value = initialValues?.mainBanner;
               if (onChange) {
                 const modelFields = {
+                  active,
                   title,
                   description,
                   mainBanner: value,
@@ -441,7 +487,6 @@ export default function LandingCreateForm(props) {
                   ticketTitle,
                   ticketPrice,
                   extraInfo,
-                  active,
                 };
                 const result = onChange(modelFields);
                 value = result?.mainBanner ?? value;
@@ -459,8 +504,13 @@ export default function LandingCreateForm(props) {
         ></StorageManager>
       </Field>
       <TextField
-        label="Ubicación del evento"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Ubicación del evento</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         placeholder="Campus Cumbayá, Diego de Robles s/n, Quito 170901, Ecuador"
         value={location}
@@ -468,6 +518,7 @@ export default function LandingCreateForm(props) {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
+              active,
               title,
               description,
               mainBanner,
@@ -476,7 +527,6 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
-              active,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -491,16 +541,16 @@ export default function LandingCreateForm(props) {
         hasError={errors.location?.hasError}
         {...getOverrideProps(overrides, "location")}
       ></TextField>
-      <TextField
+      <SelectField
         label="Accesso al evento"
-        isRequired={false}
-        isReadOnly={false}
-        placeholder="Gratuito"
+        placeholder="Seleccione una opción"
+        isDisabled={false}
         value={cost}
         onChange={(e) => {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
+              active,
               title,
               description,
               mainBanner,
@@ -509,7 +559,6 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo,
-              active,
             };
             const result = onChange(modelFields);
             value = result?.cost ?? value;
@@ -523,12 +572,24 @@ export default function LandingCreateForm(props) {
         errorMessage={errors.cost?.errorMessage}
         hasError={errors.cost?.hasError}
         {...getOverrideProps(overrides, "cost")}
-      ></TextField>
+      >
+        <option
+          children="Pago"
+          value="Pago"
+          {...getOverrideProps(overrides, "costoption0")}
+        ></option>
+        <option
+          children="Gratuito"
+          value="Gratuito"
+          {...getOverrideProps(overrides, "costoption1")}
+        ></option>
+      </SelectField>
       <ArrayField
         onChange={async (items) => {
           let values = items;
           if (onChange) {
             const modelFields = {
+              active,
               title,
               description,
               mainBanner,
@@ -537,7 +598,6 @@ export default function LandingCreateForm(props) {
               ticketTitle: values,
               ticketPrice,
               extraInfo,
-              active,
             };
             const result = onChange(modelFields);
             values = result?.ticketTitle ?? values;
@@ -585,6 +645,7 @@ export default function LandingCreateForm(props) {
           let values = items;
           if (onChange) {
             const modelFields = {
+              active,
               title,
               description,
               mainBanner,
@@ -593,7 +654,6 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice: values,
               extraInfo,
-              active,
             };
             const result = onChange(modelFields);
             values = result?.ticketPrice ?? values;
@@ -649,6 +709,7 @@ export default function LandingCreateForm(props) {
           let { value } = e.target;
           if (onChange) {
             const modelFields = {
+              active,
               title,
               description,
               mainBanner,
@@ -657,7 +718,6 @@ export default function LandingCreateForm(props) {
               ticketTitle,
               ticketPrice,
               extraInfo: value,
-              active,
             };
             const result = onChange(modelFields);
             value = result?.extraInfo ?? value;
@@ -672,38 +732,6 @@ export default function LandingCreateForm(props) {
         hasError={errors.extraInfo?.hasError}
         {...getOverrideProps(overrides, "extraInfo")}
       ></TextAreaField>
-      <SwitchField
-        label="Active"
-        defaultChecked={false}
-        isDisabled={false}
-        isChecked={active}
-        onChange={(e) => {
-          let value = e.target.checked;
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              mainBanner,
-              location,
-              cost,
-              ticketTitle,
-              ticketPrice,
-              extraInfo,
-              active: value,
-            };
-            const result = onChange(modelFields);
-            value = result?.active ?? value;
-          }
-          if (errors.active?.hasError) {
-            runValidationTasks("active", value);
-          }
-          setActive(value);
-        }}
-        onBlur={() => runValidationTasks("active", active)}
-        errorMessage={errors.active?.errorMessage}
-        hasError={errors.active?.hasError}
-        {...getOverrideProps(overrides, "active")}
-      ></SwitchField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
