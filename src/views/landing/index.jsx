@@ -251,8 +251,8 @@ export default function SignIn() {
             <p className="text-lg">{landing.extraInfo}</p>
           </div>
 
-          <Link className="mb-2 flex justify-center text-center text-lg hover:no-underline">
-            Necesitas ayuda?
+          <Link to="mailto:sd@usfq.edu.ec" className="mb-2 flex justify-center text-center text-lg hover:no-underline">
+            Necesita ayuda?
           </Link>
         </div>
       </div>

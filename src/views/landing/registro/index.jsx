@@ -49,16 +49,30 @@ const Registro = (props) => {
         dataType: "json",
         formData,
       });
+
+      // Make modifications to the DOM
+      this.modifyDOM();
     }
 
-    render() {
+    modifyDOM() {
+      // Verify the price and modify the end-user ID if necessary
+      if (price && parseFloat(price.replace(/[^\d.-]/g, '')) <= 50) {
+        let identificacion = document.querySelector('#identificacion');
+        let tipo_idenfiticacion = document.querySelector('#tipo_identificacion');
+        if (!identificacion || !tipo_idenfiticacion) return;
+        identificacion.parentElement.hidden = true;
+        identificacion.value = '9999999999999';
+        tipo_idenfiticacion.parentElement.hidden = true;
+      }
+    }
+
+    render() { 
       return <div id="fb-editor" ref={this.fb} />;
     }
   }
 
   React.useEffect(() => {
     if(searchParams.get('EventAttendee')){
-
       const sub = DataStore.observeQuery(EventAttendee, (e) => e.id.eq(searchParams.get('EventAttendee')) ).subscribe(results => {
         if(results.items.length > 0 ){
           console.log("Search params event attendee changed",results.items[0])
@@ -92,17 +106,6 @@ const Registro = (props) => {
     if(formData.length > 0){
       subQuestions.unsubscribe();
     }
-
-    // Check price amount and fix identification consumidor final
-    if(price && parseFloat(price.replace(/[^\d.-]/g, '')) <= 50){
-      let identificacion = document.querySelector('#identificacion');
-      let tipo_idenfiticacion = document.querySelector('#tipo_identificacion');
-      if(!identificacion || !tipo_idenfiticacion) return;
-      identificacion.parentElement.hidden = true;
-      identificacion.value = '9999999999999';
-      tipo_idenfiticacion.parentElement.hidden = true;
-    }
-
 
   }, [showRegister]);
 

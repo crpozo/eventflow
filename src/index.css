@@ -56,6 +56,11 @@ div[data-amplify-authenticator] [data-amplify-container] {
   color: white;
 }
 
+.amplify-button[data-variation="primary"], button.amplify-button--primary:hover{
+  background: #df1923 !important;
+  border-color: #df1923 !important;
+}
+
 .amplify-button[data-variation="primary"]:hover, button.amplify-button--primary:hover{
   background: black;
 }
@@ -120,6 +125,10 @@ button.amplify-button--link:hover {
   color: black;
   background-color: transparent;
   box-shadow: none;
+}
+
+.amplify-switchfield .amplify-switch__label{
+  padding-left: 0;
 }
 
 /* Login */
@@ -232,7 +241,11 @@ button:focus-visible {
 }
 
 .form-wrap.form-builder .btn-group > .btn:last-child:not(:first-child) {
-  background: #DF1923;
+  background: #000;
+}
+
+.form-wrap.form-builder .btn-group > .btn:last-child:not(:first-child):hover{
+  background: #df1923;
 }
 
 .form-wrap.form-builder .frmb li.form-field:last-child{

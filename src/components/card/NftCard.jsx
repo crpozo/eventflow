@@ -30,7 +30,7 @@ const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date,
         <div className="pt-2 pb-3 px-4">
           <div className="mb-5 flex items-center justify-between md:flex-col md:items-start lg:flex-row lg:justify-between xl:flex-col xl:items-start 3xl:flex-row 3xl:justify-between">
             <div className="mb-2">
-              <p className="text-xl font-normal text-black break-all	dark:text-white">
+              <p className="text-xl font-normal text-black dark:text-white">
                 {" "}
                 {title}{" "}
               </p>

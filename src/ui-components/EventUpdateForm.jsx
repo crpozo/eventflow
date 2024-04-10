@@ -14,6 +14,7 @@ import {
   Grid,
   Icon,
   ScrollView,
+  SelectField,
   Text,
   TextField,
   useTheme,
@@ -265,17 +266,17 @@ export default function EventUpdateForm(props) {
     React.useState("");
   const contactNumberRef = React.createRef();
   const validations = {
-    title: [],
+    title: [{ type: "Required" }],
     description: [],
     category: [],
-    location: [],
+    location: [{ type: "Required" }],
     date: [],
     contactName: [],
     contactNumber: [],
-    termsCondition: [],
-    eventIdUSFQ: [],
-    periodoUSFQ: [],
-    usuarioUSFQ: [],
+    termsCondition: [{ type: "Required" }],
+    eventIdUSFQ: [{ type: "Required" }],
+    periodoUSFQ: [{ type: "Required" }],
+    usuarioUSFQ: [{ type: "Required" }],
   };
   const runValidationTasks = async (
     fieldName,
@@ -378,8 +379,13 @@ export default function EventUpdateForm(props) {
       {...rest}
     >
       <TextField
-        label="Indica a los usuarios como se llama el evento"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Indica a los usuarios como se llama el evento</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         placeholder="Nombre evento"
         value={title}
@@ -482,11 +488,10 @@ export default function EventUpdateForm(props) {
         hasError={errors.category?.hasError}
         {...getOverrideProps(overrides, "category")}
       ></TextField>
-      <TextField
+      <SelectField
         label="Lugar donde se celebrará el evento"
-        isRequired={false}
-        isReadOnly={false}
-        placeholder="Universidad (in-house)"
+        placeholder="Seleccione una opción"
+        isDisabled={false}
         value={location}
         onChange={(e) => {
           let { value } = e.target;
@@ -516,7 +521,18 @@ export default function EventUpdateForm(props) {
         errorMessage={errors.location?.errorMessage}
         hasError={errors.location?.hasError}
         {...getOverrideProps(overrides, "location")}
-      ></TextField>
+      >
+        <option
+          children="Presencial"
+          value="Presencial"
+          {...getOverrideProps(overrides, "locationoption0")}
+        ></option>
+        <option
+          children="Virtual"
+          value="Virtual"
+          {...getOverrideProps(overrides, "locationoption1")}
+        ></option>
+      </SelectField>
       <TextField
         label="Fecha y hora"
         isRequired={false}
@@ -672,8 +688,13 @@ export default function EventUpdateForm(props) {
         ></TextField>
       </ArrayField>
       <TextField
-        label="Términos y condiciones"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Términos y condiciones</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         placeholder="La siguiente información se visualizará dentro de la aplicación para los usuarios finales"
         value={termsCondition}
@@ -707,8 +728,13 @@ export default function EventUpdateForm(props) {
         {...getOverrideProps(overrides, "termsCondition")}
       ></TextField>
       <TextField
-        label="Event id usfq"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Event id usfq</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         value={eventIdUSFQ}
         onChange={(e) => {
@@ -741,8 +767,13 @@ export default function EventUpdateForm(props) {
         {...getOverrideProps(overrides, "eventIdUSFQ")}
       ></TextField>
       <TextField
-        label="Periodo usfq"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Periodo usfq</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         value={periodoUSFQ}
         onChange={(e) => {
@@ -775,8 +806,13 @@ export default function EventUpdateForm(props) {
         {...getOverrideProps(overrides, "periodoUSFQ")}
       ></TextField>
       <TextField
-        label="Usuario usfq"
-        isRequired={false}
+        label={
+          <span style={{ display: "inline-flex" }}>
+            <span>Usuario usfq</span>
+            <span style={{ color: "red" }}>*</span>
+          </span>
+        }
+        isRequired={true}
         isReadOnly={false}
         value={usuarioUSFQ}
         onChange={(e) => {
