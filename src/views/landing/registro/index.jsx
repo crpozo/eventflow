@@ -94,7 +94,7 @@ const Registro = (props) => {
     }
 
     // Check price amount and fix identification consumidor final
-    if(parseFloat(price.replace(/[^\d.-]/g, '')) <= 50){
+    if(price && parseFloat(price.replace(/[^\d.-]/g, '')) <= 50){
       let identificacion = document.querySelector('#identificacion');
       let tipo_idenfiticacion = document.querySelector('#tipo_identificacion');
       if(!identificacion || !tipo_idenfiticacion) return;
