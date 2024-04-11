@@ -41,16 +41,22 @@ export default function SignIn() {
 
   React.useEffect(() => {
 
-    async function startData() {
-      const events = await DataStore.query(Event);
-      console.log("events query: ",events[0])
+    // async function startData() {
+    //   const events = await DataStore.query(Event);
+    //   console.log("events query: ",events[0])
 
-      const landing = await DataStore.query(Landing, l => l.id.eq(events[0].eventLandingId));
-      console.log("Landing query: ",landing)
-      setLanding(landing[0])
-    }
+    //   if(events[0]){
+    //     const landing = await DataStore.query(Landing, l => l.id.eq(events[0].eventLandingId));
+    //     console.log("Landing query: ",landing)
+    //     setLanding(landing[0])
+    //   } else {
+    //     console.error("Not loading landing query")
+    //   }
+     
+    // }
 
-    startData();
+    // startData();
+   
 
     const subEvent = DataStore.observeQuery(Event, (e) =>
       e.id.eq(id)
