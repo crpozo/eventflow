@@ -16,7 +16,6 @@ import {
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
   const { id } = useParams();
-  const [landingId, setLandingId] = React.useState(null);
   const [landing, setLanding] = React.useState([]);
   const [event, setEvent] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -42,13 +41,22 @@ export default function SignIn() {
 
   React.useEffect(() => {
 
-    async function startData() {
-      const events = await DataStore.query(Event);
-      console.log("events query: ",events[0].eventLandingId)
-      setLandingId(events[0].eventLandingId)
-    }
+    // async function startData() {
+    //   const events = await DataStore.query(Event);
+    //   console.log("events query: ",events[0])
 
-    startData();
+    //   if(events[0]){
+    //     const landing = await DataStore.query(Landing, l => l.id.eq(events[0].eventLandingId));
+    //     console.log("Landing query: ",landing)
+    //     setLanding(landing[0])
+    //   } else {
+    //     console.error("Not loading landing query")
+    //   }
+     
+    // }
+
+    // startData();
+   
 
     const subEvent = DataStore.observeQuery(Event, (e) =>
       e.id.eq(id)
@@ -67,16 +75,7 @@ export default function SignIn() {
 
   React.useEffect(() => {
 
-    async function startData() {
-      const landing = await DataStore.query(Landing, l => l.id.eq(landingId));
-      console.log("landingId: ", landingId)
-      console.log("Landing query: ",landing)
-      setLanding(landing)
-    }
-
-    startData();
-
-    const sub = DataStore.observeQuery(Landing, (l) => l.id.eq(landingId))
+    const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id))
     .subscribe((results) => {
       console.log("Landing: ", results.items);
       if (results.items.length > 0) {
