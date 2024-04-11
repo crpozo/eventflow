@@ -16,7 +16,6 @@ import {
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
   const { id } = useParams();
-  const [landingId, setLandingId] = React.useState(null);
   const [landing, setLanding] = React.useState([]);
   const [event, setEvent] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -44,8 +43,11 @@ export default function SignIn() {
 
     async function startData() {
       const events = await DataStore.query(Event);
-      console.log("events query: ",events[0].eventLandingId)
-      setLandingId(events[0].eventLandingId)
+      console.log("events query: ",events[0])
+
+      const landing = await DataStore.query(Landing, l => l.id.eq(events[0].eventLandingId));
+      console.log("Landing query: ",landing)
+      setLanding(landing[0])
     }
 
     startData();
@@ -53,7 +55,7 @@ export default function SignIn() {
     const subEvent = DataStore.observeQuery(Event, (e) =>
       e.id.eq(id)
     ).subscribe((results) => {
-      console.log("event observerquery: ",results)
+      console.log("event observerQuery: ",results)
       if (results.items.length > 0) {
         setEvent(results.items[0]);
       }
@@ -67,18 +69,9 @@ export default function SignIn() {
 
   React.useEffect(() => {
 
-    async function startData() {
-      const landing = await DataStore.query(Landing, l => l.id.eq(landingId));
-      console.log("landingId: ", landingId)
-      console.log("Landing query: ",landing)
-      setLanding(landing)
-    }
-
-    startData();
-
-    const sub = DataStore.observeQuery(Landing, (l) => l.id.eq(landingId))
+    const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id))
     .subscribe((results) => {
-      console.log("Landing: ", results.items);
+      console.log("Landing observeQuery: ", results.items);
       if (results.items.length > 0) {
         setLanding(results.items[0]);
         const tickets = results.items[0].ticketTitle.map((title, index) => {
@@ -117,10 +110,12 @@ export default function SignIn() {
   }
 
   if (landing && !landing.active && authStatus == "unauthenticated") {
+    console.log("LANDING: ",landing)
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary">
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           El evento no se encuentra activo...
+
         </h2>
         {/* <p className="w-1/3 text-center text-black">Por favor comunicarse con el administrador</p> */}
       </div>
