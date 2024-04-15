@@ -20,6 +20,9 @@
       },
       "api": {
         "eventflow": {}
+      },
+      "analytics": {
+        "eventflow": {}
       }
     }
   }
