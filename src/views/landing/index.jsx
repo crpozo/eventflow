@@ -68,71 +68,11 @@ export default function SignIn() {
       });
       setTickets(tickets);
       setLoading(false);
-
     }
 
     startData();
 
-
-    // async function startData() {
-    //   const events = await DataStore.query(Event);
-    //   console.log("events query: ",events[0])
-
-    //   if(events[0]){
-    //     const landing = await DataStore.query(Landing, l => l.id.eq(events[0].eventLandingId));
-    //     console.log("Landing query: ",landing)
-    //     setLanding(landing[0])
-    //   } else {
-    //     console.error("Not loading landing query")
-    //   }
-     
-    // }
-
-    // startData();
-   
-
-    // const subEvent = DataStore.observeQuery(Event, (e) =>
-    //   e.id.eq(id)
-    // ).subscribe((results) => {
-    //   console.log("event observerquery: ",results)
-    //   if (results.items.length > 0) {
-    //     setEvent(results.items[0]);
-    //   }
-    // });
-
-    // if(event.length > 0){
-    //   subEvent.unsubscribe();
-    // }
-
   }, []);
-
-  // React.useEffect(() => {
-
-  //   const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id))
-  //   .subscribe((results) => {
-  //     console.log("Landing: ", results.items);
-  //     if (results.items.length > 0) {
-  //       setLanding(results.items[0]);
-  //       const tickets = results.items[0].ticketTitle.map((title, index) => {
-  //         const cost =
-  //           results.items[0].ticketPrice[index] !== undefined
-  //             ? `$${results.items[0].ticketPrice[index].toFixed(2)}`
-  //             : "Vacio";
-  //         if (index == 0) setSelectedCost(cost);
-  //         return {
-  //           title,
-  //           cost,
-  //         };
-  //       });
-  //       setTickets(tickets);
-  //       setLoading(false);
-  //     }
-  //   });
-
-  //   if(landing.length > 0){
-  //     sub.unsubscribe();
-  //   }
-  // }, []);
 
   if (loading && landing.length === 0) {
     return (
