@@ -55,10 +55,10 @@ function App() {
     document.head.appendChild(cookieDeclarationScript);
 
     // Live chat Tidio
-    const tidioScript = document.createElement('script');
-    tidioScript.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
-    tidioScript.async = true;
-    document.body.appendChild(tidioScript);
+    // const tidioScript = document.createElement('script');
+    // tidioScript.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
+    // tidioScript.async = true;
+    // document.body.appendChild(tidioScript);
 
     return () => {
       // Limpiar scripts al desmontar el componente
