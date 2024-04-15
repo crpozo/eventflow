@@ -50,8 +50,8 @@ export default function SignIn() {
         query: getEvent,
         variables: { id: id } 
       });
-      console.log("GRAPHQL data: ",result);
-      if(result){
+      console.log("GRAPHQL data: ",result.data.getEvent);
+      if(result.data.getEvent){
 
         setEvent(result.data.getEvent);
         setLanding(result.data.getEvent.Landing)
