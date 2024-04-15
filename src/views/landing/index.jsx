@@ -12,6 +12,9 @@ import { BsPlusLg as PlusIcon } from "react-icons/bs";
 import {
   AiOutlineMinus as MinusIcon,
 } from "react-icons/ai";
+/* GRAPHQL */
+import { generateClient } from 'aws-amplify/api';
+import { getLanding, getEvent } from '../../graphql/queries';
 
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
@@ -24,7 +27,8 @@ export default function SignIn() {
   const [ticketsQuantity, setTicketsQuantity] = useState(1);
   const [selectedCost, setSelectedCost] = React.useState(null);
   const [showRegister, setShowRegister] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);  
+  const [imageLoaded, setImageLoaded] = useState(false); 
+  const client = generateClient(); 
 
   const quantityIncrementHandler = () => {
     setTicketsQuantity((prevState) => prevState + 1);
@@ -40,6 +44,35 @@ export default function SignIn() {
   };
 
   React.useEffect(() => {
+
+    async function startData() {
+      const result = await client.graphql({ 
+        query: getEvent,
+        variables: { id: id } 
+      });
+      console.log("GRAPHQL data: ",result.data.getEvent);
+      setEvent(result.data.getEvent);
+      setLanding(result.data.getEvent.Landing)
+
+      // Format price ticket
+      const tickets = result.data.getEvent.Landing.ticketTitle.map((title, index) => {
+        const cost =
+        result.data.getEvent.Landing.ticketPrice[index] !== undefined
+            ? `$${result.data.getEvent.Landing.ticketPrice[index].toFixed(2)}`
+            : "Vacio";
+        if (index == 0) setSelectedCost(cost);
+        return {
+          title,
+          cost,
+        };
+      });
+      setTickets(tickets);
+      setLoading(false);
+
+    }
+
+    startData();
+
 
     // async function startData() {
     //   const events = await DataStore.query(Event);
@@ -58,52 +91,52 @@ export default function SignIn() {
     // startData();
    
 
-    const subEvent = DataStore.observeQuery(Event, (e) =>
-      e.id.eq(id)
-    ).subscribe((results) => {
-      console.log("event observerquery: ",results)
-      if (results.items.length > 0) {
-        setEvent(results.items[0]);
-      }
-    });
+    // const subEvent = DataStore.observeQuery(Event, (e) =>
+    //   e.id.eq(id)
+    // ).subscribe((results) => {
+    //   console.log("event observerquery: ",results)
+    //   if (results.items.length > 0) {
+    //     setEvent(results.items[0]);
+    //   }
+    // });
 
-    if(event.length > 0){
-      subEvent.unsubscribe();
-    }
+    // if(event.length > 0){
+    //   subEvent.unsubscribe();
+    // }
 
   }, []);
 
-  React.useEffect(() => {
+  // React.useEffect(() => {
 
-    const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id))
-    .subscribe((results) => {
-      console.log("Landing: ", results.items);
-      if (results.items.length > 0) {
-        setLanding(results.items[0]);
-        const tickets = results.items[0].ticketTitle.map((title, index) => {
-          const cost =
-            results.items[0].ticketPrice[index] !== undefined
-              ? `$${results.items[0].ticketPrice[index].toFixed(2)}`
-              : "Vacio";
-          if (index == 0) setSelectedCost(cost);
-          return {
-            title,
-            cost,
-          };
-        });
-        setTickets(tickets);
-        setLoading(false);
-      }
-    });
+  //   const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(id))
+  //   .subscribe((results) => {
+  //     console.log("Landing: ", results.items);
+  //     if (results.items.length > 0) {
+  //       setLanding(results.items[0]);
+  //       const tickets = results.items[0].ticketTitle.map((title, index) => {
+  //         const cost =
+  //           results.items[0].ticketPrice[index] !== undefined
+  //             ? `$${results.items[0].ticketPrice[index].toFixed(2)}`
+  //             : "Vacio";
+  //         if (index == 0) setSelectedCost(cost);
+  //         return {
+  //           title,
+  //           cost,
+  //         };
+  //       });
+  //       setTickets(tickets);
+  //       setLoading(false);
+  //     }
+  //   });
 
-    if(landing.length > 0){
-      sub.unsubscribe();
-    }
-  }, []);
+  //   if(landing.length > 0){
+  //     sub.unsubscribe();
+  //   }
+  // }, []);
 
   if (loading && landing.length === 0) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[85%]">
+      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%]">
         <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           Cargando...

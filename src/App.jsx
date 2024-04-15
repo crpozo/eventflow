@@ -14,9 +14,14 @@ import { I18n, Hub } from 'aws-amplify/utils';
 import { DataStore } from 'aws-amplify/datastore';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Amplify } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
+import config from './amplifyconfiguration.json';
 import '@aws-amplify/ui-react/styles.css';
 I18n.putVocabularies(translations);
 I18n.setLanguage('es');
+Amplify.configure(config);
+const client = generateClient();
 
 function App() { 
 
