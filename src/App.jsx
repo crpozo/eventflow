@@ -64,7 +64,7 @@ function App() {
       // Limpiar scripts al desmontar el componente
       document.head.removeChild(cookiebotScript);
       document.head.removeChild(cookieDeclarationScript);
-      document.body.removeChild(tidioScript);
+      //document.body.removeChild(tidioScript);
     };
   }, []);
 
