@@ -50,24 +50,28 @@ export default function SignIn() {
         query: getEvent,
         variables: { id: id } 
       });
-      console.log("GRAPHQL data: ",result.data.getEvent);
-      setEvent(result.data.getEvent);
-      setLanding(result.data.getEvent.Landing)
+      console.log("GRAPHQL data: ",result);
+      if(result){
 
-      // Format price ticket
-      const tickets = result.data.getEvent.Landing.ticketTitle.map((title, index) => {
-        const cost =
-        result.data.getEvent.Landing.ticketPrice[index] !== undefined
-            ? `$${result.data.getEvent.Landing.ticketPrice[index].toFixed(2)}`
-            : "Vacio";
-        if (index == 0) setSelectedCost(cost);
-        return {
-          title,
-          cost,
-        };
-      });
-      setTickets(tickets);
-      setLoading(false);
+        setEvent(result.data.getEvent);
+        setLanding(result.data.getEvent.Landing)
+
+        // Format price ticket
+        const tickets = result.data.getEvent.Landing.ticketTitle.map((title, index) => {
+          const cost =
+          result.data.getEvent.Landing.ticketPrice[index] !== undefined
+              ? `$${result.data.getEvent.Landing.ticketPrice[index].toFixed(2)}`
+              : "Vacio";
+          if (index == 0) setSelectedCost(cost);
+          return {
+            title,
+            cost,
+          };
+        });
+        setTickets(tickets);
+        setLoading(false);
+
+      }
     }
 
     startData();
