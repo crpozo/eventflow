@@ -327,8 +327,6 @@ const Registro = (props) => {
 
       await pdf?.outputPdf().then(async function(pdf) {
           if (eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null) {
-              console.log("eventAttendee.ticket?: ",eventAttendee)
-              alert("eventAttendee.ticket?: ",eventAttendee)
               setUploadProgress(0);       
               const base64PDF = btoa(pdf);
               await savePDFStorage(base64PDF);
@@ -356,6 +354,7 @@ const Registro = (props) => {
         }).result;
 
       setUploadProgress(100)
+      alert("Succedded ",resultUpload.toString())
       console.log('Succeeded: ', resultUpload);
 
       const getUrlResult = await getUrl({
@@ -381,6 +380,7 @@ const Registro = (props) => {
 
   const sendTicketEmail = async () => {
     try{
+      alert("Entro sendTickecEmail ")
        // Send email
       const payloadEmail = {
         eventAttendeeId: eventAttendee.id,
@@ -403,7 +403,10 @@ const Registro = (props) => {
 
       setSendEmail(true)
 
-    }catch(e){ console.error("sendTicketEmail: ", e)}
+    }catch(e){ 
+      alert("ERROR sendTickecEmail: ", e.toString())
+      console.error("sendTicketEmail: ", e)
+    }
   }
 
 
