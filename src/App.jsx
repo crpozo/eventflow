@@ -23,6 +23,8 @@ I18n.setLanguage('es');
 Amplify.configure(config);
 const client = generateClient();
 
+
+
 function App() { 
 
   const { route } = useAuthenticator(context => [context.route]);
@@ -34,6 +36,29 @@ function App() {
   const isUserRoute = location.pathname.includes('/usuario');
   const [onReady, setOnReady] = React.useState(Promise.resolve());
   const [isReady, setIsReady] = React.useState(true);
+
+  class MyClass {
+    constructor() {
+  
+      Hub.listen('auth', (data) => {
+        const { payload } = data;
+        this.onAuthEvent(payload);
+        console.log(
+          'A new auth event has happened: ',
+          data.payload.data?.username + ' has ' + data.payload.event
+        );
+      });
+    }
+  
+    onAuthEvent(payload) {
+      console.log("PAYLOAD: ",payload)
+      switch (payload.event) {
+        case 'signedIn':
+          // refreshDataStore();
+          break;
+      }
+    }
+  }
 
   // Hotjar init
   const siteId = 123;
@@ -60,15 +85,18 @@ function App() {
     // tidioScript.async = true;
     // document.body.appendChild(tidioScript);
 
+    const myInstance = new MyClass();
+
     return () => {
       // Limpiar scripts al desmontar el componente
       document.head.removeChild(cookiebotScript);
       document.head.removeChild(cookieDeclarationScript);
       //document.body.removeChild(tidioScript);
     };
+
   }, []);
 
-  // If datastore is cleared and the browser is refreshed variables reset and we to reinit datastore
+  // If datastore is cleared and the browser is refreshed variables reset and reinit datastore
   React.useEffect( () => {
     async function startData() {
       if(authStatus == 'unauthenticated'){
@@ -76,27 +104,31 @@ function App() {
         console.log("START executed")
       }
     }
-    startData();
+    /*startData();*/
   }, [authStatus]);
  
+  const refreshDataStore = async () => {
+    console.log('Clearing DataStore')
+    await DataStore.clear()
+    console.log('Starting DataStore')
+    await DataStore.start()
+    console.log('DataStore started')
+}
 
   const clearDataStore = async () => {
     try {
-      await DataStore?.clear();
-      // setOnReady(DataStore.clear());
-      // await onReady;
+      if(DataStore && DataStore.state == "Clearing") return
+      console.log("APP DATASTORE STATE: ", DataStore.state)
+      await DataStore.clear();
     } catch (error) {
       console.error("Error clearing DataStore", error);
     } finally {
       setIsReady(true);
       console.log("DataStore cleared successfully");
-      // setTimeout(() => {
-      //    console.log("DataStore cleared successfully");
-      //    setIsReady(true);
-      //  }, 2000);
     }
   };
 
+  /*
   Hub.listen('auth', ({ payload }) => {
     switch (payload.event) {
       case 'signedIn':
@@ -106,7 +138,7 @@ function App() {
         break;
       case 'signedOut':
         navigate(`/page/campus`);
-        // clearDataStore();
+        clearDataStore();
         console.log('user have been signedOut successfully.');
         break;
       case 'tokenRefresh':
@@ -126,6 +158,9 @@ function App() {
         break;
     }
   });
+  */
+
+  console.log("authStatus: ", authStatus)
   
   if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !isReady){
     return(

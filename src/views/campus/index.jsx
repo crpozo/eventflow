@@ -7,10 +7,13 @@ import { Campus } from "models"
 import {
   MdAdd
 } from "react-icons/md";
+import { generateClient } from 'aws-amplify/api';
+import { listCampuses } from '../../graphql/queries';
 
 const CampusComponent = () => {
 
   const [campus, setCampus] = React.useState(null);
+  const client = generateClient(); 
 
   React.useEffect(() => {
 
