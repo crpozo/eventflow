@@ -120,29 +120,28 @@ export default function SignIn() {
       </div>
 
       {landing && (
-        <div className="absolute w-full">
+        <div className="relative w-full">
           {landing.mainBanner && 
             <img 
               className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]" 
               src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}
             />
           }
+          <div className="container absolute inset-0 flex items-center justify-center lg:justify-start">
+            <div className="flex flex-col items-center justify-center gap-4 bg-blackBanner px-4 py-4 md:max-w-[43%] md:!pb-[40px] md:!pt-[30px]">
+              <p className="border-b-2 border-solid pb-3 font-bold text-center text-white text-[28px] w-full">
+                {landing.title}
+              </p>
+              <p className="text-center leading-7 leading-none text-white md:text-lg">
+                {landing.description}
+              </p>
+            </div>
+          </div>
         </div>
       )}
-
-      <div className="container relative mb-[200px] mt-[75px] sm:mt-[100px] xl:mt-[120px]">
-        <div className="flex flex-col items-center justify-center gap-4 bg-blackBanner px-4 py-4 md:!h-[250px] md:max-w-[500px] md:!py-[40px]">
-          <p className="border-b-2 border-solid pb-2 font-bold text-white md:text-2xl">
-            {landing.title}
-          </p>
-          <p className="text-center leading-7 leading-none text-white md:text-lg">
-            {landing.description}
-          </p>
-        </div>
-      </div>
       {/* Conditionals ==> Register for event +  Checkout and event details*/}
       <div
-        className={`sm:px-2! container mx-auto mb-16 h-full w-full items-center justify-center px-4 md:px-0 lg:mb-10 lg:items-center lg:justify-start`}
+        className={`sm:px-2! container mt-5 mx-auto mb-16 h-full w-full items-center justify-center px-4 md:px-0 lg:mb-10 lg:items-center lg:justify-start`}
       >
         <div
           className={` ${
@@ -183,7 +182,7 @@ export default function SignIn() {
                 </div>
               </div>
               {/* Checkout  */}
-              <div className="mx-auto flex w-full min-w-full max-w-[450px] flex-col justify-center rounded-md border border-gray-500 p-3 md:p-4">
+              <div className="mx-auto flex w-full min-w-full flex-col justify-center rounded-md border border-gray-500 p-3 md:p-4">
                 <div className="mb-3 flex w-full justify-between gap-5 sm:flex-row sm:items-center">
                   <select
                     className="select-arrow w-full md:max-w-[300px] appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
