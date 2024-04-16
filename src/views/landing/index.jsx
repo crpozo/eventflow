@@ -105,7 +105,7 @@ export default function SignIn() {
 
   return (
     <>
-      <div className="flex h-[130px] w-full bg-usfqPrimary">
+      <div className="flex h-[100px] md:h-[130px] w-full bg-usfqPrimary">
         <div className="container flex items-center justify-between">
           <img src={logo} className="w-[90px] lg:w-[120px]" />
           <Link
