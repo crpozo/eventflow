@@ -33,6 +33,7 @@ const Registro = (props) => {
   const [quantity, setQuantity] = React.useState(quantityProp);
   const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
   const [uploadProgress, setUploadProgress] = React.useState(100);
+  const [sendEmail, setSendEmail] = React.useState(false);
 
   const currentUrl = window.location.href;
   const domain = new URL(currentUrl).origin;
@@ -396,6 +397,8 @@ const Registro = (props) => {
 
       console.log("sendTicketEmail response :", data)
 
+      setSendEmail(true)
+
     }catch(e){ console.error("sendTicketEmail: ", e)}
   }
 
@@ -478,25 +481,25 @@ const Registro = (props) => {
           </>
         )}
 
-        {uploadProgress !== 100 || (!authorized && searchParams.get('EventAttendee'))  &&
-          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-80">
+        {!sendEmail || uploadProgress !== 100 || (!authorized && searchParams.get('EventAttendee'))  &&
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-100 p-3">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
               Estamos esperando recibir el pago desde la plataforma USFQ...
             </h2>
-            <p className="w-1/3 text-center text-black">
+            <p className="max-w-[400px] text-center text-black">
               Si se ha realizado una transferencia o un depósito, se le enviará un correo electrónico con las entradas una vez que se haya verificado el pago.
             </p>
           </div>
         }
 
         {!authorized && formRegister && !searchParams.get('EventAttendee') &&
-          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%]">
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
             <h2 className="mb-2 text-center text-2xl font-semibold text-black">
             Redirigiendo a la pasarela de pagos USFQ
             </h2>
-            <p className="w-1/3 text-center text-black">
+            <p className="max-w-[400px] text-center text-black">
               Por favor no cierre esta página.
             </p>
           </div>
