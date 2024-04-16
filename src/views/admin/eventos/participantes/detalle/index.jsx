@@ -52,12 +52,12 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%]">
+      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
         <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           Cargando...
         </h2>
-        <p className="w-1/3 text-center text-black">
+        <p className="max-w-[400px] text-center text-black">
           Esto puede tardar unos segundos, por favor no cierre esta página.
         </p>
       </div>
@@ -66,11 +66,11 @@ const Profile = () => {
 
   if (attendee == null && loading == false) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%]">
+      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           No existe un participante con ID: 
         </h2>
-        <p className="w-1/3 text-center text-black">
+        <p className="max-w-[400px] text-center text-black">
           {id}
         </p>
       </div>
