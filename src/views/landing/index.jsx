@@ -167,17 +167,17 @@ export default function SignIn() {
           <div
             className={` mb-[60px] border-b border-gray-300 pb-[60px] transition-all duration-300`}
           >
-            <h2 className="mb-3 text-4xl font-bold">Dónde y cuándo</h2>
+            <h2 className="pt-2 md:pt-0 mb-5 md:!mb-3 text-4xl font-bold">Dónde y cuándo</h2>
 
-            <div className="grid grid-cols-1 gap-6 sm:gap-0 md:grid-cols-3">
-              <div className="flex items-center gap-5">
+            <div className="grid grid-cols-1 gap-6 sm:gap-5 lg:grid-cols-3">
+              <div className="flex items-center gap-5 lg:col-span-1">
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Fecha y hora</h3>
                   {event && <p className="text-md">{formatDateHour(event.date)}</p>}
                 </div>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-6 lg:ml-[-25px]">
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Ubicación</h3>
@@ -185,10 +185,10 @@ export default function SignIn() {
                 </div>
               </div>
               {/* Checkout  */}
-              <div className="mx-auto flex w-full max-w-[450px] flex-col justify-center rounded-md border border-gray-500 p-4">
-                <div className="mb-3 flex w-full flex-col justify-between gap-5 sm:flex-row sm:items-center">
+              <div className="mx-auto flex w-full min-w-full max-w-[450px] flex-col justify-center rounded-md border border-gray-500 p-3 md:p-4">
+                <div className="mb-3 flex w-full justify-between gap-5 sm:flex-row sm:items-center">
                   <select
-                    className="select-arrow w-full max-w-[270px] appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
+                    className="select-arrow w-full md:max-w-[300px] appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
                     onChange={(e) => {
                       setSelectedCost(e.target.value);
                     }}
@@ -205,23 +205,23 @@ export default function SignIn() {
                   <div className="flex shrink-0 items-center gap-2 sm:justify-between">
                     <div
                       onClick={quantityDecrementHandler}
-                      className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
+                      className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[8px] text-[#A6A6A6]"
                     >
                       <MinusIcon className="text-base" />
                     </div>
-                    <div className="flex min-w-[40px] items-center justify-center text-xl font-semibold">
+                    <div className="flex min-w-[25px] items-center justify-center text-xl font-semibold">
                       {ticketsQuantity}
                     </div>
                     <div
                       onClick={quantityIncrementHandler}
-                      className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[6px] text-[#A6A6A6]"
+                      className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[8px] text-[#A6A6A6]"
                     >
                       <PlusIcon className="cursor-pointer" />
                     </div>
                   </div>
                 </div>
-                <p className="mb-3 text-xl font-bold">
-                  {selectedCost !== null ? selectedCost : "Vacio"} + IVA
+                <p className="mb-3 text-xl font-semibold">
+                  {selectedCost !== null ? selectedCost : "Vacio"} <span className="text-[15px] font-normal text-[#717171]">+ IVA</span>
                 </p>
                 {/* => Button  */}
                 <button

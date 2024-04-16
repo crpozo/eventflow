@@ -37,28 +37,28 @@ function App() {
   const [onReady, setOnReady] = React.useState(Promise.resolve());
   const [isReady, setIsReady] = React.useState(true);
 
-  class MyClass {
-    constructor() {
+  // class MyClass {
+  //   constructor() {
   
-      Hub.listen('auth', (data) => {
-        const { payload } = data;
-        this.onAuthEvent(payload);
-        console.log(
-          'A new auth event has happened: ',
-          data.payload.data?.username + ' has ' + data.payload.event
-        );
-      });
-    }
+  //     Hub.listen('auth', (data) => {
+  //       const { payload } = data;
+  //       this.onAuthEvent(payload);
+  //       console.log(
+  //         'A new auth event has happened: ',
+  //         data.payload.data?.username + ' has ' + data.payload.event
+  //       );
+  //     });
+  //   }
   
-    onAuthEvent(payload) {
-      console.log("PAYLOAD: ",payload)
-      switch (payload.event) {
-        case 'signedIn':
-          // refreshDataStore();
-          break;
-      }
-    }
-  }
+  //   onAuthEvent(payload) {
+  //     console.log("PAYLOAD: ",payload)
+  //     switch (payload.event) {
+  //       case 'signedIn':
+  //         // refreshDataStore();
+  //         break;
+  //     }
+  //   }
+  // }
 
   // Hotjar init
   const siteId = 123;
@@ -80,12 +80,12 @@ function App() {
     document.head.appendChild(cookieDeclarationScript);
 
     // Live chat Tidio
-    // const tidioScript = document.createElement('script');
-    // tidioScript.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
-    // tidioScript.async = true;
-    // document.body.appendChild(tidioScript);
-
-    const myInstance = new MyClass();
+    if(window.location.href.includes('eventflow')){
+      const tidioScript = document.createElement('script');
+      tidioScript.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
+      tidioScript.async = true;
+      document.body.appendChild(tidioScript);
+    }
 
     return () => {
       // Limpiar scripts al desmontar el componente
@@ -97,68 +97,28 @@ function App() {
   }, []);
 
   // If datastore is cleared and the browser is refreshed variables reset and reinit datastore
-  React.useEffect( () => {
-    async function startData() {
-      if(authStatus == 'unauthenticated'){
-        await DataStore.start();
-        console.log("START executed")
-      }
-    }
-    /*startData();*/
-  }, [authStatus]);
- 
-  const refreshDataStore = async () => {
-    console.log('Clearing DataStore')
-    await DataStore.clear()
-    console.log('Starting DataStore')
-    await DataStore.start()
-    console.log('DataStore started')
-}
+  // React.useEffect( () => {
+  //   async function startData() {
+  //     if(authStatus == 'unauthenticated'){
+  //       await DataStore.start();
+  //       console.log("START executed")
+  //     }
+  //   }
+  //   startData();
+  // }, [authStatus]);
 
-  const clearDataStore = async () => {
-    try {
-      if(DataStore && DataStore.state == "Clearing") return
-      console.log("APP DATASTORE STATE: ", DataStore.state)
-      await DataStore.clear();
-    } catch (error) {
-      console.error("Error clearing DataStore", error);
-    } finally {
-      setIsReady(true);
-      console.log("DataStore cleared successfully");
-    }
-  };
-
-  /*
-  Hub.listen('auth', ({ payload }) => {
-    switch (payload.event) {
-      case 'signedIn':
-        setIsReady(false);
-        clearDataStore();
-        console.log('user have been signedIn successfully.');
-        break;
-      case 'signedOut':
-        navigate(`/page/campus`);
-        clearDataStore();
-        console.log('user have been signedOut successfully.');
-        break;
-      case 'tokenRefresh':
-        console.log('auth tokens have been refreshed.');
-        break;
-      case 'tokenRefresh_failure':
-        console.log('failure while refreshing auth tokens.');
-        break;
-      case 'signInWithRedirect':
-        console.log('signInWithRedirect API has successfully been resolved.');
-        break;
-      case 'signInWithRedirect_failure':
-        console.log('failure while trying to resolve signInWithRedirect API.');
-        break;
-      case 'customOAuthState':
-        console.log('custom state returned from CognitoHosted UI');
-        break;
-    }
-  });
-  */
+  // const clearDataStore = async () => {
+  //   try {
+  //     if(DataStore && DataStore.state == "Clearing") return
+  //     console.log("APP DATASTORE STATE: ", DataStore.state)
+  //     await DataStore.clear();
+  //   } catch (error) {
+  //     console.error("Error clearing DataStore", error);
+  //   } finally {
+  //     setIsReady(true);
+  //     console.log("DataStore cleared successfully");
+  //   }
+  // };
 
   console.log("authStatus: ", authStatus)
   

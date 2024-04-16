@@ -39,7 +39,7 @@ export default function Landing() {
               </Routes>
             </div>
             <footer className="bg-black flex justify-center p-4">
-              <p className="text-white text-center">Copyright © 2023 Universidad San Francisco de Quito</p>
+              <p className="text-white text-center">Copyright © 2024 Universidad San Francisco de Quito</p>
             </footer>
         </main>
       </div>
