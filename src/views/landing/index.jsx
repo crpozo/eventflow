@@ -13,7 +13,6 @@ import {
   AiOutlineMinus as MinusIcon,
 } from "react-icons/ai";
 /* GRAPHQL */
-import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/api';
 import { getLanding, getEvent } from '../../graphql/queries';
 
@@ -46,10 +45,7 @@ export default function SignIn() {
 
   React.useEffect(() => {
 
-    console.log("Amplify: ",Amplify)
-
     async function startData() {
-      console.log("client: ",client)
       const result = await client.graphql({ 
         query: getEvent,
         variables: { id: id } 
