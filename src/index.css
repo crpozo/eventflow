@@ -3,7 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
+/* @font-face {
   font-family: Roobert;
   src: url("/src/assets/fonts/Roobert.ttf") format("truetype");
 }
@@ -11,15 +11,15 @@
 @font-face {
   font-family: Inter;
   src: url("/src/assets/fonts/Inter-Variable.ttf") format("truetype");
-}
+} */
 
-body, span {
+/* body, span {
   font-family: "Inter", sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6{
   font-family: 'Roobert', sans-serif;
-}
+} */
 
 @layer base {
   html {
