@@ -107,9 +107,9 @@ export default function SignIn() {
 
   return (
     <>
-      <div className="flex h-[130px] w-full bg-usfqPrimary">
+      <div className="flex h-[100px] md:h-[130px] w-full bg-usfqPrimary">
         <div className="container flex items-center justify-between">
-          <img src={logo} className="w-[120px]" />
+          <img src={logo} className="w-[90px] lg:w-[120px]" />
           <Link
             to="https://www.usfq.edu.ec/es"
             className="flex items-center gap-2 hover:text-red-500 hover:no-underline"
@@ -131,10 +131,10 @@ export default function SignIn() {
           }
           <div className="container absolute inset-0 flex items-center justify-center lg:justify-start">
             <div className="flex flex-col items-center justify-center gap-4 bg-blackBanner px-4 py-4 md:max-w-[43%] md:!pb-[40px] md:!pt-[30px]">
-              <p className="border-b-2 border-solid pb-3 font-bold text-center text-white text-[28px] w-full">
+              <h1 className="border-b-2 border-solid pb-3 font-bold text-center text-white text-[28px] w-full">
                 {landing.title}
-              </p>
-              <p className="text-center leading-7 leading-none text-white md:text-lg">
+              </h1>
+              <p className="text-center leading-normal leading-none text-white md:text-lg">
                 {landing.description}
               </p>
             </div>
