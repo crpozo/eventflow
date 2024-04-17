@@ -137,9 +137,11 @@ const Registro = (props) => {
     if (authorized) {
       // Download PDF and save it in S3 bucket
       let download = true;
-      if(isMobileDevice){
+      if(isMobileDevice()){
         download = false;
       }
+      console.log("isMobileDevice: ", isMobileDevice())
+      console.log("Download: ", download)
       handleExport(download);
       // Move user view to ticket   
       ticketsRef.current.scrollIntoView({ behavior: 'smooth' });
