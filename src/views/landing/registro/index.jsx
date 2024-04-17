@@ -400,13 +400,10 @@ const Registro = (props) => {
       const data = await response.json()
 
       console.log("sendTicketEmail response :", data)
-      alert("sendTicketEmail response :", data.toString())
 
       setSendEmail(true)
 
     }catch(e){ 
-      alert("ERROR sendTickecEmail: ", e.body.toString())
-      alert("ERROR sendTickecEmail: ", e.statusCode.toString())
       console.error("sendTicketEmail: ", e)
     }
   }
@@ -535,7 +532,7 @@ const Registro = (props) => {
                 href="descargar"
                 onClick={() => {
                   handleExport(false); 
-                }}
+                }} 
                 className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
                 Descargar PDF
