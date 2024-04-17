@@ -52,9 +52,8 @@ export default function SignIn() {
       });
       console.log("GRAPHQL data: ",result.data.getEvent);
       if(result.data.getEvent){
-
-        setEvent(result.data.getEvent);
-        setLanding(result.data.getEvent.Landing)
+          setEvent(result.data.getEvent);
+          setLanding(result.data.getEvent.Landing)
 
         // Format price ticket
         const tickets = result.data.getEvent.Landing.ticketTitle.map((title, index) => {
@@ -70,11 +69,13 @@ export default function SignIn() {
         });
         setTickets(tickets);
         setLoading(false);
-
       }
     }
 
-    startData();
+    // Set timet to load correctly all data
+    setTimeout(() => {
+      startData();
+    }, 1000);
 
   }, []);
 
