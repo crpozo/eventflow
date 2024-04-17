@@ -127,7 +127,7 @@ function App() {
       <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-lightPrimary opacity-100 flex flex-col items-center justify-center p-3">
         <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
         <h2 className="text-center text-black text-xl font-semibold mb-2">Cargando...</h2>
-        <p className="max-w-[400px] text-center text-black"> Esto puede tardar unos segundos, por favor no cierre esta página.</p>
+        <p className="max-w-[500px] text-center text-black"> Esto puede tardar unos segundos, por favor, no cierre esta página.</p>
       </div>
     );
   }

@@ -57,8 +57,8 @@ const Profile = () => {
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           Cargando...
         </h2>
-        <p className="max-w-[400px] text-center text-black">
-          Esto puede tardar unos segundos, por favor no cierre esta página.
+        <p className="max-w-[500px] text-center text-black">
+          Esto puede tardar unos segundos, por favor, no cierre esta página.
         </p>
       </div>
     );
@@ -70,7 +70,7 @@ const Profile = () => {
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           No existe un participante con ID: 
         </h2>
-        <p className="max-w-[400px] text-center text-black">
+        <p className="max-w-[500px] text-center text-black">
           {id}
         </p>
       </div>

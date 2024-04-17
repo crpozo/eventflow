@@ -7,7 +7,7 @@ import { DataStore } from 'aws-amplify/datastore';
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { Landing, Event } from "models";
 import { FiExternalLink } from "react-icons/fi";
-import { LuCalendarClock } from "react-icons/lu";
+import { LuCalendarClock, LuMapPin } from "react-icons/lu";
 import { BsPlusLg as PlusIcon } from "react-icons/bs";
 import {
   AiOutlineMinus as MinusIcon,
@@ -86,8 +86,8 @@ export default function SignIn() {
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           Cargando...
         </h2>
-        <p className="max-w-[400px] text-center text-black">
-          Esto puede tardar unos segundos, por favor no cierre esta página.
+        <p className="max-w-[500px] text-center text-black">
+          Esto puede tardar unos segundos, por favor, no cierre esta página.
         </p>
       </div>
     );
@@ -99,23 +99,23 @@ export default function SignIn() {
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           El evento no se encuentra activo...
         </h2>
-        {/* <p className="max-w-[400px] text-center text-black">Por favor comunicarse con el administrador</p> */}
+        {/* <p className="max-w-[500px] text-center text-black">Por favor comunicarse con el administrador</p> */}
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex h-[100px] md:h-[130px] w-full bg-usfqPrimary">
+      <div className="flex h-[70px] md:h-[90px] lg:h-[130px] w-full bg-usfqPrimary">
         <div className="container flex items-center justify-between">
-          <img src={logo} className="w-[90px] lg:w-[120px]" />
+          <img src={logo} className="w-[60px] md:w-[70px] lg:w-[120px]" />
           <Link
             to="https://www.usfq.edu.ec/es"
             className="flex items-center gap-2 hover:text-red-500 hover:no-underline"
             target="_blank"
             rel="noopener noreferrer"
           >
-            Ir a página oficial USFQ <FiExternalLink className="h-5 w-5" />
+            Página oficial USFQ <FiExternalLink className="h-5 w-5" />
           </Link>
         </div>
       </div>
@@ -128,12 +128,12 @@ export default function SignIn() {
               src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}
             />
           }
-          <div className="container absolute inset-0 flex items-center justify-center lg:justify-start">
-            <div className="flex flex-col items-center justify-center gap-4 bg-blackBanner px-4 py-4 md:max-w-[43%] md:!pb-[40px] md:!pt-[30px]">
-              <h1 className="border-b-2 border-solid pb-3 font-bold text-center text-white text-[28px] w-full">
+          <div className="container absolute inset-0 flex items-center justify-center md:justify-start">
+            <div className="flex flex-col items-center justify-center gap-4 bg-blackBanner px-3 py-3 lg:max-w-[43%] xl:max-w-[40%] md:!pb-[25px] md:!pt-[25px]">
+              <h1 className="border-b-2 border-solid pb-3 font-bold text-center text-white text-[25px] md:text-[28px] w-full">
                 {landing.title}
               </h1>
-              <p className="text-center leading-normal leading-none text-white md:text-lg">
+              <p className="text-center leading-normal leading-none text-white text-[16px] md:text-lg">
                 {landing.description}
               </p>
             </div>
@@ -142,7 +142,7 @@ export default function SignIn() {
       )}
       {/* Conditionals ==> Register for event +  Checkout and event details*/}
       <div
-        className={`sm:px-2! container mt-5 mx-auto mb-16 h-full w-full items-center justify-center px-4 md:px-0 lg:mb-10 lg:items-center lg:justify-start`}
+        className={`sm:px-2! container mt-5 mx-auto mb-12 md:mb-15 h-full w-full items-center justify-center px-4 md:px-0 lg:mb-11 lg:items-center lg:justify-start`}
       >
         <div
           className={` ${
@@ -165,7 +165,7 @@ export default function SignIn() {
           <div
             className={` mb-[60px] border-b border-gray-300 pb-[60px] transition-all duration-300`}
           >
-            <h2 className="pt-2 md:pt-0 mb-5 md:!mb-3 text-4xl font-bold">Dónde y cuándo</h2>
+            <h2 className="pt-2 md:pt-0 mb-5 md:!mb-3 text-[28px] md:text-4xl font-bold">Dónde y cuándo</h2>
 
             <div className="grid grid-cols-1 gap-6 sm:gap-5 lg:grid-cols-3">
               <div className="flex items-center gap-5 lg:col-span-1">
@@ -176,7 +176,7 @@ export default function SignIn() {
                 </div>
               </div>
               <div className="flex items-center gap-6 lg:ml-[-25px]">
-                <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
+                <LuMapPin className="h-9 w-9 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Ubicación</h3>
                   <p className="text-md max-w-[300px]">{landing.location}</p>
@@ -233,13 +233,13 @@ export default function SignIn() {
             </div>
           </div>
 
-          <div className="mb-[80px]">
-            <h2 className="mb-5 text-4xl font-bold">Informacion adicional</h2>
-            <p className="text-lg">{landing.extraInfo}</p>
+          <div className="mb-[40px] md:mb-[40px]">
+            <h2 className="mb-5 text-[28px] md:text-4xl font-bold">Informacion adicional</h2>
+            <p className="text-[16px] md:text-lg">{landing.extraInfo}</p>
           </div>
 
-          <Link to="mailto:sd@usfq.edu.ec" className="mb-2 flex justify-center text-center text-lg hover:no-underline">
-            Necesita ayuda?
+          <Link to="mailto:sd@usfq.edu.ec" className="mb-2 flex justify-center text-center text-lg hover:text-red-500">
+            ¿Requiere soporte?
           </Link>
         </div>
       </div>
