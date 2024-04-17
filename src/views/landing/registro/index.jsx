@@ -404,6 +404,7 @@ const Registro = (props) => {
 
     }catch(e){ 
       alert("ERROR sendTickecEmail: ", e.body.toString())
+      alert("ERROR sendTickecEmail: ", e.statusCode.toString())
       console.error("sendTicketEmail: ", e)
     }
   }
