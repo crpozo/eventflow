@@ -380,6 +380,7 @@ const Registro = (props) => {
   const sendTicketEmail = async () => {
     try{
        // Send email
+       alert("eventAttendee.id: ",eventAttendee.id,)
       const payloadEmail = {
         eventAttendeeId: eventAttendee.id,
         "typePayment": "CARD",
