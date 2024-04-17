@@ -135,14 +135,8 @@ const Registro = (props) => {
   
   React.useEffect(() => {
     if (authorized) {
-      // Download PDF and save it in S3 bucket
-      let download = true;
-      if(isMobileDevice()){
-        download = false;
-      }
-      console.log("isMobileDevice: ", isMobileDevice())
-      console.log("Download: ", download)
-      handleExport(download);
+
+      handleExport(isMobileDevice());
       // Move user view to ticket   
       ticketsRef.current.scrollIntoView({ behavior: 'smooth' });
       const elementRect = ticketsRef.current.getBoundingClientRect();
@@ -311,7 +305,7 @@ const Registro = (props) => {
     }
   };
 
-  const handleExport = async (download) => {
+  const handleExport = async (isMobileDevice) => {
     try {  
 
       const tickets = document.querySelectorAll('[id^="pdf-content"]');
@@ -342,7 +336,7 @@ const Registro = (props) => {
       });
 
 
-      if(download){
+      if(!isMobileDevice){
         pdf?.save(`${props.landing.title + " - ticket "}.pdf`);
       }
     
@@ -540,7 +534,7 @@ const Registro = (props) => {
               <button
                 href="descargar"
                 onClick={() => {
-                  handleExport(true); 
+                  handleExport(false); 
                 }}
                 className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
