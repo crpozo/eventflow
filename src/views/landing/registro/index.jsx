@@ -380,7 +380,7 @@ const Registro = (props) => {
   const sendTicketEmail = async () => {
     try{
        // Send email
-       alert("eventAttendee.id: ",eventAttendee.id,)
+       alert("eventAttendee.id: ",eventAttendee.id.toString())
       const payloadEmail = {
         eventAttendeeId: eventAttendee.id,
         "typePayment": "CARD",
@@ -398,7 +398,7 @@ const Registro = (props) => {
       const data = await response.json()
 
       console.log("sendTicketEmail response :", data)
-      alert("sendTicketEmail response :", data)
+      alert("sendTicketEmail response :", data.toString())
 
       setSendEmail(true)
 

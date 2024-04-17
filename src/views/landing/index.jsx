@@ -178,7 +178,7 @@ export default function SignIn() {
                 <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                 <div>
                   <h3 className="text-lg font-bold">Ubicación</h3>
-                  <p className="text-md">{landing.location}</p>
+                  <p className="text-md max-w-[300px]">{landing.location}</p>
                 </div>
               </div>
               {/* Checkout  */}
