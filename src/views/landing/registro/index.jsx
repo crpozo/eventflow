@@ -135,8 +135,8 @@ const Registro = (props) => {
   
   React.useEffect(() => {
     if (authorized) {
-      // Download PDF and save it in S3 bucket
-      handleExport();
+
+      handleExport(isMobileDevice());
       // Move user view to ticket   
       ticketsRef.current.scrollIntoView({ behavior: 'smooth' });
       const elementRect = ticketsRef.current.getBoundingClientRect();
@@ -305,7 +305,7 @@ const Registro = (props) => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (isMobileDevice) => {
     try {  
 
       const tickets = document.querySelectorAll('[id^="pdf-content"]');
@@ -327,7 +327,6 @@ const Registro = (props) => {
 
       await pdf?.outputPdf().then(async function(pdf) {
           if (eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null) {
-              console.log("eventAttendee.ticket?: ",eventAttendee)
               setUploadProgress(0);       
               const base64PDF = btoa(pdf);
               await savePDFStorage(base64PDF);
@@ -336,7 +335,10 @@ const Registro = (props) => {
           }
       });
 
-      pdf?.save(`${props.landing.title + " - ticket "}.pdf`);
+
+      if(!isMobileDevice){
+        pdf?.save(`${props.landing.title + " - ticket "}.pdf`);
+      }
     
     } catch(e) { 
         console.error("handleExport error: ", e); 
@@ -401,8 +403,14 @@ const Registro = (props) => {
 
       setSendEmail(true)
 
-    }catch(e){ console.error("sendTicketEmail: ", e)}
+    }catch(e){ 
+      console.error("sendTicketEmail: ", e)
+    }
   }
+
+  const isMobileDevice = () => {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  };
 
 
   // TESTING multiple users creation
@@ -523,8 +531,8 @@ const Registro = (props) => {
               <button
                 href="descargar"
                 onClick={() => {
-                  handleExport(); 
-                }}
+                  handleExport(false); 
+                }} 
                 className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
                 Descargar PDF
