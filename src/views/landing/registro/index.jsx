@@ -497,7 +497,7 @@ const Registro = (props) => {
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
               Estamos esperando recibir el pago desde la plataforma USFQ...
             </h2>
-            <p className="max-w-[400px] text-center text-black">
+            <p className="max-w-[500px] text-center text-black">
               Si se ha realizado una transferencia o un depósito, se le enviará un correo electrónico con las entradas una vez que se haya verificado el pago.
             </p>
           </div>
@@ -509,7 +509,7 @@ const Registro = (props) => {
             <h2 className="mb-2 text-center text-2xl font-semibold text-black">
             Redirigiendo a la pasarela de pagos USFQ
             </h2>
-            <p className="max-w-[400px] text-center text-black">
+            <p className="max-w-[500px] text-center text-black">
               Por favor no cierre esta página.
             </p>
           </div>
