@@ -354,7 +354,6 @@ const Registro = (props) => {
         }).result;
 
       setUploadProgress(100)
-      alert("Succedded ",resultUpload.toString())
       console.log('Succeeded: ', resultUpload);
 
       const getUrlResult = await getUrl({
@@ -380,7 +379,6 @@ const Registro = (props) => {
 
   const sendTicketEmail = async () => {
     try{
-      alert("Entro sendTickecEmail ")
        // Send email
       const payloadEmail = {
         eventAttendeeId: eventAttendee.id,
@@ -404,7 +402,7 @@ const Registro = (props) => {
       setSendEmail(true)
 
     }catch(e){ 
-      alert("ERROR sendTickecEmail: ", e.toString())
+      alert("ERROR sendTickecEmail: ", e.body.toString())
       console.error("sendTicketEmail: ", e)
     }
   }
