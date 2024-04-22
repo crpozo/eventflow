@@ -477,7 +477,6 @@ const Registro = (props) => {
             <div className="mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0">
               
               <FormBuilder />
-              <div className="mb-5"></div>
               <button
                 href="crear"
                 type="submit"
