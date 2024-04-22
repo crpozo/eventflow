@@ -66,6 +66,8 @@ export default function SignIn() {
       console.log("GRAPHQL data: ",resultEvent.data.getEvent);
       if(resultEvent.data.getEvent){
 
+        setEvent(resultEvent.data.getEvent);
+
         if(resultLanding.data.listLandings.items[0]) setLanding(resultLanding.data.listLandings.items[0])
 
         // Format price ticket
