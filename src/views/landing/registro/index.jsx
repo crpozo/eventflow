@@ -173,12 +173,17 @@ const Registro = (props) => {
     return <p>Loading...</p>;
   }
 
-    // Submit Form
-    const handleSubmit = async () => {
-      clearErrorMessages();
-      const isValid = validateForm();
-  
-      if (isValid) {
+  // Submit Form
+  const handleSubmit = async () => {
+    clearErrorMessages();
+    const isValid = validateForm();
+
+    if (isValid) {
+
+      // Show popup terms and conditions + transaction details
+      // const userConfirmed = await showCustomPopup();
+      if (true) {
+
         const fbRender = document.querySelector("#fb-editor");
         const userData = $(fbRender).formRender("userData");
         setUserData(userData);
@@ -215,8 +220,8 @@ const Registro = (props) => {
             );
   
             setEventAttende(newEventAttendee)
-  
             setFormRegister(true);
+
             // get token from USFQ
             const accessToken = await getTokenFinancial();
             const requestBody = [{
@@ -246,17 +251,43 @@ const Registro = (props) => {
             console.log("requestBody: ",requestBody)
             const trs = await postRegistroFinanciero(requestBody, accessToken)
             setTrs(trs);
-
-            // Add loading screen until file is uploaded
   
           } catch (error) {
             console.error("HandleSubmit:", error);
           }
         }
       } else {
-        console.log("Form is not valid");
-      }
-    };
+        console.log("Process canceled by the user");
+      }   
+    } else {
+      console.log("Form is not valid");
+    }
+  };
+
+  function showCustomPopup() {
+    return new Promise((resolve) => {
+      // Create a div acting as the popup
+      const popup = document.createElement("div");
+      popup.innerHTML = `
+        <div style="background-color: white; padding: 20px; border: 1px solid black; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999;">
+          <p>Please confirm you agree:</p>
+          <input type="checkbox" id="confirmationCheckbox">
+          <label for="confirmationCheckbox">Yes, I agree</label>
+        </div>
+      `;
+
+      // Append the popup to the document body
+      document.body.appendChild(popup);
+
+      // Listen for changes in the checkbox
+      const checkbox = document.getElementById("confirmationCheckbox");
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          resolve(true); // Resolve the promise if the user checks the checkbox
+        }
+      });
+    });
+  }
 
   const getTokenFinancial = async () => {
     try {
