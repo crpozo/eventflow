@@ -64,26 +64,30 @@ export default function SignIn() {
       });
 
       console.log("GRAPHQL data: ",resultEvent.data.getEvent);
+      console.log("GRAPHQL resultLanding: ",resultLanding.data);
+
       if(resultEvent.data.getEvent){
 
         setEvent(resultEvent.data.getEvent);
 
-        if(resultLanding.data.listLandings.items[0]) setLanding(resultLanding.data.listLandings.items[0])
+        if(resultLanding.data.listLandings.items[0]){
 
-        // Format price ticket
-        const tickets = resultEvent.data.getEvent.Landing?.ticketTitle.map((title, index) => {
-          const cost =
-          resultEvent.data.getEvent.Landing.ticketPrice[index] !== undefined
-              ? `$${resultEvent.data.getEvent.Landing.ticketPrice[index].toFixed(2)}`
-              : "Vacio";
-          if (index == 0) setSelectedCost(cost);
-          return {
-            title,
-            cost,
-          };
-        });
-        setTickets(tickets);
-        setLoading(false);
+          setLanding(resultLanding.data.listLandings.items[0])
+          // Format price ticket
+          const tickets = resultLanding.data.listLandings.items[0].ticketTitle.map((title, index) => {
+            const cost =
+            resultLanding.data.listLandings.items[0].ticketPrice[index] !== undefined
+                ? `$${resultLanding.data.listLandings.items[0].ticketPrice[index].toFixed(2)}`
+                : "Vacio";
+            if (index == 0) setSelectedCost(cost);
+            return {
+              title,
+              cost,
+            };
+          });
+          setTickets(tickets);
+          setLoading(false);
+        }
       }
     }
 
@@ -139,12 +143,19 @@ export default function SignIn() {
 
       {landing && (
         <div className="relative w-full">
-          {landing.mainBanner && 
-            <img 
-              className="md: !min-h-[400px] !w-full !object-cover md:!max-h-[500px]" 
+          {landing.mainBanner ? (
+            <img
+              className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[500px]"
               src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}
+              alt="Banner"
             />
-          }
+          ) : (
+            <img
+              className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[500px]"
+              src="https://placehold.co/1000x400?text=Placeholder"
+              alt="Banner"
+            />
+          )}
           <div className="container absolute inset-0 flex items-center justify-center md:justify-start">
             <div className="flex flex-col items-center justify-center gap-4 bg-blackBanner px-3 py-3 lg:max-w-[43%] xl:max-w-[40%] md:!pb-[25px] md:!pt-[25px]">
               <h1 className="border-b-2 border-solid pb-3 font-bold text-center text-white text-[25px] md:text-[28px] w-full">

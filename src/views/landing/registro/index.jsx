@@ -173,12 +173,18 @@ const Registro = (props) => {
     return <p>Loading...</p>;
   }
 
-    // Submit Form
-    const handleSubmit = async () => {
-      clearErrorMessages();
-      const isValid = validateForm();
-  
-      if (isValid) {
+  // Submit Form
+  const handleSubmit = async () => {
+    clearErrorMessages();
+    const isValid = validateForm();
+
+    if (isValid) {
+
+      // Show popup terms and conditions + transaction details
+      const userConfirmed = await showCustomPopup();
+
+      if (userConfirmed) {
+
         const fbRender = document.querySelector("#fb-editor");
         const userData = $(fbRender).formRender("userData");
         setUserData(userData);
@@ -215,8 +221,8 @@ const Registro = (props) => {
             );
   
             setEventAttende(newEventAttendee)
-  
             setFormRegister(true);
+
             // get token from USFQ
             const accessToken = await getTokenFinancial();
             const requestBody = [{
@@ -246,17 +252,75 @@ const Registro = (props) => {
             console.log("requestBody: ",requestBody)
             const trs = await postRegistroFinanciero(requestBody, accessToken)
             setTrs(trs);
-
-            // Add loading screen until file is uploaded
   
           } catch (error) {
             console.error("HandleSubmit:", error);
           }
         }
       } else {
-        console.log("Form is not valid");
-      }
-    };
+        console.log("Process canceled by the user");
+      }   
+    } else {
+      console.log("Form is not valid");
+    }
+  };
+
+  function showCustomPopup() {
+    return new Promise((resolve) => {
+      // Create a div acting as the popup
+      const popup = document.createElement("div");
+      popup.innerHTML = `
+        <div class="popup-privacy-overlay"></div>
+        <div class="popup-privacy">
+          <div class="popup-privacy-description">
+            <p class="title-transfer">En caso de transferencia o depósito:</p>
+            <img src="${logo}" className="w-[60px] md:w-[70px] lg:w-[120px]" />
+            <p class="subtitle-transfer">Cuenta Corriente: <span>1645005041<span></p>
+            <p class="subtitle-transfer">Banco: <span>Bolivariano</span></p>
+            <p class="subtitle-transfer">Beneficiario: <span>Universidad San Francisco de Quito</span></p>
+            <p class="subtitle-transfer">RUC: <span>1791836154001</span></p>
+          </div>
+          <div class="wrap">
+            <label for="confirmationCheckbox">
+              Al seleccionar la casilla, confirmas tu aceptación de nuestra 
+              <a href="https://www.usfq.edu.ec/es/privacy-policy" target="_blank" style="color: dodgerblue;">
+                politica de privacidad
+              </a>
+              <input type="checkbox" id="confirmationCheckbox" style="margin-left:5px;transform: scale(1.3) translateY(0.5px);">
+            </label>
+          </div>
+          <button id="redirectButton" disabled>Aceptar</button>
+        </div>
+      `;
+  
+      // Append the popup to the document body
+      document.body.appendChild(popup);
+  
+      // Listen for changes in the checkbox
+      const checkbox = document.getElementById("confirmationCheckbox");
+      const redirectButton = document.getElementById("redirectButton");
+  
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          redirectButton.disabled = false;
+        } else {
+          redirectButton.disabled = true
+        }
+      });
+
+      const popupOverlay = document.querySelector(".popup-privacy-overlay");
+      if(popupOverlay) popupOverlay.addEventListener("click", () => {
+        document.body.removeChild(popup);
+      });
+  
+  
+      // Add event listener for the redirect button
+      redirectButton.addEventListener("click", () => {
+        document.body.removeChild(popup);
+        resolve(true);
+      });
+    });
+  }
 
   const getTokenFinancial = async () => {
     try {
@@ -477,7 +541,6 @@ const Registro = (props) => {
             <div className="mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0">
               
               <FormBuilder />
-              <div className="mb-5"></div>
               <button
                 href="crear"
                 type="submit"
