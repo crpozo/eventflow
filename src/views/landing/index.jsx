@@ -64,26 +64,30 @@ export default function SignIn() {
       });
 
       console.log("GRAPHQL data: ",resultEvent.data.getEvent);
+      console.log("GRAPHQL resultLanding: ",resultLanding.data);
+
       if(resultEvent.data.getEvent){
 
         setEvent(resultEvent.data.getEvent);
 
-        if(resultLanding.data.listLandings.items[0]) setLanding(resultLanding.data.listLandings.items[0])
+        if(resultLanding.data.listLandings.items[0]){
 
-        // Format price ticket
-        const tickets = resultEvent.data.getEvent.Landing?.ticketTitle.map((title, index) => {
-          const cost =
-          resultEvent.data.getEvent.Landing.ticketPrice[index] !== undefined
-              ? `$${resultEvent.data.getEvent.Landing.ticketPrice[index].toFixed(2)}`
-              : "Vacio";
-          if (index == 0) setSelectedCost(cost);
-          return {
-            title,
-            cost,
-          };
-        });
-        setTickets(tickets);
-        setLoading(false);
+          setLanding(resultLanding.data.listLandings.items[0])
+          // Format price ticket
+          const tickets = resultLanding.data.listLandings.items[0].ticketTitle.map((title, index) => {
+            const cost =
+            resultLanding.data.listLandings.items[0].ticketPrice[index] !== undefined
+                ? `$${resultLanding.data.listLandings.items[0].ticketPrice[index].toFixed(2)}`
+                : "Vacio";
+            if (index == 0) setSelectedCost(cost);
+            return {
+              title,
+              cost,
+            };
+          });
+          setTickets(tickets);
+          setLoading(false);
+        }
       }
     }
 

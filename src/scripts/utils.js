@@ -137,12 +137,12 @@ export const validateForm = (price) => {
       if(element.id == "identificacion"){
         switch (tipo_identificación) {
           case "cedula":
-            if(!/^\d{10}$/.test(element.value)){
-              const error = document.createElement("div");
-              error.className = "error-message text-red-500";
-              error.textContent = "El campo requiere de 10 digitos númericos";
-              element.insertAdjacentElement("afterend", error);
-            }
+            // if(!/^\d{10}$/.test(element.value)){
+            //   const error = document.createElement("div");
+            //   error.className = "error-message text-red-500";
+            //   error.textContent = "El campo requiere de 10 digitos númericos";
+            //   element.insertAdjacentElement("afterend", error);
+            // }
             break;
           case "pasaporte":
             break;

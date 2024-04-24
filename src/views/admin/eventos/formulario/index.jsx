@@ -201,18 +201,6 @@ const Dashboard = () => {
               "name": "telefono",
               "access": false,
               "subtype": "text"
-            },
-            {
-              "type": "paragraph",
-              "subtype": "p",
-              "label": `
-                <p><b>En caso de transferencia o depósito:</b></p>
-                <span><b>Cuenta Corriente: </b>1645005041</span><br>
-                <span><b>Banco: </b>Bolivariano</span><br>
-                <span><b>Beneficiario: </b>Universidad San Francisco de Quito</span><br>
-                <span><b>RUC: </b>1791836154001</span>
-              `,
-              "access": false
             }
           ],
           persistDefaultFields: true

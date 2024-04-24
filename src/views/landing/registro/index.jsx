@@ -181,8 +181,9 @@ const Registro = (props) => {
     if (isValid) {
 
       // Show popup terms and conditions + transaction details
-      // const userConfirmed = await showCustomPopup();
-      if (true) {
+      const userConfirmed = await showCustomPopup();
+
+      if (userConfirmed) {
 
         const fbRender = document.querySelector("#fb-editor");
         const userData = $(fbRender).formRender("userData");
@@ -269,22 +270,54 @@ const Registro = (props) => {
       // Create a div acting as the popup
       const popup = document.createElement("div");
       popup.innerHTML = `
-        <div style="background-color: white; padding: 20px; border: 1px solid black; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999;">
-          <p>Please confirm you agree:</p>
-          <input type="checkbox" id="confirmationCheckbox">
-          <label for="confirmationCheckbox">Yes, I agree</label>
+        <div class="popup-privacy-overlay"></div>
+        <div class="popup-privacy">
+          <div class="popup-privacy-description">
+            <p class="title-transfer">En caso de transferencia o depósito:</p>
+            <img src="${logo}" className="w-[60px] md:w-[70px] lg:w-[120px]" />
+            <p class="subtitle-transfer">Cuenta Corriente: <span>1645005041<span></p>
+            <p class="subtitle-transfer">Banco: <span>Bolivariano</span></p>
+            <p class="subtitle-transfer">Beneficiario: <span>Universidad San Francisco de Quito</span></p>
+            <p class="subtitle-transfer">RUC: <span>1791836154001</span></p>
+          </div>
+          <div class="wrap">
+            <label for="confirmationCheckbox">
+              Al seleccionar la casilla, confirmas tu aceptación de nuestra 
+              <a href="https://www.usfq.edu.ec/es/privacy-policy" target="_blank" style="color: dodgerblue;">
+                politica de privacidad
+              </a>
+              <input type="checkbox" id="confirmationCheckbox" style="margin-left:5px;transform: scale(1.3) translateY(0.5px);">
+            </label>
+          </div>
+          <button id="redirectButton" disabled>Aceptar</button>
         </div>
       `;
-
+  
       // Append the popup to the document body
       document.body.appendChild(popup);
-
+  
       // Listen for changes in the checkbox
       const checkbox = document.getElementById("confirmationCheckbox");
+      const redirectButton = document.getElementById("redirectButton");
+  
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) {
-          resolve(true); // Resolve the promise if the user checks the checkbox
+          redirectButton.disabled = false;
+        } else {
+          redirectButton.disabled = true
         }
+      });
+
+      const popupOverlay = document.querySelector(".popup-privacy-overlay");
+      if(popupOverlay) popupOverlay.addEventListener("click", () => {
+        document.body.removeChild(popup);
+      });
+  
+  
+      // Add event listener for the redirect button
+      redirectButton.addEventListener("click", () => {
+        document.body.removeChild(popup);
+        resolve(true);
       });
     });
   }
