@@ -396,6 +396,12 @@ button:focus-visible {
   text-align: start;
 }
 
+@media (max-width: 768px){
+  .popup-privacy-description .subtitle-transfer{
+    font-size: 12px;
+  }
+}
+
 .popup-privacy-description .subtitle-transfer span{
   font-weight: 500;
   color: black;
