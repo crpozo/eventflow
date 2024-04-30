@@ -16,6 +16,9 @@ import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils"
 import { uploadData, getUrl } from 'aws-amplify/storage';
+/* GRAPHQL */
+import { generateClient } from 'aws-amplify/api';
+import { getEventAttendee } from '../../../graphql/queries';
 
 window.jQuery = $;
 window.$ = $;
@@ -24,9 +27,9 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event } = props;
+  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event, sendEventAttendeeToParent} = props;
   const [formData, setFormData] = React.useState([]);
-  const [eventAttendee, setEventAttende] = React.useState(null);
+  const [eventAttendee, setEventAttendee] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [trs, setTrs] = React.useState(null);
   const [formRegister, setFormRegister] = React.useState(false);
@@ -39,10 +42,13 @@ const Registro = (props) => {
   const domain = new URL(currentUrl).origin;
   const id = useParams().id;
   const searchParams = new URLSearchParams(document.location.search);
+  const url = new URL(window.location.href);
   let eventAttendeeDataStore = null;
   const pdfContentRef = useRef();
   const ticketsRef = useRef(null);
+  const client = generateClient(); 
 
+  // Show form builder class
   class FormBuilder extends Component {
     fb = createRef();
     componentDidMount() {
@@ -72,27 +78,39 @@ const Registro = (props) => {
     }
   }
 
+  // EventAttende parameter + Graphql Data
   React.useEffect(() => {
+
     if(searchParams.get('EventAttendee')){
-      const sub = DataStore.observeQuery(EventAttendee, (e) => e.id.eq(searchParams.get('EventAttendee')) ).subscribe(results => {
-        if(results.items.length > 0 ){
-          console.log("Search params event attendee changed",results.items[0])
-          setEventAttende(results.items[0])
-          setFormRegister(true)
-          setShowRegister(true)
-          setUserData(results.items[0].formAnswers)
-          setQuantity(results.items[0].quantity);
-          setTicketsArray(Array.from({ length: results.items[0].quantity }, (_, index) => index));
-        } 
+      getEventAttendeeGraphql();
+    }
+
+    async function getEventAttendeeGraphql() {
+
+      const resultEventAttendee = await client.graphql({ 
+        query: getEventAttendee,
+        variables: { id: searchParams.get('EventAttendee') } 
       });
 
-      if(eventAttendee){
-        sub.unsubscribe();
-      }
+      console.log("GRAPHQL getEventAttendee: ",resultEventAttendee.data.getEventAttendee);
 
+      if(resultEventAttendee.data.getEventAttendee){
+          setEventAttendee(resultEventAttendee.data.getEventAttendee)
+          sendEventAttendeeToParent(resultEventAttendee.data.getEventAttendee)
+          setFormRegister(true)
+          setShowRegister(true)
+          setAuthorized(resultEventAttendee.data.getEventAttendee.authorized)
+          setUserData(JSON.parse(resultEventAttendee.data.getEventAttendee.formAnswers))
+          setQuantity(resultEventAttendee.data.getEventAttendee.quantity);
+          setTicketsArray(Array.from({ length: resultEventAttendee.data.getEventAttendee.quantity }, (_, index) => index));
+      }else {
+        console.log("NO EXISTE")
+        setEventAttendee(false)
+      }
     }
   }, []);
 
+  // Observer query form data
   React.useEffect(() => {
 
     // Get form data
@@ -110,39 +128,37 @@ const Registro = (props) => {
 
   }, [showRegister]);
 
-  React.useEffect(() => {
-    if(eventAttendee 
-      && eventAttendee.id 
-      && !authorized){
+  // Observer query EventAttende if ticket is authorized
+  // React.useEffect(() => {
+  //   if(eventAttendee 
+  //     && eventAttendee.id 
+  //     && !authorized){
 
-      eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
-      e.id.eq(eventAttendee.id)
-      ).subscribe((results) => {
-        if(results.items.length > 0){
-          setEventAttende(results.items[0])
-          console.log("observeQuery: event attende change", results.items[0])
-          setAuthorized(results.items[0].authorized)
-        }
-      });
-    }
+  //     eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
+  //     e.id.eq(eventAttendee.id)
+  //     ).subscribe((results) => {
+  //       if(results.items.length > 0){
+  //         setEventAttendee(results.items[0])
+  //         console.log("observeQuery: event attende change", results.items[0])
+  //         setAuthorized(results.items[0].authorized)
+  //       }
+  //     });
+  //   }
 
-    if(authorized){
-      eventAttendeeDataStore?.unsubscribe();
-    }
+  //   if(authorized){
+  //     eventAttendeeDataStore?.unsubscribe();
+  //   }
 
-  }, [formRegister]);
+  // }, [formRegister]);
    
-  
+  // Download PDF + handle mobile behavior
   React.useEffect(() => {
-    if (authorized) {
-
+    if (authorized && ticketsRef.current) {
       handleExport(isMobileDevice());
-      // Move user view to ticket   
       ticketsRef.current.scrollIntoView({ behavior: 'smooth' });
       const elementRect = ticketsRef.current.getBoundingClientRect();
       const desiredScrollPosition = window.scrollY + elementRect.top - 150;
       window.scrollTo({ top: desiredScrollPosition, behavior: 'smooth' });
-      
     }
   }, [authorized]);
 
@@ -168,10 +184,6 @@ const Registro = (props) => {
       redirectUSFQ();
     }
   }, [trs, eventAttendee]);
-
-  if (!formData) {
-    return <p>Loading...</p>;
-  }
 
   // Submit Form
   const handleSubmit = async () => {
@@ -220,7 +232,7 @@ const Registro = (props) => {
               })
             );
   
-            setEventAttende(newEventAttendee)
+            setEventAttendee(newEventAttendee)
             setFormRegister(true);
 
             // get token from USFQ
@@ -477,7 +489,6 @@ const Registro = (props) => {
     return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   };
 
-
   // TESTING multiple users creation
   // async function iterateWithDelay(userData) {
   //   for (let i = 0; i < 10; i++) {
@@ -515,6 +526,15 @@ const Registro = (props) => {
     errorMessages.forEach((error) => error.remove());
   };
 
+  if (!formData) {
+    return <p>Loading...</p>;
+  }
+
+  // If eventAttendee doesnt exist remove the query parameter
+  if (searchParams.get('EventAttendee') && eventAttendee == false) {
+    searchParams.delete('EventAttendee');
+    window.history.replaceState({}, '', `${url.origin}${url.pathname}`);
+  }
 
   return (
     <div className={`campus-page `}>
@@ -555,14 +575,14 @@ const Registro = (props) => {
           </>
         )}
 
-        { ( (!sendEmail && searchParams.get('EventAttendee')) || uploadProgress !== 100 || (!authorized && searchParams.get('EventAttendee'))) &&
+        { ((!sendEmail && searchParams.get('EventAttendee')) || uploadProgress !== 100 || (!authorized && searchParams.get('EventAttendee'))) &&
           <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-100 p-3">
-            <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
+            <img src={logo} className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
-              Estamos esperando recibir el pago desde la plataforma USFQ...
+              Estamos procesando su pago, intentelo nuevamente más tarde
             </h2>
             <p className="max-w-[500px] text-center text-black">
-              Si se ha realizado una transferencia o un depósito, se le enviará un correo electrónico con las entradas una vez que se haya verificado el pago.
+              Agradecemos su comprensión y paciencia.
             </p>
           </div>
         }

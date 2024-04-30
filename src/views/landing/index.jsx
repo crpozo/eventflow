@@ -3,9 +3,7 @@ import logo from "assets/img/usfq/logo.svg";
 import { useParams, Link } from "react-router-dom";
 import Registro from "./registro/index";
 import { formatDateHour } from 'scripts/utils';
-import { DataStore } from 'aws-amplify/datastore';
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { Landing, Event } from "models";
 import { FiExternalLink } from "react-icons/fi";
 import { LuCalendarClock, LuMapPin } from "react-icons/lu";
 import { BsPlusLg as PlusIcon } from "react-icons/bs";
@@ -27,7 +25,7 @@ export default function SignIn() {
   const [ticketsQuantity, setTicketsQuantity] = useState(1);
   const [selectedCost, setSelectedCost] = React.useState(null);
   const [showRegister, setShowRegister] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false); 
+  const [eventAtteendeFromChild, setEventAtteendeFromChild] = useState(null);
   const client = generateClient(); 
 
   const quantityIncrementHandler = () => {
@@ -45,7 +43,9 @@ export default function SignIn() {
 
   React.useEffect(() => {
 
-    async function startData() {
+    getLandingEventGraphql();
+
+    async function getLandingEventGraphql() {
 
       const resultEvent = await client.graphql({ 
         query: getEvent,
@@ -77,7 +77,7 @@ export default function SignIn() {
           const tickets = resultLanding.data.listLandings.items[0].ticketTitle.map((title, index) => {
             const cost =
             resultLanding.data.listLandings.items[0].ticketPrice[index] !== undefined
-                ? `$${resultLanding.data.listLandings.items[0].ticketPrice[index].toFixed(2)}`
+                ? `${resultLanding.data.listLandings.items[0].ticketPrice[index].toFixed(2)}`
                 : "Vacio";
             if (index == 0) setSelectedCost(cost);
             return {
@@ -91,13 +91,16 @@ export default function SignIn() {
       }
     }
 
-    // Set timet to load correctly all data
-    setTimeout(() => {
-      startData();
-    }, 1000);
-
   }, []);
-  
+
+  React.useEffect(() => {
+
+    if(eventAtteendeFromChild)
+      console.log("eventAtteendeFromChild: ",eventAtteendeFromChild)
+
+  }, [eventAtteendeFromChild]);
+
+  // Landing doesnt have any results on query
   if (loading && landing && landing.length === 0) {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
@@ -112,13 +115,13 @@ export default function SignIn() {
     );
   }
 
+  // Landing is deactivated 
   if (landing && !landing.active && authStatus == "unauthenticated") {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           El evento no se encuentra activo...
         </h2>
-        {/* <p className="max-w-[500px] text-center text-black">Por favor comunicarse con el administrador</p> */}
       </div>
     );
   }
@@ -186,6 +189,7 @@ export default function SignIn() {
               quantityProp={ticketsQuantity}
               price={selectedCost}
               eventID={id}
+              sendEventAttendeeToParent={setEventAtteendeFromChild}
             />
           </div>
           <div className={`${showRegister ? "hidden" : "block"}`}>
@@ -228,25 +232,25 @@ export default function SignIn() {
                     {/* Ticket Quantity => Increment / Decrement Boxes  */}
 
                     <div className="flex shrink-0 items-center gap-2 sm:justify-between">
-                      <div
+                      <button
                         onClick={quantityDecrementHandler}
-                        className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[8px] text-[#A6A6A6]"
+                        className="cursor-pointer rounded-lg bg-[#ebebeb] bg-opacity-70 p-[8px] text-[#A6A6A6] focus:outline-none hover:bg-[#D9D9D9]"
                       >
                         <MinusIcon className="text-base" />
-                      </div>
+                      </button>
                       <div className="flex min-w-[25px] items-center justify-center text-xl font-semibold">
                         {ticketsQuantity}
                       </div>
-                      <div
+                      <button
                         onClick={quantityIncrementHandler}
-                        className="cursor-pointer rounded-lg bg-[#D9D9D9] bg-opacity-70 p-[8px] text-[#A6A6A6]"
+                        className="cursor-pointer rounded-lg bg-[#ebebeb] bg-opacity-70 p-[8px] text-[#A6A6A6] focus:outline-none hover:bg-[#D9D9D9]"
                       >
                         <PlusIcon className="cursor-pointer" />
-                      </div>
+                      </button>
                     </div>
                   </div>
                   <p className="mb-3 text-xl font-semibold">
-                    {selectedCost !== null ? selectedCost : "Vacio"} <span className="text-[15px] font-normal text-[#717171]">+ IVA</span>
+                    {selectedCost !== null ? '$' + (selectedCost * ticketsQuantity).toFixed(2) : "Vacio"} <span className="text-[15px] font-normal text-[#717171]">+ IVA</span>
                   </p>
                   {/* => Button  */}
                   <button
