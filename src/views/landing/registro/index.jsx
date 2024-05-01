@@ -16,9 +16,6 @@ import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils"
 import { uploadData, getUrl } from 'aws-amplify/storage';
-/* GRAPHQL */
-import { generateClient } from 'aws-amplify/api';
-import { getEventAttendee } from '../../../graphql/queries';
 
 window.jQuery = $;
 window.$ = $;
@@ -27,7 +24,7 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event, sendEventAttendeeToParent} = props;
+  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event, eventAttendeeProp} = props;
   const [formData, setFormData] = React.useState([]);
   const [eventAttendee, setEventAttendee] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
@@ -42,11 +39,8 @@ const Registro = (props) => {
   const domain = new URL(currentUrl).origin;
   const id = useParams().id;
   const searchParams = new URLSearchParams(document.location.search);
-  const url = new URL(window.location.href);
-  let eventAttendeeDataStore = null;
   const pdfContentRef = useRef();
   const ticketsRef = useRef(null);
-  const client = generateClient(); 
 
   // Show form builder class
   class FormBuilder extends Component {
@@ -81,34 +75,19 @@ const Registro = (props) => {
   // EventAttende parameter + Graphql Data
   React.useEffect(() => {
 
-    if(searchParams.get('EventAttendee')){
-      getEventAttendeeGraphql();
+    console.log("EVENT ATTENDEE FROM CHILD: ", eventAttendeeProp)
+
+    if(eventAttendeeProp){
+      setEventAttendee(eventAttendeeProp)
+      setFormRegister(true)
+      setShowRegister(true)
+      setAuthorized(eventAttendeeProp.authorized)
+      setUserData(JSON.parse(eventAttendeeProp.formAnswers))
+      setQuantity(eventAttendeeProp.quantity);
+      setTicketsArray(Array.from({ length: eventAttendeeProp.quantity }, (_, index) => index));
     }
 
-    async function getEventAttendeeGraphql() {
-
-      const resultEventAttendee = await client.graphql({ 
-        query: getEventAttendee,
-        variables: { id: searchParams.get('EventAttendee') } 
-      });
-
-      console.log("GRAPHQL getEventAttendee: ",resultEventAttendee.data.getEventAttendee);
-
-      if(resultEventAttendee.data.getEventAttendee){
-          setEventAttendee(resultEventAttendee.data.getEventAttendee)
-          sendEventAttendeeToParent(resultEventAttendee.data.getEventAttendee)
-          setFormRegister(true)
-          setShowRegister(true)
-          setAuthorized(resultEventAttendee.data.getEventAttendee.authorized)
-          setUserData(JSON.parse(resultEventAttendee.data.getEventAttendee.formAnswers))
-          setQuantity(resultEventAttendee.data.getEventAttendee.quantity);
-          setTicketsArray(Array.from({ length: resultEventAttendee.data.getEventAttendee.quantity }, (_, index) => index));
-      }else {
-        console.log("NO EXISTE")
-        setEventAttendee(false)
-      }
-    }
-  }, []);
+  }, [eventAttendeeProp]);
 
   // Observer query form data
   React.useEffect(() => {
@@ -150,6 +129,7 @@ const Registro = (props) => {
   //   }
 
   // }, [formRegister]);
+
    
   // Download PDF + handle mobile behavior
   React.useEffect(() => {
@@ -528,12 +508,6 @@ const Registro = (props) => {
 
   if (!formData) {
     return <p>Loading...</p>;
-  }
-
-  // If eventAttendee doesnt exist remove the query parameter
-  if (searchParams.get('EventAttendee') && eventAttendee == false) {
-    searchParams.delete('EventAttendee');
-    window.history.replaceState({}, '', `${url.origin}${url.pathname}`);
   }
 
   return (

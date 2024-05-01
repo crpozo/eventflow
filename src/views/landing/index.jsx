@@ -12,7 +12,7 @@ import {
 } from "react-icons/ai";
 /* GRAPHQL */
 import { generateClient } from 'aws-amplify/api';
-import { getEvent, listLandings } from '../../graphql/queries';
+import { getEvent, listLandings, getEventAttendee } from '../../graphql/queries';
 
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
@@ -25,26 +25,16 @@ export default function SignIn() {
   const [ticketsQuantity, setTicketsQuantity] = useState(1);
   const [selectedCost, setSelectedCost] = React.useState(null);
   const [showRegister, setShowRegister] = React.useState(false);
-  const [eventAtteendeFromChild, setEventAtteendeFromChild] = useState(null);
+  const [eventAttendee, setEventAttendee] = useState(null);
+  const searchParams = new URLSearchParams(document.location.search);
+  const url = new URL(window.location.href);
   const client = generateClient(); 
 
-  const quantityIncrementHandler = () => {
-    setTicketsQuantity((prevState) => prevState + 1);
-  };
-
-  const quantityDecrementHandler = () => {
-    setTicketsQuantity((prevState) => {
-      if (prevState !== 1) {
-        return prevState - 1;
-      }
-      return prevState;
-    });
-  };
-
+  // Get Landing + Event in GRAPHQL
   React.useEffect(() => {
 
     getLandingEventGraphql();
-
+   
     async function getLandingEventGraphql() {
 
       const resultEvent = await client.graphql({ 
@@ -93,15 +83,45 @@ export default function SignIn() {
 
   }, []);
 
+  // Get EventAttendee parameter + Graphql Data
   React.useEffect(() => {
 
-    if(eventAtteendeFromChild)
-      console.log("eventAtteendeFromChild: ",eventAtteendeFromChild)
+    if(searchParams.get('EventAttendee')){
+      getEventAttendeeGraphql();
+    }
 
-  }, [eventAtteendeFromChild]);
+    async function getEventAttendeeGraphql() {
+
+      const resultEventAttendee = await client.graphql({ 
+        query: getEventAttendee,
+        variables: { id: searchParams.get('EventAttendee') } 
+      });
+
+      console.log("GRAPHQL getEventAttendee: ",resultEventAttendee.data.getEventAttendee);
+
+      if(resultEventAttendee.data.getEventAttendee){
+        setEventAttendee(resultEventAttendee.data.getEventAttendee)
+      } else {
+        setEventAttendee(false);
+      }
+    }
+  }, []);
+
+  const quantityIncrementHandler = () => {
+    setTicketsQuantity((prevState) => prevState + 1);
+  };
+
+  const quantityDecrementHandler = () => {
+    setTicketsQuantity((prevState) => {
+      if (prevState !== 1) {
+        return prevState - 1;
+      }
+      return prevState;
+    });
+  };
 
   // Landing doesnt have any results on query
-  if (loading && landing && landing.length === 0) {
+  if (loading && landing && landing.length === 0 && !eventAttendee) {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
         <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
@@ -116,14 +136,21 @@ export default function SignIn() {
   }
 
   // Landing is deactivated 
-  if (landing && !landing.active && authStatus == "unauthenticated") {
+  if (!loading && landing.active == false && authStatus == "unauthenticated") {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
+        <img src={logo} className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
-          El evento no se encuentra activo...
+          El evento no se encuentra activo
         </h2>
       </div>
     );
+  }
+
+  // If eventAttendee doesnt exist remove the query parameter
+  if (searchParams.get('EventAttendee') && eventAttendee == false) {
+    searchParams.delete('EventAttendee');
+    window.history.replaceState({}, '', `${url.origin}${url.pathname}`);
   }
 
   return (
@@ -189,8 +216,9 @@ export default function SignIn() {
               quantityProp={ticketsQuantity}
               price={selectedCost}
               eventID={id}
-              sendEventAttendeeToParent={setEventAtteendeFromChild}
+              eventAttendeeProp={eventAttendee}
             />
+
           </div>
           <div className={`${showRegister ? "hidden" : "block"}`}>
             <div
