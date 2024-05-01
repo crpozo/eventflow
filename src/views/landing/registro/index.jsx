@@ -242,7 +242,7 @@ const Registro = (props) => {
             }];
             console.log("event: ",event)
             console.log("requestBody: ",requestBody)
-            const trs = await postRegistroFinanciero(requestBody, accessToken)
+            const trs = await postRegistroFinanciero(requestBody, accessToken);
             setTrs(trs);
   
           } catch (error) {
@@ -329,7 +329,7 @@ const Registro = (props) => {
     }
   };
 
-  const postRegistroFinanciero = async (data, accessToken) => {
+  const postRegistroFinancieroAPI = async (data, accessToken) => {
     try {
 
       const response = await fetch(
@@ -360,6 +360,26 @@ const Registro = (props) => {
       console.error("postRegistroFinanciero: ", err);
       throw err;
     }
+  };
+
+  // Function to retry postRegistroFinanciero with a maximum number of retries
+  const MAX_RETRIES = 3; 
+  
+  const postRegistroFinanciero = async (data, accessToken) => {
+    let retries = 0;
+
+    while (retries < MAX_RETRIES) {
+      try {
+        const result = await postRegistroFinancieroAPI(data, accessToken);
+        return result;
+      } catch (error) {
+        console.error("Retry attempt failed:", error);
+        retries++;
+        console.log(`Retrying (${retries}/${MAX_RETRIES})...`);
+      }
+    }
+
+    throw new Error(`Maximum number of retries (${MAX_RETRIES}) exceeded.`);
   };
 
   const handleExport = async (isMobileDevice) => {
