@@ -553,10 +553,10 @@ const Registro = (props) => {
           <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-100 p-3">
             <img src={logo} className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
-              Estamos procesando su pago, intentelo nuevamente más tarde
+              Su pago está siendo procesado actualmente
             </h2>
             <p className="max-w-[500px] text-center text-black">
-              Agradecemos su comprensión y paciencia.
+              Agradecemos su comprensión y paciencia. En caso de transferencia o depósito, el pago se procesara dentro de 48 horas y el ticket se enviará a su correo electrónico.
             </p>
           </div>
         }
