@@ -243,10 +243,10 @@ const Registro = (props) => {
             console.log("event: ",event)
             console.log("requestBody: ",requestBody)
             const trs = await postRegistroFinanciero(requestBody, accessToken);
-            setTrs(trs);
+            setTrs(trs); 
   
           } catch (error) {
-            console.error("HandleSubmit:", error);
+            console.error("HandleSubmit:", error); 
           }
         }
       } else {
@@ -382,7 +382,6 @@ const Registro = (props) => {
       throw err;
     }
   };
-
   const postRegistroFinanciero = async (data, accessToken) => {
     let retries = 0;
 
