@@ -305,7 +305,6 @@ const Registro = (props) => {
         document.body.removeChild(popup);
       });
   
-  
       // Add event listener for the redirect button
       redirectButton.addEventListener("click", () => {
         document.body.removeChild(popup);
