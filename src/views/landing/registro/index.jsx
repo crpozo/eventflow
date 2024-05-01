@@ -72,6 +72,10 @@ const Registro = (props) => {
     }
   }
 
+  React.useEffect(() => {
+    console.log("quantityProp: ",quantityProp)
+  }, [quantityProp]); 
+
   // EventAttende parameter + Graphql Data
   React.useEffect(() => {
 
@@ -206,7 +210,7 @@ const Registro = (props) => {
                 ticket: ``, 
                 email: userData.find(item => item.name === 'email').userData[0].toString(),
                 allowContact: false,
-                quantity,
+                quantity: quantityProp,
                 scanned: 0,
                 profileURL: `${domain}/usuario/${attendee.id}`
               })
@@ -223,8 +227,8 @@ const Registro = (props) => {
               direccion: userData.find(item => item.name === 'direccion').userData[0].toString(),
               telefono: userData.find(item => item.name === 'telefono').userData[0].toString(),
               correo: userData.find(item => item.name === 'email').userData[0].toString(),
-              valor: price.replace(/\$/g, '') * quantity,
-              evento_descripcion: "TEST",
+              valor: price.replace(/\$/g, '') * quantityProp,
+              evento_descripcion: "evento usfq",
               evento_id: event?.eventIdUSFQ?.toString(),
               trs_unico: "",
               codigo: "0",
