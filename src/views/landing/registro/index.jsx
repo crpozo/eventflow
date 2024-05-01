@@ -437,7 +437,7 @@ const Registro = (props) => {
     } catch(e) { 
         console.error("handleExport error: ", e); 
     }
-};
+  };
 
   async function savePDFStorage(ticket) {
     try {
