@@ -314,7 +314,9 @@ const Registro = (props) => {
     });
   }
 
-  const getTokenFinancial = async () => {
+  const MAX_RETRIES = 3; 
+
+  const getTokenFinancialAPI = async () => {
     try {
       const response = await fetch(
         "https://bvq7tg35iuv6lbgndbqbwwhgim0mpnum.lambda-url.sa-east-1.on.aws/"
@@ -327,6 +329,25 @@ const Registro = (props) => {
     } catch (err) {
       console.log("getTokenFinancial: ", err);
     }
+  };
+
+  const getTokenFinancial = async () => {
+    let retries = 0;
+  
+    while (retries < MAX_RETRIES) {
+      try {
+        const accessToken = await getTokenFinancialAPI();
+        if (accessToken) {
+          return accessToken;
+        }
+      } catch (error) {
+        console.error("Token retrieval attempt failed:", error);
+        retries++;
+        console.log(`Retrying token retrieval (${retries}/${MAX_RETRIES})...`);
+      }
+    }
+  
+    throw new Error(`Maximum number of token retrieval retries (${MAX_RETRIES}) exceeded.`);
   };
 
   const postRegistroFinancieroAPI = async (data, accessToken) => {
@@ -362,9 +383,6 @@ const Registro = (props) => {
     }
   };
 
-  // Function to retry postRegistroFinanciero with a maximum number of retries
-  const MAX_RETRIES = 3; 
-  
   const postRegistroFinanciero = async (data, accessToken) => {
     let retries = 0;
 
