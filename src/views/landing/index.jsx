@@ -120,8 +120,9 @@ export default function SignIn() {
     });
   };
 
-  // Landing doesnt have any results on query
-  if (loading && landing && landing.length === 0 || !eventAttendee && eventAttendee != false) {
+  // Landing doesnt have any results on query + EventAttendee query parameter is not valid
+  if (loading && landing && landing.length === 0 || searchParams.get('EventAttendee') && !eventAttendee && eventAttendee != false) {
+
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
         <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
