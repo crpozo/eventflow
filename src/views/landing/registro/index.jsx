@@ -62,7 +62,7 @@ const Registro = (props) => {
         let tipo_idenfiticacion = document.querySelector('#tipo_identificacion');
         if (!identificacion || !tipo_idenfiticacion) return;
         identificacion.parentElement.hidden = true;
-        identificacion.value = '9999999999999';
+        identificacion.value = '9999999999';
         tipo_idenfiticacion.parentElement.hidden = true;
       }
     }
@@ -223,7 +223,7 @@ const Registro = (props) => {
               direccion: userData.find(item => item.name === 'direccion').userData[0].toString(),
               telefono: userData.find(item => item.name === 'telefono').userData[0].toString(),
               correo: userData.find(item => item.name === 'email').userData[0].toString(),
-              valor: price.replace(/\$/g, ''),
+              valor: price.replace(/\$/g, '') * quantity,
               evento_descripcion: "TEST",
               evento_id: event?.eventIdUSFQ?.toString(),
               trs_unico: "",
