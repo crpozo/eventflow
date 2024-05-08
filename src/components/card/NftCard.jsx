@@ -22,13 +22,13 @@ const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date,
     <Card
       extra={`flex flex-col w-full h-full p-0 bg-white  border border-gray-600`}
     >
-      <div className="h-full w-full max-h-[305px]">
+      <div className="max-h-[305px] h-[100%] flex flex-col">
         <div className="relative w-full">
           <div className={`h-[25px] w-full rounded-t-md ${color}`}></div>
         </div>
               
-        <div className="pt-2 pb-3 px-4">
-          <div className="mb-5 flex items-center justify-between md:flex-col md:items-start lg:flex-row lg:justify-between xl:flex-col xl:items-start 3xl:flex-row 3xl:justify-between">
+        <div className="pt-2 pb-3 px-4 h-[100%] flex flex-col justify-between gap-8">
+          <div className="flex items-center justify-between md:flex-col md:items-start lg:flex-row lg:justify-between xl:flex-col xl:items-start 3xl:flex-row 3xl:justify-between">
             <div className="mb-2">
               <p className="text-xl font-normal text-black dark:text-white">
                 {" "}
