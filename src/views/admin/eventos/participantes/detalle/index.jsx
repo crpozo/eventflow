@@ -110,7 +110,7 @@ const Profile = () => {
             </div>
             <div className="actions">
               <div className="follow-btn">
-                <a href="#">Seguir en LinkedIn</a>
+                <a href={`https://www.linkedin.com/search/results/all/?keywords=${eventAttende.formAnswers.find(item => item.name === "nombres").userData[0]}`}>Seguir en LinkedIn</a>
               </div>
             </div>
           </div>
