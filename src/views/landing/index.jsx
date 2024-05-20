@@ -156,9 +156,9 @@ export default function SignIn() {
 
   return (
     <>
-      <div className="flex h-[70px] md:h-[90px] lg:h-[130px] w-full bg-usfqPrimary">
+      <div className="flex h-[70px] md:h-[90px] lg:h-[120px] w-full bg-usfqPrimary">
         <div className="container flex items-center justify-between">
-          <img src={logo} className="w-[60px] md:w-[70px] lg:w-[120px]" />
+          <img src={logo} className="w-[60px] md:w-[70px] lg:w-[100px]" />
           <Link
             to="https://www.usfq.edu.ec/es"
             className="flex items-center gap-2 hover:text-red-500 hover:no-underline"
