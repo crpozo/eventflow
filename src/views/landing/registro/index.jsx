@@ -86,9 +86,9 @@ const Registro = (props) => {
     [formData]
   );
 
-  const handleBillingCheckboxChange = (event) => {
-    setShowBillingFields(event.target.checked);
-    setChangeBilling(event.target.checked);
+  const handleBillingCheckboxChange = (state) => {
+    setShowBillingFields(state);
+    setChangeBilling(state);
   };
 
   React.useEffect(() => {
@@ -623,7 +623,7 @@ const Registro = (props) => {
               <div className="mt-3 mb-1 py-3">
                 <label 
                   className="font-medium flex items-center cursor-pointer"
-                  onClick={() => setShowBillingFields(!showBillingFields)}
+                  onClick={() => handleBillingCheckboxChange(!showBillingFields)}
                 >
                   <div 
                     className={`w-5 h-5 mr-2 border border-gray-400 rounded flex items-center justify-center ${showBillingFields ? 'bg-blue-500' : 'bg-white'}`}
