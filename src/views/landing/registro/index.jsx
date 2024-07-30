@@ -71,10 +71,20 @@ const Registro = (props) => {
       */
     }
 
+    shouldComponentUpdate(nextProps) {
+      return JSON.stringify(this.props.formData) !== JSON.stringify(nextProps.formData);
+    }
+  
+
     render() { 
       return <div id="fb-editor" ref={this.fb} />;
     }
   }
+
+  const memoizedFormBuilder = React.useMemo(() => 
+    <FormBuilder formData={formData} />, 
+    [formData]
+  );
 
   const handleBillingCheckboxChange = (event) => {
     setShowBillingFields(event.target.checked);
@@ -605,20 +615,26 @@ const Registro = (props) => {
             
             <div className="mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0">
               
-              <FormBuilder />
+              {memoizedFormBuilder}
+
 
               {/* Start new invoice data fields  */}
 
               <div className="mt-3 mb-1 py-3">
-                <label className="font-medium flex items-center cursor-pointer ">
-                  <input 
-                    type="checkbox" 
-                    className="mr-2 cursor-pointer"
-                    id="changeBillingCheckbox" 
-                    onChange={handleBillingCheckboxChange}
-                    checked={showBillingFields}
-                  /> 
-                    Cambiar datos de facturación
+                <label 
+                  className="font-medium flex items-center cursor-pointer"
+                  onClick={() => setShowBillingFields(!showBillingFields)}
+                >
+                  <div 
+                    className={`w-5 h-5 mr-2 border border-gray-400 rounded flex items-center justify-center ${showBillingFields ? 'bg-blue-500' : 'bg-white'}`}
+                  >
+                    {showBillingFields && (
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  Cambiar datos de facturación
                 </label>
               </div>
 
