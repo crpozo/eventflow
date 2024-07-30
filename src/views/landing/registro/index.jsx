@@ -34,6 +34,8 @@ const Registro = (props) => {
   const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
   const [uploadProgress, setUploadProgress] = React.useState(100);
   const [sendEmail, setSendEmail] = React.useState(false);
+  const [changeBilling, setChangeBilling] = React.useState(false);
+  const [showBillingFields, setShowBillingFields] = React.useState(false);
 
   const currentUrl = window.location.href;
   const domain = new URL(currentUrl).origin;
@@ -57,6 +59,7 @@ const Registro = (props) => {
 
     modifyDOM() {
       // Verify the price and modify the end-user ID if necessary
+      /*
       if (price && parseFloat(price.replace(/[^\d.-]/g, '')) <= 50) {
         let identificacion = document.querySelector('#identificacion');
         let tipo_idenfiticacion = document.querySelector('#tipo_identificacion');
@@ -65,12 +68,18 @@ const Registro = (props) => {
         identificacion.value = '9999999999';
         tipo_idenfiticacion.parentElement.hidden = true;
       }
+      */
     }
 
     render() { 
       return <div id="fb-editor" ref={this.fb} />;
     }
   }
+
+  const handleBillingCheckboxChange = (event) => {
+    setShowBillingFields(event.target.checked);
+    setChangeBilling(event.target.checked);
+  };
 
   React.useEffect(() => {
     console.log("quantityProp: ",quantityProp)
@@ -182,7 +191,28 @@ const Registro = (props) => {
       if (userConfirmed) {
 
         const fbRender = document.querySelector("#fb-editor");
-        const userData = $(fbRender).formRender("userData");
+        let userData = $(fbRender).formRender("userData");
+
+        if (changeBilling) {
+          // Replace the billing information with the new values
+          userData = userData.map(item => {
+            switch(item.name) {
+              case 'identificacion':
+                return {...item, userData: [document.getElementById('identificacion_facturacion').value]};
+              case 'nombres':
+                return {...item, userData: [document.getElementById('nombres_facturacion').value]};
+              case 'direccion':
+                return {...item, userData: [document.getElementById('direccion_facturacion').value]};
+              case 'telefono':
+                return {...item, userData: [document.getElementById('telefono_facturacion').value]};
+              case 'email':
+                return {...item, userData: [document.getElementById('email_facturacion').value]};
+              default:
+                return item;
+            }
+          });
+        }
+
         setUserData(userData);
   
         async function createAttende() {
@@ -576,6 +606,69 @@ const Registro = (props) => {
             <div className="mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0">
               
               <FormBuilder />
+
+              {/* Start new invoice data fields  */}
+
+              <div className="mt-3 mb-1 py-3">
+                <label className="font-medium flex items-center cursor-pointer ">
+                  <input 
+                    type="checkbox" 
+                    className="mr-2 cursor-pointer"
+                    id="changeBillingCheckbox" 
+                    onChange={handleBillingCheckboxChange}
+                    checked={showBillingFields}
+                  /> 
+                    Cambiar datos de facturación
+                </label>
+              </div>
+
+              {showBillingFields && (
+                <div className="rendered-form mt-3" id="billingFields">
+                  <div className="formbuilder-select form-group field-tipo_identificacion">
+                    <label htmlFor="tipo_identificacion" className="formbuilder-select-label">
+                      Tipo de identificación
+                    </label>
+                    <select name="tipo_identificacion" className="form-control" required aria-required="true">
+                      <option value="cedula" selected>Cédula</option>
+                      <option value="pasaporte">Pasaporte</option>
+                      <option value="ruc">RUC</option>
+                    </select>
+                  </div>
+                  <div className="formbuilder-text form-group field-identificacion">
+                    <label htmlFor="identificacion" className="formbuilder-text-label">
+                      N° de Identificación
+                    </label>
+                    <input name="identificacion" className="form-control" type="text" id="identificacion_facturacion" required aria-required="true" />
+                  </div>
+                  <div className="formbuilder-text form-group field-email">
+                    <label htmlFor="email" className="formbuilder-text-label">
+                      Email
+                    </label>
+                    <input name="email" className="form-control" placeholder="correo@ejemplo.com" type="email" id="email_facturacion" required aria-required="true" />
+                  </div>
+                  <div className="formbuilder-text form-group field-nombres">
+                    <label htmlFor="nombres" className="formbuilder-text-label">
+                      Nombre completo o razón social
+                    </label>
+                    <input name="nombres" className="form-control" placeholder="Juan Pérez" type="text" id="nombres_facturacion" required aria-required="true" />
+                  </div>
+                  <div className="formbuilder-text form-group field-direccion">
+                    <label htmlFor="direccion" className="formbuilder-text-label">
+                      Dirección
+                    </label>
+                    <input name="direccion" className="form-control" placeholder="Calle Principal 123" type="text" id="direccion_facturacion" required aria-required="true" />
+                  </div>
+                  <div className="formbuilder-text form-group field-telefono">
+                    <label htmlFor="telefono" className="formbuilder-text-label">
+                      Teléfono
+                    </label>
+                    <input name="telefono" className="form-control" placeholder="+593 99 1234 567" type="text" id="telefono_facturacion" required aria-required="true" />
+                  </div>
+                </div>
+              )}
+
+              {/* End new invoice data fields  */}
+
               <button
                 href="crear"
                 type="submit"
