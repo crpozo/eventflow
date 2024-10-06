@@ -1,8 +1,4 @@
-import React, {
-  Component,
-  createRef,
-  useRef,
-} from "react";
+import React, { Component, createRef, useRef } from "react";
 import logo from "assets/img/usfq/logo.svg";
 import QRCode from "react-qr-code";
 import domtoimage from "dom-to-image";
@@ -10,12 +6,12 @@ import html2pdf from "html2pdf.js";
 import { useParams, Link } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
-import { DataStore } from 'aws-amplify/datastore';
+import { DataStore } from "aws-amplify/datastore";
 import { Form } from "models";
 import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
-import { validateForm, formatSpanishDate } from "scripts/utils"
-import { uploadData, getUrl } from 'aws-amplify/storage';
+import { validateForm, formatSpanishDate } from "scripts/utils";
+import { uploadData, getUrl } from "aws-amplify/storage";
 
 window.jQuery = $;
 window.$ = $;
@@ -24,14 +20,26 @@ require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
 const Registro = (props) => {
-  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event, eventAttendeeProp} = props;
+  const {
+    userData,
+    setUserData,
+    quantityProp,
+    price,
+    eventID,
+    showRegister,
+    setShowRegister,
+    event,
+    eventAttendeeProp,
+  } = props;
   const [formData, setFormData] = React.useState([]);
   const [eventAttendee, setEventAttendee] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [trs, setTrs] = React.useState(null);
   const [formRegister, setFormRegister] = React.useState(false);
   const [quantity, setQuantity] = React.useState(quantityProp);
-  const [ticketsArray, setTicketsArray] = React.useState(Array.from({ length: quantity }, (_, index) => index));
+  const [ticketsArray, setTicketsArray] = React.useState(
+    Array.from({ length: quantity }, (_, index) => index)
+  );
   const [uploadProgress, setUploadProgress] = React.useState(100);
   const [sendEmail, setSendEmail] = React.useState(false);
   const [changeBilling, setChangeBilling] = React.useState(false);
@@ -72,17 +80,19 @@ const Registro = (props) => {
     }
 
     shouldComponentUpdate(nextProps) {
-      return JSON.stringify(this.props.formData) !== JSON.stringify(nextProps.formData);
+      return (
+        JSON.stringify(this.props.formData) !==
+        JSON.stringify(nextProps.formData)
+      );
     }
-  
 
-    render() { 
+    render() {
       return <div id="fb-editor" ref={this.fb} />;
     }
   }
 
-  const memoizedFormBuilder = React.useMemo(() => 
-    <FormBuilder formData={formData} />, 
+  const memoizedFormBuilder = React.useMemo(
+    () => <FormBuilder formData={formData} />,
     [formData]
   );
 
@@ -92,31 +102,32 @@ const Registro = (props) => {
   };
 
   React.useEffect(() => {
-    console.log("quantityProp: ",quantityProp)
-  }, [quantityProp]); 
+    console.log("quantityProp: ", quantityProp);
+  }, [quantityProp]);
 
   // EventAttende parameter + Graphql Data
   React.useEffect(() => {
+    console.log("EVENT ATTENDEE FROM CHILD: ", eventAttendeeProp);
 
-    console.log("EVENT ATTENDEE FROM CHILD: ", eventAttendeeProp)
-
-    if(eventAttendeeProp){
-      setEventAttendee(eventAttendeeProp)
-      setFormRegister(true)
-      setShowRegister(true)
-      setAuthorized(eventAttendeeProp.authorized)
-      setUserData(JSON.parse(eventAttendeeProp.formAnswers))
+    if (eventAttendeeProp) {
+      setEventAttendee(eventAttendeeProp);
+      setFormRegister(true);
+      setShowRegister(true);
+      setAuthorized(eventAttendeeProp.authorized);
+      setUserData(JSON.parse(eventAttendeeProp.formAnswers));
       setQuantity(eventAttendeeProp.quantity);
-      setTicketsArray(Array.from({ length: eventAttendeeProp.quantity }, (_, index) => index));
+      setTicketsArray(
+        Array.from({ length: eventAttendeeProp.quantity }, (_, index) => index)
+      );
     }
-
   }, [eventAttendeeProp]);
 
   // Observer query form data
   React.useEffect(() => {
-
     // Get form data
-    const subQuestions = DataStore.observeQuery(Form, (c) => c.formEventId.eq(id)).subscribe((results) => {
+    const subQuestions = DataStore.observeQuery(Form, (c) =>
+      c.formEventId.eq(id)
+    ).subscribe((results) => {
       if (results.items.length > 0) {
         setFormData(results.items[0].questions);
       } else {
@@ -124,16 +135,15 @@ const Registro = (props) => {
       }
     });
 
-    if(formData.length > 0){
+    if (formData.length > 0) {
       subQuestions.unsubscribe();
     }
-
   }, [showRegister]);
 
   // Observer query EventAttende if ticket is authorized
   // React.useEffect(() => {
-  //   if(eventAttendee 
-  //     && eventAttendee.id 
+  //   if(eventAttendee
+  //     && eventAttendee.id
   //     && !authorized){
 
   //     eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
@@ -153,15 +163,14 @@ const Registro = (props) => {
 
   // }, [formRegister]);
 
-   
   // Download PDF + handle mobile behavior
   React.useEffect(() => {
     if (authorized && ticketsRef.current) {
       handleExport(isMobileDevice());
-      ticketsRef.current.scrollIntoView({ behavior: 'smooth' });
+      ticketsRef.current.scrollIntoView({ behavior: "smooth" });
       const elementRect = ticketsRef.current.getBoundingClientRect();
       const desiredScrollPosition = window.scrollY + elementRect.top - 150;
-      window.scrollTo({ top: desiredScrollPosition, behavior: 'smooth' });
+      window.scrollTo({ top: desiredScrollPosition, behavior: "smooth" });
     }
   }, [authorized]);
 
@@ -170,20 +179,21 @@ const Registro = (props) => {
     if (trs && eventAttendee) {
       async function redirectUSFQ() {
         const domain = window.location.href;
-        const redirectUrl = domain.includes('eventflow')
-          ? 'https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS='
-          : 'https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=';
-  
-        const delayPromise = () => new Promise(resolve => setTimeout(resolve, 3000));
-        
+        const redirectUrl = domain.includes("eventflow")
+          ? "https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS="
+          : "https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=";
+
+        const delayPromise = () =>
+          new Promise((resolve) => setTimeout(resolve, 3000));
+
         try {
           await delayPromise();
           window.location.href = `${redirectUrl}${trs}`;
         } catch (error) {
-          console.error('Error in redirectUSFQ:', error);
+          console.error("Error in redirectUSFQ:", error);
         }
       }
-  
+
       redirectUSFQ();
     }
   }, [trs, eventAttendee]);
@@ -194,29 +204,52 @@ const Registro = (props) => {
     const isValid = validateForm();
 
     if (isValid) {
-
       // Show popup terms and conditions + transaction details
       const userConfirmed = await showCustomPopup();
 
       if (userConfirmed) {
-
         const fbRender = document.querySelector("#fb-editor");
         let userData = $(fbRender).formRender("userData");
 
         if (changeBilling) {
           // Replace the billing information with the new values
-          userData = userData.map(item => {
-            switch(item.name) {
-              case 'identificacion':
-                return {...item, userData: [document.getElementById('identificacion_facturacion').value]};
-              case 'nombres':
-                return {...item, userData: [document.getElementById('nombres_facturacion').value]};
-              case 'direccion':
-                return {...item, userData: [document.getElementById('direccion_facturacion').value]};
-              case 'telefono':
-                return {...item, userData: [document.getElementById('telefono_facturacion').value]};
-              case 'email':
-                return {...item, userData: [document.getElementById('email_facturacion').value]};
+          userData = userData.map((item) => {
+            switch (item.name) {
+              case "identificacion":
+                return {
+                  ...item,
+                  userData: [
+                    document.getElementById("identificacion_facturacion").value,
+                  ],
+                };
+              case "nombres":
+                return {
+                  ...item,
+                  userData: [
+                    document.getElementById("nombres_facturacion").value,
+                  ],
+                };
+              case "direccion":
+                return {
+                  ...item,
+                  userData: [
+                    document.getElementById("direccion_facturacion").value,
+                  ],
+                };
+              case "telefono":
+                return {
+                  ...item,
+                  userData: [
+                    document.getElementById("telefono_facturacion").value,
+                  ],
+                };
+              case "email":
+                return {
+                  ...item,
+                  userData: [
+                    document.getElementById("email_facturacion").value,
+                  ],
+                };
               default:
                 return item;
             }
@@ -224,21 +257,20 @@ const Registro = (props) => {
         }
 
         setUserData(userData);
-  
+
         async function createAttende() {
           const attendee = await DataStore.save(new Attendee({}));
           return attendee;
         }
-  
+
         // Make sure to await the creation of the attendee
         const attendee = await createAttende();
-  
+
         if (attendee) {
           try {
-  
             // Testing multiple users
             //iterateWithDelay(userData)
-            
+
             // Create and save the EventAttendee record
             const newEventAttendee = await DataStore.save(
               new EventAttendee({
@@ -247,55 +279,69 @@ const Registro = (props) => {
                 authorized: false,
                 checkIn: false,
                 formAnswers: userData,
-                ticket: ``, 
-                email: userData.find(item => item.name === 'email').userData[0].toString(),
+                ticket: ``,
+                email: userData
+                  .find((item) => item.name === "email")
+                  .userData[0].toString(),
                 allowContact: false,
                 quantity: quantityProp,
                 scanned: 0,
-                profileURL: `${domain}/usuario/${attendee.id}`
+                profileURL: `${domain}/usuario/${attendee.id}`,
               })
             );
-  
-            setEventAttendee(newEventAttendee)
+
+            setEventAttendee(newEventAttendee);
             setFormRegister(true);
 
             // get token from USFQ
             const accessToken = await getTokenFinancial();
-            const requestBody = [{
-              identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
-              nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
-              direccion: userData.find(item => item.name === 'direccion').userData[0].toString(),
-              telefono: userData.find(item => item.name === 'telefono').userData[0].toString(),
-              correo: userData.find(item => item.name === 'email').userData[0].toString(),
-              valor: price.replace(/\$/g, '') * quantityProp,
-              evento_descripcion: "evento usfq",
-              evento_id: event?.eventIdUSFQ?.toString(),
-              trs_unico: "",
-              codigo: "0",
-              clave: "SEOP",
-              tipo_pago: "O",
-              diferido: "BTNS",
-              periodo: event?.periodoUSFQ?.toString(),
-              correo_adicional: "",
-              colegio: "",
-              especialidad: "",
-              envio: "N",
-              usuario: event?.usuarioUSFQ?.toString(),
-              reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
-              reg_id_externo: newEventAttendee.id
-            }];
-            console.log("event: ",event)
-            console.log("requestBody: ",requestBody)
+            const requestBody = [
+              {
+                identificacion: parseInt(
+                  userData.find((item) => item.name === "identificacion")
+                    .userData[0]
+                ),
+                nombres: userData
+                  .find((item) => item.name === "nombres")
+                  .userData[0].toString(),
+                direccion: userData
+                  .find((item) => item.name === "direccion")
+                  .userData[0].toString(),
+                telefono: userData
+                  .find((item) => item.name === "telefono")
+                  .userData[0].toString(),
+                correo: userData
+                  .find((item) => item.name === "email")
+                  .userData[0].toString(),
+                valor: price.replace(/\$/g, "") * quantityProp,
+                evento_descripcion: "evento usfq",
+                evento_id: event?.eventIdUSFQ?.toString(),
+                trs_unico: "",
+                codigo: "0",
+                clave: "SEOP",
+                tipo_pago: "O",
+                diferido: "BTNS",
+                periodo: event?.periodoUSFQ?.toString(),
+                correo_adicional: "",
+                colegio: "",
+                especialidad: "",
+                envio: "N",
+                usuario: event?.usuarioUSFQ?.toString(),
+                reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
+                reg_id_externo: newEventAttendee.id,
+              },
+            ];
+            console.log("event: ", event);
+            console.log("requestBody: ", requestBody);
             const trs = await postRegistroFinanciero(requestBody, accessToken);
-            setTrs(trs); 
-  
+            setTrs(trs);
           } catch (error) {
-            console.error("HandleSubmit:", error); 
+            console.error("HandleSubmit:", error);
           }
         }
       } else {
         console.log("Process canceled by the user");
-      }   
+      }
     } else {
       console.log("Form is not valid");
     }
@@ -328,27 +374,28 @@ const Registro = (props) => {
           <button id="redirectButton" disabled>Aceptar</button>
         </div>
       `;
-  
+
       // Append the popup to the document body
       document.body.appendChild(popup);
-  
+
       // Listen for changes in the checkbox
       const checkbox = document.getElementById("confirmationCheckbox");
       const redirectButton = document.getElementById("redirectButton");
-  
+
       checkbox.addEventListener("change", () => {
         if (checkbox.checked) {
           redirectButton.disabled = false;
         } else {
-          redirectButton.disabled = true
+          redirectButton.disabled = true;
         }
       });
 
       const popupOverlay = document.querySelector(".popup-privacy-overlay");
-      if(popupOverlay) popupOverlay.addEventListener("click", () => {
-        document.body.removeChild(popup);
-      });
-  
+      if (popupOverlay)
+        popupOverlay.addEventListener("click", () => {
+          document.body.removeChild(popup);
+        });
+
       // Add event listener for the redirect button
       redirectButton.addEventListener("click", () => {
         document.body.removeChild(popup);
@@ -357,7 +404,7 @@ const Registro = (props) => {
     });
   }
 
-  const MAX_RETRIES = 3; 
+  const MAX_RETRIES = 3;
 
   const getTokenFinancialAPI = async () => {
     try {
@@ -376,7 +423,7 @@ const Registro = (props) => {
 
   const getTokenFinancial = async () => {
     let retries = 0;
-  
+
     while (retries < MAX_RETRIES) {
       try {
         const accessToken = await getTokenFinancialAPI();
@@ -389,35 +436,36 @@ const Registro = (props) => {
         console.log(`Retrying token retrieval (${retries}/${MAX_RETRIES})...`);
       }
     }
-  
-    throw new Error(`Maximum number of token retrieval retries (${MAX_RETRIES}) exceeded.`);
+
+    throw new Error(
+      `Maximum number of token retrieval retries (${MAX_RETRIES}) exceeded.`
+    );
   };
 
   const postRegistroFinancieroAPI = async (data, accessToken) => {
     try {
-
       const response = await fetch(
         "https://wsexternal.usfq.edu.ec/WSFinancieroUSFQ/WSFinancieroUSFQ-DESA/financiero/PostRegistroExternos",
         {
           method: "POST",
           headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            "Authorization": `Bearer ${accessToken}`
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(data),
         }
       );
-  
+
       if (!response.ok) {
         const errorResponseData = await response.json();
-        console.log(errorResponseData)
-        console.log(response)
+        console.log(errorResponseData);
+        console.log(response);
         throw new Error(`HTTPS error! Status: ${response.status}`);
       }
-  
+
       const responseData = await response.json();
-      console.log("postRegistroFinanciero: ", responseData)
+      console.log("postRegistroFinanciero: ", responseData);
 
       return responseData[0].valor;
     } catch (err) {
@@ -443,107 +491,113 @@ const Registro = (props) => {
   };
 
   const handleExport = async (isMobileDevice) => {
-    try {  
-
+    try {
       const tickets = document.querySelectorAll('[id^="pdf-content"]');
       const pdfOptions = {
-          image: { type: 'jpeg', quality: 1 },
-          margin: [5, -220, 0, 0],
-          jsPDF: { unit: 'mm', format: [520, 340] }
+        image: { type: "jpeg", quality: 1 },
+        margin: [5, -220, 0, 0],
+        jsPDF: { unit: "mm", format: [520, 340] },
       };
-    
+
       const pdf = html2pdf().set(pdfOptions);
-  
+
       for (const [index, ticket] of tickets.entries()) {
-          await pdf?.from(ticket)?.toContainer().toCanvas().toPdf().get('pdf').then(function (pdf) {
-              if (index != quantity - 1) {
-                  pdf.addPage();
-              }
+        await pdf
+          ?.from(ticket)
+          ?.toContainer()
+          .toCanvas()
+          .toPdf()
+          .get("pdf")
+          .then(function (pdf) {
+            if (index != quantity - 1) {
+              pdf.addPage();
+            }
           });
       }
 
-      await pdf?.outputPdf().then(async function(pdf) {
-          if (eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null) {
-              setUploadProgress(0);       
-              const base64PDF = btoa(pdf);
-              await savePDFStorage(base64PDF);
-          } else {
-            setSendEmail(true);
-          }
+      await pdf?.outputPdf().then(async function (pdf) {
+        if (eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null) {
+          setUploadProgress(0);
+          const base64PDF = btoa(pdf);
+          await savePDFStorage(base64PDF);
+        } else {
+          setSendEmail(true);
+        }
       });
 
-
-      if(!isMobileDevice){
+      if (!isMobileDevice) {
         pdf?.save(`${props.landing.title + " - ticket "}.pdf`);
       }
-    
-    } catch(e) { 
-        console.error("handleExport error: ", e); 
+    } catch (e) {
+      console.error("handleExport error: ", e);
     }
   };
 
   async function savePDFStorage(ticket) {
     try {
-        const resultUpload = await uploadData({
-          key: eventAttendee.id + '_' + event.id + "_ticket.txt",
-          data: ticket,
-          options: {
-            accessLevel: 'guest',
-            metadata: {key: event.id},
-          }
-        }).result;
+      const resultUpload = await uploadData({
+        key: eventAttendee.id + "_" + event.id + "_ticket.txt",
+        data: ticket,
+        options: {
+          accessLevel: "guest",
+          metadata: { key: event.id },
+        },
+      }).result;
 
-      setUploadProgress(100)
-      console.log('Succeeded: ', resultUpload);
+      setUploadProgress(100);
+      console.log("Succeeded: ", resultUpload);
 
       const getUrlResult = await getUrl({
-        key: eventAttendee.id + '_' + event.id + "_ticket.txt",
+        key: eventAttendee.id + "_" + event.id + "_ticket.txt",
         options: {
-          accessLevel: 'guest' ,
+          accessLevel: "guest",
         },
       });
 
       const original = await DataStore.query(EventAttendee, eventAttendee.id);
       const updatedEventAttendee = await DataStore.save(
-        EventAttendee.copyOf(original, updated => {
-          updated.ticket = decodeURIComponent(getUrlResult.url.pathname.substring(1));
+        EventAttendee.copyOf(original, (updated) => {
+          updated.ticket = decodeURIComponent(
+            getUrlResult.url.pathname.substring(1)
+          );
         })
       );
 
       sendTicketEmail();
-
     } catch (error) {
       console.error("Error uploading file: ", error);
     }
   }
 
   const sendTicketEmail = async () => {
-    try{
-       // Send email
+    try {
+      // Send email
       const payloadEmail = {
         eventAttendeeId: eventAttendee.id,
-        "typePayment": "CARD",
-        "statusPayment": "SUCCESSFUL"
+        typePayment: "CARD",
+        statusPayment: "SUCCESSFUL",
       };
-    
-      const response = await fetch('https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payloadEmail)
-      });
-      
-      const data = await response.json()
 
-      console.log("sendTicketEmail response :", data)
+      const response = await fetch(
+        "https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payloadEmail),
+        }
+      );
 
-      setSendEmail(true)
+      const data = await response.json();
 
-    }catch(e){ 
-      console.error("sendTicketEmail: ", e)
+      console.log("sendTicketEmail response :", data);
+
+      setSendEmail(true);
+    } catch (e) {
+      console.error("sendTicketEmail: ", e);
     }
-  }
+  };
 
   const isMobileDevice = () => {
     return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -568,7 +622,7 @@ const Registro = (props) => {
   //         authorized: false,
   //         checkIn: false,
   //         formAnswers: userData,
-  //         ticket: ``, 
+  //         ticket: ``,
   //         email: userData.find(item => item.name === 'email').userData[0].toString(),
   //         allowContact: false,
   //         quantity,
@@ -599,37 +653,47 @@ const Registro = (props) => {
               onClick={() => {
                 props.setShowRegister(false);
               }}
-              className="gap mb-4 flex items-center font-medium text-brand-500 z-10	md:w-[20%] hover:text-navy-700 hover:no-underline dark:hover:text-white"
+              className="gap z-10 mb-4 flex items-center font-medium text-brand-500	hover:text-navy-700 hover:no-underline dark:hover:text-white md:w-[20%]"
             >
               <MdChevronLeft className="h-7 w-7" /> Regresar
             </Link>
 
             <h2
               id="title-form"
-              className="mb-[40px] md:mb-[60px] md:mt-[-60px] flex justify-center gap-2 text-4xl font-bold"
+              className="mb-[40px] flex justify-center gap-2 text-4xl font-bold md:mb-[60px] md:mt-[-60px]"
             >
               <HiOutlineDocumentText className="h-10 w-10" /> Formulario de
               Registro
             </h2>
-            
-            <div className="mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0">
-              
-              {memoizedFormBuilder}
 
+            <div className="box-shadow-0 mx-auto w-full max-w-[1100px] px-[25px] py-[40px] md:px-[50px]">
+              {memoizedFormBuilder}
 
               {/* Start new invoice data fields  */}
 
-              <div className="mt-3 mb-1 py-3">
-                <label 
-                  className="font-medium flex items-center cursor-pointer"
-                  onClick={() => handleBillingCheckboxChange(!showBillingFields)}
+              <div className="mb-1 mt-3 py-3">
+                <label
+                  className="flex cursor-pointer items-center font-medium"
+                  onClick={() =>
+                    handleBillingCheckboxChange(!showBillingFields)
+                  }
                 >
-                  <div 
-                    className={`w-5 h-5 mr-2 border border-gray-400 rounded flex items-center justify-center ${showBillingFields ? 'bg-blue-500' : 'bg-white'}`}
+                  <div
+                    className={`mr-2 flex h-5 w-5 items-center justify-center rounded border border-gray-400 ${
+                      showBillingFields ? "bg-blue-500" : "bg-white"
+                    }`}
                   >
                     {showBillingFields && (
-                      <svg className="w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      <svg
+                        className="h-3 w-3 text-white"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     )}
                   </div>
@@ -640,44 +704,102 @@ const Registro = (props) => {
               {showBillingFields && (
                 <div className="rendered-form mt-3" id="billingFields">
                   <div className="formbuilder-select form-group field-tipo_identificacion">
-                    <label htmlFor="tipo_identificacion" className="formbuilder-select-label">
+                    <label
+                      htmlFor="tipo_identificacion"
+                      className="formbuilder-select-label"
+                    >
                       Tipo de identificación
                     </label>
-                    <select name="tipo_identificacion" className="form-control" required aria-required="true">
-                      <option value="cedula" selected>Cédula</option>
+                    <select
+                      name="tipo_identificacion"
+                      className="form-control"
+                      required
+                      aria-required="true"
+                    >
+                      <option value="cedula" selected>
+                        Cédula
+                      </option>
                       <option value="pasaporte">Pasaporte</option>
                       <option value="ruc">RUC</option>
                     </select>
                   </div>
                   <div className="formbuilder-text form-group field-identificacion">
-                    <label htmlFor="identificacion" className="formbuilder-text-label">
+                    <label
+                      htmlFor="identificacion"
+                      className="formbuilder-text-label"
+                    >
                       N° de Identificación
                     </label>
-                    <input name="identificacion" className="form-control" type="text" id="identificacion_facturacion" required aria-required="true" />
+                    <input
+                      name="identificacion"
+                      className="form-control"
+                      type="text"
+                      id="identificacion_facturacion"
+                      required
+                      aria-required="true"
+                    />
                   </div>
                   <div className="formbuilder-text form-group field-email">
                     <label htmlFor="email" className="formbuilder-text-label">
                       Email
                     </label>
-                    <input name="email" className="form-control" placeholder="correo@ejemplo.com" type="email" id="email_facturacion" required aria-required="true" />
+                    <input
+                      name="email"
+                      className="form-control"
+                      placeholder="correo@ejemplo.com"
+                      type="email"
+                      id="email_facturacion"
+                      required
+                      aria-required="true"
+                    />
                   </div>
                   <div className="formbuilder-text form-group field-nombres">
                     <label htmlFor="nombres" className="formbuilder-text-label">
                       Nombre completo o razón social
                     </label>
-                    <input name="nombres" className="form-control" placeholder="Juan Pérez" type="text" id="nombres_facturacion" required aria-required="true" />
+                    <input
+                      name="nombres"
+                      className="form-control"
+                      placeholder="Juan Pérez"
+                      type="text"
+                      id="nombres_facturacion"
+                      required
+                      aria-required="true"
+                    />
                   </div>
                   <div className="formbuilder-text form-group field-direccion">
-                    <label htmlFor="direccion" className="formbuilder-text-label">
+                    <label
+                      htmlFor="direccion"
+                      className="formbuilder-text-label"
+                    >
                       Dirección
                     </label>
-                    <input name="direccion" className="form-control" placeholder="Calle Principal 123" type="text" id="direccion_facturacion" required aria-required="true" />
+                    <input
+                      name="direccion"
+                      className="form-control"
+                      placeholder="Calle Principal 123"
+                      type="text"
+                      id="direccion_facturacion"
+                      required
+                      aria-required="true"
+                    />
                   </div>
                   <div className="formbuilder-text form-group field-telefono">
-                    <label htmlFor="telefono" className="formbuilder-text-label">
+                    <label
+                      htmlFor="telefono"
+                      className="formbuilder-text-label"
+                    >
                       Teléfono
                     </label>
-                    <input name="telefono" className="form-control" placeholder="+593 99 1234 567" type="text" id="telefono_facturacion" required aria-required="true" />
+                    <input
+                      name="telefono"
+                      className="form-control"
+                      placeholder="+593 99 1234 567"
+                      type="text"
+                      id="telefono_facturacion"
+                      required
+                      aria-required="true"
+                    />
                   </div>
                 </div>
               )}
@@ -690,7 +812,7 @@ const Registro = (props) => {
                 onClick={() => {
                   handleSubmit();
                 }}
-                className="clear-both	linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
+                className="linear	text-md clear-both mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
                 Enviar y completar pago
               </button>
@@ -698,32 +820,39 @@ const Registro = (props) => {
           </>
         )}
 
-        { !sendEmail && searchParams.get('EventAttendee') || uploadProgress !== 100 &&
-          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
-            <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
-            <h2 className="mb-2 text-center text-xl font-semibold text-black">
-              Cargando...
-            </h2>
-            <p className="max-w-[500px] text-center text-black">
-              Esto puede tardar unos segundos, por favor, no cierre esta página.
-            </p>
-          </div>
-        }
+        {(!sendEmail && searchParams.get("EventAttendee")) ||
+          (uploadProgress !== 100 && (
+            <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3 opacity-[100%]">
+              <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
+              <h2 className="mb-2 text-center text-xl font-semibold text-black">
+                Cargando...
+              </h2>
+              <p className="max-w-[500px] text-center text-black">
+                Esto puede tardar unos segundos, por favor, no cierre esta
+                página.
+              </p>
+            </div>
+          ))}
 
-        { !authorized && searchParams.get('EventAttendee') &&
-          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-100 p-3">
-            <img src={logo} className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
+        {!authorized && searchParams.get("EventAttendee") && (
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3 opacity-100">
+            <img
+              src={logo}
+              className="mb-3 w-[80px] md:w-[90px] lg:w-[150px]"
+            />
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
               Su pago está siendo procesado actualmente
             </h2>
             <p className="max-w-[500px] text-center text-black">
-              Agradecemos su comprensión y paciencia. En caso de transferencia o depósito, el pago se procesara dentro de 48 horas y el ticket se enviará a su correo electrónico.
+              Agradecemos su comprensión y paciencia. En caso de transferencia o
+              depósito, el pago se procesara dentro de 48 horas y el ticket se
+              enviará a su correo electrónico.
             </p>
           </div>
-        }
+        )}
 
-        {!authorized && formRegister && !searchParams.get('EventAttendee') &&
-          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
+        {!authorized && formRegister && !searchParams.get("EventAttendee") && (
+          <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3 opacity-[100%]">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
             <h2 className="mb-2 text-center text-2xl font-semibold text-black">
               Redirigiendo a la pasarela de pagos USFQ
@@ -732,26 +861,27 @@ const Registro = (props) => {
               Por favor no cierre esta página.
             </p>
           </div>
-        }
+        )}
 
         {authorized && eventAttendee && userData.length !== 0 && (
           <>
-            <div 
-              ref = {ticketsRef}  
+            <div
+              ref={ticketsRef}
               className="mb-[35px] flex flex-col items-center justify-center text-center"
             >
               <h1 className="mb-3 text-2xl font-semibold">Compra éxitosa!</h1>
               <p className="text-lg">
-                Descargue su ticket y presentelo el día del evento para ingresar.
+                Descargue su ticket y presentelo el día del evento para
+                ingresar.
               </p>
               <p className="mb-4 text-lg">
-                Su ticket tambien es enviado por correo para su resplado. 
+                Su ticket tambien es enviado por correo para su resplado.
               </p>
               <button
                 href="descargar"
                 onClick={() => {
-                  handleExport(false); 
-                }} 
+                  handleExport(false);
+                }}
                 className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
               >
                 Descargar PDF
@@ -782,7 +912,7 @@ const Registro = (props) => {
                       <div className="flex w-full flex-col items-center justify-start ">
                         {/* => QrCode + Name of event + Logo  */}
                         <div className="flex items-center justify-center bg-white p-1">
-                          {eventAttendee.id && 
+                          {eventAttendee.id && (
                             <QRCode
                               id="qrcode"
                               className="mb-[24px]"
@@ -791,7 +921,7 @@ const Registro = (props) => {
                               value={eventAttendee.id}
                               viewBox={`0 0 200 200`}
                             />
-                          }
+                          )}
                         </div>
                         {/* => Event Name  */}
                         <h1 className="mb-4 text-3xl font-bold">
@@ -800,7 +930,7 @@ const Registro = (props) => {
                         {/* => Logo  */}
                         <img src={logo} className="w-[150px]" />
                       </div>
-                      <div className="items-center flex w-full flex-col justify-center">
+                      <div className="flex w-full flex-col items-center justify-center">
                         {userData.map((data, i) => (
                           <div key={i}>
                             {data.name === "nombres" && (
@@ -812,7 +942,10 @@ const Registro = (props) => {
                         ))}
                         {eventAttendee && (
                           <p className="text-md mb-1 w-full text-center font-bold">
-                            Código de ticket: <span className="d-block font-normal">{eventAttendee.id}</span>
+                            Código de ticket:{" "}
+                            <span className="d-block font-normal">
+                              {eventAttendee.id}
+                            </span>
                           </p>
                         )}
                         <p className="mb-1 mb-2 mt-3 text-right text-sm font-normal">

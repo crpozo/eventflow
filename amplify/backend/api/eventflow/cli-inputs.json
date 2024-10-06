@@ -16,63 +16,7 @@
     "conflictResolution": {
       "defaultResolutionStrategy": {
         "type": "OPTIMISTIC_CONCURRENCY"
-      },
-      "perModelResolutionStrategy": [
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "PaymentLog"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "EventAttendee"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "Form"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "Landing"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "Attendee"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "Event"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "Career"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "Area"
-        },
-        {
-          "resolutionStrategy": {
-            "type": "OPTIMISTIC_CONCURRENCY"
-          },
-          "entityName": "Campus"
-        }
-      ]
+      }
     }
   }
 }

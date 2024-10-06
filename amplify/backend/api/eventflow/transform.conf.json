@@ -5,44 +5,6 @@
         "project": {
             "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
             "ConflictDetection": "VERSION"
-        },
-        "models": {
-            "PaymentLog": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "EventAttendee": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "Form": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "Landing": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "Attendee": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "Event": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "Career": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "Area": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            },
-            "Campus": {
-                "ConflictHandler": "OPTIMISTIC_CONCURRENCY",
-                "ConflictDetection": "VERSION"
-            }
         }
     }
 }

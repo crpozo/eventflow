@@ -6,6 +6,7 @@
 
 import * as React from "react";
 import { AutocompleteProps, GridProps, SelectFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { Badge as Badge0 } from "../models";
 export declare type EscapeHatchProps = {
     [elementHierarchy: string]: Record<string, unknown>;
 } | null;
@@ -34,6 +35,7 @@ export declare type EventCreateFormInputValues = {
     eventIdUSFQ?: string;
     periodoUSFQ?: string;
     usuarioUSFQ?: string;
+    Badge?: Badge0;
 };
 export declare type EventCreateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -48,6 +50,7 @@ export declare type EventCreateFormValidationValues = {
     eventIdUSFQ?: ValidationFunction<string>;
     periodoUSFQ?: ValidationFunction<string>;
     usuarioUSFQ?: ValidationFunction<string>;
+    Badge?: ValidationFunction<Badge0>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventCreateFormOverridesProps = {
@@ -64,6 +67,7 @@ export declare type EventCreateFormOverridesProps = {
     eventIdUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
     periodoUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
     usuarioUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
+    Badge?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type EventCreateFormProps = React.PropsWithChildren<{
     overrides?: EventCreateFormOverridesProps | undefined | null;

@@ -8,6 +8,8 @@ export { default as AreaCreateForm } from "./AreaCreateForm";
 export { default as AreaUpdateForm } from "./AreaUpdateForm";
 export { default as AttendeeCreateForm } from "./AttendeeCreateForm";
 export { default as AttendeeUpdateForm } from "./AttendeeUpdateForm";
+export { default as BadgeCreateForm } from "./BadgeCreateForm";
+export { default as BadgeUpdateForm } from "./BadgeUpdateForm";
 export { default as CampusCreateForm } from "./CampusCreateForm";
 export { default as CampusUpdateForm } from "./CampusUpdateForm";
 export { default as CareerCreateForm } from "./CareerCreateForm";

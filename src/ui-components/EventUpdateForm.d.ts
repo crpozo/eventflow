@@ -5,8 +5,8 @@
  **************************************************************************/
 
 import * as React from "react";
-import { GridProps, SelectFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
-import { Event } from "../models";
+import { AutocompleteProps, GridProps, SelectFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { Event, Badge as Badge0 } from "../models";
 export declare type EscapeHatchProps = {
     [elementHierarchy: string]: Record<string, unknown>;
 } | null;
@@ -34,6 +34,7 @@ export declare type EventUpdateFormInputValues = {
     eventIdUSFQ?: string;
     periodoUSFQ?: string;
     usuarioUSFQ?: string;
+    Badge?: Badge0;
 };
 export declare type EventUpdateFormValidationValues = {
     title?: ValidationFunction<string>;
@@ -47,6 +48,7 @@ export declare type EventUpdateFormValidationValues = {
     eventIdUSFQ?: ValidationFunction<string>;
     periodoUSFQ?: ValidationFunction<string>;
     usuarioUSFQ?: ValidationFunction<string>;
+    Badge?: ValidationFunction<Badge0>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type EventUpdateFormOverridesProps = {
@@ -62,6 +64,7 @@ export declare type EventUpdateFormOverridesProps = {
     eventIdUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
     periodoUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
     usuarioUSFQ?: PrimitiveOverrideProps<TextFieldProps>;
+    Badge?: PrimitiveOverrideProps<AutocompleteProps>;
 } & EscapeHatchProps;
 export declare type EventUpdateFormProps = React.PropsWithChildren<{
     overrides?: EventUpdateFormOverridesProps | undefined | null;

@@ -1,5 +1,71 @@
 export const schema = {
     "models": {
+        "Badge": {
+            "name": "Badge",
+            "fields": {
+                "id": {
+                    "name": "id",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": true,
+                    "attributes": []
+                },
+                "frontDesign": {
+                    "name": "frontDesign",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "backDesign": {
+                    "name": "backDesign",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "createdAt": {
+                    "name": "createdAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                },
+                "updatedAt": {
+                    "name": "updatedAt",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isReadOnly": true
+                }
+            },
+            "syncable": true,
+            "pluralName": "Badges",
+            "attributes": [
+                {
+                    "type": "model",
+                    "properties": {}
+                },
+                {
+                    "type": "auth",
+                    "properties": {
+                        "rules": [
+                            {
+                                "allow": "public",
+                                "operations": [
+                                    "create",
+                                    "update",
+                                    "delete",
+                                    "read"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
         "PaymentLog": {
             "name": "PaymentLog",
             "fields": {
@@ -681,6 +747,24 @@ export const schema = {
                     "isRequired": true,
                     "attributes": []
                 },
+                "Badge": {
+                    "name": "Badge",
+                    "isArray": false,
+                    "type": {
+                        "model": "Badge"
+                    },
+                    "isRequired": false,
+                    "attributes": [],
+                    "association": {
+                        "connectionType": "HAS_ONE",
+                        "associatedWith": [
+                            "id"
+                        ],
+                        "targetNames": [
+                            "eventBadgeId"
+                        ]
+                    }
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -706,6 +790,13 @@ export const schema = {
                 },
                 "eventFormId": {
                     "name": "eventFormId",
+                    "isArray": false,
+                    "type": "ID",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "eventBadgeId": {
+                    "name": "eventBadgeId",
                     "isArray": false,
                     "type": "ID",
                     "isRequired": false,
@@ -1056,5 +1147,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "f5f5ec3605c12e1a0effb88771e8f64f"
+    "version": "035609cea002e1ce83f8f3b1b083b2aa"
 };

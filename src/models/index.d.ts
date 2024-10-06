@@ -6,6 +6,36 @@ import { LazyLoading, LazyLoadingDisabled, AsyncCollection, AsyncItem } from "@a
 
 
 
+type EagerBadge = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Badge, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly frontDesign?: string | null;
+  readonly backDesign?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyBadge = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Badge, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly frontDesign?: string | null;
+  readonly backDesign?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type Badge = LazyLoading extends LazyLoadingDisabled ? EagerBadge : LazyBadge
+
+export declare const Badge: (new (init: ModelInit<Badge>) => Badge) & {
+  copyOf(source: Badge, mutator: (draft: MutableModel<Badge>) => MutableModel<Badge> | void): Badge;
+}
+
 type EagerPaymentLog = {
   readonly [__modelMeta__]: {
     identifier: ManagedIdentifier<PaymentLog, 'id'>;
@@ -217,10 +247,12 @@ type EagerEvent = {
   readonly eventIdUSFQ: string;
   readonly periodoUSFQ: string;
   readonly usuarioUSFQ: string;
+  readonly Badge?: Badge | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
   readonly eventFormId?: string | null;
+  readonly eventBadgeId?: string | null;
 }
 
 type LazyEvent = {
@@ -244,10 +276,12 @@ type LazyEvent = {
   readonly eventIdUSFQ: string;
   readonly periodoUSFQ: string;
   readonly usuarioUSFQ: string;
+  readonly Badge: AsyncItem<Badge | undefined>;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
   readonly eventFormId?: string | null;
+  readonly eventBadgeId?: string | null;
 }
 
 export declare type Event = LazyLoading extends LazyLoadingDisabled ? EagerEvent : LazyEvent

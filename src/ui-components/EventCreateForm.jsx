@@ -21,7 +21,7 @@ import {
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
-import { Event, Career } from "../models";
+import { Event, Badge as Badge0, Career } from "../models";
 import {
   fetchByPath,
   getOverrideProps,
@@ -209,6 +209,7 @@ export default function EventCreateForm(props) {
     eventIdUSFQ: "",
     periodoUSFQ: "",
     usuarioUSFQ: "",
+    Badge: undefined,
   };
   const [title, setTitle] = React.useState(initialValues.title);
   const [description, setDescription] = React.useState(
@@ -236,6 +237,7 @@ export default function EventCreateForm(props) {
   const [usuarioUSFQ, setUsuarioUSFQ] = React.useState(
     initialValues.usuarioUSFQ
   );
+  const [Badge, setBadge] = React.useState(initialValues.Badge);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setTitle(initialValues.title);
@@ -254,6 +256,9 @@ export default function EventCreateForm(props) {
     setEventIdUSFQ(initialValues.eventIdUSFQ);
     setPeriodoUSFQ(initialValues.periodoUSFQ);
     setUsuarioUSFQ(initialValues.usuarioUSFQ);
+    setBadge(initialValues.Badge);
+    setCurrentBadgeValue(undefined);
+    setCurrentBadgeDisplayValue("");
     setErrors({});
   };
   const [currentContactNameValue, setCurrentContactNameValue] =
@@ -267,12 +272,29 @@ export default function EventCreateForm(props) {
   const [currentCareerIDValue, setCurrentCareerIDValue] =
     React.useState(undefined);
   const careerIDRef = React.createRef();
+  const [currentBadgeDisplayValue, setCurrentBadgeDisplayValue] =
+    React.useState("");
+  const [currentBadgeValue, setCurrentBadgeValue] = React.useState(undefined);
+  const BadgeRef = React.createRef();
+  const getIDValue = {
+    Badge: (r) => JSON.stringify({ id: r?.id }),
+  };
+  const BadgeIdSet = new Set(
+    Array.isArray(Badge)
+      ? Badge.map((r) => getIDValue.Badge?.(r))
+      : getIDValue.Badge?.(Badge)
+  );
   const careerRecords = useDataStoreBinding({
     type: "collection",
     model: Career,
   }).items;
+  const badgeRecords = useDataStoreBinding({
+    type: "collection",
+    model: Badge0,
+  }).items;
   const getDisplayValue = {
     careerID: (r) => `${r?.title ? r?.title + " - " : ""}${r?.id}`,
+    Badge: (r) => `${r?.frontDesign ? r?.frontDesign + " - " : ""}${r?.id}`,
   };
   const validations = {
     title: [{ type: "Required" }],
@@ -287,6 +309,7 @@ export default function EventCreateForm(props) {
     eventIdUSFQ: [{ type: "Required" }],
     periodoUSFQ: [{ type: "Required" }],
     usuarioUSFQ: [{ type: "Required" }],
+    Badge: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -343,19 +366,28 @@ export default function EventCreateForm(props) {
           eventIdUSFQ,
           periodoUSFQ,
           usuarioUSFQ,
+          Badge,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
             if (Array.isArray(modelFields[fieldName])) {
               promises.push(
                 ...modelFields[fieldName].map((item) =>
-                  runValidationTasks(fieldName, item)
+                  runValidationTasks(
+                    fieldName,
+                    item,
+                    getDisplayValue[fieldName]
+                  )
                 )
               );
               return promises;
             }
             promises.push(
-              runValidationTasks(fieldName, modelFields[fieldName])
+              runValidationTasks(
+                fieldName,
+                modelFields[fieldName],
+                getDisplayValue[fieldName]
+              )
             );
             return promises;
           }, [])
@@ -415,6 +447,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -450,6 +483,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -486,6 +520,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.category ?? value;
@@ -521,6 +556,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -569,6 +605,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.date ?? value;
@@ -600,6 +637,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             values = result?.contactName ?? values;
@@ -658,6 +696,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             values = result?.contactNumber ?? values;
@@ -729,6 +768,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.termsCondition ?? value;
@@ -761,6 +801,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.careerID ?? value;
@@ -871,6 +912,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ: value,
               periodoUSFQ,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.eventIdUSFQ ?? value;
@@ -911,6 +953,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ: value,
               usuarioUSFQ,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.periodoUSFQ ?? value;
@@ -951,6 +994,7 @@ export default function EventCreateForm(props) {
               eventIdUSFQ,
               periodoUSFQ,
               usuarioUSFQ: value,
+              Badge,
             };
             const result = onChange(modelFields);
             value = result?.usuarioUSFQ ?? value;
@@ -965,6 +1009,93 @@ export default function EventCreateForm(props) {
         hasError={errors.usuarioUSFQ?.hasError}
         {...getOverrideProps(overrides, "usuarioUSFQ")}
       ></TextField>
+      <ArrayField
+        lengthLimit={1}
+        onChange={async (items) => {
+          let value = items[0];
+          if (onChange) {
+            const modelFields = {
+              title,
+              description,
+              category,
+              location,
+              date,
+              contactName,
+              contactNumber,
+              termsCondition,
+              careerID,
+              eventIdUSFQ,
+              periodoUSFQ,
+              usuarioUSFQ,
+              Badge: value,
+            };
+            const result = onChange(modelFields);
+            value = result?.Badge ?? value;
+          }
+          setBadge(value);
+          setCurrentBadgeValue(undefined);
+          setCurrentBadgeDisplayValue("");
+        }}
+        currentFieldValue={currentBadgeValue}
+        label={"Badge"}
+        items={Badge ? [Badge] : []}
+        hasError={errors?.Badge?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("Badge", currentBadgeValue)
+        }
+        errorMessage={errors?.Badge?.errorMessage}
+        getBadgeText={getDisplayValue.Badge}
+        setFieldValue={(model) => {
+          setCurrentBadgeDisplayValue(
+            model ? getDisplayValue.Badge(model) : ""
+          );
+          setCurrentBadgeValue(model);
+        }}
+        inputFieldRef={BadgeRef}
+        defaultFieldValue={""}
+      >
+        <Autocomplete
+          label="Badge"
+          isRequired={false}
+          isReadOnly={false}
+          placeholder="Search Badge"
+          value={currentBadgeDisplayValue}
+          options={badgeRecords
+            .filter((r) => !BadgeIdSet.has(getIDValue.Badge?.(r)))
+            .map((r) => ({
+              id: getIDValue.Badge?.(r),
+              label: getDisplayValue.Badge?.(r),
+            }))}
+          onSelect={({ id, label }) => {
+            setCurrentBadgeValue(
+              badgeRecords.find((r) =>
+                Object.entries(JSON.parse(id)).every(
+                  ([key, value]) => r[key] === value
+                )
+              )
+            );
+            setCurrentBadgeDisplayValue(label);
+            runValidationTasks("Badge", label);
+          }}
+          onClear={() => {
+            setCurrentBadgeDisplayValue("");
+          }}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.Badge?.hasError) {
+              runValidationTasks("Badge", value);
+            }
+            setCurrentBadgeDisplayValue(value);
+            setCurrentBadgeValue(undefined);
+          }}
+          onBlur={() => runValidationTasks("Badge", currentBadgeDisplayValue)}
+          errorMessage={errors.Badge?.errorMessage}
+          hasError={errors.Badge?.hasError}
+          ref={BadgeRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "Badge")}
+        ></Autocomplete>
+      </ArrayField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}

@@ -9,6 +9,7 @@ import {
 } from "react-table";
 
 import { IoEnterOutline } from "react-icons/io5";
+import UploadExcelButton from "./UploadExcelButton";
 
 const DevelopmentTable = (props) => {
   const { columnsData, tableData } = props;
@@ -40,9 +41,14 @@ const DevelopmentTable = (props) => {
 
   return (
     <Card extra={"w-full h-full p-4"}>
-      <div className="relative flex items-center justify-between">
-        <div className="text-2xl font-medium text-navy-700 dark:text-white">
-          Tabla de participantes
+      <div className="relative flex items-center ">
+        <div className="w-full flex flex-row justify-between">
+          <div className="text-2xl font-medium text-navy-700 dark:text-white">
+            Tabla de participantes
+          </div>
+          <div>
+            <UploadExcelButton />
+          </div>
         </div>
         {/* <Link className="hover:no-underline" to="crear">
           <button href="crear" className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
@@ -65,7 +71,7 @@ const DevelopmentTable = (props) => {
                 {headerGroup.headers.map((column, index) => (
                   <th
                     {...column.getHeaderProps(column.getSortByToggleProps())}
-                    className="border-b border-gray-200 pr-32 pb-[10px] text-start dark:!border-navy-700 "
+                    className="border-b border-gray-200 pb-[10px] pr-32 text-start dark:!border-navy-700 "
                     key={index}
                   >
                     <div className="text-sm font-bold tracking-wide text-gray-600">
@@ -80,10 +86,14 @@ const DevelopmentTable = (props) => {
             {page.map((row, index) => {
               prepareRow(row);
               return (
-                <tr className="border-b border-gray-200" {...row.getRowProps()} key={index}>
+                <tr
+                  className="border-b border-gray-200"
+                  {...row.getRowProps()}
+                  key={index}
+                >
                   {row.cells.map((cell, index) => {
                     let data = "";
-                    console.log("Cell: ",cell)
+                    console.log("Cell: ", cell);
                     if (cell.column.Header === "ID") {
                       data = (
                         <p className="text-[15px] text-navy-700 dark:text-white">
@@ -96,17 +106,21 @@ const DevelopmentTable = (props) => {
                           {cell.value}
                         </p>
                       );
-                    }
-                    else if (cell.column.Header === "Detalle") {
+                    } else if (cell.column.Header === "Detalle") {
                       data = (
                         <span
                           onClick={() => {
                             navigate(`/usuario/${cell.value}`);
                           }}
-                          className="flex items-center gap-2 cursor-pointer hover:text-brand-500" 
-                          style={{ /* Add your inline styles here */ }}
+                          className="flex cursor-pointer items-center gap-2 hover:text-brand-500"
+                          style={
+                            {
+                              /* Add your inline styles here */
+                            }
+                          }
                         >
-                          Ingresar  <IoEnterOutline className="h-[20px] w-[20px]"/>
+                          Ingresar{" "}
+                          <IoEnterOutline className="h-[20px] w-[20px]" />
                         </span>
                       );
                     }
@@ -114,7 +128,7 @@ const DevelopmentTable = (props) => {
                       <td
                         {...cell.getCellProps()}
                         key={index}
-                        className="pt-[14px] pb-3 text-[14px]"
+                        className="pb-3 pt-[14px] text-[14px]"
                       >
                         {data}
                       </td>

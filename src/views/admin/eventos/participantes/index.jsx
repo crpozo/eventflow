@@ -73,6 +73,7 @@ const Marketplace = () => {
         <Banner />
 
         <div className="mt-5 grid h-full grid-cols-1 gap-5">
+          
           <DevelopmentTable
             columnsData={columns}
             tableData={rows}
