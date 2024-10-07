@@ -1,43 +1,18 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@chakra-ui/button";
 import { DataStore } from "aws-amplify/datastore";
-import { Attendee, EventAttendee } from "models";
+import { Attendee, EventAttendee, Form } from "models";
 
 export default function UploadExcelButton() {
   const url = window.location.href;
-  const requiredColumns = [
-    "identificacion",
-    "email",
-    "nombre y apellido",
-    "direccion",
-    "telefono",
-  ];
   const domain = url.split("/")[2]; // The event ID is the 5th segment
   const eventID = url.split("/")[5]; // The event ID is the 5th segment
   const [isPending, setIsPending] = useState(false);
 
-  //   const [eventAttendees, setEventAttendees] = useState([]);
-
-  //   useEffect(() => {
-  //     const fetchData = async () => {
-  //       try {
-  //         const attendees = await DataStore.query(EventAttendee, (e) => e.eventID.eq(eventID));
-  //         setEventAttendees(attendees); // Store the fetched event attendees in the state
-  //         alert(JSON.stringify(attendees,null,2));
-  //       } catch (error) {
-  //         console.error("Error fetching event attendees: ", error);
-  //       }
-  //     };
-
-  //     if (eventID) {
-  //       fetchData();
-  //     }
-  //   }, [eventID]);
-
   const fileInputRef = useRef(null);
 
-  const handleButtonClick = () => {
+  const handleButtonClick = async () => {
     fileInputRef.current.click();
   };
 
@@ -73,27 +48,11 @@ export default function UploadExcelButton() {
             );
           });
 
-          // Check if all required columns are present
-          const header = Object.keys(participants[0]);
-
-          const hasAllRequiredColumns = requiredColumns.every((col) => {
-            const result = header.includes(col);
-            return result;
-          });
-
-          if (!hasAllRequiredColumns) {
-            const missingColumns = requiredColumns.filter(
-              (col) => !header.includes(col)
-            );
-            alert("Missing columns: " + missingColumns.join(", "));
-            throw new Error("Missing required columns");
-          }
-
-          console.log(participants);
+          const questions= (await DataStore.query(Form, (f) => f.formEventId.eq(eventID)))[0]?.questions;    
 
           for (const participant of participants) {
             const attendee = await createAttendee();
-
+            const answers=questions.map((q)=>({...q,userData:[participant[q.name.toLowerCase()]??'']}));
             if (attendee) {
               try {
                 const newEventAttendee = await DataStore.save(
@@ -102,11 +61,11 @@ export default function UploadExcelButton() {
                     attendeeID: attendee.id,
                     authorized: false,
                     checkIn: false,
-                    formAnswers: JSON.stringify(participant),
+                    formAnswers: JSON.stringify(answers),
                     ticket: ``,
                     email: participant.email,
                     allowContact: false,
-                    quantity: 0,
+                    quantity: 1,
                     scanned: 0,
                     profileURL: `${domain}/usuario/${attendee.id}`,
                   })
@@ -156,7 +115,7 @@ export default function UploadExcelButton() {
         type="file"
         ref={fileInputRef}
         accept=".xlsx, .csv, .xls"
-        style={{ display: "none" }}
+        hidden
         onChange={handleFileChange}
       />
     </div>
