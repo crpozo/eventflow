@@ -281,7 +281,7 @@ export default function SignIn() {
           )}
 
           <div className="container absolute inset-0 flex items-center justify-center md:justify-start">
-            <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-black/50 backdrop-blur-md px-3 py-3 lg:max-w-[43%] xl:max-w-[40%] md:!pb-[25px] md:!pt-[25px]">
+            <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-black/50 backdrop-blur-md px-3 py-3 lg:max-w-[43%] xl:max-w-[40%] md:!pb-[25px] md:!pt-[25px]">
               <h1 className="font-bold text-center text-white text-[28px] md:text-[40px] w-full">
                 {translated.title}
               </h1>
