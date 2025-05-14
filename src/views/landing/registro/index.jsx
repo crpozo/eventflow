@@ -12,6 +12,7 @@ import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils";
 import { uploadData, getUrl } from "aws-amplify/storage";
+import { autoSignIn } from "aws-amplify/auth";
 
 window.jQuery = $;
 window.$ = $;
@@ -33,10 +34,9 @@ const Registro = (props) => {
     Array.from({ length: quantity }, (_, index) => index)
   );
   const [uploadProgress, setUploadProgress] = React.useState(100);
-  const [sendEmail, setSendEmail] = React.useState(false);
   const [changeBilling, setChangeBilling] = React.useState(false);
   const [showBillingFields, setShowBillingFields] = React.useState(false);
-  const [isProcessing, setIsProcessing] = React.useState(false);
+  const [isProcessing, setIsProcessing] = React.useState(true);
   const [formBuilderLoading, setFormBuilderLoading] = React.useState(true);
   const [formBuilderError, setFormBuilderError] = React.useState(null); 
   const [userConsentChecked, setUserConsentChecked] = React.useState(false);
@@ -100,7 +100,6 @@ const Registro = (props) => {
 
   React.useEffect(() => {
     if (eventAttendee && eventAttendee.ticket) {
-      setSendEmail(true);
       setUploadProgress(100);
     }
   }, [eventAttendee]);
@@ -122,7 +121,12 @@ const Registro = (props) => {
   }, [eventAttendeeProp]);
 
   React.useEffect(() => {
-    if (showRegister && formRef.current) {
+    
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasEventAttendee = searchParams.get("EventAttendee");
+    if (showRegister && formRef.current && !hasEventAttendee) {
+      // Deactivate loading screen
+      setIsProcessing(false);
       formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [showRegister]);
@@ -180,7 +184,7 @@ const Registro = (props) => {
 
   // Download PDF + handle mobile behavior
   React.useEffect(() => {
-    if (authorized && ticketsRef.current) {
+    if (authorized && ticketsRef.current) {      
       handleExport(isMobileDevice());
       ticketsRef.current.scrollIntoView({ behavior: "smooth" });
       const elementRect = ticketsRef.current.getBoundingClientRect();
@@ -361,7 +365,6 @@ const Registro = (props) => {
             } else {
               // Redirect to Eventflow
               setTimeout(() => {
-                setIsProcessing(false); 
                 navigate(`?EventAttendee=${newEventAttendee.id}`);
               },2000)
             }
@@ -521,6 +524,7 @@ const Registro = (props) => {
 
   const handleExport = async (isMobileDevice) => {
     try {
+
       const tickets = document.querySelectorAll('[id^="pdf-content"]');
       const pdfOptions = {
         image: { type: "jpeg", quality: 1 },
@@ -549,14 +553,16 @@ const Registro = (props) => {
           setUploadProgress(0);
           const base64PDF = btoa(pdf);
           await savePDFStorage(base64PDF);
-        } else {
-          setSendEmail(true);
         }
       });
 
       if (!isMobileDevice) {
         pdf?.save(`${props.landing.title + " - ticket "}.pdf`);
       }
+
+      // Deactive loading screen
+      setIsProcessing(false);
+
     } catch (e) {
       console.error("handleExport error: ", e);
     }
@@ -564,10 +570,9 @@ const Registro = (props) => {
 
   async function savePDFStorage(ticket) {
     try {
-
+      
       if (eventAttendee.ticket && eventAttendee.ticket.length > 0) {
         setUploadProgress(100);
-        setSendEmail(true);
         setIsProcessing(false); 
         return;
       }
@@ -629,8 +634,6 @@ const Registro = (props) => {
 
       const data = await response.json();
 
-      setSendEmail(true);
-      console.log("email enviado")
     } catch (e) {
       console.error("sendTicketEmail: ", e);
     }
