@@ -1,0 +1,227 @@
+import React from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import RtlLayout from "layouts/rtl";
+import AdminLayout from "layouts/admin";
+import AuthLayout from "layouts/auth";
+import PageLayout from "layouts/page";
+import LandingLayout from "layouts/landing"; 
+import LegalLayout from "layouts/privacidad";
+import UserLayout from "layouts/usuario";
+import logo from "assets/img/usfq/logo_usfq.svg";
+import campus from "assets/img/usfq/USFQ_campus.png";
+import Hotjar from '@hotjar/browser';
+import { I18n, Hub } from 'aws-amplify/utils';
+import { Authenticator, translations } from '@aws-amplify/ui-react'
+import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Amplify } from 'aws-amplify';
+import { generateClient } from 'aws-amplify/api';
+import config from './amplifyconfiguration.json';
+import '@aws-amplify/ui-react/styles.css';
+I18n.putVocabularies(translations);
+I18n.setLanguage('es');
+Amplify.configure(config);
+const client = generateClient();
+
+
+
+function App() { 
+
+  const { route } = useAuthenticator(context => [context.route]);
+  const { authStatus } = useAuthenticator(context => [context.authStatus]);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isLandingRoute = location.pathname.includes('/landing');
+  const isLegalRoute = location.pathname.includes('/privacidad');
+  const isUserRoute = location.pathname.includes('/usuario');
+  const [onReady, setOnReady] = React.useState(Promise.resolve());
+  const [isReady, setIsReady] = React.useState(true);
+
+  // class MyClass {
+  //   constructor() {
+  
+  //     Hub.listen('auth', (data) => {
+  //       const { payload } = data;
+  //       this.onAuthEvent(payload);
+  //       console.log(
+  //         'A new auth event has happened: ',
+  //         data.payload.data?.username + ' has ' + data.payload.event
+  //       );
+  //     });
+  //   }
+  
+  //   onAuthEvent(payload) {
+  //     console.log("PAYLOAD: ",payload)
+  //     switch (payload.event) {
+  //       case 'signedIn':
+  //         // refreshDataStore();
+  //         break;
+  //     }
+  //   }
+  // }
+
+  // Hotjar init
+  const siteId = 123;
+  const hotjarVersion = 6;
+  Hotjar.init(siteId, hotjarVersion);
+
+  React.useEffect(() => {
+    // Cookiebot
+
+    // const cookiebotScript = document.createElement('script');
+    // cookiebotScript.id = 'Cookiebot';
+    // cookiebotScript.src = 'https://consent.cookiebot.com/uc.js';
+    // cookiebotScript.setAttribute('data-cbid', '7f732229-5a1e-49cc-9a04-cbd43a1eb610');
+    // document.head.appendChild(cookiebotScript);
+
+    const cookieDeclarationScript = document.createElement('script');
+    cookieDeclarationScript.id = 'CookieDeclaration';
+    cookieDeclarationScript.src = 'https://consent.cookiebot.com/7f732229-5a1e-49cc-9a04-cbd43a1eb610/cd.js';
+    cookieDeclarationScript.async = true;
+    document.head.appendChild(cookieDeclarationScript);
+
+    // Live chat Tidio
+    if(window.location.href.includes('eventflow')){
+      const tidioScript = document.createElement('script');
+      tidioScript.src = '//code.tidio.co/l5o4hcityjxdcqyhycvrptlv0uyzs9r6.js';
+      tidioScript.async = true;
+      document.body.appendChild(tidioScript);
+    }
+
+    return () => {
+      // Limpiar scripts al desmontar el componente
+      // document.head.removeChild(cookiebotScript);
+      document.head.removeChild(cookieDeclarationScript);
+      //document.body.removeChild(tidioScript);
+    };
+
+  }, []);
+
+  React.useEffect(() => {
+    const unsubscribe = Hub.listen('auth', ({ payload }) => {
+      if (payload.event === 'signedOut') {
+        localStorage.removeItem("EVENTFLOW.area");
+        localStorage.removeItem("EVENTFLOW.campus");
+        localStorage.removeItem("EVENTFLOW.subarea");
+        window.location.pathname = "/page/campus";
+
+        console.log("🧹 LocalStorage limpiado tras logout.");
+      }
+    });
+  
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+  
+
+  // If datastore is cleared and the browser is refreshed variables reset and reinit datastore
+  // React.useEffect( () => {
+  //   async function startData() {
+  //     if(authStatus == 'unauthenticated'){
+  //       await DataStore.start();
+  //       console.log("START executed")
+  //     }
+  //   }
+  //   startData();
+  // }, [authStatus]);
+
+  // const clearDataStore = async () => {
+  //   try {
+  //     if(DataStore && DataStore.state == "Clearing") return
+  //     console.log("APP DATASTORE STATE: ", DataStore.state)
+  //     await DataStore.clear();
+  //   } catch (error) {
+  //     console.error("Error clearing DataStore", error);
+  //   } finally {
+  //     setIsReady(true);
+  //     console.log("DataStore cleared successfully");
+  //   }
+  // };
+  
+  if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !isReady){
+    return(
+      <div className="bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
+        <span className="loader"></span>
+        <h2 className="mb-2 text-center text-xl text-black">
+          Cargando...
+        </h2>
+      </div>
+    );
+  }
+
+  // Use the value of route to decide which page to render
+  return isReady && route === 'authenticated'
+  ? (
+    <Routes>
+      <Route path="auth/*" element={<AuthLayout />} />
+      <Route path="admin/*" element={<AdminLayout />} />
+      <Route path="rtl/*" element={<RtlLayout />} />
+      <Route path="page/*" element={<PageLayout />} />
+      <Route path="landing/*" element={<LandingLayout />} />
+      <Route path="privacidad" element={<LegalLayout />} />
+      <Route path="usuario/*" element={<UserLayout />} />
+      <Route path="/" element={<Navigate to="/admin" replace />} />
+    </Routes>
+    )
+  :
+    <>
+    {isLandingRoute ? (
+      <Routes>
+        <Route path="landing/*" element={<LandingLayout />} />
+      </Routes>
+    ) : isLegalRoute ? (
+      <Routes>
+        <Route path="privacidad" element={<LegalLayout />} />
+      </Routes>
+    ) : 
+    isUserRoute ? (
+      <Routes>
+        <Route path="usuario/*" element={<UserLayout />} />
+      </Routes>
+    ) :( 
+      <div className="bg-usfqPrimary flex min-h-screen items-center justify-center bg-lightPrimary px-0 py-0 lg:px-4 lg:py-6">
+        <div className="flex flex-col-reverse justify-center lg:flex-row overflow-hidden rounded-3xl shadow-lg w-full max-w-6xl h-screen lg:h-[670px]">
+          
+          {/* Imagen lado izquierdo */}
+          <div
+            className="relative hidden lg:block w-1/2 bg-cover bg-center"
+            style={{ backgroundImage: `url(${campus})` }}
+          >
+            <div className="absolute inset-0 bg-black/20" />
+            <div className="absolute inset-0 flex justify-center px-8 items-start mt-[70px]">
+              <div className="backdrop-blur-xl bg-white/30 p-8 rounded-xl max-w-md text-center shadow-lg">
+                <h2 className="text-xl font-semibold text-white">
+                  Gestiona, diseña y analiza tus eventos<br />en un solo lugar.
+                </h2>
+                <p className="mt-4 text-sm text-white">
+                  Crea eventos, diseña páginas web personalizadas, construye formularios, accede a reportes en tiempo real y escanea tickets con dispositivos móviles — todo desde una sola plataforma.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Formulario lado derecho */}
+          <div className="flex flex-1 flex-col justify-center bg-white px-6 py-10 lg:w-1/2">
+            <div className="text-center mb-6">
+              <img src={logo} alt="Logo USFQ" className="mx-auto max-w-[130px] mb-4" />
+              <p className="mt-2 text-gray-500">
+                Inicia sesión para acceder a tu panel de gestión de eventos.
+              </p>
+            </div>
+
+            <div className="w-full max-w-[400px] mx-auto">
+              <Authenticator hideSignUp={true} />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    )}
+    </>
+
+}
+
+export default App;
+
+

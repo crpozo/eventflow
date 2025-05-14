@@ -1,0 +1,126 @@
+type Badge @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  frontDesign: String
+  backDesign: String
+}
+
+type PaymentLog @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  eventattendeeID: ID! @index(name: "byEventAttendee")
+  status: String
+  type: String
+}
+
+type EventAttendee @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  eventID: ID! @index(name: "byEvent")
+  attendeeID: ID! @index(name: "byAttendee")
+  email: String! @index(name: "byEmail")
+  authorized: Boolean
+  checkIn: Boolean
+  formAnswers: AWSJSON
+  ticket: String
+  allowContact: Boolean
+  quantity: Int
+  scanned: Int
+  profileURL: String
+  PaymentLogs: [PaymentLog] @hasMany(indexName: "byEventAttendee", fields: ["id"])
+}
+
+type Form @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  questions: AWSJSON
+  Event: Event @belongsTo
+}
+
+type Landing @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  active: Boolean
+  Event: Event @belongsTo
+  title: String!
+  description: String!
+  mainBanner: String
+  location: String!
+  cost: String
+  ticketTitle: [String]
+  ticketPrice: [Float]
+  extraInfo: String
+  userConsentCheck: String
+  metaScripts: String
+}
+
+type Attendee @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  EventAttendees: [EventAttendee] @hasMany(indexName: "byAttendee", fields: ["id"])
+}
+
+type Event @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String!
+  description: String
+  Landing: Landing @hasOne
+  careerID: ID! @index(name: "byCareer")
+  Form: Form @hasOne
+  EventAttendees: [EventAttendee] @hasMany(indexName: "byEvent", fields: ["id"])
+  category: String
+  location: String
+  date: AWSDateTime
+  contactTemplate: String
+  termsCondition: String!
+  totalScannedTicket: Int
+  maxRegs: Int
+  eventIdUSFQ: String
+  periodoUSFQ: String
+  usuarioUSFQ: String
+  Badge: Badge @hasOne
+}
+
+type Career @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String
+  description: String
+  Events: [Event] @hasMany(indexName: "byCareer", fields: ["id"])
+  costCenter: String
+  areaID: ID! @index(name: "byArea")
+}
+
+type Area @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String
+  description: String
+  Carreras: [Career] @hasMany(indexName: "byArea", fields: ["id"])
+  costCenter: String
+  campusID: ID! @index(name: "byCampus")
+}
+
+type Campus @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  title: String
+  CampusArea: [Area] @hasMany(indexName: "byCampus", fields: ["id"])
+  description: String
+  phone: AWSPhone
+  email: AWSEmail
+} 
+
+type Role @model
+  @auth(rules: [
+    { allow: public}
+  ])
+{
+  id: ID!
+  name: String!
+  areas: [ID]
+  users: [User] @hasMany(indexName: "byRole", fields: ["id"])
+}
+
+type User @model
+  @auth(rules: [
+    { allow: public }
+  ])
+{
+  id: ID!
+  email: String! @index(name: "byEmail")
+  name: String
+  roleID: ID! @index(name: "byRole")
+  role: Role @belongsTo(fields: ["roleID"])
+}

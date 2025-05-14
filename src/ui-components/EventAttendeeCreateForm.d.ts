@@ -1,0 +1,79 @@
+/***************************************************************************
+ * The contents of this file were generated with Amplify Studio.           *
+ * Please refrain from making any modifications to this file.              *
+ * Any changes to this file will be overwritten when running amplify pull. *
+ **************************************************************************/
+
+import * as React from "react";
+import { AutocompleteProps, GridProps, SwitchFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { PaymentLog } from "../models";
+export declare type EscapeHatchProps = {
+    [elementHierarchy: string]: Record<string, unknown>;
+} | null;
+export declare type VariantValues = {
+    [key: string]: string;
+};
+export declare type Variant = {
+    variantValues: VariantValues;
+    overrides: EscapeHatchProps;
+};
+export declare type ValidationResponse = {
+    hasError: boolean;
+    errorMessage?: string;
+};
+export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
+export declare type EventAttendeeCreateFormInputValues = {
+    eventID?: string;
+    attendeeID?: string;
+    email?: string;
+    authorized?: boolean;
+    checkIn?: boolean;
+    formAnswers?: string;
+    ticket?: string;
+    allowContact?: boolean;
+    quantity?: number;
+    scanned?: number;
+    profileURL?: string;
+    PaymentLogs?: PaymentLog[];
+};
+export declare type EventAttendeeCreateFormValidationValues = {
+    eventID?: ValidationFunction<string>;
+    attendeeID?: ValidationFunction<string>;
+    email?: ValidationFunction<string>;
+    authorized?: ValidationFunction<boolean>;
+    checkIn?: ValidationFunction<boolean>;
+    formAnswers?: ValidationFunction<string>;
+    ticket?: ValidationFunction<string>;
+    allowContact?: ValidationFunction<boolean>;
+    quantity?: ValidationFunction<number>;
+    scanned?: ValidationFunction<number>;
+    profileURL?: ValidationFunction<string>;
+    PaymentLogs?: ValidationFunction<PaymentLog>;
+};
+export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
+export declare type EventAttendeeCreateFormOverridesProps = {
+    EventAttendeeCreateFormGrid?: PrimitiveOverrideProps<GridProps>;
+    eventID?: PrimitiveOverrideProps<AutocompleteProps>;
+    attendeeID?: PrimitiveOverrideProps<AutocompleteProps>;
+    email?: PrimitiveOverrideProps<TextFieldProps>;
+    authorized?: PrimitiveOverrideProps<SwitchFieldProps>;
+    checkIn?: PrimitiveOverrideProps<SwitchFieldProps>;
+    formAnswers?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    ticket?: PrimitiveOverrideProps<TextFieldProps>;
+    allowContact?: PrimitiveOverrideProps<SwitchFieldProps>;
+    quantity?: PrimitiveOverrideProps<TextFieldProps>;
+    scanned?: PrimitiveOverrideProps<TextFieldProps>;
+    profileURL?: PrimitiveOverrideProps<TextFieldProps>;
+    PaymentLogs?: PrimitiveOverrideProps<AutocompleteProps>;
+} & EscapeHatchProps;
+export declare type EventAttendeeCreateFormProps = React.PropsWithChildren<{
+    overrides?: EventAttendeeCreateFormOverridesProps | undefined | null;
+} & {
+    clearOnSuccess?: boolean;
+    onSubmit?: (fields: EventAttendeeCreateFormInputValues) => EventAttendeeCreateFormInputValues;
+    onSuccess?: (fields: EventAttendeeCreateFormInputValues) => void;
+    onError?: (fields: EventAttendeeCreateFormInputValues, errorMessage: string) => void;
+    onChange?: (fields: EventAttendeeCreateFormInputValues) => EventAttendeeCreateFormInputValues;
+    onValidate?: EventAttendeeCreateFormValidationValues;
+} & React.CSSProperties>;
+export default function EventAttendeeCreateForm(props: EventAttendeeCreateFormProps): React.ReactElement;

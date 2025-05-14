@@ -1,0 +1,12 @@
+{
+  "AppSyncApiName": "eventflow",
+  "DynamoDBBillingMode": "PAY_PER_REQUEST",
+  "DynamoDBEnableServerSideEncryption": false,
+  "AuthModeLastUpdated": "2025-05-07T02:07:27.685Z",
+  "AuthCognitoUserPoolId": {
+    "Fn::GetAtt": [
+      "autheventflow",
+      "Outputs.UserPoolId"
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+import React from "react";
+import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
+import Navbar from "components/navbar";
+import Sidebar from "components/sidebar";
+import Footer from "components/footer/Footer";
+import routes from "routes.js";
+ 
+export default function Admin(props) {
+  const { ...rest } = props;
+  const [open, setOpen] = React.useState(true);
+  const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
+  const [activePath, setActivePath] = React.useState('');
+  const [event, setEvent] = React.useState('');
+  const routeResult = useRoutes(routes);
+
+  React.useEffect(() => {
+    window.addEventListener("resize", () =>
+      window.innerWidth < 1200 ? setOpen(false) : setOpen(true)
+    );
+  }, []);
+
+  // Show secondary Sidebar 
+  React.useEffect(() => {
+    if(routeResult?.props.match.route.path == 'eventos/:id/landing' ||
+      routeResult?.props.match.route.path == 'eventos/:id/diseno-gafete' ||
+      routeResult?.props.match.route.path == 'eventos/:id/detalle' ||
+      routeResult?.props.match.route.path == 'eventos/:id/formulario' ||
+      routeResult?.props.match.route.path == 'eventos/:id/participantes'){
+      setActivePath(routeResult?.props.match.route.path)
+    } else {
+      setActivePath('')
+    }
+  }, [routeResult]);
+
+  const getActiveNavbar = (routes) => {
+    let activeNavbar = false;
+    for (let i = 0; i < routes.length; i++) {
+      if (
+        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
+      ) {
+        return routes[i].secondary;
+      }
+    }
+    return activeNavbar;
+  };
+  const getRoutes = (routes) => {
+    return routes.map((prop, key) => {
+      if (prop.layout === "/admin") { 
+        return (
+          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+        );
+      } else {
+        return null;
+      }
+    });
+  };
+
+  document.documentElement.dir = "ltr";
+  return (
+    <div className="flex h-full w-full ">
+      <Sidebar open={open} onClose={() => setOpen(false)} eventModel={event} activePath={activePath} />
+      {/* Navbar & Main Content */}
+      <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
+        {/* Main Content */}
+        <main
+          className={`flex mx-[12px] transition-all md:pr-2  
+          ${ activePath != '' ? "xl:ml-[410px]" : "xl:ml-[250px]"} `}
+        >
+          {/* Routes */}
+          <div className="h-full flex flex-col min-h-screen w-full px-2">
+            <Navbar
+              onOpenSidenav={() => setOpen(true)}
+              logoText={"Eventflow Tailwind React"}
+              brandText={currentRoute}
+              secondary={getActiveNavbar(routes)}
+              {...rest}
+            />
+            <div className="flex-grow mx-auto w-full md:pr-2">
+              <Routes>
+                {getRoutes(routes)}
+                <Route
+                  path="/"
+                  element={<Navigate to="/admin/dashboard" replace />}
+                />
+              </Routes>
+            </div>
+            <div className="p-3">
+              <Footer />
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

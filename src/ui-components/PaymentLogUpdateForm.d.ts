@@ -1,0 +1,53 @@
+/***************************************************************************
+ * The contents of this file were generated with Amplify Studio.           *
+ * Please refrain from making any modifications to this file.              *
+ * Any changes to this file will be overwritten when running amplify pull. *
+ **************************************************************************/
+
+import * as React from "react";
+import { AutocompleteProps, GridProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { PaymentLog } from "../models";
+export declare type EscapeHatchProps = {
+    [elementHierarchy: string]: Record<string, unknown>;
+} | null;
+export declare type VariantValues = {
+    [key: string]: string;
+};
+export declare type Variant = {
+    variantValues: VariantValues;
+    overrides: EscapeHatchProps;
+};
+export declare type ValidationResponse = {
+    hasError: boolean;
+    errorMessage?: string;
+};
+export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
+export declare type PaymentLogUpdateFormInputValues = {
+    eventattendeeID?: string;
+    status?: string;
+    type?: string;
+};
+export declare type PaymentLogUpdateFormValidationValues = {
+    eventattendeeID?: ValidationFunction<string>;
+    status?: ValidationFunction<string>;
+    type?: ValidationFunction<string>;
+};
+export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
+export declare type PaymentLogUpdateFormOverridesProps = {
+    PaymentLogUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
+    eventattendeeID?: PrimitiveOverrideProps<AutocompleteProps>;
+    status?: PrimitiveOverrideProps<TextFieldProps>;
+    type?: PrimitiveOverrideProps<TextFieldProps>;
+} & EscapeHatchProps;
+export declare type PaymentLogUpdateFormProps = React.PropsWithChildren<{
+    overrides?: PaymentLogUpdateFormOverridesProps | undefined | null;
+} & {
+    id?: string;
+    paymentLog?: PaymentLog;
+    onSubmit?: (fields: PaymentLogUpdateFormInputValues) => PaymentLogUpdateFormInputValues;
+    onSuccess?: (fields: PaymentLogUpdateFormInputValues) => void;
+    onError?: (fields: PaymentLogUpdateFormInputValues, errorMessage: string) => void;
+    onChange?: (fields: PaymentLogUpdateFormInputValues) => PaymentLogUpdateFormInputValues;
+    onValidate?: PaymentLogUpdateFormValidationValues;
+} & React.CSSProperties>;
+export default function PaymentLogUpdateForm(props: PaymentLogUpdateFormProps): React.ReactElement;

@@ -1,0 +1,50 @@
+/***************************************************************************
+ * The contents of this file were generated with Amplify Studio.           *
+ * Please refrain from making any modifications to this file.              *
+ * Any changes to this file will be overwritten when running amplify pull. *
+ **************************************************************************/
+
+import * as React from "react";
+import { AutocompleteProps, GridProps, TextAreaFieldProps } from "@aws-amplify/ui-react";
+import { Form, Event as Event0 } from "../models";
+export declare type EscapeHatchProps = {
+    [elementHierarchy: string]: Record<string, unknown>;
+} | null;
+export declare type VariantValues = {
+    [key: string]: string;
+};
+export declare type Variant = {
+    variantValues: VariantValues;
+    overrides: EscapeHatchProps;
+};
+export declare type ValidationResponse = {
+    hasError: boolean;
+    errorMessage?: string;
+};
+export declare type ValidationFunction<T> = (value: T, validationResponse: ValidationResponse) => ValidationResponse | Promise<ValidationResponse>;
+export declare type FormUpdateFormInputValues = {
+    questions?: string;
+    Event?: Event0;
+};
+export declare type FormUpdateFormValidationValues = {
+    questions?: ValidationFunction<string>;
+    Event?: ValidationFunction<Event0>;
+};
+export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
+export declare type FormUpdateFormOverridesProps = {
+    FormUpdateFormGrid?: PrimitiveOverrideProps<GridProps>;
+    questions?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    Event?: PrimitiveOverrideProps<AutocompleteProps>;
+} & EscapeHatchProps;
+export declare type FormUpdateFormProps = React.PropsWithChildren<{
+    overrides?: FormUpdateFormOverridesProps | undefined | null;
+} & {
+    id?: string;
+    form?: Form;
+    onSubmit?: (fields: FormUpdateFormInputValues) => FormUpdateFormInputValues;
+    onSuccess?: (fields: FormUpdateFormInputValues) => void;
+    onError?: (fields: FormUpdateFormInputValues, errorMessage: string) => void;
+    onChange?: (fields: FormUpdateFormInputValues) => FormUpdateFormInputValues;
+    onValidate?: FormUpdateFormValidationValues;
+} & React.CSSProperties>;
+export default function FormUpdateForm(props: FormUpdateFormProps): React.ReactElement;
