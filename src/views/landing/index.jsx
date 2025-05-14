@@ -71,6 +71,7 @@ export default function SignIn() {
     { id: "8bed927b-afb0-4aff-adeb-0c1691da51c9", title: "Clown" },
     { id: "0174b708-bc60-4f40-b925-65ab2ba66807", title: "Aguanta que viene el giro" },
     { id: "7f702324-9813-4074-a2b7-70cc1f612af1", title: "¡No es el filtro, soy yo!" },
+    { id: "654d33cf-402b-495a-844f-61d72e1e4980", title: "La Marca del Saber" },
   ];
 
   // Get Landing + Event in GRAPHQL
