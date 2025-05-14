@@ -326,7 +326,7 @@ export default function SignIn() {
                     {event && <p className="text-md">{landing.description}</p>}
                   </div>
                 </div>
-                <div className="flex flex-col lg:items-start gap-5 ml-[20px] mt-auto mb-auto lg:col-span-1">
+                <div className="flex flex-col lg:items-start gap-5 lg:ml-[60px] mt-auto mb-auto lg:col-span-1">
                   <div className="flex gap-3">
                     <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                     <div>
