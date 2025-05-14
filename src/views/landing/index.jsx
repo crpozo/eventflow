@@ -72,6 +72,7 @@ export default function SignIn() {
     { id: "0174b708-bc60-4f40-b925-65ab2ba66807", title: "Aguanta que viene el giro" },
     { id: "7f702324-9813-4074-a2b7-70cc1f612af1", title: "¡No es el filtro, soy yo!" },
     { id: "654d33cf-402b-495a-844f-61d72e1e4980", title: "La Marca del Saber" },
+    { id: "b1b9897e-6e45-4d08-8d41-9080fb6b9b44", title: "El Despertar del Dragón Interno" },
   ];
 
   // Get Landing + Event in GRAPHQL
@@ -147,6 +148,9 @@ export default function SignIn() {
           const items = resultAttendees?.data?.eventAttendeesByEventID?.items || [];
           const currentRegs = Array.isArray(items) ? items.length : 0;
           const maxRegs = resultEvent?.data?.getEvent?.maxRegs;
+
+          console.log("currentRegs: ",currentRegs)
+          console.log("maxRegs: ",maxRegs)
         
           if (typeof maxRegs === 'number' && currentRegs >= maxRegs) {
             setIsSoldOut(true);
