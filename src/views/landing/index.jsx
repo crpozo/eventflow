@@ -347,7 +347,7 @@ export default function SignIn() {
                     <IoTicketOutline className="h-10 w-10 min-w-[31px] hidden lg:block" />
                   <div className="flex-grow">
                     <h3 className="text-lg font-bold mb-2 hidden lg:block">
-                      {isSubeventLanding ? "Selecciona un evento" : "Confirma tu asistencia"}
+                      {isSubeventLanding ? "Selecciona una actividad" : "Confirma tu asistencia"}
                     </h3>
 
                     <div className={`mx-auto flex w-full min-w-full flex-col justify-center rounded-md
@@ -416,7 +416,7 @@ export default function SignIn() {
                             }}
                             className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
                           >
-                            {isSubeventLanding ? "Ver eventos" : "Reservar ticket"}
+                            {isSubeventLanding ? "ver actividades" : "Reservar ticket"}
                           </button>
                         )}
                       </div>
