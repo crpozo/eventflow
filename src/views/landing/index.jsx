@@ -406,34 +406,34 @@ export default function SignIn() {
                       )}
 
                       {/* Botón */}
-                      {isSoldOut != null && 
-                        <div className="flex">
-                          {isSoldOut == true ? (
-                            <span className="text-red-600 font-bold py-2">Entradas Agotadas</span>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                if (isSubeventLanding && cardsRef.current) {
-                                  cardsRef.current.scrollIntoView({
-                                    behavior: "smooth",
-                                    block: "start",
-                                  });
-                                } else {
-                                  setShowRegister(true);
-                                }
-                              }}
-                              className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
-                            >
-                              {isSubeventLanding ? "Ver actividades" : "Reservar ticket"}
-                            </button>
-                          )}
-                        </div>
-                      }
+                      <div className="flex items-center">
+                        {isSoldOut === null ? (
+                          <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+                            <span className="loader-small animate-spin rounded-full border-2 border-gray-300 border-t-red-500 h-7 w-7"></span>
+                          </div>
+                        ) : isSoldOut ? (
+                          <span className="text-red-600 font-bold py-2">Entradas Agotadas</span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (isSubeventLanding && cardsRef.current) {
+                                cardsRef.current.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                });
+                              } else {
+                                setShowRegister(true);
+                              }
+                            }}
+                            className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
+                          >
+                            {isSubeventLanding ? "Ver actividades" : "Reservar ticket"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-
-
               </div>
             </div>
 
