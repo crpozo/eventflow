@@ -20,6 +20,29 @@ require("jquery-ui-sortable");
 require("formBuilder");
 require("formBuilder/dist/form-render.min.js");
 
+const subeventosIds = [
+  "364f6cfb-16a6-4f10-839f-e606df7b5537",
+  "5eef9fae-24f6-49a5-871c-b84f381ce975",
+  "da0fea1e-7517-4c62-97c4-970cc448ad9b",
+  "c8df1315-8a36-43f1-ab5a-89f8a21b72b4",
+  "219a2ee6-896b-4c46-8119-badd8e25d381",
+  "91327434-221e-4e2f-82fa-41fdf5e69a93",
+  "60ab0461-3802-4816-af77-b29aaaced2c4",
+  "939722b8-9169-47c7-9cfc-64f8a40e0bd4",
+  "88bc02e3-2162-4892-96b7-f0df45153efd",
+  "674989ad-f5f0-4e9d-a1c5-916c825f24fd",
+  "79123410-02da-487a-b26f-101c181aee88",
+  "e67b8d27-2c63-407e-a139-beba70669b3a",
+  "62f0cc8b-9abf-4b73-9976-bd9dfaeff7fc",
+  "3a6a2bfa-24d5-44df-a883-d376649b27c8",
+  "2960f399-7f97-4f2e-bdb2-5ab4ccdc3e58",
+  "8bed927b-afb0-4aff-adeb-0c1691da51c9",
+  "0174b708-bc60-4f40-b925-65ab2ba66807",
+  "7f702324-9813-4074-a2b7-70cc1f612af1",
+  "654d33cf-402b-495a-844f-61d72e1e4980",
+  "b1b9897e-6e45-4d08-8d41-9080fb6b9b44"
+];
+
 const Registro = (props) => {
 
   const navigate = useNavigate();
@@ -310,6 +333,20 @@ const Registro = (props) => {
               alert("Ya existe un registro con este correo para este evento.");
               setIsProcessing(false);
               return;
+            }
+
+            const isSubevento = subeventosIds.includes(eventID);
+
+            if (isSubevento) {
+              const alreadyRegisteredInAnotherSubevento = existing.some(
+                (att) => att.eventID !== eventID && subeventosIds.includes(att.eventID)
+              );
+
+              if (alreadyRegisteredInAnotherSubevento) {
+                alert("Ya te has registrado en otro evento del mismo ciclo. Solo puedes asistir a uno.");
+                setIsProcessing(false);
+                return;
+              }
             }
 
             // Create and save the EventAttendee record
