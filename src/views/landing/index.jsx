@@ -36,7 +36,7 @@ export default function SignIn() {
   const url = new URL(window.location.href);
   const client = generateClient(); 
   const [showExpiredPopup, setShowExpiredPopup] = useState(false);
-  const [isSoldOut, setIsSoldOut] = useState(false);
+  const [isSoldOut, setIsSoldOut] = useState(null);
   
   // Translations
 
@@ -154,6 +154,8 @@ export default function SignIn() {
         
           if (typeof maxRegs === 'number' && currentRegs >= maxRegs) {
             setIsSoldOut(true);
+          } else {
+            setIsSoldOut(false);
           }
         } catch (error) {
           console.error("Error fetching event attendees or validating maxRegs:", error);
@@ -404,27 +406,29 @@ export default function SignIn() {
                       )}
 
                       {/* Botón */}
-                      <div className="flex">
-                        {isSoldOut ? (
-                          <span className="text-red-600 font-bold py-2">Entradas Agotadas</span>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (isSubeventLanding && cardsRef.current) {
-                                cardsRef.current.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "start",
-                                });
-                              } else {
-                                setShowRegister(true);
-                              }
-                            }}
-                            className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
-                          >
-                            {isSubeventLanding ? "ver actividades" : "Reservar ticket"}
-                          </button>
-                        )}
-                      </div>
+                      {isSoldOut != null && 
+                        <div className="flex">
+                          {isSoldOut == true ? (
+                            <span className="text-red-600 font-bold py-2">Entradas Agotadas</span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (isSubeventLanding && cardsRef.current) {
+                                  cardsRef.current.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "start",
+                                  });
+                                } else {
+                                  setShowRegister(true);
+                                }
+                              }}
+                              className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
+                            >
+                              {isSubeventLanding ? "Ver actividades" : "Reservar ticket"}
+                            </button>
+                          )}
+                        </div>
+                      }
                     </div>
                   </div>
                 </div>
