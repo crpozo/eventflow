@@ -343,7 +343,7 @@ const Registro = (props) => {
               );
 
               if (alreadyRegisteredInAnotherSubevento) {
-                alert("Ya te has registrado en otro evento del mismo ciclo. Solo puedes asistir a uno.");
+                alert("Ya estás registrado en otra actividad. Solo se permite la inscripción a una única actividad.");
                 setIsProcessing(false);
                 return;
               }
