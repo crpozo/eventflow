@@ -57,6 +57,7 @@ export default function SignIn() {
     { id: "79123410-02da-487a-b26f-101c181aee88", title: "¿Y si no era por Ahí?" },
     { id: "8bed927b-afb0-4aff-adeb-0c1691da51c9", title: "Clown" },
     { id: "0174b708-bc60-4f40-b925-65ab2ba66807", title: "Aguanta que viene el giro" },
+    { id: "219a2ee6-896b-4c46-8119-badd8e25d381", title: "Crêpe Diem" }
   ];
 
   // Get Landing + Event in GRAPHQL
