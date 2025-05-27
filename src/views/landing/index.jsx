@@ -53,26 +53,11 @@ export default function SignIn() {
   const [isSubeventLanding, setIsSubeventLanding] = React.useState(false);
   const cardsRef = React.useRef(null);
   const subeventos = [
-    { id: "364f6cfb-16a6-4f10-839f-e606df7b5537", title: "Wok This Way" },
-    { id: "5eef9fae-24f6-49a5-871c-b84f381ce975", title: "La Ruta del Baguette Perdido" },
-    { id: "da0fea1e-7517-4c62-97c4-970cc448ad9b", title: "Ni tan arroz, ni tan fideo" },
-    { id: "c8df1315-8a36-43f1-ab5a-89f8a21b72b4", title: "El Llamado de la Masa" },
-    { id: "219a2ee6-896b-4c46-8119-badd8e25d381", title: "Crêpe Diem" },
-    { id: "91327434-221e-4e2f-82fa-41fdf5e69a93", title: "Maestros del Fuego" },
-    { id: "60ab0461-3802-4816-af77-b29aaaced2c4", title: "Tejiendo Fuego" },
     { id: "939722b8-9169-47c7-9cfc-64f8a40e0bd4", title: "Cardio en Clave Tropical" },
-    { id: "88bc02e3-2162-4892-96b7-f0df45153efd", title: "Jamming" },
-    { id: "674989ad-f5f0-4e9d-a1c5-916c825f24fd", title: "¡Ven a Champagnear!" },
     { id: "79123410-02da-487a-b26f-101c181aee88", title: "¿Y si no era por Ahí?" },
-    { id: "e67b8d27-2c63-407e-a139-beba70669b3a", title: "Los Hilos del Destino" },
-    { id: "62f0cc8b-9abf-4b73-9976-bd9dfaeff7fc", title: "Campo de Batalla: Estacionamiento USFQ" },
-    { id: "3a6a2bfa-24d5-44df-a883-d376649b27c8", title: "El Arte de Mover el Aire" },
-    { id: "2960f399-7f97-4f2e-bdb2-5ab4ccdc3e58", title: "Nada por aquí, mucho por allá" },
     { id: "8bed927b-afb0-4aff-adeb-0c1691da51c9", title: "Clown" },
     { id: "0174b708-bc60-4f40-b925-65ab2ba66807", title: "Aguanta que viene el giro" },
-    { id: "7f702324-9813-4074-a2b7-70cc1f612af1", title: "¡No es el filtro, soy yo!" },
     { id: "654d33cf-402b-495a-844f-61d72e1e4980", title: "La Marca del Saber" },
-    { id: "b1b9897e-6e45-4d08-8d41-9080fb6b9b44", title: "El Despertar del Dragón Interno" },
   ];
 
   // Get Landing + Event in GRAPHQL
