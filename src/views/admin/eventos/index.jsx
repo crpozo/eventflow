@@ -60,7 +60,7 @@ const Marketplace = () => {
         for( let event of results ){
           rows.push({
             "title": event.title,
-            "update_date": formatDate(event.updatedAt),
+            "update_date": formatDate(event.date),
             "action": event.id,
             "model": event
           })
