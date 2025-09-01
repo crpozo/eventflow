@@ -890,14 +890,14 @@ const Registro = (props) => {
 
               {props.landing.userConsentCheck && (
                 <div className="mt-4 mb-1 checkbox-form">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       id="userConsentCheckbox"
                       required
                       checked={userConsentChecked}
                       onChange={(e) => setUserConsentChecked(e.target.checked)}
-                      className="h-5 w-5 accent-red-600 cursor-pointer"
+                      className="h-5 w-5 accent-red-600 cursor-pointer scale-[1.7] mt-1 mr-1"
                     />
                     <span
                       className="text-sm text-justify leading-relaxed"
