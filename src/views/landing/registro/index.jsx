@@ -928,7 +928,7 @@ const Registro = (props) => {
             <div className="fixed bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
               <span className="loader"></span>
               <h2 className="mb-2 text-center text-xl text-black">
-                Cargando...
+                Cargando… No cierre la página.
               </h2>
             </div>
           )
