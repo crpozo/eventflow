@@ -311,7 +311,7 @@ button:focus-visible {
 .rendered-form select.form-control,
 .rendered-form textarea.form-control {
   font-weight: 500;
-  height: 46px;
+  height: 46px !important;
   border-color: rgb(222, 226, 230);
 }
 
