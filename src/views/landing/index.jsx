@@ -119,28 +119,31 @@ export default function SignIn() {
         }
 
         try {
-          const resultAttendees = await client.graphql({
-            query: eventAttendeesByEventID,
-            variables: {
-              eventID: id,
-              filter: {
-                _deleted: { ne: true }
+         // fetch all pages (default page size ~100)
+          let nextToken = null;
+          const allItems = [];
+          do {
+            const resp = await client.graphql({
+              query: eventAttendeesByEventID,
+              variables: {
+                eventID: id,
+                filter: { _deleted: { ne: true } },
+                limit: 1000,
+                nextToken
               }
-            }
-          });
-        
-          const items = resultAttendees?.data?.eventAttendeesByEventID?.items || [];
-          const currentRegs = Array.isArray(items) ? items.length : 0;
+            });
+            const page = resp?.data?.eventAttendeesByEventID;
+            allItems.push(...(page?.items ?? []));
+            nextToken = page?.nextToken ?? null;
+          } while (nextToken);
+
+           const currentRegs = allItems.length;
           const maxRegs = resultEvent?.data?.getEvent?.maxRegs;
 
-          console.log("currentRegs: ",currentRegs)
-          console.log("maxRegs: ",maxRegs)
-        
-          if (typeof maxRegs === 'number' && currentRegs >= maxRegs) {
-            setIsSoldOut(true);
-          } else {
-            setIsSoldOut(false);
-          }
+          console.log("currentRegs:", currentRegs);
+          console.log("maxRegs:", maxRegs);
+
+          setIsSoldOut(typeof maxRegs === "number" && currentRegs >= maxRegs);
         } catch (error) {
           console.error("Error fetching event attendees or validating maxRegs:", error);
         }
