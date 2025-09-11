@@ -9,6 +9,8 @@ import {
   MdAdd,
 } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
+import { usePermissions } from "../../../providers/PermissionsProvider"; 
+
 
 const Marketplace = () => {
 
@@ -16,63 +18,64 @@ const Marketplace = () => {
   const [events, setEvents] = React.useState([]);
   const [columns, setColumns] = React.useState([])
   const [rows, setRows] = React.useState([])
+  const { loading, isAdmin } = usePermissions();
 
   window.localStorage.removeItem('EVENTFLOW.event');
 
+  const buildTable = (results) => {
+   const columns = [
+     { Header: "TITULO", accessor: "title" },
+     {
+       Header: "ACTUALIZACIÓN",
+       accessor: "update_date",
+       sortType: (rowA, rowB, columnId) => {
+         const parseDate = (str) => {
+           const [day, month, year] = str.split("/").map(Number);
+           return new Date(year, month - 1, day);
+         };
+         return parseDate(rowA.values[columnId]) - parseDate(rowB.values[columnId]);
+       },
+     },
+     { Header: "EDITAR", accessor: "action" },
+   ];
+   setColumns(columns);
+   const rows = results.map((event) => ({
+     title: event.title,
+     update_date: formatDate(event.date),
+     action: event.id,
+     model: event,
+   }));
+   setRows(rows);
+ };
+
   React.useEffect( () => {
     
-    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
-    if(!subAreaId){
-      navigate(`/page/campus`);
-    } else {
-      DataStore.query(Event, (e) => e.careerID.eq(subAreaId)).then( results => {
-        let columns = [];
-        let rows = [];
+    if (loading) return; 
+
+    const load = async () => {
+      if (isAdmin) {
+        // Admin: get all events
+        const results = await DataStore.query(Event);
         setEvents(results);
-        console.log("events: ",results)
-        columns = [
-          {
-            Header: "TITULO",
-            accessor: "title",
-          },
-          {
-            Header: "ACTUALIZACIÓN",
-            accessor: "update_date",
-            sortType: (rowA, rowB, columnId) => {
-              const parseDate = (str) => {
-                const [day, month, year] = str.split("/").map(Number);
-                return new Date(year, month - 1, day);
-              };
-        
-              const a = parseDate(rowA.values[columnId]);
-              const b = parseDate(rowB.values[columnId]);
-        
-              return a - b;
-            },
-          },
-          {
-            Header: "EDITAR",
-            accessor: "action",
-          },
-        ];
-        setColumns(columns);
-  
-        for( let event of results ){
-          rows.push({
-            "title": event.title,
-            "update_date": formatDate(event.date),
-            "action": event.id,
-            "model": event
-          })
-        }
-        setRows(rows)
-      });
-    }
+        buildTable(results);
+        return;
+      }
 
-  }, [navigate]);
+      // No admin: requires subárea and filter by careerID
+      const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
+      if (!subAreaId) {
+        navigate(`/page/campus`);
+        return;
+      }
+      const results = await DataStore.query(Event, (e) => e.careerID.eq(subAreaId));
+      setEvents(results);
+      buildTable(results);
+    };
+    load();
+  }, [loading, isAdmin, navigate]);
 
-  if(!events){
-    return <p>Loading...</p>
+  if(loading){
+    return <p>Cargando...</p>
   }
 
   return (

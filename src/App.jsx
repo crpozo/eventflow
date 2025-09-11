@@ -10,6 +10,7 @@ import UserLayout from "layouts/usuario";
 import logo from "assets/img/usfq/logo_usfq.svg";
 import campus from "assets/img/usfq/USFQ_campus.png";
 import Hotjar from '@hotjar/browser';
+import { PermissionsProvider } from "./providers/PermissionsProvider";
 import { I18n, Hub } from 'aws-amplify/utils';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
@@ -22,8 +23,6 @@ I18n.setLanguage('es');
 Amplify.configure(config);
 const client = generateClient();
 
-
-
 function App() { 
 
   const { route } = useAuthenticator(context => [context.route]);
@@ -35,29 +34,6 @@ function App() {
   const isUserRoute = location.pathname.includes('/usuario');
   const [onReady, setOnReady] = React.useState(Promise.resolve());
   const [isReady, setIsReady] = React.useState(true);
-
-  // class MyClass {
-  //   constructor() {
-  
-  //     Hub.listen('auth', (data) => {
-  //       const { payload } = data;
-  //       this.onAuthEvent(payload);
-  //       console.log(
-  //         'A new auth event has happened: ',
-  //         data.payload.data?.username + ' has ' + data.payload.event
-  //       );
-  //     });
-  //   }
-  
-  //   onAuthEvent(payload) {
-  //     console.log("PAYLOAD: ",payload)
-  //     switch (payload.event) {
-  //       case 'signedIn':
-  //         // refreshDataStore();
-  //         break;
-  //     }
-  //   }
-  // }
 
   // Hotjar init
   const siteId = 123;
@@ -103,8 +79,6 @@ function App() {
         localStorage.removeItem("EVENTFLOW.campus");
         localStorage.removeItem("EVENTFLOW.subarea");
         window.location.pathname = "/page/campus";
-
-        console.log("🧹 LocalStorage limpiado tras logout.");
       }
     });
   
@@ -112,31 +86,6 @@ function App() {
       unsubscribe();
     };
   }, []);
-  
-
-  // If datastore is cleared and the browser is refreshed variables reset and reinit datastore
-  // React.useEffect( () => {
-  //   async function startData() {
-  //     if(authStatus == 'unauthenticated'){
-  //       await DataStore.start();
-  //       console.log("START executed")
-  //     }
-  //   }
-  //   startData();
-  // }, [authStatus]);
-
-  // const clearDataStore = async () => {
-  //   try {
-  //     if(DataStore && DataStore.state == "Clearing") return
-  //     console.log("APP DATASTORE STATE: ", DataStore.state)
-  //     await DataStore.clear();
-  //   } catch (error) {
-  //     console.error("Error clearing DataStore", error);
-  //   } finally {
-  //     setIsReady(true);
-  //     console.log("DataStore cleared successfully");
-  //   }
-  // };
   
   if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !isReady){
     return(
@@ -152,16 +101,18 @@ function App() {
   // Use the value of route to decide which page to render
   return isReady && route === 'authenticated'
   ? (
-    <Routes>
-      <Route path="auth/*" element={<AuthLayout />} />
-      <Route path="admin/*" element={<AdminLayout />} />
-      <Route path="rtl/*" element={<RtlLayout />} />
-      <Route path="page/*" element={<PageLayout />} />
-      <Route path="landing/*" element={<LandingLayout />} />
-      <Route path="privacidad" element={<LegalLayout />} />
-      <Route path="usuario/*" element={<UserLayout />} />
-      <Route path="/" element={<Navigate to="/admin" replace />} />
-    </Routes>
+    <PermissionsProvider>
+      <Routes>
+        <Route path="auth/*" element={<AuthLayout />} />
+        <Route path="admin/*" element={<AdminLayout />} />
+        <Route path="rtl/*" element={<RtlLayout />} />
+        <Route path="page/*" element={<PageLayout />} />
+        <Route path="landing/*" element={<LandingLayout />} />
+        <Route path="privacidad" element={<LegalLayout />} />
+        <Route path="usuario/*" element={<UserLayout />} />
+        <Route path="/" element={<Navigate to="/admin" replace />} />
+      </Routes>
+    </PermissionsProvider>
     )
   :
     <>

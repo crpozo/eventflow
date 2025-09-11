@@ -7,29 +7,36 @@ import { Campus } from "models"
 import {
   MdAdd
 } from "react-icons/md";
-import { generateClient } from 'aws-amplify/api';
-import { listCampuses } from '../../graphql/queries';
+import { useNavigate } from "react-router-dom";
+import { usePermissions } from "../../providers/PermissionsProvider";
 
 const CampusComponent = () => {
 
   const [campus, setCampus] = React.useState(null);
-  const client = generateClient(); 
+  const navigate = useNavigate();
+  const { loading, isAdmin } = usePermissions();
+
+  React.useEffect(() => {
+   if (!loading && isAdmin) {
+     navigate("/admin", { replace: true }); 
+   }
+ }, [loading, isAdmin, navigate]);
 
   React.useEffect(() => {
 
-    const sub = DataStore.observeQuery(Campus).subscribe((results) => {
-      setCampus(results.items);
-    });
+    if (loading || isAdmin) return;
 
-    return () => {
-      sub.unsubscribe();
-    };
+   const sub = DataStore.observeQuery(Campus).subscribe((results) => {
+     setCampus(results.items);
+   });
+   return () => sub.unsubscribe();
+  }, [loading, isAdmin]);
 
-  }, []);
-
-  if(!campus){
+  if(loading){
     return <p>Loading...</p>
   }
+
+  if (isAdmin) return null;
 
   return (
     <div className="campus-page">

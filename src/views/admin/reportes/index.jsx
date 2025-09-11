@@ -18,6 +18,8 @@ import * as XLSX from "xlsx";
 import { MdFileDownload } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
+import { usePermissions } from "../../../providers/PermissionsProvider"
+
 
 const Reportes = () => {
 
@@ -36,6 +38,7 @@ const Reportes = () => {
   const [attendees, setAttendees] = useState(null);
   const [eventAttendes, setEventAttendes] = useState(null);
   const [chartsData, setChartsData] = useState([]);
+  const { isAdmin, loading: permLoading } = usePermissions();
 
   const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
 
@@ -183,22 +186,23 @@ const Reportes = () => {
   /*******************************************/
 
   // Get campus results as observeQueryr
-  React.useEffect(() => {
-    if (!subAreaId) {
-      navigate(`/page/campus`);
-    } else {
-      const subscription  = DataStore.observeQuery(Campus).subscribe((results) => {
-        if(results.items.length > 0){
-          setCampusList(results.items);
-          setCampusSelectID(results.items[0].id);
-        }
-      });
-  
-      if(campusList){
-        subscription.unsubscribe();
-      }
+  useEffect(() => {
+    if (permLoading) return; 
+
+    if (!isAdmin && !subAreaId) {
+      navigate("/page/campus");
+      return;
     }
-  }, [navigate]);
+
+    const subscription = DataStore.observeQuery(Campus).subscribe((results) => {
+      if (results.items.length > 0) {
+        setCampusList(results.items);
+        setCampusSelectID(results.items[0].id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [permLoading, isAdmin, subAreaId, navigate]);
 
   // Get area depending on the the campus ID
   React.useEffect(() => {

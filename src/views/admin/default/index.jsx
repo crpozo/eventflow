@@ -8,6 +8,7 @@ import {
   MdBarChart
 } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
+import { usePermissions } from "../../../providers/PermissionsProvider";
 
 const cards = [
   {
@@ -27,32 +28,38 @@ const cards = [
   },
 ];
 
-const Dashboard = () => {
+const Dashboard = () => { 
 
   const [events, setEvents] = React.useState([]);
   const navigate = useNavigate();
+  const { loading, isAdmin } = usePermissions();
 
-  React.useEffect( () => {
-    if(!localStorage.getItem("EVENTFLOW.subarea") || localStorage.getItem("EVENTFLOW.subarea") === undefined){
-      navigate(`/page/campus`);
-      return
-    }
-
-    const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
-    if(!subAreaId){
-      navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos"} });
+  React.useEffect(() => {
+    if (loading) return; 
+    let sub;
+    if (isAdmin) {
+      sub = DataStore.observeQuery(Event).subscribe((results) => setEvents(results.items));
     } else {
-
-      const sub = DataStore.observeQuery(Event, (e) => e.careerID.eq(subAreaId)).subscribe((results) => {
-        setEvents(results.items);
-      });
-  
-      return () => {
-        sub.unsubscribe();
-      };
-
+      const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
+      if (!subAreaId) {
+        navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos" } });
+        return;
+      }
+      sub = DataStore.observeQuery(Event, (e) => e.careerID.eq(subAreaId)).subscribe((results) => setEvents(results.items));
     }
-  }, [navigate]);
+    return () => sub && sub.unsubscribe();
+  }, [loading, isAdmin, navigate]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex top-[-10px] min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
+        <span className="loader"></span>
+        <h2 className="mb-2 text-center text-xl text-black">
+          Cargando...
+        </h2>
+      </div>
+    )
+  }
 
   return (
     <div>

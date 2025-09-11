@@ -13,13 +13,28 @@ import {
 import {
   LiaExternalLinkAltSolid,
 } from "react-icons/lia";
+import { usePermissions } from "../../providers/PermissionsProvider";
 
 const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
   const [event, setEvent] = React.useState(null);
   const [landing, setLanding] = React.useState(null);
   const [isActive, setIsActive] = React.useState(false);
-  const { id } = useParams();
+  const { isAdmin } = usePermissions();
+
+ const filteredRoutes = React.useMemo(() => {
+   if (!isAdmin) return routes;
+   return routes.filter((r) => {
+     const name = (r?.name || "").toLowerCase();
+     const path = (r?.path || "").toLowerCase();
+     // ajusta los términos si tu item usa otro label/path
+     const matchesBlocklist =
+       /restablecer|reset|restore/.test(name) ||
+       /restablecer|reset|restore/.test(path) ||
+       `${r?.layout || ""}/${path}` === "/page/campus"; // ej: Restablecer → /page/campus
+     return !matchesBlocklist;
+   });
+ }, [isAdmin]);
 
   React.useEffect(() => {
     const event = localStorage.getItem('EVENTFLOW.event');
@@ -78,7 +93,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
       {/* Nav item */}
 
       <ul className="mb-auto pt-1">
-        <Links routes={routes} activePath={activePath} />
+        <Links routes={filteredRoutes} activePath={activePath} />
       </ul>
 
       {/* Free Horizon Card */}

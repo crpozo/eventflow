@@ -10,11 +10,6 @@ import {
 const Dashboard = () => {
 
   const navigate = useNavigate();
-  const [subAreaId, setSubAreaId ] = React.useState();
-
-  React.useEffect( () => {
-    setSubAreaId(JSON.parse(localStorage.getItem("EVENTFLOW.subarea")).id);
-  }, []);
 
   return (
     <div className="event-page">
