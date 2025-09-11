@@ -449,7 +449,56 @@ const Reportes = () => {
 
     const eventName = eventList.find((item) => item.id === eventSelectID).title;
     XLSX.writeFile(workbook, `${eventName}.xlsx`);
-}
+  }
+  
+  async function exportAllEventsToExcel() {
+    try {
+      // 1) Traer todos los eventos
+      let allEvents = await DataStore.query(Event);
+      // Si NO es admin, limitamos a eventos de la subárea actual
+      if (!isAdmin && subAreaId) {
+        allEvents = allEvents.filter((ev) => ev.careerID === subAreaId);
+      }
+      const eventMap = new Map(allEvents.map((e) => [e.id, e.title]));
+      const eventIDs = new Set(allEvents.map((e) => e.id));
+
+      // 2) Traer todos los EventAttendee y filtrar por los eventos elegibles
+      const allEA = await DataStore.query(EventAttendee);
+      const ea = allEA.filter((rec) => eventIDs.has(rec.eventID));
+      if (!ea.length) {
+        alert("No hay registros para exportar.");
+        return;
+      }
+
+      // 3) Aplanar cada registro (formAnswers) en columnas
+      const formatted = ea.map((rec) => {
+        const answers = Array.isArray(rec.formAnswers) ? rec.formAnswers : [];
+        const row = {};
+        answers.forEach((field) => {
+          if (!field || field.type === "header" || field.type === "paragraph") return;
+          const label = field.label || field.name || "Campo";
+          const value = Array.isArray(field.userData) ? field.userData[0] : field.userData;
+          row[label] = value;
+        });
+        row["EventID"] = rec.eventID || "";
+        row["EventTitle"] = eventMap.get(rec.eventID) || "";
+        row["Email"] = rec.email || "";
+        row["CheckIn"] = !!rec.checkIn;
+        row["CreatedAt"] = rec.createdAt || "";
+        return row;
+      });
+
+      // 4) Generar Excel
+      const ws = XLSX.utils.json_to_sheet(formatted);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "EventAttendees");
+      XLSX.writeFile(wb, "eventflow_all_event_attendees.xlsx");
+    } catch (err) {
+      console.error("Error exportando base completa:", err);
+      alert("Ocurrió un error al exportar la base completa.");
+    }
+  }
+
 
 
   // Chart data handler
@@ -658,13 +707,20 @@ const Reportes = () => {
   return (
     <div className="report-page">
       <Banner />
-      <button
-        href="crear"
-        onClick={() => exportToExcel(attendees, eventAttendes)}
-        className="linear mb-4 flex items-center gap-1 rounded-xl bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-green-200"
-      >
-        Exportal Excel <MdFileDownload className="h-5 w-5" />
-      </button>
+      <div className="flex gap-3 mb-4">
+        <button
+          onClick={() => exportToExcel(attendees, eventAttendes)}
+          className="linear flex items-center gap-1 rounded-xl bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
+        >
+          Exportar evento actual <MdFileDownload className="h-5 w-5" />
+        </button>
+        <button
+          onClick={exportAllEventsToExcel}
+          className="linear flex items-center gap-1 rounded-xl bg-blue-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
+        >
+          Exportar base completa <MdFileDownload className="h-5 w-5" />
+        </button>
+      </div>
       <div className="filters mb-[35px] mt-3">
         <div className="relative flex w-full gap-5">
           <div className="flex w-full flex-col">
