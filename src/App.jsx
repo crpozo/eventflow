@@ -18,13 +18,13 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/api';
 import config from './amplifyconfiguration.json';
 import '@aws-amplify/ui-react/styles.css';
+
 I18n.putVocabularies(translations);
 I18n.setLanguage('es');
 Amplify.configure(config);
 const client = generateClient();
 
 function App() { 
-
   const { route } = useAuthenticator(context => [context.route]);
   const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const location = useLocation();
@@ -41,14 +41,7 @@ function App() {
   Hotjar.init(siteId, hotjarVersion);
 
   React.useEffect(() => {
-    // Cookiebot
-
-    // const cookiebotScript = document.createElement('script');
-    // cookiebotScript.id = 'Cookiebot';
-    // cookiebotScript.src = 'https://consent.cookiebot.com/uc.js';
-    // cookiebotScript.setAttribute('data-cbid', '7f732229-5a1e-49cc-9a04-cbd43a1eb610');
-    // document.head.appendChild(cookiebotScript);
-
+    // Cookie scripts
     const cookieDeclarationScript = document.createElement('script');
     cookieDeclarationScript.id = 'CookieDeclaration';
     cookieDeclarationScript.src = 'https://consent.cookiebot.com/7f732229-5a1e-49cc-9a04-cbd43a1eb610/cd.js';
@@ -64,12 +57,8 @@ function App() {
     }
 
     return () => {
-      // Limpiar scripts al desmontar el componente
-      // document.head.removeChild(cookiebotScript);
       document.head.removeChild(cookieDeclarationScript);
-      //document.body.removeChild(tidioScript);
     };
-
   }, []);
 
   React.useEffect(() => {
@@ -87,6 +76,7 @@ function App() {
     };
   }, []);
   
+  // Loading state
   if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !isReady){
     return(
       <div className="bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
@@ -98,9 +88,67 @@ function App() {
     );
   }
 
-  // Use the value of route to decide which page to render
-  return isReady && route === 'authenticated'
-  ? (
+  // For anonymous users - render routes directly without PermissionsProvider
+  if (route !== 'authenticated') {
+    return (
+      <>
+        {isLandingRoute ? (
+          <Routes>
+            <Route path="landing/*" element={<LandingLayout />} />
+          </Routes>
+        ) : isLegalRoute ? (
+          <Routes>
+            <Route path="privacidad" element={<LegalLayout />} />
+          </Routes>
+        ) : isUserRoute ? (
+          <Routes>
+            <Route path="usuario/*" element={<UserLayout />} />
+          </Routes>
+        ) : ( 
+          <div className="bg-usfqPrimary flex min-h-screen items-center justify-center bg-lightPrimary px-0 py-0 lg:px-4 lg:py-6">
+            <div className="flex flex-col-reverse justify-center lg:flex-row overflow-hidden rounded-3xl shadow-lg w-full max-w-6xl h-screen lg:h-[670px]">
+              
+              {/* Imagen lado izquierdo */}
+              <div
+                className="relative hidden lg:block w-1/2 bg-cover bg-center"
+                style={{ backgroundImage: `url(${campus})` }}
+              >
+                <div className="absolute inset-0 bg-black/20" />
+                <div className="absolute inset-0 flex justify-center px-8 items-start mt-[70px]">
+                  <div className="backdrop-blur-xl bg-white/30 p-8 rounded-xl max-w-md text-center shadow-lg">
+                    <h2 className="text-xl font-semibold text-white">
+                      Gestiona, diseña y analiza tus eventos<br />en un solo lugar.
+                    </h2>
+                    <p className="mt-4 text-sm text-white">
+                      Crea eventos, diseña páginas web personalizadas, construye formularios, accede a reportes en tiempo real y escanea tickets con dispositivos móviles — todo desde una sola plataforma.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Formulario lado derecho */}
+              <div className="flex flex-1 flex-col justify-center bg-white px-6 py-10 lg:w-1/2">
+                <div className="text-center mb-6">
+                  <img src={logo} alt="Logo USFQ" className="mx-auto max-w-[130px] mb-4" />
+                  <p className="mt-2 text-gray-500">
+                    Inicia sesión para acceder a tu panel de gestión de eventos.
+                  </p>
+                </div>
+
+                <div className="w-full max-w-[400px] mx-auto">
+                  <Authenticator hideSignUp={true} />
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // For authenticated users - wrap with PermissionsProvider
+  return isReady && route === 'authenticated' ? (
     <PermissionsProvider>
       <Routes>
         <Route path="auth/*" element={<AuthLayout />} />
@@ -113,66 +161,7 @@ function App() {
         <Route path="/" element={<Navigate to="/admin" replace />} />
       </Routes>
     </PermissionsProvider>
-    )
-  :
-    <>
-    {isLandingRoute ? (
-      <Routes>
-        <Route path="landing/*" element={<LandingLayout />} />
-      </Routes>
-    ) : isLegalRoute ? (
-      <Routes>
-        <Route path="privacidad" element={<LegalLayout />} />
-      </Routes>
-    ) : 
-    isUserRoute ? (
-      <Routes>
-        <Route path="usuario/*" element={<UserLayout />} />
-      </Routes>
-    ) :( 
-      <div className="bg-usfqPrimary flex min-h-screen items-center justify-center bg-lightPrimary px-0 py-0 lg:px-4 lg:py-6">
-        <div className="flex flex-col-reverse justify-center lg:flex-row overflow-hidden rounded-3xl shadow-lg w-full max-w-6xl h-screen lg:h-[670px]">
-          
-          {/* Imagen lado izquierdo */}
-          <div
-            className="relative hidden lg:block w-1/2 bg-cover bg-center"
-            style={{ backgroundImage: `url(${campus})` }}
-          >
-            <div className="absolute inset-0 bg-black/20" />
-            <div className="absolute inset-0 flex justify-center px-8 items-start mt-[70px]">
-              <div className="backdrop-blur-xl bg-white/30 p-8 rounded-xl max-w-md text-center shadow-lg">
-                <h2 className="text-xl font-semibold text-white">
-                  Gestiona, diseña y analiza tus eventos<br />en un solo lugar.
-                </h2>
-                <p className="mt-4 text-sm text-white">
-                  Crea eventos, diseña páginas web personalizadas, construye formularios, accede a reportes en tiempo real y escanea tickets con dispositivos móviles — todo desde una sola plataforma.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Formulario lado derecho */}
-          <div className="flex flex-1 flex-col justify-center bg-white px-6 py-10 lg:w-1/2">
-            <div className="text-center mb-6">
-              <img src={logo} alt="Logo USFQ" className="mx-auto max-w-[130px] mb-4" />
-              <p className="mt-2 text-gray-500">
-                Inicia sesión para acceder a tu panel de gestión de eventos.
-              </p>
-            </div>
-
-            <div className="w-full max-w-[400px] mx-auto">
-              <Authenticator hideSignUp={true} />
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-    )}
-    </>
-
+  ) : null;
 }
 
 export default App;
-
-
