@@ -825,24 +825,28 @@ const Reportes = () => {
   return (
     <div className="report-page">
       <Banner />
-      <div className="flex gap-3 mb-4">
-        <button
-          onClick={() => exportToExcel(attendees, eventAttendes)}
-          className="linear flex items-center gap-1 rounded-xl bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
-        >
-          Exportar evento actual <MdFileDownload className="h-5 w-5" />
-        </button>
-        <button
-          onClick={exportAllEventsToExcel}
-          className="linear flex items-center gap-1 rounded-xl bg-blue-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
-        >
-          Exportar base completa <MdFileDownload className="h-5 w-5" />
-        </button>
-      </div>
       <div className="filters bg-white p-4 mb-[35px] mt-3 rounded-[20px] border border-[#f2f2f2]">
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">Filtros</h3>
         
-        <div className="relative flex gap-5 mb-4">
+        <div className="flex">
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Filtros</h3>
+
+          <div className="flex gap-3 ml-auto">
+            <button
+              onClick={() => exportToExcel(attendees, eventAttendes)}
+              className="linear flex items-center gap-1 rounded-xl max-h-[50px] bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
+            >
+              Exportar evento actual <MdFileDownload className="h-5 w-5" />
+            </button>
+            <button
+              onClick={exportAllEventsToExcel}
+              className="linear flex items-center gap-1 rounded-xl max-h-[50px] bg-blue-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
+            >
+              Exportar base completa <MdFileDownload className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="relative flex gap-5 mb-[15px]">
           <div className="flex flex-col">
             <label>Fecha inicio</label>
             <input
@@ -871,7 +875,7 @@ const Reportes = () => {
               className="h-[42px] rounded-md border px-3 text-sm hover:bg-gray-50"
               aria-label="Resetear fechas"
             >
-              Resetear fechas
+              Restablecer
             </button>
           </div>
         </div>
