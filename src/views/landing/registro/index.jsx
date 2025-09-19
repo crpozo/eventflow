@@ -12,7 +12,7 @@ import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils";
 import { uploadData, getUrl } from "aws-amplify/storage";
-import { autoSignIn } from "aws-amplify/auth";
+import { validateBannerCode } from "../../../services/nomina/validateBannerCode";
 
 window.jQuery = $;
 window.$ = $;
@@ -86,6 +86,7 @@ const Registro = (props) => {
     }
 
     modifyDOM() {
+
       // Verify the price and modify the end-user ID if necessary
       /*
       if (price && parseFloat(price.replace(/[^\d.-]/g, '')) <= 50) {
@@ -180,30 +181,6 @@ const Registro = (props) => {
   
     return () => subQuestions.unsubscribe();
   }, [id]);
-  
-
-  // Observer query EventAttende if ticket is authorized
-  // React.useEffect(() => {
-  //   if(eventAttendee
-  //     && eventAttendee.id
-  //     && !authorized){
-
-  //     eventAttendeeDataStore = DataStore.observeQuery(EventAttendee, (e) =>
-  //     e.id.eq(eventAttendee.id)
-  //     ).subscribe((results) => {
-  //       if(results.items.length > 0){
-  //         setEventAttendee(results.items[0])
-  //         console.log("observeQuery: event attende change", results.items[0])
-  //         setAuthorized(results.items[0].authorized)
-  //       }
-  //     });
-  //   }
-
-  //   if(authorized){
-  //     eventAttendeeDataStore?.unsubscribe();
-  //   }
-
-  // }, [formRegister]);
 
   // Download PDF + handle mobile behavior
   React.useEffect(() => {
@@ -305,6 +282,15 @@ const Registro = (props) => {
         }
 
         setUserData(userData);
+
+        const { ok } = await validateBannerCode(userData);
+
+        if (!ok) {
+          alert("El código banner o identificación CI no es válido");
+          setIsProcessing(false);
+          return; 
+        }
+
 
         async function createAttende() {
           const attendee = await DataStore.save(new Attendee({}));
@@ -680,38 +666,6 @@ const Registro = (props) => {
     return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   };
 
-  // TESTING multiple users creation
-  // async function iterateWithDelay(userData) {
-  //   for (let i = 0; i < 10; i++) {
-
-  //     async function createAttende() {
-  //       const attendee = await DataStore.save(new Attendee({}));
-  //       return attendee;
-  //     }
-
-  //     // Make sure to await the creation of the attendee
-  //     const attendee = await createAttende();
-
-  //     const newEventAttendee = await DataStore.save(
-  //       new EventAttendee({
-  //         eventID: eventID,
-  //         attendeeID: attendee.id,
-  //         authorized: false,
-  //         checkIn: false,
-  //         formAnswers: userData,
-  //         ticket: ``,
-  //         email: userData.find(item => item.name === 'email').userData[0].toString(),
-  //         allowContact: false,
-  //         quantity,
-  //         scanned: 0,
-  //         profileURL: `${domain}/usuario/${attendee.id}`
-  //       })
-  //     );
-  //     console.log("nuevi newEventAttendee: ", i + newEventAttendee)
-  //     await new Promise(resolve => setTimeout(resolve, 1000)); // 1000 milliseconds = 1 second
-  //   }
-  // }
-
   const clearErrorMessages = () => {
     const errorMessages = document.querySelectorAll(".error-message");
     errorMessages.forEach((error) => error.remove());
@@ -928,7 +882,7 @@ const Registro = (props) => {
             <div className="fixed bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
               <span className="loader"></span>
               <h2 className="mb-2 text-center text-xl text-black">
-                Cargando… No cierre la página.
+                Cargando… No cerrar la página.
               </h2>
             </div>
           )
@@ -1031,15 +985,6 @@ const Registro = (props) => {
                             )}
                           </div>
                         ))}
-                        
-                        {/* {eventAttendee && (
-                          <p className="text-md mb-1 w-full text-center font-bold">
-                            Código de ticket:{" "}
-                            <span className="d-block font-normal">
-                              {eventAttendee.id}
-                            </span>
-                          </p>
-                        )} */}
                         
                         <p className="mb-1 mb-2 text-right text-sm font-normal">
                           {props.event.location}

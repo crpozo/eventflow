@@ -149,7 +149,7 @@ const Dashboard = () => {
                         "label": "RUC",
                         "value": "ruc",
                         "selected": false
-                    }
+                    },
                 ]
             },
             {
@@ -158,6 +158,16 @@ const Dashboard = () => {
               "label": "N° de Identificación",
               "className": "form-control",
               "name": "identificacion",
+              "access": false,
+              "subtype": "text"
+            },
+            {
+              "type": "text",
+              "required": false,               
+              "label": "Código Banner",
+              "placeholder": "00216367",
+              "className": "form-control",
+              "name": "codigo_banner",
               "access": false,
               "subtype": "text"
             },
