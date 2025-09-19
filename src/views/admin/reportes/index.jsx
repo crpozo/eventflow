@@ -40,6 +40,36 @@ const Reportes = () => {
   const [chartsData, setChartsData] = useState([]);
   const { isAdmin, loading: permLoading } = usePermissions();
 
+  // --- ADD: date filters state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // --- ADD: ISO helpers (end of day for endDate)
+  const toStartISO = (d) => (d ? new Date(`${d}T00:00:00`).toISOString() : "");
+  const toEndISO = (d) => (d ? new Date(`${d}T23:59:59`).toISOString() : "");
+
+  const getEventDateISO = (ev) => {
+    const raw =
+      ev.startDate ||
+      ev.date ||
+      ev.start_at ||
+      ev.start ||
+      ev.createdAt ||
+      null;
+    if (!raw) return null;
+
+    try {
+      // Already ISO (AWSDateTime) or AWSDate (YYYY-MM-DD)
+      if (typeof raw === "string" && (raw.includes("T") || /^\d{4}-\d{2}-\d{2}$/.test(raw))) {
+        return raw;
+      }
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    } catch {
+      return null;
+    }
+  };
+
   const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
 
   const navigate = useNavigate();
@@ -204,86 +234,174 @@ const Reportes = () => {
     return () => subscription.unsubscribe();
   }, [permLoading, isAdmin, subAreaId, navigate]);
 
-  // Get area depending on the the campus ID
-  React.useEffect(() => {
-    DataStore.query(Area, (a) => a.campusID.eq(campusSelectID)).then(
-      (results) => {
-        if (results.length > 0) {
-          setAreaList(results);
-          setAreaSelectID(results[0].id);
-          setChartsData([]);
-        } else {
-          setChartsData([]);
-          setAreaSelectID("");
-          setAreaList([{ title: "Vacio" }]);
-        }
-        setChartsData([]);
-      }
-    );
+  // Get areas for selected campus, filtered by date range (drives downstream filters)
+  useEffect(() => {
+    let alive = true;
+    if (!campusSelectID) return;
 
-  }, [campusSelectID]);
+    DataStore.query(Area, (a) => a.campusID.eq(campusSelectID)).then(async (areas) => {
+      if (!alive) return;
 
-  // Get subarea depending on the the area ID
-  React.useEffect(() => {
-    DataStore.query(Career, (c) => c.areaID.eq(areaSelectID)).then(
-      (results) => {
-        if (results.length > 0) {
-          setChartsData([]);
-          setCareerList(results);
-          setCareerSelectID(results[0].id);
-        } else {
-          setChartsData([]);
-          setCareerSelectID("");
-          setCareerList([{ title: "Vacio" }]);
-        }
+      if (!areas.length) {
+        // Reset everything if no areas
+        setAreaList([{ id: "empty-area", title: "Vacío" }]); setAreaSelectID("");
+        setCareerList([{ id: "empty-career", title: "Vacío" }]); setCareerSelectID("");
+        setEventList([{ id: "empty-event", title: "Vacío" }]); setEventSelectID("");
+        return;
       }
-    );
-  }, [areaSelectID]);
+
+      // If no date filters, keep original behavior
+      if (!startDate && !endDate) {
+        setAreaList(areas);
+        setAreaSelectID(areas[0].id);
+        return;
+      }
+
+      // Date range filtering
+      const areaIDs = new Set(areas.map((a) => a.id));
+      const allCareers = await DataStore.query(Career);
+      if (!alive) return;
+
+      const careers = allCareers.filter((c) => areaIDs.has(c.areaID));
+      const careerById = new Map(careers.map((c) => [c.id, c]));
+      const careerIDs = new Set(careers.map((c) => c.id));
+
+      const allEvents = await DataStore.query(Event);
+      if (!alive) return;
+
+      const startISO = toStartISO(startDate);
+      const endISO = toEndISO(endDate);
+
+      const inRange = allEvents.filter((ev) => {
+        if (!careerIDs.has(ev.careerID)) return false;
+        const iso = getEventDateISO(ev);
+        if (!iso) return false;
+        const after = startISO ? iso >= startISO : true;
+        const before = endISO ? iso <= endISO : true;
+        return after && before;
+      });
+
+      const areasWithEvents = new Set(
+        inRange
+          .map((ev) => careerById.get(ev.careerID)?.areaID)
+          .filter(Boolean)
+      );
+
+      const filteredAreas = areas.filter((a) => areasWithEvents.has(a.id));
+
+      if (filteredAreas.length) {
+        setAreaList(filteredAreas);
+        setAreaSelectID((prev) =>
+          filteredAreas.some((a) => a.id === prev) ? prev : filteredAreas[0].id
+        );
+      } else {
+        setAreaList([{ id: "empty-area", title: "Vacío" }]); setAreaSelectID("");
+        setCareerList([{ id: "empty-career", title: "Vacío" }]); setCareerSelectID("");
+        setEventList([{ id: "empty-event", title: "Vacío" }]); setEventSelectID("");
+      }
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [campusSelectID, startDate, endDate]);
+
+
+  // Get careers for selected area, filtered by date range
+  useEffect(() => {
+    let alive = true;
+    if (!areaSelectID) return;
+
+    DataStore.query(Career, (c) => c.areaID.eq(areaSelectID)).then(async (careers) => {
+      if (!alive) return;
+
+      if (!careers.length) {
+        setCareerList([{ id: "empty-career", title: "Vacío" }]); setCareerSelectID("");
+        setEventList([{ id: "empty-event", title: "Vacío" }]); setEventSelectID("");
+        return;
+      }
+
+      if (!startDate && !endDate) {
+        setCareerList(careers);
+        setCareerSelectID((prev) => (careers.some((c) => c.id === prev) ? prev : careers[0].id));
+        return;
+      }
+
+      const careerIDs = new Set(careers.map((c) => c.id));
+      const allEvents = await DataStore.query(Event);
+      if (!alive) return;
+
+      const startISO = toStartISO(startDate);
+      const endISO = toEndISO(endDate);
+
+      const inRange = allEvents.filter((ev) => {
+        if (!careerIDs.has(ev.careerID)) return false;
+        const iso = getEventDateISO(ev);
+        if (!iso) return false;
+        const after = startISO ? iso >= startISO : true;
+        const before = endISO ? iso <= endISO : true;
+        return after && before;
+      });
+
+      const careersWithEvents = new Set(inRange.map((ev) => ev.careerID));
+      const filteredCareers = careers.filter((c) => careersWithEvents.has(c.id));
+
+      if (filteredCareers.length) {
+        setCareerList(filteredCareers);
+        setCareerSelectID((prev) =>
+          filteredCareers.some((c) => c.id === prev) ? prev : filteredCareers[0].id
+        );
+      } else {
+        setCareerList([{ id: "empty-career", title: "Vacío" }]); setCareerSelectID("");
+        setEventList([{ id: "empty-event", title: "Vacío" }]); setEventSelectID("");
+      }
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [areaSelectID, startDate, endDate]);
+
 
   // Get events depending on the subarea ID
-  React.useEffect(() => {
-    DataStore.query(Event, (e) => e.careerID.eq(careerSelectID)).then(
-      (results) => {
-        if (results.length > 0) {
-          setEventList(results);
-          setEventSelectID(results[0].id);
-        } else {
-          // Reset
-          setEventSelectID("");
-          setEventList([{ title: "Vacio" }]);
-          setOptionTipo((prevOption) => ({
-            ...prevOption,
-            series: [
-              {
-                ...prevOption.series[0],
-                data: null,
-              },
-            ],
-          }));
-          setOptionCargos((prevOption) => ({
-            ...prevOption,
-            series: [
-              {
-                ...prevOption.series[0],
-                data: null,
-              },
-            ],
-          }));
-          setOptionEdad((prevOption) => ({
-            ...prevOption,
-            series: [
-              {
-                ...prevOption.series[0],
-                data: null,
-              },
-            ],
-          }));
-          setTotalCheckIn(null);
-          setTotalRegistros(null);
-        }
+  useEffect(() => {
+    if (!careerSelectID) return;
+
+    const startISO = toStartISO(startDate);
+    const endISO = toEndISO(endDate);
+
+    DataStore.query(Event, (ev) => ev.careerID.eq(careerSelectID)).then((results) => {
+      let filtered = results;
+
+      // Apply date range client-side if user picked dates
+      if (startISO || endISO) {
+        filtered = results.filter((ev) => {
+          const iso = getEventDateISO(ev);
+          if (!iso) return false; // exclude events without a valid date
+          const afterStart = startISO ? iso >= startISO : true;
+          const beforeEnd  = endISO   ? iso <= endISO   : true;
+          return afterStart && beforeEnd;
+        });
       }
-    );
-  }, [careerSelectID]);
+
+      if (filtered.length > 0) {
+        setEventList(filtered);
+        setEventSelectID(filtered[0].id);
+      } else {
+        setEventSelectID("");
+        setEventList([{ id: "empty-event", title: "Vacío" }]);
+        setOptionTipo((prev) => ({ ...prev, series: [{ ...prev.series[0], data: null }] }));
+        setOptionCargos((prev) => ({ ...prev, series: [{ ...prev.series[0], data: null }] }));
+        setOptionEdad((prev) => ({ ...prev, series: [{ ...prev.series[0], data: null }] }));
+        setTotalCheckIn(null);
+        setTotalRegistros(null);
+      }
+    });
+  }, [careerSelectID, startDate, endDate]);
+
+
+
+
 
   // Get EventAttendee data on loading or selecting an event
   React.useEffect(() => {
@@ -721,8 +839,46 @@ const Reportes = () => {
           Exportar base completa <MdFileDownload className="h-5 w-5" />
         </button>
       </div>
-      <div className="filters mb-[35px] mt-3">
+      <div className="filters bg-white p-4 mb-[35px] mt-3 rounded-[20px] border border-[#f2f2f2]">
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">Filtros</h3>
+        
+        <div className="relative flex gap-5 mb-4">
+          <div className="flex flex-col">
+            <label>Fecha inicio</label>
+            <input
+              type="date"
+              className="w-full rounded-md border bg-white py-2.5 pl-3 pr-[12px] text-black shadow-sm outline-none focus:border-indigo-600"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label>Fecha fin</label>
+            <input
+              type="date"
+              className="w-full rounded-md border bg-white py-2.5 pl-3 pr-[12px] text-black shadow-sm outline-none focus:border-indigo-600"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+          {/* Reset button */}
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={() => { setStartDate(""); setEndDate(""); }}
+              className="h-[42px] rounded-md border px-3 text-sm hover:bg-gray-50"
+              aria-label="Resetear fechas"
+            >
+              Resetear fechas
+            </button>
+          </div>
+        </div>
+
+
         <div className="relative flex w-full gap-5">
+
           <div className="flex w-full flex-col">
             <label>Campus</label>
             <select
@@ -828,12 +984,12 @@ const Reportes = () => {
             <PieChartApache key={index} option={chart.options} height="450px" />
           ))}
       </div>
-
+{/* 
       {chartsData.length == 0 && (
         <div className="!z-5 relative flex items-center	gap-2 rounded-[20px] bg-white bg-clip-border p-3 dark:!bg-navy-800 dark:text-white dark:shadow-none">
           <AiOutlineWarning /> No existen gráficos para el evento actual
         </div>
-      )}
+      )} */}
     </div>
   );
 };
