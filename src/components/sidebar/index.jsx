@@ -23,18 +23,18 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
   const { isAdmin } = usePermissions();
 
  const filteredRoutes = React.useMemo(() => {
-   if (!isAdmin) return routes;
-   return routes.filter((r) => {
-     const name = (r?.name || "").toLowerCase();
-     const path = (r?.path || "").toLowerCase();
-     // ajusta los términos si tu item usa otro label/path
-     const matchesBlocklist =
-       /restablecer|reset|restore/.test(name) ||
-       /restablecer|reset|restore/.test(path) ||
-       `${r?.layout || ""}/${path}` === "/page/campus"; // ej: Restablecer → /page/campus
-     return !matchesBlocklist;
-   });
- }, [isAdmin]);
+    return routes
+  //  if (!isAdmin) return routes;
+  //  return routes.filter((r) => {
+  //    const name = (r?.name || "").toLowerCase();
+  //    const path = (r?.path || "").toLowerCase();
+  //    // ajusta los términos si tu item usa otro label/path
+  //    const matchesBlocklist =
+  //      /restablecer|reset|restore/.test(name) ||
+  //      /restablecer|reset|restore/.test(path) ||
+  //      `${r?.layout || ""}/${path}` === "/page/campus";
+  //    return !matchesBlocklist;
+   }, []);
 
   React.useEffect(() => {
     const event = localStorage.getItem('EVENTFLOW.event');
