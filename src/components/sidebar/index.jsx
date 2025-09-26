@@ -161,11 +161,11 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                to={ `eventos/${event?.id}/diseno-gafete/`}>
                   Diseño Gafete
               </Link>
-              {/* <Link 
+              <Link 
                 className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`} 
                 to={ `eventos/${event?.id}/participantes/`}>
                   Participantes
-              </Link> */}
+              </Link>
             </div>
           </div>
          

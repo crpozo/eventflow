@@ -36,10 +36,10 @@ const Marketplace = () => {
             Header: "Creacion",
             accessor: "create_date",
           },
-          {
-            Header: "Detalle",
-            accessor: "action",
-          },
+          // {
+          //   Header: "Detalle",
+          //   accessor: "action",
+          // },
         ];
         setColumns(columns);
 

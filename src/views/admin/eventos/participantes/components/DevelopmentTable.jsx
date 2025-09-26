@@ -100,24 +100,25 @@ const DevelopmentTable = (props) => {
                           {cell.value}
                         </p>
                       );
-                    } else if (cell.column.Header === "Detalle") {
-                      data = (
-                        <span
-                          onClick={() => {
-                            navigate(`/usuario/${cell.value}`);
-                          }}
-                          className="flex cursor-pointer items-center gap-2 hover:text-brand-500"
-                          style={
-                            {
-                              /* Add your inline styles here */
-                            }
-                          }
-                        >
-                          Ingresar{" "}
-                          <IoEnterOutline className="h-[20px] w-[20px]" />
-                        </span>
-                      );
                     }
+                    // } else if (cell.column.Header === "Detalle") {
+                    //   data = (
+                    //     <span
+                    //       onClick={() => {
+                    //         navigate(`/usuario/${cell.value}`);
+                    //       }}
+                    //       className="flex cursor-pointer items-center gap-2 hover:text-brand-500"
+                    //       style={
+                    //         {
+                    //           /* Add your inline styles here */
+                    //         }
+                    //       }
+                    //     >
+                    //       Ingresar{" "}
+                    //       <IoEnterOutline className="h-[20px] w-[20px]" />
+                    //     </span>
+                    //   );
+                    // }
                     return (
                       <td
                         {...cell.getCellProps()}
