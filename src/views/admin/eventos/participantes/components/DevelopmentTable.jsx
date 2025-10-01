@@ -10,9 +10,10 @@ import {
 
 import { IoEnterOutline } from "react-icons/io5";
 import UploadExcelButton from "./UploadExcelButton";
+import DownloadBadgeButton from "./DownloadBadgeButton";
 
 const DevelopmentTable = (props) => {
-  const { columnsData, tableData } = props;
+  const { columnsData, tableData, event } = props;
 
   const navigate = useNavigate();
 
@@ -88,7 +89,7 @@ const DevelopmentTable = (props) => {
                 >
                   {row.cells.map((cell, index) => {
                     let data = "";
-                    if (cell.column.Header === "ID") {
+                    if (cell.column.Header === "Email") {
                       data = (
                         <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
@@ -100,25 +101,16 @@ const DevelopmentTable = (props) => {
                           {cell.value}
                         </p>
                       );
+                    } else if (cell.column.Header === "Acciones") {
+                      data = (
+                        <div className="flex gap-2">
+                          <DownloadBadgeButton
+                            eventAttendee={row.original.eventAttendee}
+                            event={event}
+                          />
+                        </div>
+                      );
                     }
-                    // } else if (cell.column.Header === "Detalle") {
-                    //   data = (
-                    //     <span
-                    //       onClick={() => {
-                    //         navigate(`/usuario/${cell.value}`);
-                    //       }}
-                    //       className="flex cursor-pointer items-center gap-2 hover:text-brand-500"
-                    //       style={
-                    //         {
-                    //           /* Add your inline styles here */
-                    //         }
-                    //       }
-                    //     >
-                    //       Ingresar{" "}
-                    //       <IoEnterOutline className="h-[20px] w-[20px]" />
-                    //     </span>
-                    //   );
-                    // }
                     return (
                       <td
                         {...cell.getCellProps()}

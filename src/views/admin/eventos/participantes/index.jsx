@@ -1,7 +1,7 @@
 import React from "react";
 import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
-import { Attendee } from "models"
+import { EventAttendee, Event } from "models"
 import { useNavigate, useParams } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
 import { formatDate } from 'scripts/utils'
@@ -11,42 +11,49 @@ const Marketplace = () => {
   const navigate = useNavigate();
   const [columns, setColumns] = React.useState(null);
   const [rows, setRows] = React.useState(null);
+  const [event, setEvent] = React.useState(null);
   const id = useParams().id;
 
   React.useEffect(() => {
     if(!id || id === "no-id"){
       navigate(`/admin/eventos`);
-      return 
+      return
     }
+
+    // Cargar el evento para obtener el Badge
+    DataStore.query(Event, id).then((result) => {
+      setEvent(result);
+    });
   }, [id, navigate]);
 
   React.useEffect(() => {
 
-    const sub = DataStore.observeQuery(Attendee, (a) =>
-      a.EventAttendees.eventID.eq(id)
+    const sub = DataStore.observeQuery(EventAttendee, (ea) =>
+      ea.eventID.eq(id)
     ).subscribe(({ items }) => {
       try{
 
         let columns = [
           {
-            Header: "ID",
-            accessor: "id",
+            Header: "Email",
+            accessor: "email",
           },
           {
             Header: "Creacion",
             accessor: "create_date",
           },
-          // {
-          //   Header: "Detalle",
-          //   accessor: "action",
-          // },
+          {
+            Header: "Acciones",
+            accessor: "actions",
+          },
         ];
         setColumns(columns);
 
-        let updatedRows = items.map(user => ({
-          id: user.id,
-          create_date: formatDate(user.createdAt),
-          action: user.id
+        let updatedRows = items.map(eventAttendee => ({
+          email: eventAttendee.email,
+          create_date: formatDate(eventAttendee.createdAt),
+          actions: eventAttendee,
+          eventAttendee: eventAttendee
         }));
 
         setRows(updatedRows);
@@ -72,10 +79,11 @@ const Marketplace = () => {
         <Banner />
 
         <div className="grid h-full grid-cols-1 gap-5">
-          
+
           <DevelopmentTable
             columnsData={columns}
             tableData={rows}
+            event={event}
           />
         </div>
       </div>
