@@ -2,9 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
-import { Event } from "models";
-import { MdEditCalendar } from "react-icons/md";
+import { uploadData, remove, getUrl } from 'aws-amplify/storage';
+import { generateClient } from 'aws-amplify/api';
+import { createBadge, updateBadge, updateEvent } from 'graphql/mutations';
+import { getBadge } from 'graphql/queries';
+import { Event, Badge } from "models";
 import { BsFiletypePdf } from "react-icons/bs";
+import { MdClose } from "react-icons/md";
+
+const client = generateClient();
 
 const Dashboard = () => {
   const [event, setEvent] = React.useState([]);
@@ -23,11 +29,59 @@ const Dashboard = () => {
     });
   }, [id, navigate]);
 
+  // Cargar Badge existente si hay uno
+  React.useEffect(() => {
+    const loadExistingBadge = async () => {
+      if (event && event.eventBadgeId) {
+        setIsLoadingBadge(true);
+        try {
+          console.log("Cargando Badge existente...");
+
+          const badgeResponse = await client.graphql({
+            query: getBadge,
+            variables: { id: event.eventBadgeId }
+          });
+
+          const badge = badgeResponse.data.getBadge;
+
+          if (badge && badge.frontDesign && badge.backDesign) {
+            console.log("Badge encontrado:", badge);
+            setExistingBadge(badge);
+
+            // Obtener URLs firmadas de S3 para mostrar preview
+            const frontUrlResult = await getUrl({ key: badge.frontDesign });
+            const backUrlResult = await getUrl({ key: badge.backDesign });
+
+            setFrontPreviewUrl(frontUrlResult.url.toString());
+            setBackPreviewUrl(backUrlResult.url.toString());
+
+            console.log("URLs de preview cargadas");
+          }
+        } catch (error) {
+          console.error("Error cargando Badge existente:", error);
+        } finally {
+          setIsLoadingBadge(false);
+        }
+      } else {
+        setIsLoadingBadge(false);
+      }
+    };
+
+    if (event) {
+      loadExistingBadge();
+    }
+  }, [event]);
+
   /* Badge attachment logic */
   const [frontFile, setFrontFile] = useState(null);
   const [backFile, setBackFile] = useState(null);
+  const [frontPreviewUrl, setFrontPreviewUrl] = useState(null);
+  const [backPreviewUrl, setBackPreviewUrl] = useState(null);
   const [isDraggingFront, setIsDraggingFront] = useState(false);
   const [isDraggingBack, setIsDraggingBack] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingBadge, setIsLoadingBadge] = useState(false);
+  const [existingBadge, setExistingBadge] = useState(null);
 
   const handleDragOver = (e, setIsDragging) => {
     e.preventDefault();
@@ -38,30 +92,231 @@ const Dashboard = () => {
     setIsDragging(false);
   };
 
-  const handleDrop = (e, setFile, setIsDragging) => {
+  const handleDrop = (e, setFile, setIsDragging, setPreviewUrl) => {
     e.preventDefault();
     setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile.type === "application/pdf") {
+    if (droppedFile && droppedFile.type === "application/pdf") {
       setFile(droppedFile);
+      setPreviewUrl(null); // Limpiar preview de S3
     } else {
       alert("Solo se permiten archivos PDF.");
     }
   };
 
-  const handleFileChange = (e, setFile) => {
+  const handleFileChange = (e, setFile, setPreviewUrl) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile.type === "application/pdf") {
+    if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
+      setPreviewUrl(null); // Limpiar preview de S3
     } else {
       alert("Solo se permiten archivos PDF.");
     }
   };
 
-  const handleSubmit = (e) => {
+  const deleteFileFromS3 = async (key) => {
+    try {
+      if (key) {
+        console.log("Eliminando archivo de S3:", key);
+        await remove({ key });
+        console.log("Archivo eliminado exitosamente");
+      }
+    } catch (error) {
+      console.error('Error eliminando archivo:', error);
+      // No lanzar error, continuar con la subida
+    }
+  };
+
+  const uploadFileToS3 = async (file, key, oldKey = null) => {
+    try {
+      // Eliminar archivo antiguo si existe
+      if (oldKey) {
+        await deleteFileFromS3(oldKey);
+      }
+
+      console.log("Iniciando subida a S3:", { fileName: file.name, key });
+
+      const uploadTask = uploadData({
+        key: key,
+        data: file,
+        options: {
+          contentType: file.type,
+        }
+      });
+
+      const result = await uploadTask.result;
+      console.log("Archivo subido exitosamente:", result);
+      return result.key;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("handleSubmit iniciado");
+
     if (frontFile && backFile) {
-      // Lógica para guardar la información
+      setIsLoading(true);
+      try {
+        console.log("Archivos seleccionados:", {
+          front: frontFile.name,
+          back: backFile.name
+        });
+
+        let badge;
+        let oldFrontKey = null;
+        let oldBackKey = null;
+
+        // Verificar si el evento ya tiene un Badge
+        if (event.eventBadgeId) {
+          console.log("Evento tiene Badge existente, obteniendo...");
+
+          // Obtener el Badge existente usando GraphQL
+          const badgeResponse = await client.graphql({
+            query: getBadge,
+            variables: { id: event.eventBadgeId }
+          });
+
+          const existingBadge = badgeResponse.data.getBadge;
+
+          if (existingBadge) {
+            console.log("Badge encontrado:", existingBadge);
+            oldFrontKey = existingBadge.frontDesign;
+            oldBackKey = existingBadge.backDesign;
+
+            // Subir archivos a S3 (eliminando los antiguos)
+            const frontKey = `public/badges/${frontFile.name}`;
+            const backKey = `public/badges/${backFile.name}`;
+
+            const frontS3Key = await uploadFileToS3(frontFile, frontKey, oldFrontKey);
+            const backS3Key = await uploadFileToS3(backFile, backKey, oldBackKey);
+
+            console.log("Archivos subidos a S3:", { frontS3Key, backS3Key });
+
+            // Actualizar Badge existente usando GraphQL
+            const badgeUpdateInput = {
+              id: existingBadge.id,
+              frontDesign: frontS3Key,
+              backDesign: backS3Key,
+              _version: existingBadge._version
+            };
+
+            console.log("Actualizando Badge con input:", badgeUpdateInput);
+
+            const updateResponse = await client.graphql({
+              query: updateBadge,
+              variables: { input: badgeUpdateInput }
+            });
+
+            badge = updateResponse.data.updateBadge;
+            console.log("Badge actualizado:", badge);
+          } else {
+            // Si no existe, crear uno nuevo
+            const frontKey = `public/badges/${frontFile.name}`;
+            const backKey = `public/badges/${backFile.name}`;
+
+            const frontS3Key = await uploadFileToS3(frontFile, frontKey);
+            const backS3Key = await uploadFileToS3(backFile, backKey);
+
+            const badgeInput = {
+              frontDesign: frontS3Key,
+              backDesign: backS3Key,
+            };
+
+            console.log("Creando nuevo Badge con input:", badgeInput);
+
+            const badgeResponse = await client.graphql({
+              query: createBadge,
+              variables: { input: badgeInput }
+            });
+
+            badge = badgeResponse.data.createBadge;
+            console.log("Badge creado:", badge);
+
+            // Actualizar el Event con el nuevo Badge
+            const eventUpdateInput = {
+              id: event.id,
+              eventBadgeId: badge.id,
+              _version: event._version
+            };
+
+            await client.graphql({
+              query: updateEvent,
+              variables: { input: eventUpdateInput }
+            });
+          }
+        } else {
+          // Crear nuevo Badge usando GraphQL API directamente
+          const frontKey = `public/badges/${frontFile.name}`;
+          const backKey = `public/badges/${backFile.name}`;
+
+          const frontS3Key = await uploadFileToS3(frontFile, frontKey);
+          const backS3Key = await uploadFileToS3(backFile, backKey);
+
+          console.log("Archivos subidos a S3:", { frontS3Key, backS3Key });
+
+          const badgeInput = {
+            frontDesign: frontS3Key,
+            backDesign: backS3Key,
+          };
+
+          console.log("Creando Badge con input:", badgeInput);
+
+          const badgeResponse = await client.graphql({
+            query: createBadge,
+            variables: { input: badgeInput }
+          });
+
+          badge = badgeResponse.data.createBadge;
+          console.log("Badge creado con GraphQL:", badge);
+
+          // Actualizar el Event con el nuevo Badge usando GraphQL
+          const eventUpdateInput = {
+            id: event.id,
+            eventBadgeId: badge.id,
+            _version: event._version
+          };
+
+          console.log("Actualizando Event con input:", eventUpdateInput);
+
+          const eventResponse = await client.graphql({
+            query: updateEvent,
+            variables: { input: eventUpdateInput }
+          });
+
+          console.log("Event actualizado con Badge ID:", eventResponse.data.updateEvent);
+        }
+
+        // Esperar un momento para que DataStore sincronice
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        alert("Gafetes guardados exitosamente");
+
+        // Recargar el evento y el badge
+        const updatedEvent = await DataStore.query(Event, event.id);
+        setEvent(updatedEvent);
+
+        // Limpiar archivos locales y recargar preview desde S3
+        setFrontFile(null);
+        setBackFile(null);
+
+        // Recargar URLs de preview
+        if (badge) {
+          const frontUrlResult = await getUrl({ key: badge.frontDesign });
+          const backUrlResult = await getUrl({ key: badge.backDesign });
+          setFrontPreviewUrl(frontUrlResult.url.toString());
+          setBackPreviewUrl(backUrlResult.url.toString());
+        }
+
+        console.log("Evento recargado:", updatedEvent);
+      } catch (error) {
+        console.error("Error al guardar los gafetes:", error);
+        alert("Error al guardar los gafetes: " + error.message);
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       alert("Por favor, sube ambos archivos.");
     }
@@ -80,14 +335,22 @@ const Dashboard = () => {
       {event && event.length !== 0 && (
         <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
+          {isLoadingBadge ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <span className="loader"></span>
+              <h2 className="mb-2 text-center text-xl text-black dark:text-white">
+                Cargando...
+              </h2>
+            </div>
+          ) : (
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
             {/* Campo de Drag and Drop para Front Design */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Front Design (PDF)</label>
+              <label className="block text-sm font-medium text-gray-900">Front Design (PDF)</label>
               <div
                 onDragOver={(e) => handleDragOver(e, setIsDraggingFront)}
                 onDragLeave={() => handleDragLeave(setIsDraggingFront)}
-                onDrop={(e) => handleDrop(e, setFrontFile, setIsDraggingFront)}
+                onDrop={(e) => handleDrop(e, setFrontFile, setIsDraggingFront, setFrontPreviewUrl)}
                 className={`mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md h-48 ${isDraggingFront ? 'border-indigo-500' : 'border-gray-300'}`}
               >
                 <div className="space-y-1 text-center">
@@ -95,6 +358,12 @@ const Dashboard = () => {
                     <div className="flex items-center justify-center">
                       <BsFiletypePdf className="h-[35px] w-[35px] m-auto text-gray-500" />
                       <p className="ml-2 text-sm text-gray-500">{frontFile.name}</p>
+                    </div>
+                  ) : frontPreviewUrl ? (
+                    <div className="flex flex-col items-center justify-center">
+                      <BsFiletypePdf className="h-[35px] w-[35px] m-auto text-green-500" />
+                      <p className="mt-2 text-sm text-green-600">Diseño cargado</p>
+                      <p className="text-xs text-gray-500">Arrastra un nuevo archivo o haz clic para cambiar</p>
                     </div>
                   ) : (
                     <>
@@ -110,7 +379,7 @@ const Dashboard = () => {
                             name="front-file-upload"
                             type="file"
                             accept=".pdf"
-                            onChange={(e) => handleFileChange(e, setFrontFile)}
+                            onChange={(e) => handleFileChange(e, setFrontFile, setFrontPreviewUrl)}
                             className="sr-only"
                           />
                         </label>
@@ -122,22 +391,35 @@ const Dashboard = () => {
                 </div>
               </div>
               {/* Vista previa del archivo PDF */}
-              {frontFile && (
-                <iframe
-                  src={URL.createObjectURL(frontFile)}
-                  className="w-full h-[600px] mt-4 border"
-                  title="Front Design Preview"
-                />
+              {(frontFile || frontPreviewUrl) && (
+                <div className="relative mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFrontFile(null);
+                      setFrontPreviewUrl(null);
+                    }}
+                    className="absolute top-2 right-[10px] z-10 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
+                    title="Cambiar archivo"
+                  >
+                    <MdClose className="h-5 w-5" />
+                  </button>
+                  <iframe
+                    src={frontFile ? URL.createObjectURL(frontFile) : frontPreviewUrl}
+                    className="w-full h-[600px] border"
+                    title="Front Design Preview"
+                  />
+                </div>
               )}
             </div>
 
             {/* Campo de Drag and Drop para Back Design */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Back Design (PDF)</label>
+              <label className="block text-sm font-medium text-gray-900">Back Design (PDF)</label>
               <div
                 onDragOver={(e) => handleDragOver(e, setIsDraggingBack)}
                 onDragLeave={() => handleDragLeave(setIsDraggingBack)}
-                onDrop={(e) => handleDrop(e, setBackFile, setIsDraggingBack)}
+                onDrop={(e) => handleDrop(e, setBackFile, setIsDraggingBack, setBackPreviewUrl)}
                 className={`mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md h-48 ${isDraggingBack ? 'border-indigo-500' : 'border-gray-300'}`}
               >
                 <div className="space-y-1 text-center">
@@ -145,6 +427,12 @@ const Dashboard = () => {
                     <div className="flex items-center justify-center">
                       <BsFiletypePdf className="h-[35px] w-[35px] m-auto text-gray-500" />
                       <p className="ml-2 text-sm text-gray-500">{backFile.name}</p>
+                    </div>
+                  ) : backPreviewUrl ? (
+                    <div className="flex flex-col items-center justify-center">
+                      <BsFiletypePdf className="h-[35px] w-[35px] m-auto text-green-500" />
+                      <p className="mt-2 text-sm text-green-600">Diseño cargado</p>
+                      <p className="text-xs text-gray-500">Arrastra un nuevo archivo o haz clic para cambiar</p>
                     </div>
                   ) : (
                     <>
@@ -160,7 +448,7 @@ const Dashboard = () => {
                             name="back-file-upload"
                             type="file"
                             accept=".pdf"
-                            onChange={(e) => handleFileChange(e, setBackFile)}
+                            onChange={(e) => handleFileChange(e, setBackFile, setBackPreviewUrl)}
                             className="sr-only"
                           />
                         </label>
@@ -172,12 +460,25 @@ const Dashboard = () => {
                 </div>
               </div>
               {/* Vista previa del archivo PDF */}
-              {backFile && (
-                <iframe
-                  src={URL.createObjectURL(backFile)}
-                  className="w-full h-[600px] mt-4 border"
-                  title="Back Design Preview"
-                />
+              {(backFile || backPreviewUrl) && (
+                <div className="relative mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBackFile(null);
+                      setBackPreviewUrl(null);
+                    }}
+                    className="absolute top-2 right-[10px] z-10 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"
+                    title="Cambiar archivo"
+                  >
+                    <MdClose className="h-5 w-5" />
+                  </button>
+                  <iframe
+                    src={backFile ? URL.createObjectURL(backFile) : backPreviewUrl}
+                    className="w-full h-[600px] border"
+                    title="Back Design Preview"
+                  />
+                </div>
               )}
             </div>
 
@@ -185,12 +486,24 @@ const Dashboard = () => {
             <div className="col-span-2 flex justify-end">
               <button
                 type="submit"
-                className="mt-4 px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-md hover:bg-black hover:text-white focus:outline-none"
+                disabled={isLoading}
+                className={`mt-4 px-4 py-2 text-white text-sm font-medium rounded-md focus:outline-none flex items-center gap-2 ${
+                  isLoading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-brand-500 hover:bg-black hover:text-white'
+                }`}
               >
-                Guardar
+                {isLoading && (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {isLoading ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </form>
+          )}
         </div>
       )}
     </div>
