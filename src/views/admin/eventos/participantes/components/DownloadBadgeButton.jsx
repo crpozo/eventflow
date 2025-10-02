@@ -56,8 +56,6 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
     setIsLoading(true);
 
     try {
-      console.log('Obteniendo Badge del evento...');
-
       // Obtener el Badge del evento
       const badgeResponse = await client.graphql({
         query: getBadge,
@@ -72,17 +70,12 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
         return;
       }
 
-      console.log('Badge encontrado:', badge);
-
       // Obtener URL del PDF desde S3
       const frontUrlResult = await getUrl({ key: badge.frontDesign });
       const frontUrl = frontUrlResult.url.toString();
 
-      console.log('URL del badge:', frontUrl);
-
       // Obtener datos del participante
       const participantData = getParticipantData(eventAttendee);
-      console.log('Datos del participante:', participantData);
 
       // Descargar el PDF
       const response = await fetch(frontUrl);
@@ -98,39 +91,58 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       const form = pdfDoc.getForm();
       const fields = form.getFields();
 
-      console.log('Campos encontrados en el PDF:', fields.map(f => f.getName()));
+      // Llenar todos los campos del formulario
+      let fieldsFound = 0;
 
-      // Llenar solo el campo NameAttendee
-      let fieldsFound = false;
-      fields.forEach((field) => {
+      for (const field of fields) {
         const fieldName = field.getName();
-        console.log(`Campo: ${fieldName}`);
 
-        // Solo llenar NameAttendee, obviar el resto
-        if (fieldName === 'NameAttendee') {
-          try {
-            if (field.constructor.name === 'PDFTextField') {
-              field.setText(String(participantData.NameAttendee));
-              fieldsFound = true;
-              console.log(`Campo NameAttendee llenado con: ${participantData.NameAttendee}`);
+        try {
+          // Llenar campos de texto
+          if (field.constructor.name === 'PDFTextField') {
+            if (participantData[fieldName] !== undefined && participantData[fieldName] !== null) {
+              const value = String(participantData[fieldName]);
+              field.setText(value);
+              fieldsFound++;
             }
-          } catch (e) {
-            console.error(`Error llenando campo NameAttendee:`, e);
           }
-        }
-      });
+          // Llenar campo de imagen para QR Code
+          else if (fieldName === 'ProfileQrCode') {
+            try {
+              // Generar QR Code
+              const QRCode = await import('qrcode');
+              const qrDataUrl = await QRCode.toDataURL(participantData.ProfileQrCode || eventAttendee.profileURL, {
+                width: 200,
+                margin: 1,
+              });
 
-      if (!fieldsFound) {
-        console.warn('ADVERTENCIA: No se encontraron campos de formulario en el PDF.');
-        console.warn('Para que funcione el reemplazo de variables, el PDF debe tener campos de formulario editables.');
-        console.warn('Campos esperados:', Object.keys(participantData));
+              // Convertir data URL a bytes
+              const qrImageBytes = await fetch(qrDataUrl).then(res => res.arrayBuffer());
+              const qrImage = await pdfDoc.embedPng(qrImageBytes);
+
+              // Si es un botón de imagen
+              if (field.constructor.name === 'PDFButton') {
+                const appearance = field.acroField.getAppearanceCharacteristics();
+                if (appearance) {
+                  appearance.setNormalIcon(qrImage);
+                }
+              }
+
+              fieldsFound++;
+            } catch (qrError) {
+              // Silent error
+            }
+          }
+        } catch (e) {
+          // Silent error
+        }
       }
 
       // Aplanar el formulario para que no se pueda editar
       try {
         form.flatten();
       } catch (e) {
-        console.log('No se pudo aplanar el formulario:', e);
+        // Silent error
       }
 
       // Guardar el PDF modificado
@@ -147,14 +159,16 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      console.log('Badge descargado exitosamente');
-
-      if (!fieldsFound) {
-        alert('Badge descargado. NOTA: El PDF no tiene campos de formulario, por lo que no se reemplazaron las variables. Por favor, crea el PDF con campos de formulario llamados: NameAttendee, Email, TheUniversityLabelReplacePurpose, ProfileQrCode');
+      // Solo mostrar alerta si NO hay campos de formulario en el PDF
+      if (fields.length === 0) {
+        alert('Badge descargado. NOTA: El PDF no tiene campos de formulario, por lo que no se reemplazaron las variables.\n\nAgrega campos de formulario al PDF con nombres como: NameAttendee, Email, TheUniversityLabelReplacePurpose, ProfileQrCode');
+      }
+      // Mostrar advertencia si hay campos pero ninguno se llenó
+      else if (fieldsFound === 0) {
+        alert(`Badge descargado. ADVERTENCIA: El PDF tiene campos de formulario (${fields.map(f => f.getName()).join(', ')}) pero ninguno coincide con los datos disponibles.\n\nDatos disponibles: ${Object.keys(participantData).join(', ')}`);
       }
 
     } catch (error) {
-      console.error('Error descargando badge:', error);
       alert('Error al descargar el badge: ' + error.message);
     } finally {
       setIsLoading(false);
@@ -168,7 +182,7 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
         isLoading
           ? 'bg-gray-400 cursor-not-allowed text-white'
-          : 'bg-brand-500 hover:bg-brand-600 text-white'
+          : 'bg-black hover:bg-brand-500 text-white'
       }`}
       title="Descargar Badge"
     >

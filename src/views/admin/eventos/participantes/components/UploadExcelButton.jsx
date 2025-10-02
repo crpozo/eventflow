@@ -4,17 +4,21 @@ import { Button } from "@chakra-ui/button";
 import { DataStore } from "aws-amplify/datastore";
 import { Attendee, EventAttendee, Form } from "models";
 import { uploadData, getUrl } from "aws-amplify/storage";
-import QRCode from "qrcode"; // You'll need to install this: npm install qrcode
+import QRCode from "qrcode";
 import html2pdf from "html2pdf.js";
+import logo from "assets/img/usfq/logo_2025.png";
 
 export default function UploadExcelButton({ event }) {
   const url = window.location.href;
   const domain = url.split("/")[2];
-  const eventID = url.split("/")[5];
   const [isPending, setIsPending] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleButtonClick = async () => {
+    if (!event || !event.id) {
+      alert('Error: No se ha cargado la información del evento. Por favor recarga la página.');
+      return;
+    }
     fileInputRef.current.click();
   };
 
@@ -30,165 +34,231 @@ export default function UploadExcelButton({ event }) {
         }
       });
     } catch (error) {
-      console.error('Error generating QR code:', error);
       return null;
     }
   };
 
-  // Generate ticket HTML
+
+  // Generate ticket HTML (matches landing design exactly)
   const generateTicketHTML = (eventAttendee, qrCodeDataURL, userData, event) => {
+    console.log('📋 userData recibido:', userData);
+    console.log('📋 event recibido:', event);
+    console.log('🖼️ qrCodeDataURL:', qrCodeDataURL ? 'OK' : 'NULL');
+
     const participantName = userData.find(item => item.name === "nombres")?.userData[0] || "Participante";
-    
+    console.log('👤 Nombre participante:', participantName);
+
+    // Format date in Spanish like landing does
+    const formatSpanishDate = (dateString) => {
+      if (!dateString) return 'Fecha del evento';
+      const date = new Date(dateString);
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      return date.toLocaleDateString('es-ES', options);
+    };
+
     return `
       <div style="
-        width: 350px;
-        border: 1px solid #ccc;
-        background: linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, #faf3e9f7 80%);
-        padding: 32px 8px 24px 8px;
         display: flex;
-        flex-direction: column;
+        width: 100%;
+        max-width: 350px;
         align-items: center;
-        gap: 30px;
-        font-family: Arial, sans-serif;
+        justify-content: flex-start;
+        border: 1px solid #d1d5db;
+        border-style: solid;
+        padding-bottom: 8px;
       ">
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <div style="background: white; padding: 4px; margin-bottom: 50px;">
-            <img src="${qrCodeDataURL}" style="width: 170px; height: 170px;" alt="QR Code" />
+        <div style="
+          background: linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, #faf3e9f7 80%);
+          display: flex;
+          width: 100%;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          gap: 30px;
+          padding: 32px 8px 10px 8px;
+          font-family: Arial, sans-serif;
+        ">
+          <div style="display: flex; width: 100%; flex-direction: column; align-items: center; justify-content: flex-start;">
+            <div style="display: flex; align-items: center; justify-content: center; background: white; padding: 4px;">
+              <img src="${qrCodeDataURL}" style="width: 150px; height: 150px; margin-bottom: 50px;" alt="QR Code" />
+            </div>
+            <img src="${logo}" crossorigin="anonymous" style="width: 210px; margin-bottom: 50px;" alt="USFQ Logo" />
+            <h1 style="margin-bottom: 16px; font-size: 24px; max-width: 300px; font-weight: bold; text-align: center;">
+              ${event?.title || 'Evento USFQ'}
+            </h1>
           </div>
-          <img src="assets/img/usfq/logo_2025.png" style="width: 250px; margin-bottom: 50px;" alt="USFQ Logo" />
-          <h1 style="margin-bottom: 16px; font-size: 24px; max-width: 300px; font-weight: bold; text-align: center;">
-            ${event?.title || 'Evento USFQ'}
-          </h1>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-          <p style="font-size: 16px; width: 100%; text-align: right; font-weight: bold; text-transform: capitalize; margin-bottom: 8px;">
-            ${participantName}
-          </p>
-          <p style="margin-bottom: 8px; text-align: right; font-size: 14px;">
-            ${event?.location || 'Ubicación del evento'}
-          </p>
-          <p style="margin-bottom: 4px; max-width: fit-content; background: black; padding: 3px 8px; text-align: right; font-size: 14px; color: white;">
-            ${event?.date || 'Fecha del evento'}
-          </p>
+          <div style="display: flex; width: 100%; flex-direction: column; align-items: center; justify-content: center;">
+            <p style="font-size: 16px; width: 100%; text-align: center; font-weight: bold; text-transform: capitalize; margin-bottom: 8px;">
+              ${participantName}
+            </p>
+            <p style="margin-bottom: 8px; text-align: right; font-size: 14px; font-weight: normal;">
+              ${event?.location || 'Ubicación del evento'}
+            </p>
+            <p style="margin-bottom: 4px; max-width: fit-content; background: black; padding: 3px 8px; text-align: right; font-size: 14px; font-weight: normal; color: white;">
+              ${formatSpanishDate(event?.date)}
+            </p>
+          </div>
         </div>
       </div>
     `;
   };
 
-  // Generate PDF from HTML
+  // Generate PDF from HTML (same method as landing)
   const generatePDFFromHTML = async (htmlContent) => {
+    // 1) Build an offscreen container
     const tempDiv = document.createElement('div');
+    tempDiv.id = 'pdf-content-temp';
     tempDiv.innerHTML = htmlContent;
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
+
+    // Keep it renderable (not display:none) so html2canvas can compute sizes
+    Object.assign(tempDiv.style, {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      opacity: '0',
+      pointerEvents: 'none',
+      zIndex: '-1',
+    });
+
     document.body.appendChild(tempDiv);
 
+    // Select the actual element (avoid .firstChild which might be a text node)
+    const element = tempDiv.children[0] || tempDiv;
+
+    // 2) Ensure all images are decoded before rendering (prevents hangs)
+    const imgs = Array.from(element.querySelectorAll('img'));
+    await Promise.all(
+      imgs.map(img =>
+        // decode() is supported on modern browsers; fallback to load event
+        (img.decode ? img.decode() : new Promise(res => {
+          if (img.complete) return res();
+          img.addEventListener('load', res, { once: true });
+          img.addEventListener('error', res, { once: true });
+        })).catch(() => {})
+      )
+    );
+
     try {
-      const pdfOptions = {
-        image: { type: "jpeg", quality: 1 },
-        margin: [5, -220, 0, 0],
-        jsPDF: { unit: "mm", format: [520, 340] },
+      // 3) Reasonable PDF options (no negative margins, useCORS on)
+      //    We'll render at A6 portrait by default (fits badge nicely).
+      const opt = {
+        margin:       [5, 5, 5, 5],
+        filename:     'ticket.pdf',
+        image:        { type: 'jpeg', quality: 1 },
+        html2canvas:  { scale: 2, useCORS: true, backgroundColor: null },
+        jsPDF:        { unit: 'mm', format: 'a6', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all'] },
       };
 
-      const pdfBlob = await html2pdf()
-        .set(pdfOptions)
-        .from(tempDiv)
-        .outputPdf('blob');
+      console.log('🔄 Generando PDF con html2pdf (safe settings)...');
 
-      // Convert blob to base64
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1]; // Remove data:application/pdf;base64,
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(pdfBlob);
-      });
+      // 4) Build the PDF and get the pdf instance
+      const worker = html2pdf().set(opt).from(element).toPdf();
+      const pdf = await worker.get('pdf');
+
+      // 5) Get binary ArrayBuffer, then convert to base64 safely
+      const arrayBuffer = pdf.output('arraybuffer'); // binary
+      const uint8 = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+      const base64PDF = btoa(binary);
+
+      // Optional local download to verify (blob route is safer than mixing strings)
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'test-ticket.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      console.log('✓ PDF generado y convertido a base64');
+      return base64PDF;
     } finally {
       document.body.removeChild(tempDiv);
     }
   };
 
+
+
   // Save PDF to storage and update EventAttendee
   const savePDFAndUpdateAttendee = async (eventAttendee, base64PDF) => {
     try {
       // Upload PDF to storage
-      const resultUpload = await uploadData({
-        key: `${eventAttendee.id}_${eventID}_ticket.txt`,
+      await uploadData({
+        key: `${eventAttendee.id}_${event.id}_ticket.txt`,
         data: base64PDF,
         options: {
           accessLevel: "guest",
-          metadata: { key: eventID },
+          metadata: { key: event.id },
         },
       }).result;
 
       // Get URL for the uploaded file
       const getUrlResult = await getUrl({
-        key: `${eventAttendee.id}_${eventID}_ticket.txt`,
+        key: `${eventAttendee.id}_${event.id}_ticket.txt`,
         options: {
           accessLevel: "guest",
         },
       });
 
+      const ticketPath = decodeURIComponent(getUrlResult.url.pathname.substring(1));
+
       // Update EventAttendee with ticket URL
       const original = await DataStore.query(EventAttendee, eventAttendee.id);
       const updatedEventAttendee = await DataStore.save(
         EventAttendee.copyOf(original, (updated) => {
-          updated.ticket = decodeURIComponent(getUrlResult.url.pathname.substring(1));
-          updated.authorized = true; // Set as authorized since it's imported
+          updated.ticket = ticketPath;
+          updated.authorized = true;
         })
       );
 
       return updatedEventAttendee;
     } catch (error) {
-      console.error("Error saving PDF and updating attendee:", error);
       throw error;
     }
   };
 
   // Send ticket email
   const sendTicketEmail = async (eventAttendeeId) => {
-    try {
-      const payloadEmail = {
-        eventAttendeeId: eventAttendeeId,
-        typePayment: "CARD", 
-        statusPayment: "SUCCESSFUL",
-      };
+    const payloadEmail = {
+      eventAttendeeId: eventAttendeeId,
+      typePayment: "CARD",
+      statusPayment: "SUCCESSFUL",
+    };
 
-      console.log("Sending email with payload:", payloadEmail);
+    console.log("📧 Payload enviado al API:", payloadEmail);
 
-      const response = await fetch(
-        "https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payloadEmail),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    const response = await fetch(
+      "https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payloadEmail),
       }
+    );
 
-      const result = await response.json();
-      console.log("Email API response:", result);
-      return result;
-    } catch (error) {
-      console.error("Error sending ticket email:", error);
-      throw error; // Re-lanzar el error para que sea manejado arriba
+    console.log("📬 Response status:", response.status);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const result = await response.json();
+    console.log("📨 Response del API:", result);
+
+    return result;
   };
 
   async function createAttendee() {
     return await DataStore.save(new Attendee({}));
   }
 
-  const handleFileChange = async (event) => {
+  const handleFileChange = async (fileEvent) => {
     try {
-      const file = event.target.files[0];
+      const file = fileEvent.target.files[0];
       if (!file) return;
 
       setIsPending(true);
@@ -197,6 +267,18 @@ export default function UploadExcelButton({ event }) {
 
       reader.onload = async (e) => {
         try {
+          // Verify event is loaded
+          if (!event || !event.id) {
+            alert('Error: El evento no se ha cargado correctamente. Por favor recarga la página.');
+            setIsPending(false);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+            return;
+          }
+
+          console.log('✓ Evento cargado:', event.id, event.title);
+
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: "array" });
           const firstSheetName = workbook.SheetNames[0];
@@ -213,10 +295,19 @@ export default function UploadExcelButton({ event }) {
             );
           });
 
-          const questions = (await DataStore.query(Form, (f) => f.formEventId.eq(eventID)))[0]?.questions;
+          const questions = (await DataStore.query(Form, (f) => f.formEventId.eq(event.id)))[0]?.questions;
+
+          // Get existing EventAttendees to check for duplicates
+          const existingEventAttendees = await DataStore.query(EventAttendee, (ea) => ea.eventID.eq(event.id));
+          const existingEmails = new Set(existingEventAttendees.map(ea => ea.email.toLowerCase()));
 
           for (const participant of participants) {
             try {
+              // Check for duplicate email
+              if (existingEmails.has(participant.email.toLowerCase())) {
+                continue;
+              }
+
               const attendee = await createAttendee();
               const answers = questions.map((q) => ({
                 ...q,
@@ -227,9 +318,9 @@ export default function UploadExcelButton({ event }) {
                 // Create EventAttendee record
                 const newEventAttendee = await DataStore.save(
                   new EventAttendee({
-                    eventID: eventID,
+                    eventID: event.id,
                     attendeeID: attendee.id,
-                    authorized: false, // Will be set to true after ticket generation
+                    authorized: false,
                     checkIn: false,
                     formAnswers: JSON.stringify(answers),
                     ticket: ``,
@@ -241,55 +332,93 @@ export default function UploadExcelButton({ event }) {
                   })
                 );
 
-                // Generate QR code
-                const qrCodeDataURL = await generateQRCode(attendee.id);
-                
+                // Generate QR code with EventAttendee ID (same as landing)
+                const qrCodeDataURL = await generateQRCode(newEventAttendee.id);
+
                 if (qrCodeDataURL) {
                   // Generate ticket HTML
                   const ticketHTML = generateTicketHTML(newEventAttendee, qrCodeDataURL, answers, event);
-                  
+                  console.log('🎫 HTML del ticket generado para:', participant.email);
+                  console.log('📝 HTML completo:', ticketHTML.substring(0, 500) + '...');
+
                   // Generate PDF from HTML
                   const base64PDF = await generatePDFFromHTML(ticketHTML);
-                  
+                  console.log('📄 PDF generado, base64 length:', base64PDF?.length || 0);
+
                   // Save PDF and update EventAttendee
-                  await savePDFAndUpdateAttendee(newEventAttendee, base64PDF);
-                  
-                  // Send ticket email
-                  try {
-                    await sendTicketEmail(newEventAttendee.id);
-                    console.log(`Ticket generated and EMAIL SENT for: ${participant.email}`);
-                  } catch (emailError) {
-                    console.error(`Email failed for ${participant.email}:`, emailError);
-                    console.log(`Ticket generated but EMAIL FAILED for: ${participant.email}`);
+                  const updatedEventAttendee = await savePDFAndUpdateAttendee(newEventAttendee, base64PDF);
+
+                  // Verify ticket is present
+                  if (!updatedEventAttendee.ticket || updatedEventAttendee.ticket === '') {
+                    console.error(`❌ ERROR: Ticket vacío para ${participant.email}. Email NO enviado.`);
+                    alert(`ERROR: No se pudo generar el ticket para ${participant.email}. Email no enviado.`);
+                  } else {
+                    console.log(`✓ Ticket guardado localmente: ${updatedEventAttendee.ticket}`);
+
+                    // Wait longer for DataStore sync - increased to 15 seconds
+                    console.log(`⏱️ Esperando 15 segundos para sincronización con DynamoDB...`);
+                    await new Promise(resolve => setTimeout(resolve, 15000));
+
+                    // Query from DataStore to verify sync
+                    console.log(`🔍 Verificando sincronización en DynamoDB...`);
+                    const verifiedFromDB = await DataStore.query(EventAttendee, updatedEventAttendee.id);
+
+                    if (!verifiedFromDB || !verifiedFromDB.ticket || verifiedFromDB.ticket === '') {
+                      console.error(`❌ ERROR: Ticket no sincronizado para ${participant.email} después de 15s. Email NO enviado.`);
+                      console.error(`❌ Estado en DB:`, verifiedFromDB);
+                      alert(`ERROR: El ticket no se sincronizó para ${participant.email}. Email no enviado.`);
+                    } else {
+                      console.log(`✓ Ticket verificado en DB: ${verifiedFromDB.ticket}`);
+
+                      // Send ticket email only if ticket is confirmed in DB
+                      try {
+                        console.log(`📧 Intentando enviar email a ${participant.email}...`);
+                        await sendTicketEmail(updatedEventAttendee.id);
+                        console.log(`✓ Email enviado exitosamente a: ${participant.email}`);
+
+                        // Add to existing emails set to prevent duplicates in same batch
+                        existingEmails.add(participant.email.toLowerCase());
+
+                        // Delay between emails to avoid throttling
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                      } catch (emailError) {
+                        console.error(`❌ Error enviando email a ${participant.email}:`, emailError);
+                        console.error(`❌ Detalles del error:`, emailError.message);
+                      }
+                    }
                   }
-                } else {
-                  console.error(`Failed to generate QR code for attendee: ${attendee.id}`);
                 }
               }
             } catch (error) {
-              console.error(`Error processing participant ${participant.email}:`, error);
+              // Silent error handling
             }
           }
 
           alert("Importación completada. Los tickets han sido generados y enviados por email.");
         } catch (err) {
-          console.error("Error processing file:", err);
           alert("Hubo un error procesando el archivo.");
         } finally {
           setIsPending(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         }
       };
 
-      reader.onerror = (error) => {
-        console.error("Error reading file:", error);
+      reader.onerror = () => {
         setIsPending(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       };
 
       reader.readAsArrayBuffer(file);
     } catch (err) {
-      console.error("Error handling file upload:", err);
       alert("Error manejando la subida del archivo.");
       setIsPending(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 

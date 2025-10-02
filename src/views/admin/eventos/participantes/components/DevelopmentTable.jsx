@@ -11,6 +11,7 @@ import {
 import { IoEnterOutline } from "react-icons/io5";
 import UploadExcelButton from "./UploadExcelButton";
 import DownloadBadgeButton from "./DownloadBadgeButton";
+import DeleteParticipantButton from "./DeleteParticipantButton";
 
 const DevelopmentTable = (props) => {
   const { columnsData, tableData, event } = props;
@@ -48,7 +49,7 @@ const DevelopmentTable = (props) => {
             Tabla de participantes
           </div>
           <div>
-            <UploadExcelButton />
+            <UploadExcelButton event={event} />
           </div>
         </div>
       </div>
@@ -107,6 +108,9 @@ const DevelopmentTable = (props) => {
                           <DownloadBadgeButton
                             eventAttendee={row.original.eventAttendee}
                             event={event}
+                          />
+                          <DeleteParticipantButton
+                            eventAttendee={row.original.eventAttendee}
                           />
                         </div>
                       );
