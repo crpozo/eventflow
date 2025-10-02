@@ -159,6 +159,10 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      console.log('Campos del PDF:', fields.map(f => f.getName()));
+      console.log('Datos del participante:', participantData);
+      console.log('Campos llenados:', fieldsFound);
+
       // Solo mostrar alerta si NO hay campos de formulario en el PDF
       if (fields.length === 0) {
         alert('Badge descargado. NOTA: El PDF no tiene campos de formulario, por lo que no se reemplazaron las variables.\n\nAgrega campos de formulario al PDF con nombres como: NameAttendee, Email, TheUniversityLabelReplacePurpose, ProfileQrCode');
