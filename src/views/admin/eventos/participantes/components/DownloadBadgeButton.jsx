@@ -94,8 +94,15 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       // Llenar todos los campos del formulario
       let fieldsFound = 0;
 
+      console.log('=== DEBUG CAMPOS PDF ===');
+      console.log('Total campos en PDF:', fields.length);
+      console.log('Datos del participante:', participantData);
+
       for (const field of fields) {
         const fieldName = field.getName();
+        const fieldType = field.constructor.name;
+
+        console.log(`Campo: "${fieldName}" | Tipo: ${fieldType} | Valor disponible:`, participantData[fieldName]);
 
         try {
           // Llenar campos de texto
@@ -103,7 +110,10 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
             if (participantData[fieldName] !== undefined && participantData[fieldName] !== null) {
               const value = String(participantData[fieldName]);
               field.setText(value);
+              console.log(`✓ Campo "${fieldName}" llenado con: "${value}"`);
               fieldsFound++;
+            } else {
+              console.log(`✗ Campo "${fieldName}" no tiene valor en participantData`);
             }
           }
           // Llenar campo de imagen para QR Code
@@ -163,12 +173,18 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       console.log('Datos del participante:', participantData);
       console.log('Campos llenados:', fieldsFound);
 
+      console.log('=== RESULTADO ===');
+      console.log('Campos llenados:', fieldsFound, 'de', fields.length);
+
       // Solo mostrar alerta si NO hay campos de formulario en el PDF
       if (fields.length === 0) {
         alert('Badge descargado. NOTA: El PDF no tiene campos de formulario, por lo que no se reemplazaron las variables.\n\nAgrega campos de formulario al PDF con nombres como: NameAttendee, Email, TheUniversityLabelReplacePurpose, ProfileQrCode');
       }
       // Mostrar advertencia si hay campos pero ninguno se llenó
       else if (fieldsFound === 0) {
+        console.error('ERROR: Ningún campo fue llenado');
+        console.error('Campos del PDF:', fields.map(f => `"${f.getName()}"`).join(', '));
+        console.error('Keys de participantData:', Object.keys(participantData).join(', '));
         alert(`Badge descargado. ADVERTENCIA: El PDF tiene campos de formulario (${fields.map(f => f.getName()).join(', ')}) pero ninguno coincide con los datos disponibles.\n\nDatos disponibles: ${Object.keys(participantData).join(', ')}`);
       }
 
