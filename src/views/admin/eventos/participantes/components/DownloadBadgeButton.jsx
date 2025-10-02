@@ -70,25 +70,26 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
         return;
       }
 
-      // Obtener URL del PDF desde S3
-      const frontUrlResult = await getUrl({ key: badge.frontDesign });
-      const frontUrl = frontUrlResult.url.toString();
+      // Importar pdf-lib dinámicamente para evitar errores de compilación
+      const { PDFDocument } = await import('pdf-lib');
 
       // Obtener datos del participante
       const participantData = getParticipantData(eventAttendee);
 
-      // Descargar el PDF
-      const response = await fetch(frontUrl);
-      const arrayBuffer = await response.arrayBuffer();
+      // Crear un nuevo documento PDF que contendrá ambas páginas
+      const finalPdfDoc = await PDFDocument.create();
 
-      // Importar pdf-lib dinámicamente para evitar errores de compilación
-      const { PDFDocument } = await import('pdf-lib');
+      // Obtener URL del PDF frontal desde S3
+      const frontUrlResult = await getUrl({ key: badge.frontDesign });
+      const frontUrl = frontUrlResult.url.toString();
 
-      // Cargar el PDF
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
+      // Descargar y cargar el PDF frontal
+      const frontResponse = await fetch(frontUrl);
+      const frontArrayBuffer = await frontResponse.arrayBuffer();
+      const frontPdfDoc = await PDFDocument.load(frontArrayBuffer);
 
-      // Obtener el formulario del PDF
-      const form = pdfDoc.getForm();
+      // Obtener el formulario del PDF frontal
+      const form = frontPdfDoc.getForm();
       const fields = form.getFields();
 
       // Llenar todos los campos del formulario
@@ -101,36 +102,23 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       for (const field of fields) {
         const fieldName = field.getName();
         const fieldType = field.constructor.name;
+        const fieldValue = participantData[fieldName];
 
-        console.log(`Campo: "${fieldName}" | Tipo: ${fieldType} | Valor disponible:`, participantData[fieldName]);
+        console.log(`Campo: "${fieldName}" | Tipo: ${fieldType} | Valor disponible:`, fieldValue);
 
         try {
-          // Llenar campos de texto
-          if (field.constructor.name === 'PDFTextField') {
-            if (participantData[fieldName] !== undefined && participantData[fieldName] !== null) {
-              const value = String(participantData[fieldName]);
-              field.setText(value);
-              console.log(`✓ Campo "${fieldName}" llenado con: "${value}"`);
-              fieldsFound++;
-            } else {
-              console.log(`✗ Campo "${fieldName}" no tiene valor en participantData`);
-            }
-          }
-          // Llenar campo de imagen para QR Code
-          else if (fieldName === 'ProfileQrCode') {
+          // Manejar campo de QR Code primero
+          if (fieldName === 'ProfileQrCode') {
             try {
-              // Generar QR Code
               const QRCode = await import('qrcode');
               const qrDataUrl = await QRCode.toDataURL(participantData.ProfileQrCode || eventAttendee.profileURL, {
                 width: 200,
                 margin: 1,
               });
 
-              // Convertir data URL a bytes
               const qrImageBytes = await fetch(qrDataUrl).then(res => res.arrayBuffer());
-              const qrImage = await pdfDoc.embedPng(qrImageBytes);
+              const qrImage = await frontPdfDoc.embedPng(qrImageBytes);
 
-              // Si es un botón de imagen
               if (field.constructor.name === 'PDFButton') {
                 const appearance = field.acroField.getAppearanceCharacteristics();
                 if (appearance) {
@@ -138,13 +126,33 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
                 }
               }
 
+              console.log(`✓ QR Code generado para "${fieldName}"`);
               fieldsFound++;
             } catch (qrError) {
-              // Silent error
+              console.log(`✗ Error generando QR Code:`, qrError.message);
             }
           }
+          // Intentar llenar cualquier otro campo de texto
+          else if (fieldValue !== undefined && fieldValue !== null) {
+            const value = String(fieldValue);
+
+            try {
+              // Intentar setText (funciona para PDFTextField)
+              if (typeof field.setText === 'function') {
+                field.setText(value);
+                console.log(`✓ Campo "${fieldName}" llenado con setText: "${value}"`);
+                fieldsFound++;
+              } else {
+                console.log(`✗ Campo "${fieldName}" no tiene método setText`);
+              }
+            } catch (setTextError) {
+              console.log(`✗ Error al llenar "${fieldName}":`, setTextError.message);
+            }
+          } else {
+            console.log(`⊘ Campo "${fieldName}" sin valor en participantData`);
+          }
         } catch (e) {
-          // Silent error
+          console.error(`Error procesando campo "${field.getName()}":`, e);
         }
       }
 
@@ -155,8 +163,29 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
         // Silent error
       }
 
+      // Copiar página frontal al documento final
+      const [frontPage] = await finalPdfDoc.copyPages(frontPdfDoc, [0]);
+      finalPdfDoc.addPage(frontPage);
+
+      // Si existe backDesign, agregarlo como segunda página
+      if (badge.backDesign) {
+        try {
+          const backUrlResult = await getUrl({ key: badge.backDesign });
+          const backUrl = backUrlResult.url.toString();
+
+          const backResponse = await fetch(backUrl);
+          const backArrayBuffer = await backResponse.arrayBuffer();
+          const backPdfDoc = await PDFDocument.load(backArrayBuffer);
+
+          const [backPage] = await finalPdfDoc.copyPages(backPdfDoc, [0]);
+          finalPdfDoc.addPage(backPage);
+        } catch (backError) {
+          console.error('Error al cargar el diseño posterior:', backError);
+        }
+      }
+
       // Guardar el PDF modificado
-      const pdfBytes = await pdfDoc.save();
+      const pdfBytes = await finalPdfDoc.save();
 
       // Crear blob y descargar
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
