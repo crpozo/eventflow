@@ -136,14 +136,29 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
           else if (fieldValue !== undefined && fieldValue !== null) {
             const value = String(fieldValue);
 
+            console.log(`Intentando llenar "${fieldName}" con valor: "${value}"`);
+            console.log(`Métodos disponibles:`, Object.getOwnPropertyNames(Object.getPrototypeOf(field)));
+
             try {
               // Intentar setText (funciona para PDFTextField)
               if (typeof field.setText === 'function') {
                 field.setText(value);
                 console.log(`✓ Campo "${fieldName}" llenado con setText: "${value}"`);
                 fieldsFound++;
-              } else {
-                console.log(`✗ Campo "${fieldName}" no tiene método setText`);
+              }
+              // Si no tiene setText, intentar acceder directamente al acroField
+              else if (field.acroField) {
+                try {
+                  const { PDFName, PDFString } = await import('pdf-lib');
+                  field.acroField.dict.set(PDFName.of('V'), PDFString.of(value));
+                  console.log(`✓ Campo "${fieldName}" llenado con acroField: "${value}"`);
+                  fieldsFound++;
+                } catch (acroError) {
+                  console.log(`✗ Error usando acroField para "${fieldName}":`, acroError.message);
+                }
+              }
+              else {
+                console.log(`✗ Campo "${fieldName}" no tiene método setText ni acroField`);
               }
             } catch (setTextError) {
               console.log(`✗ Error al llenar "${fieldName}":`, setTextError.message);
