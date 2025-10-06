@@ -10,41 +10,55 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const getParticipantData = (eventAttendee) => {
-    let formData = {};
+    const result = {
+      ProfileQrCode: eventAttendee.profileURL || '',
+    };
+
     try {
-      if (eventAttendee.formAnswers) {
-        console.log("eventAttendee.formAnswers: ",eventAttendee.formAnswers)
-        if (typeof eventAttendee.formAnswers === 'string') {
-          formData = JSON.parse(eventAttendee.formAnswers);
-        } else if (Array.isArray(eventAttendee.formAnswers)) {
-          // Si formAnswers es un array (como en tu caso)
-          formData = {};
-          eventAttendee.formAnswers.forEach(field => {
-            if (field.userData && field.userData.length > 0) {
-              formData[field.name] = field.userData[0];
-            }
-          });
-        } else {
-          formData = eventAttendee.formAnswers;
-        }
+      if (eventAttendee.formAnswers && Array.isArray(eventAttendee.formAnswers)) {
+        console.log("eventAttendee.formAnswers: ", eventAttendee.formAnswers);
+
+        // Crear un mapa de los campos del formulario
+        const formFieldsMap = {};
+        eventAttendee.formAnswers.forEach(field => {
+          if (field.userData && field.userData.length > 0) {
+            formFieldsMap[field.name] = field.userData[0];
+          }
+        });
+
+        console.log("formFieldsMap: ", formFieldsMap);
+
+        // Mapear campos específicos a field_one, field_two, field_three
+        // Buscar por todas las variantes posibles
+
+        // field_one: nombre (buscar variantes comunes)
+        const nameField = Object.keys(formFieldsMap).find(key =>
+          key.toLowerCase().includes('nombre') ||
+          key.toLowerCase().includes('name')
+        );
+        result.field_one = nameField ? formFieldsMap[nameField] : '';
+
+        // field_two: universidad
+        const universityField = Object.keys(formFieldsMap).find(key =>
+          key.toLowerCase().includes('universidad') ||
+          key.toLowerCase().includes('university')
+        );
+        result.field_two = universityField ? formFieldsMap[universityField] : '';
+
+        // field_three: cargo
+        const positionField = Object.keys(formFieldsMap).find(key =>
+          key.toLowerCase().includes('cargo') ||
+          key.toLowerCase().includes('position')
+        );
+        result.field_three = positionField ? formFieldsMap[positionField] : '';
       }
     } catch (e) {
       console.error('Error parseando formAnswers:', e);
     }
 
-    console.log('FormData extraído:', formData);
+    console.log('Datos del participante mapeados:', result);
 
-    return {
-      NameAttendee: formData.nombres || formData.name || eventAttendee.email.split('@')[0],
-      Email: formData.email || eventAttendee.email,
-      TheUniversityLabelReplacePurpose: formData.university || formData.universidad || 'Universidad San Francisco de Quito',
-      ProfileQrCode: eventAttendee.profileURL || '',
-      Identificacion: formData.identificacion || '',
-      TipoIdentificacion: formData.tipo_identificacion || '',
-      Direccion: formData.direccion || '',
-      Telefono: formData.telefono || '',
-      // Agregar más campos según sea necesario
-    };
+    return result;
   };
 
   const downloadBadge = async () => {
@@ -134,7 +148,14 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
           }
           // Intentar llenar cualquier otro campo de texto
           else if (fieldValue !== undefined && fieldValue !== null) {
-            const value = String(fieldValue);
+            let value = String(fieldValue);
+
+            // Truncar texto si es muy largo (más de 30 caracteres)
+            if (value.length > 30) {
+              const originalValue = value;
+              value = value.substring(0, 27) + '...';
+              console.log(`⚠ Texto truncado de ${originalValue.length} caracteres: "${originalValue}" → "${value}"`);
+            }
 
             console.log(`Intentando llenar "${fieldName}" con valor: "${value}"`);
             console.log(`Métodos disponibles:`, Object.getOwnPropertyNames(Object.getPrototypeOf(field)));
@@ -193,7 +214,14 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
           const backPdfDoc = await PDFDocument.load(backArrayBuffer);
 
           const [backPage] = await finalPdfDoc.copyPages(backPdfDoc, [0]);
+
+          // Rotar la página trasera 180 grados
+          const { degrees } = await import('pdf-lib');
+          const currentRotation = backPage.getRotation().angle;
+          backPage.setRotation(degrees(currentRotation + 180));
+
           finalPdfDoc.addPage(backPage);
+          console.log('✓ Página trasera agregada y rotada 180 grados');
         } catch (backError) {
           console.error('Error al cargar el diseño posterior:', backError);
         }
@@ -207,7 +235,10 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `badge-${participantData.NameAttendee.replace(/\s+/g, '-')}.pdf`;
+      const fileName = participantData.field_one
+        ? `badge-${participantData.field_one.replace(/\s+/g, '-')}.pdf`
+        : `badge-${eventAttendee.email.split('@')[0]}.pdf`;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -222,7 +253,7 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
 
       // Solo mostrar alerta si NO hay campos de formulario en el PDF
       if (fields.length === 0) {
-        alert('Badge descargado. NOTA: El PDF no tiene campos de formulario, por lo que no se reemplazaron las variables.\n\nAgrega campos de formulario al PDF con nombres como: NameAttendee, Email, TheUniversityLabelReplacePurpose, ProfileQrCode');
+        alert('Badge descargado. NOTA: El PDF no tiene campos de formulario, por lo que no se reemplazaron las variables.\n\nAgrega campos de formulario al PDF con nombres como: field_one, field_two, field_three, ProfileQrCode');
       }
       // Mostrar advertencia si hay campos pero ninguno se llenó
       else if (fieldsFound === 0) {

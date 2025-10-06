@@ -297,22 +297,38 @@ export default function UploadExcelButton({ event }) {
 
           const questions = (await DataStore.query(Form, (f) => f.formEventId.eq(event.id)))[0]?.questions;
 
-          // Get existing EventAttendees to check for duplicates
-          const existingEventAttendees = await DataStore.query(EventAttendee, (ea) => ea.eventID.eq(event.id));
-          const existingEmails = new Set(existingEventAttendees.map(ea => ea.email.toLowerCase()));
-
           for (const participant of participants) {
             try {
-              // Check for duplicate email
-              if (existingEmails.has(participant.email.toLowerCase())) {
-                continue;
-              }
-
               const attendee = await createAttendee();
-              const answers = questions.map((q) => ({
-                ...q,
-                userData: [participant[q.name.toLowerCase()] ?? '']
-              }));
+
+              // Map Excel columns to form fields more flexibly
+              const answers = questions.map((q) => {
+                const fieldNameLower = q.name.toLowerCase();
+
+                // Try exact match first
+                let value = participant[fieldNameLower];
+
+                // If not found, try to find by partial match
+                if (!value || value === '') {
+                  const matchingKey = Object.keys(participant).find(key => {
+                    const keyLower = key.toLowerCase();
+                    // Match if the form field name contains part of the Excel column name or vice versa
+                    return keyLower.includes(fieldNameLower) ||
+                           fieldNameLower.includes(keyLower) ||
+                           // Special handling for common field name variations
+                           (fieldNameLower.includes('nombre') && keyLower.includes('nombre')) ||
+                           (fieldNameLower.includes('universidad') && keyLower.includes('universidad')) ||
+                           (fieldNameLower.includes('cargo') && keyLower.includes('cargo'));
+                  });
+
+                  value = matchingKey ? participant[matchingKey] : '';
+                }
+
+                return {
+                  ...q,
+                  userData: [value ?? '']
+                };
+              });
 
               if (attendee) {
                 // Create EventAttendee record
@@ -375,9 +391,6 @@ export default function UploadExcelButton({ event }) {
                         console.log(`📧 Intentando enviar email a ${participant.email}...`);
                         await sendTicketEmail(updatedEventAttendee.id);
                         console.log(`✓ Email enviado exitosamente a: ${participant.email}`);
-
-                        // Add to existing emails set to prevent duplicates in same batch
-                        existingEmails.add(participant.email.toLowerCase());
 
                         // Delay between emails to avoid throttling
                         await new Promise(resolve => setTimeout(resolve, 1000));

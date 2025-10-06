@@ -9,9 +9,11 @@ import {
 } from "react-table";
 
 import { IoEnterOutline } from "react-icons/io5";
+import { MdDownload } from "react-icons/md";
 import UploadExcelButton from "./UploadExcelButton";
 import DownloadBadgeButton from "./DownloadBadgeButton";
 import DeleteParticipantButton from "./DeleteParticipantButton";
+import DownloadAllBadgesButton from "./DownloadAllBadgesButton";
 
 const DevelopmentTable = (props) => {
   const { columnsData, tableData, event } = props;
@@ -38,8 +40,17 @@ const DevelopmentTable = (props) => {
     page,
     prepareRow,
     initialState,
+    canPreviousPage,
+    canNextPage,
+    pageOptions,
+    pageCount,
+    gotoPage,
+    nextPage,
+    previousPage,
+    setPageSize,
+    state: { pageIndex, pageSize },
   } = tableInstance;
-  initialState.pageSize = 11;
+  initialState.pageSize = 50;
 
   return (
     <Card extra={"w-full h-full p-4"}>
@@ -48,7 +59,8 @@ const DevelopmentTable = (props) => {
           <div className="text-2xl font-medium text-navy-700 dark:text-white">
             Tabla de participantes
           </div>
-          <div>
+          <div className="flex gap-2">
+            <DownloadAllBadgesButton event={event} tableData={tableData} />
             <UploadExcelButton event={event} />
           </div>
         </div>
@@ -130,6 +142,62 @@ const DevelopmentTable = (props) => {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Controles de paginación */}
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => gotoPage(0)}
+            disabled={!canPreviousPage}
+            className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
+          >
+            {'<<'}
+          </button>
+          <button
+            onClick={() => previousPage()}
+            disabled={!canPreviousPage}
+            className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
+          >
+            {'<'}
+          </button>
+          <button
+            onClick={() => nextPage()}
+            disabled={!canNextPage}
+            className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
+          >
+            {'>'}
+          </button>
+          <button
+            onClick={() => gotoPage(pageCount - 1)}
+            disabled={!canNextPage}
+            className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
+          >
+            {'>>'}
+          </button>
+        </div>
+        <span className="text-sm text-gray-700">
+          Página{' '}
+          <strong>
+            {pageIndex + 1} de {pageOptions.length}
+          </strong>{' '}
+        </span>
+        <span className="text-sm text-gray-700">
+          | Mostrando {page.length} de {data.length} participantes
+        </span>
+        <select
+          value={pageSize}
+          onChange={e => {
+            setPageSize(Number(e.target.value))
+          }}
+          className="rounded border border-gray-300 px-2 py-1 text-sm"
+        >
+          {[10, 20, 30, 50, 100].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Mostrar {pageSize}
+            </option>
+          ))}
+        </select>
       </div>
     </Card>
   );
