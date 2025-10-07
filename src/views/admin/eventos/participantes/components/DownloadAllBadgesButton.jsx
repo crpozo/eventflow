@@ -11,9 +11,7 @@ const DownloadAllBadgesButton = ({ event, tableData }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const getParticipantData = (eventAttendee) => {
-    const result = {
-      ProfileQrCode: eventAttendee.profileURL || '',
-    };
+    const result = {};
 
     try {
       if (eventAttendee.formAnswers && Array.isArray(eventAttendee.formAnswers)) {
@@ -94,27 +92,8 @@ const DownloadAllBadgesButton = ({ event, tableData }) => {
       const fieldValue = participantData[fieldName];
 
       try {
-        if (fieldName === 'ProfileQrCode') {
-          try {
-            const QRCode = await import('qrcode');
-            const qrDataUrl = await QRCode.toDataURL(participantData.ProfileQrCode || eventAttendee.profileURL, {
-              width: 200,
-              margin: 1,
-            });
-
-            const qrImageBytes = await fetch(qrDataUrl).then(res => res.arrayBuffer());
-            const qrImage = await frontPdfDoc.embedPng(qrImageBytes);
-
-            if (field.constructor.name === 'PDFButton') {
-              const appearance = field.acroField.getAppearanceCharacteristics();
-              if (appearance) {
-                appearance.setNormalIcon(qrImage);
-              }
-            }
-          } catch (qrError) {
-            console.log(`Error generando QR Code:`, qrError.message);
-          }
-        } else if (fieldValue !== undefined && fieldValue !== null) {
+        // Intentar llenar campos de texto
+        if (fieldValue !== undefined && fieldValue !== null) {
           let value = String(fieldValue);
 
           // Truncar texto si es muy largo

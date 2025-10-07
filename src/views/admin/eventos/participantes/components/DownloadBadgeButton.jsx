@@ -10,9 +10,7 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const getParticipantData = (eventAttendee) => {
-    const result = {
-      ProfileQrCode: eventAttendee.profileURL || '',
-    };
+    const result = {};
 
     try {
       if (eventAttendee.formAnswers && Array.isArray(eventAttendee.formAnswers)) {
@@ -121,37 +119,12 @@ const DownloadBadgeButton = ({ eventAttendee, event }) => {
         console.log(`Campo: "${fieldName}" | Tipo: ${fieldType} | Valor disponible:`, fieldValue);
 
         try {
-          // Manejar campo de QR Code primero
-          if (fieldName === 'ProfileQrCode') {
-            try {
-              const QRCode = await import('qrcode');
-              const qrDataUrl = await QRCode.toDataURL(participantData.ProfileQrCode || eventAttendee.profileURL, {
-                width: 200,
-                margin: 1,
-              });
-
-              const qrImageBytes = await fetch(qrDataUrl).then(res => res.arrayBuffer());
-              const qrImage = await frontPdfDoc.embedPng(qrImageBytes);
-
-              if (field.constructor.name === 'PDFButton') {
-                const appearance = field.acroField.getAppearanceCharacteristics();
-                if (appearance) {
-                  appearance.setNormalIcon(qrImage);
-                }
-              }
-
-              console.log(`✓ QR Code generado para "${fieldName}"`);
-              fieldsFound++;
-            } catch (qrError) {
-              console.log(`✗ Error generando QR Code:`, qrError.message);
-            }
-          }
-          // Intentar llenar cualquier otro campo de texto
-          else if (fieldValue !== undefined && fieldValue !== null) {
+          // Intentar llenar campos de texto
+          if (fieldValue !== undefined && fieldValue !== null) {
             let value = String(fieldValue);
 
             // Truncar texto si es muy largo (más de 30 caracteres)
-            if (value.length > 30) {
+            if (value.length > 40) {
               const originalValue = value;
               value = value.substring(0, 27) + '...';
               console.log(`⚠ Texto truncado de ${originalValue.length} caracteres: "${originalValue}" → "${value}"`);
