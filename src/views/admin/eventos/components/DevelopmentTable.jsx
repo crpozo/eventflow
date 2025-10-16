@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   useGlobalFilter,
@@ -10,6 +10,8 @@ import { IoEnterOutline } from "react-icons/io5";
 import { MdAdd, MdContentCopy } from "react-icons/md";
 import Card from "components/card";
 
+const PAGINATION_STORAGE_KEY = "EVENTFLOW.events.pagination";
+
 const DevelopmentTable = (props) => {
   const { columnsData, tableData, onDuplicate, duplicating } = props;
   const navigate = useNavigate();
@@ -17,16 +19,23 @@ const DevelopmentTable = (props) => {
   const columns = useMemo(() => columnsData, [columnsData]);
   const data = useMemo(() => tableData, [tableData]);
 
+  // Obtener el estado de paginación guardado
+  const savedPageIndex = useMemo(() => {
+    const saved = sessionStorage.getItem(PAGINATION_STORAGE_KEY);
+    return saved ? parseInt(saved, 10) : 0;
+  }, []);
+
   const tableInstance = useTable(
     {
       columns,
       data,
-      disableSortRemove: true, 
+      disableSortRemove: true,
       initialState: {
+        pageIndex: savedPageIndex, // Restaurar página guardada
         pageSize: 10,
         sortBy: [
           {
-            id: "update_date", 
+            id: "update_date",
             desc: true
           },
         ],
@@ -54,13 +63,23 @@ const DevelopmentTable = (props) => {
     state: { pageIndex, pageSize },
   } = tableInstance;
 
+  // Guardar el estado de paginación cada vez que cambie
+  useEffect(() => {
+    sessionStorage.setItem(PAGINATION_STORAGE_KEY, pageIndex.toString());
+  }, [pageIndex]);
+
+  // Limpiar paginación al crear nuevo evento
+  const handleCreateEvent = () => {
+    sessionStorage.removeItem(PAGINATION_STORAGE_KEY);
+  };
+
   return (
     <Card extra={"w-full h-full p-4"}>
       <div className="relative flex items-center justify-between">
         <div className="text-xl font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
         </div>
-        <Link className="hover:no-underline" to="crear">
+        <Link className="hover:no-underline" to="crear" onClick={handleCreateEvent}>
           <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
             Crear Evento <MdAdd className="h-5 w-5" />
           </button>
