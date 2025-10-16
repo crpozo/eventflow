@@ -7,11 +7,11 @@ import {
   useTable,
 } from "react-table";
 import { IoEnterOutline } from "react-icons/io5";
-import { MdAdd } from "react-icons/md";
+import { MdAdd, MdContentCopy } from "react-icons/md";
 import Card from "components/card";
 
 const DevelopmentTable = (props) => {
-  const { columnsData, tableData } = props;
+  const { columnsData, tableData, onDuplicate, duplicating } = props;
   const navigate = useNavigate();
 
   const columns = useMemo(() => columnsData, [columnsData]);
@@ -133,6 +133,32 @@ const DevelopmentTable = (props) => {
                         >
                           Ingresar <IoEnterOutline className="text-brand-500 hover:text-black transition" />
                         </span>
+                      );
+                    } else if (cell.column.Header === "ACCIONES") {
+                      const isDuplicating = duplicating === cell.value;
+                      data = (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onDuplicate && !isDuplicating) {
+                              onDuplicate(cell.value);
+                            }
+                          }}
+                          disabled={isDuplicating}
+                          className={`flex items-center gap-2 text-[15px] focus:outline-none px-3 py-2 rounded-lg transition ${
+                            isDuplicating
+                              ? 'text-gray-500 cursor-not-allowed'
+                              : 'text-black hover:text-blue-500 cursor-pointer'
+                          }`}
+                          title="Duplicar evento"
+                        >
+                          {isDuplicating ? 'Duplicando...' : 'Duplicar'}
+                          <MdContentCopy
+                          className={`cursor-pointer transition-transform duration-200 
+                          hover:scale-110 fill-blue-500
+                          ${isDuplicating ? 'animate-pulse' : ''}`}
+                        />
+                        </button>
                       );
                     }
                     return (
