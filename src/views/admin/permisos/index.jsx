@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/api";
 import { updateUser, updateRole } from "graphql/mutations";
-import { listRoles, listAreas } from "graphql/queries";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import Banner from "./components/Banner";
 
@@ -62,10 +61,14 @@ const AdminUserManager = () => {
   useEffect(() => {
     if (currentUser?.role?.name === "Admin") {
       fetchData();
+    } else if (currentUser && currentUser.role?.name !== "Admin") {
+      // Si no es admin, dejamos de cargar
+      setIsLoading(false);
     }
   }, [currentUser]);
 
   const fetchData = async () => {
+    setIsLoading(true);
     try {
       const [usersRes, rolesRes, areasRes] = await Promise.all([
         client.graphql({
@@ -118,6 +121,8 @@ const AdminUserManager = () => {
       setAreas(areasRes.data.listAreas.items);
     } catch (err) {
       console.error("Error fetching data:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -210,14 +215,34 @@ const AdminUserManager = () => {
       prev.map((r) => (r.id === roleId ? { ...r, areas: unique } : r))
     );
   };
-  
+
+  // Ordenar usuarios por rol: Admin primero, luego alfabéticamente por nombre de rol
+  // IMPORTANTE: Los hooks deben estar antes de cualquier return condicional
+  const sortedUsers = React.useMemo(() => {
+    return [...users].sort((a, b) => {
+      const roleA = a.role?.name || "Sin rol";
+      const roleB = b.role?.name || "Sin rol";
+
+      // Admin siempre primero
+      if (roleA === "Admin" && roleB !== "Admin") return -1;
+      if (roleA !== "Admin" && roleB === "Admin") return 1;
+
+      // Sin rol siempre al final
+      if (roleA === "Sin rol" && roleB !== "Sin rol") return 1;
+      if (roleA !== "Sin rol" && roleB === "Sin rol") return -1;
+
+      // Resto ordenado alfabéticamente
+      return roleA.localeCompare(roleB);
+    });
+  }, [users]);
+
 
   if (isLoading) {
     return (
-      <div className=" inset-0 z-50 flex top-[-10px] mt-[100px] w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center p-3">
         <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
-          Cargando...
+        <h2 className="mt-4 text-center text-xl">
+          Cargando permisos...
         </h2>
       </div>
     );
@@ -242,45 +267,47 @@ const AdminUserManager = () => {
         <Banner />
       </div>
 
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="max-w-6xl">
         <h2 className="text-2xl font-bold mb-6">Gestión de Usuarios y Roles</h2>
 
-        <table className="min-w-full text-left border mb-10">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 border">Email</th>
-              <th className="p-2 border">Rol Actual</th>
-              <th className="p-2 border">Asignar Nuevo Rol</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-t">
-                <td className="p-2">{u.email}</td>
-                <td className="p-2">{u.role?.name || "Sin rol"}</td>
-                <td className="p-2">
-                  <select
-                    value={u.roleID || ""}
-                    onChange={(e) => assignRoleToUser(u.id, e.target.value)}
-                    className="border px-2 py-1 rounded"
-                  >
-                    <option value="">Seleccionar</option>
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
+        <div className="overflow-hidden rounded-xl border border-gray-200 mb-10 shadow-sm">
+          <table className="min-w-full text-left">
+            <thead className="bg-[#f8f9fb]">
+              <tr>
+                <th className="p-3 border-b border-r border-gray-200">Email</th>
+                <th className="p-3 border-b border-r border-gray-200">Rol Actual</th>
+                <th className="p-3 border-b border-gray-200">Asignar Nuevo Rol</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white">
+              {sortedUsers.map((u, index) => (
+                <tr key={u.id} className={index !== sortedUsers.length - 1 ? "border-b border-gray-200" : ""}>
+                  <td className="p-2 border-r border-gray-200">{u.email}</td>
+                  <td className="p-2 border-r border-gray-200">{u.role?.name || "Sin rol"}</td>
+                  <td className="py-[10px] px-4">
+                    <select
+                      value={u.roleID || ""}
+                      onChange={(e) => assignRoleToUser(u.id, e.target.value)}
+                      className="border border-gray-300 my-1 px-3 py-2 rounded-md w-full focus:outline-none focus:border-brand-500"
+                    >
+                      <option value="">Seleccionar</option>
+                      {roles.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <h2 className="text-xl font-bold mb-4">Permisos por Área por Rol</h2>
         {roles.map((r) => (
-        <div key={r.id} className="mb-6 border p-4 rounded shadow-sm">
-          <h3 className="font-semibold mb-2">{r.name}</h3>
+        <div key={r.id} className="mb-6 border border-gray-200 py-3 px-4 rounded-xl shadow-sm bg-white">
+          <h3 className="font-semibold mb-3 text-lg">{r.name}</h3>
 
           {/* 🚫 Skip area assignment UI for Admin */}
           {r.name === "Admin" ? (

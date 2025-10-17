@@ -398,7 +398,7 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: start;
+  align-items: flex-start;
 }
 
 @media (min-width: 769px){
@@ -418,7 +418,7 @@ button:focus-visible {
 .popup-privacy-description{
   display: flex;
   flex-direction: column;
-  justify-content: start;
+  justify-content: flex-start;
   margin-bottom: 15px;
   border: 1px solid #cdcdcd;
   padding: 20px;

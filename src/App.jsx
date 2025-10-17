@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import RtlLayout from "layouts/rtl";
 import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
@@ -10,30 +10,65 @@ import UserLayout from "layouts/usuario";
 import logo from "assets/img/usfq/logo_usfq.svg";
 import campus from "assets/img/usfq/USFQ_campus.png";
 import Hotjar from '@hotjar/browser';
-import { PermissionsProvider } from "./providers/PermissionsProvider";
+import { PermissionsProvider, usePermissions } from "./providers/PermissionsProvider";
 import { I18n, Hub } from 'aws-amplify/utils';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Amplify } from 'aws-amplify';
-import { generateClient } from 'aws-amplify/api';
 import config from './amplifyconfiguration.json';
 import '@aws-amplify/ui-react/styles.css';
 
 I18n.putVocabularies(translations);
 I18n.setLanguage('es');
 Amplify.configure(config);
-const client = generateClient();
 
-function App() { 
+// Component to handle routes based on user role
+function ReportesRouteHandler() {
+  const { loading, isReportesOnly } = usePermissions();
+  const location = useLocation();
+
+  // While permissions are loading, show nothing (PermissionsProvider handles loading state)
+  if (loading) return null;
+
+  // If user has "Reportes" role, only allow access to reportes page
+  if (isReportesOnly) {
+    // Redirect to reportes if trying to access any other page
+    if (!location.pathname.includes('/admin/reportes')) {
+      return <Navigate to="/admin/reportes" replace />;
+    }
+
+    // Only render admin layout with reportes route
+    return (
+      <Routes>
+        <Route path="admin/*" element={<AdminLayout reportesOnly={true} />} />
+        <Route path="*" element={<Navigate to="/admin/reportes" replace />} />
+      </Routes>
+    );
+  }
+
+  // For all other users, render normal routes
+  return (
+    <Routes>
+      <Route path="auth/*" element={<AuthLayout />} />
+      <Route path="admin/*" element={<AdminLayout />} />
+      <Route path="rtl/*" element={<RtlLayout />} />
+      <Route path="page/*" element={<PageLayout />} />
+      <Route path="landing/*" element={<LandingLayout />} />
+      <Route path="privacidad" element={<LegalLayout />} />
+      <Route path="usuario/*" element={<UserLayout />} />
+      <Route path="/" element={<Navigate to="/admin" replace />} />
+    </Routes>
+  );
+}
+
+function App() {
   const { route } = useAuthenticator(context => [context.route]);
   const { authStatus } = useAuthenticator(context => [context.authStatus]);
   const location = useLocation();
-  const navigate = useNavigate();
   const isLandingRoute = location.pathname.includes('/landing');
   const isLegalRoute = location.pathname.includes('/privacidad');
   const isUserRoute = location.pathname.includes('/usuario');
-  const [onReady, setOnReady] = React.useState(Promise.resolve());
-  const [isReady, setIsReady] = React.useState(true);
+  const [isReady] = React.useState(true);
 
   // Hotjar init
   const siteId = 123;
@@ -77,7 +112,7 @@ function App() {
   }, []);
   
   // Loading state
-  if(!route || authStatus === 'configuring' && 'Loading...' || authStatus !=='unauthenticated' && !isReady){
+  if(!route || (authStatus === 'configuring' && 'Loading...') || (authStatus !== 'unauthenticated' && !isReady)){
     return(
       <div className="bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
         <span className="loader"></span>
@@ -150,16 +185,7 @@ function App() {
   // For authenticated users - wrap with PermissionsProvider
   return isReady && route === 'authenticated' ? (
     <PermissionsProvider>
-      <Routes>
-        <Route path="auth/*" element={<AuthLayout />} />
-        <Route path="admin/*" element={<AdminLayout />} />
-        <Route path="rtl/*" element={<RtlLayout />} />
-        <Route path="page/*" element={<PageLayout />} />
-        <Route path="landing/*" element={<LandingLayout />} />
-        <Route path="privacidad" element={<LegalLayout />} />
-        <Route path="usuario/*" element={<UserLayout />} />
-        <Route path="/" element={<Navigate to="/admin" replace />} />
-      </Routes>
+      <ReportesRouteHandler />
     </PermissionsProvider>
   ) : null;
 }

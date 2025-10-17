@@ -7,7 +7,7 @@ import { formatDateHour} from 'scripts/utils';
 import { useDeepLTranslation} from 'scripts/useDeepLTranslation';
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { FiExternalLink } from "react-icons/fi";
-import { LuCalendarClock, LuMapPin, LuInfo } from "react-icons/lu";
+import { LuCalendarClock, LuMapPin } from "react-icons/lu";
 import { IoTicketOutline } from "react-icons/io5";
 import { BsPlusLg as PlusIcon } from "react-icons/bs";
 import {
@@ -15,13 +15,11 @@ import {
 } from "react-icons/ai";
 /* GRAPHQL */
 import { generateClient } from 'aws-amplify/api';
-import { DataStore } from "aws-amplify/datastore";
 import { getEvent, listLandings, eventAttendeesByEventID ,getEventAttendee } from '../../graphql/queries';
-import { EventAttendee } from "models";
 
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
-  const [lang, setLang] = useState("ES");
+  const [lang] = useState("ES");
   const { id } = useParams();
   const [landing, setLanding] = React.useState([]);
   const [event, setEvent] = React.useState([]);
@@ -108,7 +106,7 @@ export default function SignIn() {
             resultLanding.data.listLandings.items[0].ticketPrice[index] !== undefined
                 ? `${resultLanding.data.listLandings.items[0].ticketPrice[index].toFixed(2)}`
                 : "Vacio";
-            if (index == 0) setSelectedCost(cost);
+            if (index === 0) setSelectedCost(cost);
             return {
               title,
               cost,
@@ -150,7 +148,7 @@ export default function SignIn() {
 
       }
     }
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Verify if date is expired to show a popup message
@@ -165,6 +163,7 @@ export default function SignIn() {
         setShowExpiredPopup(true);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event?.date]);
 
   // Get EventAttendee parameter + Graphql Data
@@ -187,6 +186,7 @@ export default function SignIn() {
         setEventAttendee(false);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get('EventAttendee')]);
 
   const quantityIncrementHandler = () => {
@@ -203,7 +203,7 @@ export default function SignIn() {
   };
 
   // Landing doesnt have any results on query + EventAttendee query parameter is not valid
-  if (loading && landing && landing.length === 0 || searchParams.get('EventAttendee') && !eventAttendee && eventAttendee != false) {
+  if ((loading && landing && landing.length === 0) || (searchParams.get('EventAttendee') && !eventAttendee && eventAttendee !== false)) {
 
     return (
       <div className="fixed inset-0 z-50 flex top-[-10px] min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
@@ -215,11 +215,11 @@ export default function SignIn() {
     );
   }
 
-  // Landing is deactivated 
-  if (!loading && landing.active == false && authStatus == "unauthenticated") {
+  // Landing is deactivated
+  if (!loading && landing.active === false && authStatus === "unauthenticated") {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
-        <img src={logo} className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
+        <img src={logo} alt="USFQ Logo" className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
           El evento no se encuentra activo
         </h2>
@@ -228,7 +228,7 @@ export default function SignIn() {
   }
 
   // If eventAttendee doesnt exist remove the query parameter
-  if (searchParams.get('EventAttendee') && eventAttendee == false) {
+  if (searchParams.get('EventAttendee') && eventAttendee === false) {
     searchParams.delete('EventAttendee');
     window.history.replaceState({}, '', `${url.origin}${url.pathname}`);
   }
@@ -237,7 +237,7 @@ export default function SignIn() {
     <>
       <div className="flex h-[70px] md:h-[90px] w-full bg-usfqPrimary relative">
         <div className="container flex items-center justify-between">
-          <img src={logo} className="w-[150px] md:w-[180px] lg:w-[200px]" />
+          <img src={logo} alt="USFQ Logo" className="w-[150px] md:w-[180px] lg:w-[200px]" />
           <Link
             to="https://www.usfq.edu.ec/es"
             className="flex items-center gap-2 hover:text-red-500 hover:no-underline text-sm"
@@ -345,7 +345,7 @@ export default function SignIn() {
                     </h3>
 
                     <div className={`mx-auto flex w-full min-w-full flex-col justify-center rounded-md
-                      ${landing.cost !== 'Gratuito' && !isSubeventLanding ? 'border border-gray-500' : ''}`}>
+                      ${landing.cost !== 'Gratuito' && !isSubeventLanding ? '' : ''}`}>
 
                       {/* Solo muestra selector de precio y cantidad si no es subevento */}
                       {!isSubeventLanding && landing.cost !== 'Gratuito' && (

@@ -16,7 +16,6 @@ import {
 import Banner from "./components/Banner";
 import * as XLSX from "xlsx";
 import { MdFileDownload } from "react-icons/md";
-import { AiOutlineWarning } from "react-icons/ai";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
 import { usePermissions } from "../../../providers/PermissionsProvider"
 
@@ -38,7 +37,7 @@ const Reportes = () => {
   const [attendees, setAttendees] = useState(null);
   const [eventAttendes, setEventAttendes] = useState(null);
   const [chartsData, setChartsData] = useState([]);
-  const { isAdmin, loading: permLoading } = usePermissions();
+  const { isAdmin, isReportesOnly, loading: permLoading } = usePermissions();
 
   // --- ADD: date filters state
   const [startDate, setStartDate] = useState("");
@@ -76,7 +75,7 @@ const Reportes = () => {
   const [totalCheckIn, setTotalCheckIn] = React.useState(0);
   const [totalRegistros, setTotalRegistros] = React.useState(0);
 
-  const [optionTipo, setOptionTipo] = React.useState({
+  const [, setOptionTipo] = React.useState({
     xAxis: {
       type: "category",
       data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -133,7 +132,7 @@ const Reportes = () => {
     ],
   });
 
-  const [optionCargos, setOptionCargos] = React.useState({
+  const [, setOptionCargos] = React.useState({
     title: {
       text: "Cargos de participantes",
       subtext: "Real Time Data",
@@ -172,7 +171,7 @@ const Reportes = () => {
     ],
   });
 
-  const [optionEdad, setOptionEdad] = React.useState({
+  const [, setOptionEdad] = React.useState({
     title: {
       text: "Edad de participantes",
       subtext: "Real Time Data",
@@ -217,9 +216,10 @@ const Reportes = () => {
 
   // Get campus results as observeQueryr
   useEffect(() => {
-    if (permLoading) return; 
+    if (permLoading) return;
 
-    if (!isAdmin && !subAreaId) {
+    // Allow access for: Admin, Reportes role, or users with subAreaId
+    if (!isAdmin && !isReportesOnly && !subAreaId) {
       navigate("/page/campus");
       return;
     }
@@ -232,7 +232,7 @@ const Reportes = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [permLoading, isAdmin, subAreaId, navigate]);
+  }, [permLoading, isAdmin, isReportesOnly, subAreaId, navigate]);
 
   // Get areas for selected campus, filtered by date range (drives downstream filters)
   useEffect(() => {
@@ -405,12 +405,12 @@ const Reportes = () => {
 
   // Get EventAttendee data on loading or selecting an event
   React.useEffect(() => {
-    if (eventSelectID == 0) {
+    if (eventSelectID === 0) {
       const eventListID = eventList.map((event) => event.id);
 
 
       DataStore.query(EventAttendee).then((results) => {
-        const filteredData = results.filter((item) =>
+        results.filter((item) =>
           eventListID.includes(item.eventID)
         );
       });
@@ -445,7 +445,7 @@ const Reportes = () => {
       );
 
     }
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventSelectID]);
 
   // Set charts with new data
@@ -454,9 +454,9 @@ const Reportes = () => {
     let value;
 
     results.forEach((item) => {
-      if (type == "position") value = item.position;
-      if (type == "age") value = item.age;
-      if (type == "type") value = item.type;
+      if (type === "position") value = item.position;
+      if (type === "age") value = item.age;
+      if (type === "type") value = item.type;
       if (countMap[value]) {
         countMap[value] += 1;
       } else {
@@ -464,7 +464,7 @@ const Reportes = () => {
       }
     });
 
-    if (type == "type") {
+    if (type === "type") {
       const processedData = Object.keys(countMap).map((value) => ({
         value: countMap[value],
         name: value,
@@ -573,8 +573,8 @@ const Reportes = () => {
     try {
       // 1) Traer todos los eventos
       let allEvents = await DataStore.query(Event);
-      // Si NO es admin, limitamos a eventos de la subárea actual
-      if (!isAdmin && subAreaId) {
+      // Si NO es admin ni tiene rol Reportes, limitamos a eventos de la subárea actual
+      if (!isAdmin && !isReportesOnly && subAreaId) {
         allEvents = allEvents.filter((ev) => ev.careerID === subAreaId);
       }
       const eventMap = new Map(allEvents.map((e) => [e.id, e.title]));
@@ -739,7 +739,7 @@ const Reportes = () => {
             }
 
             // If no chart is selected dont push a chart.
-            if(type != "no-chart"){
+            if(type !== "no-chart"){
                
               // Check if an entry with the same label already exists in groupedData
               if (!groupedData[label]) {
@@ -820,6 +820,7 @@ const Reportes = () => {
         }
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attendees]);
 
   return (

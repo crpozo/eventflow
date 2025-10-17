@@ -4,13 +4,13 @@ import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
 import Footer from "components/footer/Footer";
 import routes from "routes.js";
- 
+import { usePermissions } from "../../providers/PermissionsProvider";
+
 export default function Admin(props) {
-  const { ...rest } = props;
+  const { reportesOnly, ...rest } = props;
+  const { isReportesOnly } = usePermissions();
   const [open, setOpen] = React.useState(true);
-  const [currentRoute, setCurrentRoute] = React.useState("Main Dashboard");
   const [activePath, setActivePath] = React.useState('');
-  const [event, setEvent] = React.useState('');
   const routeResult = useRoutes(routes);
 
   React.useEffect(() => {
@@ -19,13 +19,13 @@ export default function Admin(props) {
     );
   }, []);
 
-  // Show secondary Sidebar 
+  // Show secondary Sidebar
   React.useEffect(() => {
-    if(routeResult?.props.match.route.path == 'eventos/:id/landing' ||
-      routeResult?.props.match.route.path == 'eventos/:id/diseno-gafete' ||
-      routeResult?.props.match.route.path == 'eventos/:id/detalle' ||
-      routeResult?.props.match.route.path == 'eventos/:id/formulario' ||
-      routeResult?.props.match.route.path == 'eventos/:id/participantes'){
+    if(routeResult?.props.match.route.path === 'eventos/:id/landing' ||
+      routeResult?.props.match.route.path === 'eventos/:id/diseno-gafete' ||
+      routeResult?.props.match.route.path === 'eventos/:id/detalle' ||
+      routeResult?.props.match.route.path === 'eventos/:id/formulario' ||
+      routeResult?.props.match.route.path === 'eventos/:id/participantes'){
       setActivePath(routeResult?.props.match.route.path)
     } else {
       setActivePath('')
@@ -56,22 +56,53 @@ export default function Admin(props) {
   };
 
   document.documentElement.dir = "ltr";
+
+  // Layout for users with "Reportes" role only - no sidebar, simplified navbar with logout
+  if (isReportesOnly || reportesOnly) {
+    return (
+      <div className="flex h-full w-full bg-lightPrimary dark:!bg-navy-900">
+        <main className="flex w-full">
+          <div className="h-full flex flex-col min-h-screen w-full px-4">
+            {/* Simple navbar with just logo and user icon */}
+            <Navbar
+              onOpenSidenav={() => {}}
+              logoText={"Eventflow Tailwind React"}
+              brandText="Reportes"
+              secondary={false}
+              {...rest}
+            />
+            <div className="flex-grow mx-auto w-full pt-6">
+              <Routes>
+                {getRoutes(routes)}
+                <Route path="/" element={<Navigate to="/admin/reportes" replace />} />
+              </Routes>
+            </div>
+            <div className="p-3">
+              <Footer />
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Normal layout for other users
   return (
     <div className="flex h-full w-full ">
-      <Sidebar open={open} onClose={() => setOpen(false)} eventModel={event} activePath={activePath} />
+      <Sidebar open={open} onClose={() => setOpen(false)} activePath={activePath} />
       {/* Navbar & Main Content */}
       <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
         {/* Main Content */}
         <main
-          className={`flex mx-[12px] transition-all md:pr-2  
-          ${ activePath != '' ? "xl:ml-[410px]" : "xl:ml-[250px]"} `}
+          className={`flex mx-[12px] transition-all md:pr-2
+          ${ activePath !== '' ? "xl:ml-[410px]" : "xl:ml-[250px]"} `}
         >
           {/* Routes */}
           <div className="h-full flex flex-col min-h-screen w-full px-2">
             <Navbar
               onOpenSidenav={() => setOpen(true)}
               logoText={"Eventflow Tailwind React"}
-              brandText={currentRoute}
+              brandText={"Dashboard"}
               secondary={getActiveNavbar(routes)}
               {...rest}
             />

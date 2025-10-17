@@ -8,14 +8,18 @@ const client = generateClient();
 const Ctx = createContext({
   loading: true,
   isAdmin: false,
+  isReportesOnly: false,
   user: undefined,
+  roleName: undefined,
 });
 
 export const PermissionsProvider = ({ children }) => {
   const [state, setState] = useState({
     loading: true,
     isAdmin: false,
+    isReportesOnly: false,
     user: undefined,
+    roleName: undefined,
   });
 
   useEffect(() => {
@@ -40,9 +44,20 @@ export const PermissionsProvider = ({ children }) => {
 
         // ensure we only read .data when it's a query/mutation (not subscription)
         const user = "data" in res ? res.data?.listUsers?.items?.[0] : undefined;
-        const isAdmin = user?.role?.name === "Admin";
+        const roleName = user?.role?.name;
+        const isAdmin = roleName === "Admin";
+        const isReportesOnly = roleName === "Reportes";
 
-        if (mounted) setState({ loading: false, user, isAdmin: !!isAdmin });
+        // Log user role information
+        console.log("=== USER ROLE INFO ===");
+        console.log("User:", user);
+        console.log("Role Name:", roleName);
+        console.log("Is Admin:", isAdmin);
+        console.log("Is Reportes Only:", isReportesOnly);
+        console.log("Role Areas:", user?.role?.areas);
+        console.log("======================");
+
+        if (mounted) setState({ loading: false, user, isAdmin: !!isAdmin, isReportesOnly: !!isReportesOnly, roleName });
       } catch (err) {
         console.error("PermissionsProvider error:", err);
         if (mounted) setState((s) => ({ ...s, loading: false }));
