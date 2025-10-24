@@ -824,45 +824,49 @@ const Reportes = () => {
   }, [attendees]);
 
   return (
-    <div className="report-page">
+    <div className="report-page px-2 sm:px-0">
       <Banner />
-      <div className="filters bg-white p-4 mb-[35px] mt-3 rounded-[20px] border border-[#f2f2f2]">
-        
-        <div className="flex">
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">Filtros</h3>
+      <div className="filters bg-white p-3 sm:p-4 mb-[35px] mt-3 rounded-[20px] border border-[#f2f2f2]">
 
-          <div className="flex gap-3 ml-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <h3 className="text-xl font-semibold text-gray-800 sm:mb-0">Filtros</h3>
+
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:ml-auto">
             <button
               onClick={() => exportToExcel(attendees, eventAttendes)}
-              className="linear flex items-center gap-1 rounded-xl max-h-[50px] bg-green-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
+              className="linear flex items-center justify-center gap-1 rounded-xl bg-green-500 py-2.5 sm:py-[12px] px-3 sm:pl-3 sm:pr-3 text-xs sm:text-sm font-medium text-white transition duration-200 hover:bg-black whitespace-nowrap"
             >
-              Exportar evento actual <MdFileDownload className="h-5 w-5" />
+              <span className="hidden sm:inline">Exportar evento actual</span>
+              <span className="sm:hidden">Evento actual</span>
+              <MdFileDownload className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <button
               onClick={exportAllEventsToExcel}
-              className="linear flex items-center gap-1 rounded-xl max-h-[50px] bg-blue-500 py-[12px] pl-3 pr-3 text-sm font-medium text-white transition duration-200 hover:bg-black"
+              className="linear flex items-center justify-center gap-1 rounded-xl bg-blue-500 py-2.5 sm:py-[12px] px-3 sm:pl-3 sm:pr-3 text-xs sm:text-sm font-medium text-white transition duration-200 hover:bg-black whitespace-nowrap"
             >
-              Exportar base completa <MdFileDownload className="h-5 w-5" />
+              <span className="hidden sm:inline">Exportar base completa</span>
+              <span className="sm:hidden">Base completa</span>
+              <MdFileDownload className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
         </div>
-        
-        <div className="relative flex gap-5 mb-[15px]">
-          <div className="flex flex-col">
-            <label>Fecha inicio</label>
+
+        <div className="relative flex flex-col sm:flex-row gap-2 sm:gap-5 mb-3 sm:mb-[15px]">
+          <div className="flex flex-col sm:flex-initial min-w-0">
+            <label className="mb-1 text-sm text-gray-800">Fecha inicio</label>
             <input
               type="date"
-              className="w-full rounded-md border bg-white py-2.5 pl-3 pr-[12px] text-black shadow-sm outline-none focus:border-indigo-600"
+              className="w-full rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-2 sm:pr-[12px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
 
-          <div className="flex flex-col">
-            <label>Fecha fin</label>
+          <div className="flex flex-col sm:flex-initial min-w-0">
+            <label className="mb-1 text-sm text-gray-800">Fecha fin</label>
             <input
               type="date"
-              className="w-full rounded-md border bg-white py-2.5 pl-3 pr-[12px] text-black shadow-sm outline-none focus:border-indigo-600"
+              className="w-full rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-2 sm:pr-[12px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
@@ -873,7 +877,7 @@ const Reportes = () => {
             <button
               type="button"
               onClick={() => { setStartDate(""); setEndDate(""); }}
-              className="h-[42px] rounded-md border px-3 text-sm hover:bg-gray-50"
+              className="w-full sm:w-auto h-[38px] sm:h-[42px] rounded-md border px-3 sm:px-4 text-xs sm:text-sm hover:bg-gray-50 whitespace-nowrap"
               aria-label="Resetear fechas"
             >
               Restablecer
@@ -882,12 +886,12 @@ const Reportes = () => {
         </div>
 
 
-        <div className="relative flex w-full gap-5">
+        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-5">
 
-          <div className="flex w-full flex-col">
-            <label>Campus</label>
+          <div className="flex w-full flex-col min-w-0">
+            <label className="mb-1 text-sm text-gray-800">Campus</label>
             <select
-              className="select-arrow w-full appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               onChange={(e) => setCampusSelectID(e.target.value)}
               value={campusSelectID}
             >
@@ -900,10 +904,10 @@ const Reportes = () => {
             </select>
           </div>
 
-          <div className="flex w-full flex-col">
-            <label>Área</label>
+          <div className="flex w-full flex-col min-w-0">
+            <label className="mb-1 text-sm text-gray-800">Área</label>
             <select
-              className="select-arrow w-full appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               onChange={(e) => setAreaSelectID(e.target.value)}
             >
               {areaList &&
@@ -917,10 +921,10 @@ const Reportes = () => {
             </select>
           </div>
 
-          <div className="flex w-full flex-col">
-            <label>Subárea</label>
+          <div className="flex w-full flex-col min-w-0">
+            <label className="mb-1 text-sm text-gray-800">Subárea</label>
             <select
-              className="select-arrow w-full appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               onChange={(e) => setCareerSelectID(e.target.value)}
             >
               {careerList &&
@@ -932,10 +936,10 @@ const Reportes = () => {
             </select>
           </div>
 
-          <div className="flex w-full flex-col">
-            <label>Eventos</label>
+          <div className="flex w-full flex-col min-w-0">
+            <label className="mb-1 text-sm text-gray-800">Eventos</label>
             <select
-              className="select-arrow w-full appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm	outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               onChange={(e) => setEventSelectID(e.target.value)}
             >
               {/* <option value="0">
@@ -983,7 +987,7 @@ const Reportes = () => {
       </div>
 
       {/* Tables & Charts */}
-      <div className="mt-5 grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
         {chartsData &&
           chartsData?.map((chart, index) => (
             <PieChartApache key={index} option={chart.options} height="450px" />

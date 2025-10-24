@@ -20,9 +20,9 @@ const PieChartApache = (props) => {
         </div>
       </div> */}
 
-      <div className="mb-auto mt-4 h-full w-full">
+      <div className="mb-auto mt-4 h-full w-full overflow-hidden">
         <ReactEcharts
-          style={{ height: props.height, width: "100%" }}
+          style={{ height: props.height, width: "100%", minHeight: "300px" }}
           option={props.option}
         />
       </div>

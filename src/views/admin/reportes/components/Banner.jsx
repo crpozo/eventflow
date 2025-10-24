@@ -1,7 +1,7 @@
 const Banner1 = () => {
   return (
-    <div className="w-full mb-12">
-      <h2 className="relative inline-block text-[40px] font-semibold text-gray-800 after:content-[''] after:block after:w-16 after:h-[3px] after:bg-brand-500 after:rounded-full after:mt-2">
+    <div className="w-full mb-6 sm:mb-12">
+      <h2 className="relative inline-block text-2xl sm:text-3xl md:text-[40px] font-semibold text-gray-800 after:content-[''] after:block after:w-12 sm:after:w-16 after:h-[3px] after:bg-brand-500 after:rounded-full after:mt-2">
         Reportes
       </h2>
     </div>
