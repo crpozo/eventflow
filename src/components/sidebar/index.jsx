@@ -102,9 +102,13 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
       </div> */}
 
       {/* Nav item end */}
-      { activePath != '' && 
+      { activePath != '' &&
         <div
-          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all left-[-14px] w-[268px] xl:w-[268px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 translate-x-[100px] xl:translate-x-[110px]`}
+          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all ${
+            open
+              ? 'left-[-14px] translate-x-[100px] xl:translate-x-[110px]'
+              : 'left-[-14px] -translate-x-96 xl:translate-x-[110px]'
+          } w-[268px] xl:w-[268px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0`}
           >
           <div className="mt-[10px] h-px dark:bg-white/30" />
           <div className="flex flex-col">
