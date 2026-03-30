@@ -410,9 +410,20 @@ const Reportes = () => {
 
 
       DataStore.query(EventAttendee).then((results) => {
-        results.filter((item) =>
+        const filtered = results.filter((item) =>
           eventListID.includes(item.eventID)
         );
+        if (filtered.length > 0) {
+          setTotalRegistros(filtered.length);
+          setTotalCheckIn(filtered.filter(item => item.checkIn).length);
+          setAttendees(filtered.map(item => item.formAnswers));
+          setEventAttendes(filtered);
+        } else {
+          setTotalRegistros(0);
+          setTotalCheckIn(0);
+          setAttendees([]);
+          setEventAttendes([]);
+        }
       });
 
     } else {
@@ -439,7 +450,9 @@ const Reportes = () => {
             setEventAttendes(results.length > 0 ? results : null);
           } else {
             setTotalCheckIn(0);
-            setTotalRegistros(0)
+            setTotalRegistros(0);
+            setAttendees([]);
+            setEventAttendes([]);
           }
         }
       );
@@ -544,6 +557,10 @@ const Reportes = () => {
 
   // Generate excel using library XLSX 
   function exportToExcel(data, eventAttendees) {
+    if (!data || data.length === 0) {
+      alert("No hay datos para exportar en este evento.");
+      return;
+    }
 
     const flattenedData = flattenData(data);
 
