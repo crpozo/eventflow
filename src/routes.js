@@ -1,37 +1,5 @@
 import React from "react";
 
-// Admin Imports
-import MainDashboard from "views/admin/default";
-import Reportes from "views/admin/reportes";
-
-// Area Imports
-import Campus from "views/campus";
-import CampusCrear from "views/campus/crear";
-import CampusEditar from "views/campus/detalle";
-import Area from "views/area";
-import AreaCrear from "views/area/crear";
-import AreaEditar from "views/area/detalle";
-import Carrera from "views/carrera";
-import CarreraCrear from "views/carrera/crear";
-import CarreraEditar from "views/carrera/detalle";
-
-// Event Imports
-import Eventos from "views/admin/eventos";
-import EventoCrear from "views/admin/eventos/crear";
-import EventoDetalle from "views/admin/eventos/detalle";
-import DiseñoGafete from "views/admin/eventos/diseno-gafete";
-import Landing from "views/landing/index";
-import LandingRegistro from "views/landing/registro";
-import EventoLanding from "views/admin/eventos/landing";
-import EventoFormulario from "views/admin/eventos/formulario";
-import EventoParticipantes from "views/admin/eventos/participantes";
-import EventoParticipantesCrear from "views/admin/eventos/participantes/crear";
-import EventoParticipantesDetalle from "views/admin/eventos/participantes/detalle";
-
-// Other Imports
-import Privacidad from "views/privacidad";
-import Permisos from "views/admin/permisos";
-
 // Icon Imports
 import {
   MdHome,
@@ -39,8 +7,40 @@ import {
   MdAccountBalance,
   MdCalendarToday,
 } from "react-icons/md";
-
 import { LuUserCheck } from "react-icons/lu";
+
+// Admin Imports (lazy-loaded for code-splitting)
+const MainDashboard = React.lazy(() => import("views/admin/default"));
+const Reportes = React.lazy(() => import("views/admin/reportes"));
+
+// Area Imports
+const Campus = React.lazy(() => import("views/campus"));
+const CampusCrear = React.lazy(() => import("views/campus/crear"));
+const CampusEditar = React.lazy(() => import("views/campus/detalle"));
+const Area = React.lazy(() => import("views/area"));
+const AreaCrear = React.lazy(() => import("views/area/crear"));
+const AreaEditar = React.lazy(() => import("views/area/detalle"));
+const Carrera = React.lazy(() => import("views/carrera"));
+const CarreraCrear = React.lazy(() => import("views/carrera/crear"));
+const CarreraEditar = React.lazy(() => import("views/carrera/detalle"));
+
+// Event Imports
+const Eventos = React.lazy(() => import("views/admin/eventos"));
+const EventoCrear = React.lazy(() => import("views/admin/eventos/crear"));
+const EventoDetalle = React.lazy(() => import("views/admin/eventos/detalle"));
+const DiseñoGafete = React.lazy(() => import("views/admin/eventos/diseno-gafete"));
+const Landing = React.lazy(() => import("views/landing/index"));
+const LandingRegistro = React.lazy(() => import("views/landing/registro"));
+const EventoLanding = React.lazy(() => import("views/admin/eventos/landing"));
+const EventoFormulario = React.lazy(() => import("views/admin/eventos/formulario"));
+const EventoParticipantes = React.lazy(() => import("views/admin/eventos/participantes"));
+const EventoParticipantesCrear = React.lazy(() => import("views/admin/eventos/participantes/crear"));
+const EventoParticipantesDetalle = React.lazy(() => import("views/admin/eventos/participantes/detalle"));
+
+// Other Imports
+const Privacidad = React.lazy(() => import("views/privacidad"));
+const Permisos = React.lazy(() => import("views/admin/permisos"));
+
 
 const routes = [
   {

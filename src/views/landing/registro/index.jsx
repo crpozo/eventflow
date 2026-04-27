@@ -919,84 +919,122 @@ const Registro = (props) => {
 
         {authorized && eventAttendee && userData.length !== 0 && props.landing.cost === 'Gratuito' && (
           <>
-            <div ref={ticketsRef} className="mb-[35px] flex flex-col items-center justify-center text-center">
-              <h1 className="mb-3 text-2xl font-semibold">Registro exitoso!</h1>
-              <p className="text-lg">
-                Descarga tu ticket y presentalo el día del evento para ingresar.
-              </p>
-              <p className="mb-4 text-lg">
-                Tu ticket también ha sido enviado por correo para su respaldo. 
-              </p>
-              <button
-                href="descargar"
-                onClick={() => {
-                  handleExport(false);
-                }}
-                className="linear text-md mx-auto flex w-full max-w-[270px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[12px] pl-3 pr-3 font-medium text-white transition duration-200 hover:bg-black"
-              >
-                Descargar PDF
-              </button>
-            </div>
-            <div
-              className={`mt-2 grid w-full ${quantity > 1 && "lg:grid-cols-3"} items-center gap-4`}
-            >
-              {ticketsArray.map((_, index) => (
-                <div
-                  id={`pdf-content-${index}`}
-                  ref={pdfContentRef}
-                  key={index}
-                  className={`mb-4 flex w-full items-start justify-center ticket-${index}`}
+            {/* ── Two-column success layout ── */}
+            <div ref={ticketsRef} className="ticket-success-wrapper">
+
+              {/* LEFT COLUMN — Success message & CTA */}
+              <div className="ticket-success-left">
+                <div className="ticket-success-badge">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+
+                <h1 className="ticket-success-title">¡Registro exitoso!</h1>
+
+                <p className="ticket-success-subtitle">
+                  Tu lugar ha sido confirmado. Presenta tu ticket el día del evento para ingresar.
+                </p>
+
+                <div className="ticket-success-info-list">
+                  <div className="ticket-success-info-item">
+                    <span className="ticket-success-info-icon">📩</span>
+                    <span>Hemos enviado una copia del ticket a tu correo electrónico.</span>
+                  </div>
+                  <div className="ticket-success-info-item">
+                    <span className="ticket-success-info-icon">📱</span>
+                    <span>También puedes descargar el PDF y guardarlo en tu dispositivo.</span>
+                  </div>
+                  <div className="ticket-success-info-item">
+                    <span className="ticket-success-info-icon">📅</span>
+                    <span>{formatSpanishDate(props.event.date)}</span>
+                  </div>
+                  {props.event.location && (
+                    <div className="ticket-success-info-item">
+                      <span className="ticket-success-info-icon">📍</span>
+                      <span>{props.event.location}</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleExport(false)}
+                  className="ticket-download-btn"
                 >
-                  <div className="border-gray flex w-full max-w-[350px] items-center justify-start border border-solid pb-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Descargar PDF
+                </button>
+              </div>
+
+              {/* RIGHT COLUMN — Ticket card(s) */}
+              <div className="ticket-success-right">
+                <div
+                  className={`ticket-cards-grid ${quantity > 1 ? "ticket-cards-multi" : ""}`}
+                >
+                  {ticketsArray.map((_, index) => (
                     <div
-                      style={{
-                        background: "rgb(255,255,255)",
-                        background:
-                          "linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, #faf3e9f7 80%)",
-                      }}
-                      className="flex w-full flex-col items-center justify-between gap-[30px] px-2 pb-6 pt-8"
+                      id={`pdf-content-${index}`}
+                      ref={pdfContentRef}
+                      key={index}
+                      className={`ticket-card-wrapper ticket-${index}`}
                     >
-                      {/* QrCode + name of event + Logo */}
-                      <div className="flex w-full flex-col items-center justify-start">
-                        <div className="flex items-center justify-center bg-white p-1">
-                          {eventAttendee.id && (
-                            <QRCode
-                              id="qrcode"
-                              className="mb-[50px]"
-                              size={170}
-                              style={{ height: "auto" }}
-                              value={eventAttendee.id}
-                              viewBox={`0 0 200 200`}
-                            />
-                          )}
-                        </div>
-                        <img src={logo} className="w-[250px] mb-[50px]" />
-                        <h1 className="mb-4 text-2xl max-w-[300px] font-bold text-center">
-                          {props.landing.title}
-                        </h1>
-                      </div>
-                      <div className="flex w-full flex-col items-center justify-center">
-                        {userData.map((data, i) => (
-                          <div key={i}>
-                            {data.name === "nombres" && (
-                              <p className="text-md w-full text-right font-bold capitalize">
-                                {data.userData[0]}
-                              </p>
-                            )}
+                      <div className="ticket-card">
+                        <div
+                          style={{
+                            background: "rgb(255,255,255)",
+                            background:
+                              "linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, #faf3e9f7 80%)",
+                          }}
+                          className="ticket-card-inner"
+                        >
+                          {/* QR Code + Logo + Event Title */}
+                          <div className="ticket-card-top">
+                            <div className="ticket-qr-container">
+                              {eventAttendee.id && (
+                                <QRCode
+                                  id="qrcode"
+                                  className="mb-[50px]"
+                                  size={170}
+                                  style={{ height: "auto" }}
+                                  value={eventAttendee.id}
+                                  viewBox={`0 0 200 200`}
+                                />
+                              )}
+                            </div>
+                            <img src={logo} className="ticket-logo" alt="USFQ" />
+                            <h1 className="ticket-event-title">
+                              {props.landing.title}
+                            </h1>
                           </div>
-                        ))}
-                        
-                        <p className="mb-1 mb-2 text-right text-sm font-normal">
-                          {props.event.location}
-                        </p>
-                        <p className="l-auto mb-1 max-w-fit bg-black px-2 py-[3px] text-right text-sm font-normal text-white">
-                          {formatSpanishDate(props.event.date)}
-                        </p>
+
+                          {/* Attendee info */}
+                          <div className="ticket-card-bottom">
+                            {userData.map((data, i) => (
+                              <div key={i}>
+                                {data.name === "nombres" && (
+                                  <p className="ticket-attendee-name">
+                                    {data.userData[0]}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                            <p className="ticket-location">
+                              {props.event.location}
+                            </p>
+                            <p className="ticket-date-badge">
+                              {formatSpanishDate(props.event.date)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </>
         )}

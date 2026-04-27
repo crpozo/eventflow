@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  lint-test-build:
+    name: Lint → Test → Build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --watchAll=false --ci --passWithNoTests
+        env:
+          CI: true
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          CI: false  # CRA treats warnings as errors when CI=true; use false to just warn

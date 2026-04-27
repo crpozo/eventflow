@@ -43,17 +43,25 @@ export default function Admin(props) {
     }
     return activeNavbar;
   };
-  const getRoutes = (routes) => {
+  const getRoutes = React.useCallback((routes) => {
     return routes.map((prop, key) => {
       if (prop.layout === "/admin") { 
         return (
-          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+          <Route path={`/${prop.path}`} element={
+            <React.Suspense fallback={
+              <div className="flex min-h-[200px] w-full items-center justify-center">
+                <span className="loader"></span>
+              </div>
+            }>
+              {prop.component}
+            </React.Suspense>
+          } key={key} />
         );
       } else {
         return null;
       }
     });
-  };
+  }, []);
 
   document.documentElement.dir = "ltr";
 

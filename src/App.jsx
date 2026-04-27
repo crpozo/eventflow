@@ -22,6 +22,16 @@ I18n.putVocabularies(translations);
 I18n.setLanguage('es');
 Amplify.configure(config);
 
+// Shared loading fallback for Suspense boundaries
+function LoadingFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex min-h-screen w-full flex-col items-center justify-center bg-lightPrimary p-3">
+      <span className="loader"></span>
+      <h2 className="mb-2 text-center text-xl text-black">Cargando...</h2>
+    </div>
+  );
+}
+
 // Component to handle routes based on user role
 function ReportesRouteHandler() {
   const { loading, isReportesOnly } = usePermissions();
@@ -39,25 +49,29 @@ function ReportesRouteHandler() {
 
     // Only render admin layout with reportes route
     return (
-      <Routes>
-        <Route path="admin/*" element={<AdminLayout reportesOnly={true} />} />
-        <Route path="*" element={<Navigate to="/admin/reportes" replace />} />
-      </Routes>
+      <React.Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="admin/*" element={<AdminLayout reportesOnly={true} />} />
+          <Route path="*" element={<Navigate to="/admin/reportes" replace />} />
+        </Routes>
+      </React.Suspense>
     );
   }
 
   // For all other users, render normal routes
   return (
-    <Routes>
-      <Route path="auth/*" element={<AuthLayout />} />
-      <Route path="admin/*" element={<AdminLayout />} />
-      <Route path="rtl/*" element={<RtlLayout />} />
-      <Route path="page/*" element={<PageLayout />} />
-      <Route path="landing/*" element={<LandingLayout />} />
-      <Route path="privacidad" element={<LegalLayout />} />
-      <Route path="usuario/*" element={<UserLayout />} />
-      <Route path="/" element={<Navigate to="/admin" replace />} />
-    </Routes>
+    <React.Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route path="auth/*" element={<AuthLayout />} />
+        <Route path="admin/*" element={<AdminLayout />} />
+        <Route path="rtl/*" element={<RtlLayout />} />
+        <Route path="page/*" element={<PageLayout />} />
+        <Route path="landing/*" element={<LandingLayout />} />
+        <Route path="privacidad" element={<LegalLayout />} />
+        <Route path="usuario/*" element={<UserLayout />} />
+        <Route path="/" element={<Navigate to="/admin" replace />} />
+      </Routes>
+    </React.Suspense>
   );
 }
 
@@ -70,10 +84,12 @@ function App() {
   const isUserRoute = location.pathname.includes('/usuario');
   const [isReady] = React.useState(true);
 
-  // Hotjar init
-  const siteId = 123;
-  const hotjarVersion = 6;
-  Hotjar.init(siteId, hotjarVersion);
+  // Hotjar init — inside effect so it runs once, not on every render
+  React.useEffect(() => {
+    const siteId = 123;
+    const hotjarVersion = 6;
+    Hotjar.init(siteId, hotjarVersion);
+  }, []);
 
   React.useEffect(() => {
     // Cookie scripts
@@ -128,17 +144,23 @@ function App() {
     return (
       <>
         {isLandingRoute ? (
-          <Routes>
-            <Route path="landing/*" element={<LandingLayout />} />
-          </Routes>
+          <React.Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="landing/*" element={<LandingLayout />} />
+            </Routes>
+          </React.Suspense>
         ) : isLegalRoute ? (
-          <Routes>
-            <Route path="privacidad" element={<LegalLayout />} />
-          </Routes>
+          <React.Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="privacidad" element={<LegalLayout />} />
+            </Routes>
+          </React.Suspense>
         ) : isUserRoute ? (
-          <Routes>
-            <Route path="usuario/*" element={<UserLayout />} />
-          </Routes>
+          <React.Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="usuario/*" element={<UserLayout />} />
+            </Routes>
+          </React.Suspense>
         ) : ( 
           <div className="bg-usfqPrimary flex min-h-screen items-center justify-center bg-lightPrimary px-0 py-0 lg:px-4 lg:py-6">
             <div className="flex flex-col-reverse justify-center lg:flex-row overflow-hidden rounded-3xl shadow-lg w-full max-w-6xl h-screen lg:h-[670px]">

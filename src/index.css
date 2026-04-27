@@ -719,3 +719,285 @@ p.amplify-field__description{
   font-style: normal;
   color: #757575;
 }
+
+/* ─────────────────────────────────────
+   Ticket Success — Two-column layout
+   ───────────────────────────────────── */
+
+@keyframes ticketFadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ticketBadgePop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ticketCardSlide {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Wrapper — side-by-side on desktop, stacked on mobile */
+.ticket-success-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 56px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  animation: ticketFadeUp 0.5s ease-out both;
+}
+
+/* ── Left column ── */
+.ticket-success-left {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: 20px;
+}
+
+.ticket-success-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+  animation: ticketBadgePop 0.5s 0.2s ease-out both;
+}
+
+.ticket-success-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 12px;
+  line-height: 1.2;
+}
+
+.ticket-success-subtitle {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #555;
+  margin: 0 0 28px;
+  max-width: 440px;
+}
+
+/* Info list */
+.ticket-success-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 36px;
+  width: 100%;
+}
+
+.ticket-success-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14.5px;
+  color: #333;
+  line-height: 1.5;
+  background: #f9fafb;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ticket-success-info-item:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.ticket-success-info-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+/* Download button */
+.ticket-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 36px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #df1923 0%, #c41017 100%);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(223, 25, 35, 0.3);
+}
+
+.ticket-download-btn:hover {
+  background: linear-gradient(135deg, #111 0%, #222 100%);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+.ticket-download-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Right column ── */
+.ticket-success-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  animation: ticketCardSlide 0.6s 0.25s ease-out both;
+}
+
+.ticket-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.ticket-cards-multi {
+  max-width: 760px;
+}
+
+.ticket-card-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.ticket-card {
+  width: 340px;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.ticket-card:hover {
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-4px);
+}
+
+.ticket-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 32px 16px 28px;
+  width: 100%;
+}
+
+.ticket-card-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.ticket-qr-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 4px;
+}
+
+.ticket-logo {
+  width: 250px;
+  margin-bottom: 50px;
+}
+
+.ticket-event-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  max-width: 300px;
+  margin-bottom: 16px;
+  color: #111;
+  line-height: 1.3;
+}
+
+.ticket-card-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.ticket-attendee-name {
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: capitalize;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 4px;
+  color: #111;
+}
+
+.ticket-location {
+  font-size: 13px;
+  font-weight: 400;
+  text-align: center;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.ticket-date-badge {
+  display: inline-block;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 400;
+  padding: 4px 10px;
+  max-width: fit-content;
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .ticket-success-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 36px;
+    padding: 16px 16px 40px;
+  }
+
+  .ticket-success-left {
+    align-items: center;
+    text-align: center;
+    padding-top: 0;
+  }
+
+  .ticket-success-subtitle {
+    max-width: 100%;
+  }
+
+  .ticket-success-info-item {
+    text-align: left;
+  }
+
+  .ticket-success-right {
+    width: 100%;
+  }
+
+  .ticket-card {
+    width: 100%;
+    max-width: 360px;
+  }
+}
