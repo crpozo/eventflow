@@ -22,6 +22,12 @@ import { usePermissions } from "../../../providers/PermissionsProvider"
 
 const Reportes = () => {
 
+  // Strip HTML tags from strings (form labels sometimes contain markup)
+  const stripHtml = (html) => {
+    if (!html || typeof html !== 'string') return html;
+    return html.replace(/<[^>]*>/g, '').trim();
+  };
+
   /*******************************************/
   /************** INIT VARIABLES *************/
   /*******************************************/
@@ -542,7 +548,7 @@ const Reportes = () => {
       const flatArray = filteredArray.map((item) => {
         const flatItem = {
           Tipo: item.type,
-          Campo: item.label,
+          Campo: stripHtml(item.label),
           Valor: item.userData[0],
         };
 
@@ -674,7 +680,7 @@ const Reportes = () => {
             if (type === "pie-chart") {
               options = {
                 title: {
-                  text: `${label}`,
+                  text: `${stripHtml(label)}`,
                   subtext: "Real Time Data",
                   left: "center",
                   textStyle: {
@@ -690,7 +696,7 @@ const Reportes = () => {
                 },
                 series: [
                   {
-                    name: label,
+                    name: stripHtml(label),
                     type: "pie",
                     radius: "50%",
                     data: [], // This will be populated with userData and count
@@ -714,7 +720,7 @@ const Reportes = () => {
                   type: "value",
                 },
                 title: {
-                  text: `${label}`,
+                  text: `${stripHtml(label)}`,
                   subtext: "Real Time Data",
                   left: "center",
                   textStyle: {
@@ -762,7 +768,7 @@ const Reportes = () => {
               if (!groupedData[label]) {
                 // If it doesn't exist, create a new entry with options and userData
                 groupedData[label] = {
-                  title: label,
+                  title: stripHtml(label),
                   type: type,
                   options: options,
                   userDataCounts: {}, // Object to store userData counts
