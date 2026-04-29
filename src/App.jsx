@@ -88,7 +88,12 @@ function App() {
   React.useEffect(() => {
     const siteId = 123;
     const hotjarVersion = 6;
-    Hotjar.init(siteId, hotjarVersion);
+    // Defer Hotjar init so it doesn't block initial render
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => Hotjar.init(siteId, hotjarVersion));
+    } else {
+      setTimeout(() => Hotjar.init(siteId, hotjarVersion), 3000);
+    }
   }, []);
 
   React.useEffect(() => {

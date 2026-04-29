@@ -1,24 +1,29 @@
 import React, { Component, createRef, useRef } from "react";
 import logo from "assets/img/usfq/logo_2025.png";
 import QRCode from "react-qr-code";
-import domtoimage from "dom-to-image";
-import html2pdf from "html2pdf.js";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
 import { DataStore } from "aws-amplify/datastore";
 import { Form } from "models";
-import $, { event } from "jquery";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { validateBannerCode } from "../../../services/nomina/validateBannerCode";
 
-window.jQuery = $;
-window.$ = $;
-require("jquery-ui-sortable");
-require("formBuilder");
-require("formBuilder/dist/form-render.min.js");
+// Lazy-load jQuery + FormBuilder (only needed when form is rendered)
+let $ = null;
+const loadJQueryAndFormBuilder = async () => {
+  if ($) return $; // already loaded
+  const jq = (await import("jquery")).default;
+  window.jQuery = jq;
+  window.$ = jq;
+  await import("jquery-ui-sortable");
+  await import("formBuilder");
+  await import("formBuilder/dist/form-render.min.js");
+  $ = jq;
+  return jq;
+};
 
 const subeventosIds = [
   "364f6cfb-16a6-4f10-839f-e606df7b5537",
@@ -75,8 +80,9 @@ const Registro = (props) => {
   // Show form builder class
   class FormBuilder extends Component {
     fb = createRef();
-    componentDidMount() {
-      $(this.fb.current).formRender({
+    async componentDidMount() {
+      const jq = await loadJQueryAndFormBuilder();
+      jq(this.fb.current).formRender({
         dataType: "json",
         formData,
       });
@@ -234,7 +240,8 @@ const Registro = (props) => {
       if (!isFree && userConfirmed || isFree) {
 
         const fbRender = document.querySelector("#fb-editor");
-        let userData = $(fbRender).formRender("userData");
+        const jq = await loadJQueryAndFormBuilder();
+        let userData = jq(fbRender).formRender("userData");
 
         if (changeBilling) {
           // Replace the billing information with the new values
@@ -547,6 +554,9 @@ const Registro = (props) => {
 
   const handleExport = async (isMobileDevice) => {
     try {
+
+      // Lazy-load html2pdf only when generating ticket PDF
+      const html2pdf = (await import("html2pdf.js")).default;
 
       const tickets = document.querySelectorAll('[id^="pdf-content"]');
       const pdfOptions = {
