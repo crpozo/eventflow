@@ -1,6 +1,10 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 
+// amplifyconfiguration.json no se commitea al repo (.gitignore), pero
+// App.jsx la importa. En CI el archivo no existe; le damos un stub vacío.
+jest.mock('./amplifyconfiguration.json', () => ({}), { virtual: true });
+
 // Mock all external dependencies that App relies on
 jest.mock('aws-amplify', () => ({
   Amplify: { configure: jest.fn() },
