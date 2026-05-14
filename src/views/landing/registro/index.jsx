@@ -364,6 +364,31 @@ const Registro = (props) => {
             setEventAttendee(newEventAttendee);
             setFormRegister(true);
 
+            // Disparar email server-side de inmediato.
+            // keepalive: true para que sobreviva si el usuario cierra la pestaña
+            // antes de que termine la generación del PDF. El Lambda detecta
+            // ticket="" y envía un correo con QR inline; cuando luego se sube
+            // el PDF y se actualiza ticket, NO se reenvía (es idempotente).
+            if (isFree) {
+              try {
+                fetch(
+                  "https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email",
+                  {
+                    method: "POST",
+                    keepalive: true,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      eventAttendeeId: newEventAttendee.id,
+                      typePayment: "CARD",
+                      statusPayment: "SUCCESSFUL",
+                    }),
+                  }
+                ).catch((e) => console.warn("early trigger-email failed:", e));
+              } catch (e) {
+                console.warn("early trigger-email exception:", e);
+              }
+            }
+
             // get token from USFQ
             if(!isFree){
               const accessToken = await getTokenFinancial();
@@ -629,6 +654,10 @@ const Registro = (props) => {
       });
 
       const original = await DataStore.query(EventAttendee, eventAttendee.id);
+      // Si el keepalive ya disparó el Lambda y marcó ticket="sent-qr:...",
+      // el correo ya se envió. No reenviamos para evitar duplicados.
+      const alreadyEmailedByServer =
+        original?.ticket && original.ticket.startsWith("sent-qr:");
       const updatedEventAttendee = await DataStore.save(
         EventAttendee.copyOf(original, (updated) => {
           updated.ticket = decodeURIComponent(
@@ -637,7 +666,9 @@ const Registro = (props) => {
         })
       );
 
-      sendTicketEmail();
+      if (!alreadyEmailedByServer) {
+        sendTicketEmail();
+      }
       setIsProcessing(false);
     } catch (error) {
       console.error("Error uploading file: ", error);

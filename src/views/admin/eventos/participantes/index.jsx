@@ -5,6 +5,7 @@ import { EventAttendee, Event } from "models"
 import { useNavigate, useParams } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
 import { formatDate } from 'scripts/utils'
+import { regenMissingTickets } from "services/regenMissingTickets";
 
 const Marketplace = () => {
 
@@ -25,6 +26,18 @@ const Marketplace = () => {
       setEvent(result);
     });
   }, [id, navigate]);
+
+  React.useEffect(() => {
+    if (!event) return;
+    window.__regenMissingTickets = (opts) => regenMissingTickets(event, opts);
+    console.info(
+      `[regen] Listo. Ejecuta window.__regenMissingTickets() para regenerar tickets faltantes del evento "${event.title}". ` +
+        `Para previsualizar sin enviar: window.__regenMissingTickets({ dryRun: true }).`
+    );
+    return () => {
+      delete window.__regenMissingTickets;
+    };
+  }, [event]);
 
   React.useEffect(() => {
 
