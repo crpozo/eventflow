@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Stub Amplify config files (gitignored in repo; real values come from Amplify Hosting)
+        run: |
+          [ -f src/amplifyconfiguration.json ] || echo '{}' > src/amplifyconfiguration.json
+          [ -f src/aws-exports.js ] || printf 'const awsmobile = {};\nexport default awsmobile;\n' > src/aws-exports.js
+
       - name: Run tests
         run: npm test -- --watchAll=false --ci --passWithNoTests
         env:
