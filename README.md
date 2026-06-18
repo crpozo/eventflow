@@ -1,6 +1,10 @@
 # Eventflow
 
-Event Management System 
+Event Management System
+
+🌐 **Live URL:** [https://eventflow.ec/](https://eventflow.ec/)
+
+Hosted on AWS Amplify (region `sa-east-1`) with a custom domain.
 
 # Getting Started with Create React App
 
