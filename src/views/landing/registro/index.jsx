@@ -8,6 +8,7 @@ import { DataStore } from "aws-amplify/datastore";
 import { Form } from "models";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils";
+import { getLandingUI } from "scripts/landingTranslations";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { validateBannerCode } from "../../../services/nomina/validateBannerCode";
 
@@ -51,7 +52,8 @@ const subeventosIds = [
 const Registro = (props) => {
 
   const navigate = useNavigate();
-  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event, eventAttendeeProp} = props;
+  const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event, eventAttendeeProp, lang} = props;
+  const ui = getLandingUI(lang);
   const [formData, setFormData] = React.useState([]);
   const [eventAttendee, setEventAttendee] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
@@ -727,15 +729,14 @@ const Registro = (props) => {
               }}
               className="gap z-10 mb-4 flex items-center font-medium text-brand-500	hover:text-navy-700 hover:no-underline dark:hover:text-white md:w-[20%]"
             >
-              <MdChevronLeft className="h-7 w-7" /> Regresar
+              <MdChevronLeft className="h-7 w-7" /> {ui.back}
             </Link>
 
             <h2
               id="title-form"
               className="mb-[30px] flex items-center justify-start md:justify-center gap-2 text-[25px] md:text-[40px] font-bold md:mb-[60px] md:mt-[-60px]"
             >
-              <HiOutlineDocumentText className="h-10 w-10" /> Formulario de
-              Registro
+              <HiOutlineDocumentText className="h-10 w-10" /> {ui.registrationForm}
             </h2>
             
             <div 
@@ -746,7 +747,7 @@ const Registro = (props) => {
             {formBuilderLoading ? (
               <div className="flex flex-col justify-center items-center">
                 <span className="loader" />
-                <p className="text-center mt-4">Cargando formulario...</p>
+                <p className="text-center mt-4">{ui.loadingForm}</p>
               </div>
             ) : formBuilderError ? (
               <p className="text-red-500 text-center">
@@ -773,7 +774,7 @@ const Registro = (props) => {
                         </svg>
                       )}
                     </div>
-                    Cambiar datos de facturación
+                    {ui.changeBilling}
                   </label>
                 </div>
               }
@@ -785,7 +786,7 @@ const Registro = (props) => {
                       htmlFor="tipo_identificacion"
                       className="formbuilder-select-label"
                     >
-                      Tipo de identificación
+                      {ui.idType}
                     </label>
                     <select
                       name="tipo_identificacion"
@@ -805,7 +806,7 @@ const Registro = (props) => {
                       htmlFor="identificacion"
                       className="formbuilder-text-label"
                     >
-                      N° de Identificación
+                      {ui.idNumber}
                     </label>
                     <input
                       name="identificacion"
@@ -818,7 +819,7 @@ const Registro = (props) => {
                   </div>
                   <div className="formbuilder-text form-group field-email">
                     <label htmlFor="email" className="formbuilder-text-label">
-                      Email
+                      {ui.email}
                     </label>
                     <input
                       name="email"
@@ -832,7 +833,7 @@ const Registro = (props) => {
                   </div>
                   <div className="formbuilder-text form-group field-nombres">
                     <label htmlFor="nombres" className="formbuilder-text-label">
-                      Nombre completo o razón social
+                      {ui.fullNameOrCompany}
                     </label>
                     <input
                       name="nombres"
@@ -849,7 +850,7 @@ const Registro = (props) => {
                       htmlFor="direccion"
                       className="formbuilder-text-label"
                     >
-                      Dirección
+                      {ui.address}
                     </label>
                     <input
                       name="direccion"
@@ -866,7 +867,7 @@ const Registro = (props) => {
                       htmlFor="telefono"
                       className="formbuilder-text-label"
                     >
-                      Teléfono
+                      {ui.phone}
                     </label>
                     <input
                       name="telefono"
@@ -912,7 +913,7 @@ const Registro = (props) => {
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 } ${props.landing.cost === 'Gratuito' ? 'mt-[20px]' : ''}`}
               >
-                Registrarse
+                {ui.register}
               </button>
             </div>
           </>
@@ -923,7 +924,7 @@ const Registro = (props) => {
             <div className="fixed bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
               <span className="loader"></span>
               <h2 className="mb-2 text-center text-xl text-black">
-                Cargando… No cerrar la página.
+                {ui.processingDoNotClose}
               </h2>
             </div>
           )
@@ -936,12 +937,10 @@ const Registro = (props) => {
               className="mb-3 w-[80px] md:w-[90px] lg:w-[150px]"
             />
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
-              Su pago está siendo procesado actualmente
+              {ui.paymentProcessingTitle}
             </h2>
             <p className="max-w-[500px] text-center text-black">
-              Agradecemos su comprensión y paciencia. En caso de transferencia o
-              depósito, el pago se procesara dentro de 48 horas y el ticket se
-              enviará a su correo electrónico.
+              {ui.paymentProcessingText}
             </p>
           </div>
         )}
@@ -950,10 +949,10 @@ const Registro = (props) => {
           <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
             <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
             <h2 className="mb-2 text-center text-2xl font-semibold text-black">
-              Redirigiendo a la pasarela de pagos USFQ
+              {ui.redirectingTitle}
             </h2>
             <p className="max-w-[500px] text-center text-black">
-              Por favor no cierre esta página.
+              {ui.redirectingText}
             </p>
           </div>
         }
@@ -971,20 +970,20 @@ const Registro = (props) => {
                   </svg>
                 </div>
 
-                <h1 className="ticket-success-title">¡Registro exitoso!</h1>
+                <h1 className="ticket-success-title">{ui.successTitle}</h1>
 
                 <p className="ticket-success-subtitle">
-                  Tu lugar ha sido confirmado. Presenta tu ticket el día del evento para ingresar.
+                  {ui.successSubtitle}
                 </p>
 
                 <div className="ticket-success-info-list">
                   <div className="ticket-success-info-item">
                     <span className="ticket-success-info-icon">📩</span>
-                    <span>Hemos enviado una copia del ticket a tu correo electrónico.</span>
+                    <span>{ui.successEmailCopy}</span>
                   </div>
                   <div className="ticket-success-info-item">
                     <span className="ticket-success-info-icon">📱</span>
-                    <span>También puedes descargar el PDF y guardarlo en tu dispositivo.</span>
+                    <span>{ui.successDownloadPdf}</span>
                   </div>
                   <div className="ticket-success-info-item">
                     <span className="ticket-success-info-icon">📅</span>
@@ -1007,7 +1006,7 @@ const Registro = (props) => {
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Descargar PDF
+                  {ui.downloadPdf}
                 </button>
               </div>
 

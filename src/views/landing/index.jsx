@@ -5,6 +5,7 @@ import { useParams, Link } from "react-router-dom";
 import Registro from "./registro/index";
 import { formatDateHour} from 'scripts/utils';
 import { useDeepLTranslation} from 'scripts/useDeepLTranslation';
+import { getLandingUI } from 'scripts/landingTranslations';
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { FiExternalLink } from "react-icons/fi";
 import { LuCalendarClock, LuMapPin } from "react-icons/lu";
@@ -19,7 +20,13 @@ import { getEvent, listLandings, eventAttendeesByEventID ,getEventAttendee } fro
 
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
-  const [lang] = useState("ES");
+  const [lang, setLang] = useState(
+    () => localStorage.getItem("landingLang") || "ES"
+  );
+  const changeLang = (next) => {
+    setLang(next);
+    localStorage.setItem("landingLang", next);
+  };
   const { id } = useParams();
   const [landing, setLanding] = React.useState([]);
   const [event, setEvent] = React.useState([]);
@@ -37,13 +44,24 @@ export default function SignIn() {
   const [isSoldOut, setIsSoldOut] = useState(null);
   
   // Translations
+  // Static UI labels (instant, no API quota)
+  const ui = getLandingUI(lang);
 
-  const baseTexts = useMemo(() => ({
-    title: landing?.title || "",
-    description: landing?.description || "",
-    place: landing?.place || "",
-    eventDate: landing?.start ? formatDateHour(landing.start) : "",
-  }), [landing?.title, landing?.description, landing?.place, landing?.start]);
+  // Dynamic, user-generated content translated on the fly via DeepL.
+  const baseTexts = useMemo(() => {
+    const texts = {
+      title: landing?.title || "",
+      description: landing?.description || "",
+      location: landing?.location || "",
+      extraInfo: landing?.extraInfo || "",
+      eventDate: event?.date ? formatDateHour(event.date) : "",
+    };
+    // Ticket titles are created per-landing, so translate each one.
+    (landing?.ticketTitle || []).forEach((title, i) => {
+      texts[`ticket_${i}`] = title || "";
+    });
+    return texts;
+  }, [landing, event?.date]);
 
   const translated = useDeepLTranslation(baseTexts, lang);
 
@@ -209,7 +227,7 @@ export default function SignIn() {
       <div className="fixed inset-0 z-50 flex top-[-10px] min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
         <span className="loader"></span>
         <h2 className="mb-2 text-center text-xl text-black">
-          Cargando...
+          {ui.loading}
         </h2>
       </div>
     );
@@ -221,7 +239,7 @@ export default function SignIn() {
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
         <img src={logo} alt="USFQ Logo" className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
         <h2 className="mb-2 text-center text-xl font-semibold text-black">
-          El evento no se encuentra activo
+          {ui.eventNotActive}
         </h2>
       </div>
     );
@@ -238,23 +256,42 @@ export default function SignIn() {
       <div className="flex h-[70px] md:h-[90px] w-full bg-usfqPrimary relative">
         <div className="container flex items-center justify-between">
           <img src={logo} alt="USFQ Logo" className="w-[150px] md:w-[180px] lg:w-[200px]" />
-          <Link
-            to="https://www.usfq.edu.ec/es"
-            className="flex items-center gap-2 hover:text-red-500 hover:no-underline text-sm"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Web oficial USFQ <FiExternalLink className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Language switcher (ES / EN) */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => changeLang("ES")}
+                aria-label="Español"
+                title="Español"
+                className={`text-xl leading-none px-1 py-1 rounded transition ${
+                  lang === "ES" ? "opacity-100 scale-110" : "opacity-50 hover:opacity-100"
+                }`}
+              >
+                🇪🇸
+              </button>
+              <button
+                type="button"
+                onClick={() => changeLang("EN")}
+                aria-label="English"
+                title="English"
+                className={`text-xl leading-none px-1 py-1 rounded transition ${
+                  lang === "EN" ? "opacity-100 scale-110" : "opacity-50 hover:opacity-100"
+                }`}
+              >
+                🇺🇸
+              </button>
+            </div>
+            <Link
+              to="https://www.usfq.edu.ec/es"
+              className="flex items-center gap-2 hover:text-red-500 hover:no-underline text-sm"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {ui.officialWeb} <FiExternalLink className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
-        {/* <div className=" absolute top-[5px] right-[120px] flex gap-1 items-center mr-[-20px]">
-          <button onClick={() => setLang("ES")} className="pr-2 py-1">
-            🇪🇸
-          </button>
-          <button onClick={() => setLang("EN")} className="pr-2 py-1">
-            🇺🇸
-          </button>
-        </div> */}
       </div>
 
 
@@ -305,6 +342,7 @@ export default function SignIn() {
               price={selectedCost}
               eventID={id}
               eventAttendeeProp={eventAttendee}
+              lang={lang}
             />
 
           </div>
@@ -312,27 +350,27 @@ export default function SignIn() {
             <div
               className={` mb-[40px] border-b border-gray-300 pb-[30px] md:pb-[40px] transition-all duration-300`}
             >
-              <h2 className="pt-2 md:pt-0 mb-3 lg:!mb-6 text-[28px] md:text-4xl font-bold">Detalles del evento</h2>
+              <h2 className="pt-2 md:pt-0 mb-3 lg:!mb-6 text-[28px] md:text-4xl font-bold">{ui.eventDetails}</h2>
 
               <div className="grid grid-cols-1 items-start gap-7 sm:gap-5 lg:grid-cols-3">
                 <div className="flex items-center gap-5 lg:col-span-1">
                   <div>
-                    {event && <p className="text-md">{landing.description}</p>}
+                    {event && <p className="text-md">{translated.description}</p>}
                   </div>
                 </div>
                 <div className="flex flex-col lg:items-start gap-5 lg:ml-[40px] mt-auto mb-auto lg:col-span-1">
                   <div className="flex gap-3">
                     <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                     <div>
-                      <h3 className="text-lg font-bold">Fecha y hora</h3>
-                      {event && <p className="text-md">{formatDateHour(event.date)}</p>}
+                      <h3 className="text-lg font-bold">{ui.dateAndTime}</h3>
+                      {event && <p className="text-md">{translated.eventDate}</p>}
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <LuMapPin className="h-9 w-9 min-w-[31px]" />
                     <div>
-                      <h3 className="text-lg font-bold">Ubicación</h3>
-                      <p className="text-md max-w-[300px]">{landing.location}</p>
+                      <h3 className="text-lg font-bold">{ui.location}</h3>
+                      <p className="text-md max-w-[300px]">{translated.location}</p>
                     </div>
                   </div>
                 </div>
@@ -341,7 +379,7 @@ export default function SignIn() {
                     <IoTicketOutline className="h-10 w-10 min-w-[31px] hidden lg:block" />
                   <div className="flex-grow">
                     <h3 className="text-lg font-bold mb-2 hidden lg:block">
-                      {isSubeventLanding ? "Selecciona una actividad" : "Confirma tu asistencia"}
+                      {isSubeventLanding ? ui.selectActivity : ui.confirmAttendance}
                     </h3>
 
                     <div className={`mx-auto flex w-full min-w-full flex-col justify-center rounded-md
@@ -359,7 +397,7 @@ export default function SignIn() {
                             >
                               {tickets.map((result, i) => (
                                 <option key={i} value={result.cost}>
-                                  {result.title}
+                                  {translated[`ticket_${i}`] || result.title}
                                 </option>
                               ))}
                             </select>
@@ -386,8 +424,8 @@ export default function SignIn() {
                           <p className="mb-3 text-xl font-semibold">
                             {selectedCost !== null
                               ? `$${(selectedCost * ticketsQuantity).toFixed(2)}`
-                              : "Vacío"}{" "}
-                            <span className="text-[15px] font-normal text-[#717171]">+ IVA</span>
+                              : ui.empty}{" "}
+                            <span className="text-[15px] font-normal text-[#717171]">{ui.plusTax}</span>
                           </p>
                         </>
                       )}
@@ -399,7 +437,7 @@ export default function SignIn() {
                             <span className="loader-small animate-spin rounded-full border-2 border-gray-300 border-t-red-500 h-7 w-7"></span>
                           </div>
                         ) : isSoldOut ? (
-                          <span className="text-red-600 font-bold py-2">Entradas Agotadas</span>
+                          <span className="text-red-600 font-bold py-2">{ui.soldOut}</span>
                         ) : (
                           <button
                             onClick={() => {
@@ -414,7 +452,7 @@ export default function SignIn() {
                             }}
                             className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
                           >
-                            {isSubeventLanding ? "Ver actividades" : "Reservar ticket"}
+                            {isSubeventLanding ? ui.seeActivities : ui.bookTicket}
                           </button>
                         )}
                       </div>
@@ -426,7 +464,7 @@ export default function SignIn() {
 
             {isSubeventLanding && (
               <>
-                <h2 ref={cardsRef} className="pt-2 md:pt-0 mb-5 md:!mb-3 text-[28px] md:text-4xl font-bold">Regístrate en una actividad</h2>
+                <h2 ref={cardsRef} className="pt-2 md:pt-0 mb-5 md:!mb-3 text-[28px] md:text-4xl font-bold">{ui.registerInActivity}</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-10">
                   {subeventos.map((evento) => (
@@ -439,7 +477,7 @@ export default function SignIn() {
                         <h3 className="text-xl font-semibold text-gray-800 group-hover:text-red-500 transition-colors duration-200">
                           {evento.title}
                         </h3>
-                        <p className="mt-2 text-sm text-gray-600">Haz clic para más detalles</p>
+                        <p className="mt-2 text-sm text-gray-600">{ui.clickForMore}</p>
                       </div>
                     </a>
                   ))}
@@ -449,8 +487,8 @@ export default function SignIn() {
 
             {landing.extraInfo && landing.extraInfo.trim().length > 0 && (
               <div className="mb-[40px] md:mb-[45px]">
-                <h2 className="mb-[35px] text-[28px] md:text-4xl font-bold">Notas adicionales</h2>
-                <p className="text-[16px] md:text-lg">{landing.extraInfo}</p>
+                <h2 className="mb-[35px] text-[28px] md:text-4xl font-bold">{ui.additionalNotes}</h2>
+                <p className="text-[16px] md:text-lg">{translated.extraInfo}</p>
               </div>
             )}
 
@@ -475,9 +513,9 @@ export default function SignIn() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-extrabold text-gray-800 mb-2">Evento finalizado!</h2>
+            <h2 className="text-2xl font-extrabold text-gray-800 mb-2">{ui.eventFinished}</h2>
             <p className="text-md text-gray-600 mb-4 px-2">
-              Esta fecha ya no está disponible.
+              {ui.dateUnavailable}
             </p>
           </div>
         </div>
