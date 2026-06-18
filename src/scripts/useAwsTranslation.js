@@ -1,32 +1,36 @@
 import { useEffect, useRef, useState } from "react";
-
-// DeepL key is read from an env var so it is not hard-coded in the bundle.
-// Set REACT_APP_DEEPL_KEY in the Amplify environment variables.
-const API_KEY = process.env.REACT_APP_DEEPL_KEY;
-const ENDPOINT = "https://api-free.deepl.com/v2/translate";
+import { Predictions } from "@aws-amplify/predictions";
 
 // Module-level cache shared across components/renders so toggling languages
-// back and forth never re-hits the DeepL API for the same string.
-const cache = {}; // { "EN::texto original": "translated text" }
+// back and forth never re-calls Amazon Translate for the same string.
+const cache = {}; // { "en::texto original": "translated text" }
+
+// App language codes ("ES"/"EN") -> Amazon Translate language codes.
+const toTranslateCode = (lang) => (lang || "es").toLowerCase();
 
 /**
- * Translates a dictionary of strings on the fly using DeepL.
+ * Translates a dictionary of strings on the fly using Amazon Translate
+ * (through Amplify Predictions).
  *
  * Designed for the public landing pages, whose content is created dynamically
  * by users (title, description, location, ticket titles, ...). Spanish is the
  * source language, so when targetLang is "ES" the original texts are returned
  * untouched and no request is made.
  *
+ * Requires the Amplify `predictions` category (Convert → Translate text) to be
+ * provisioned. If it is not configured, calls fail gracefully and the original
+ * Spanish text is shown.
+ *
  * @param {Object<string,string>} texts  key -> spanish text
  * @param {string} targetLang            "ES" | "EN" (case-insensitive)
  * @returns {Object<string,string>}      same keys, translated values
  */
-export function useDeepLTranslation(texts = {}, targetLang = "ES") {
+export function useAwsTranslation(texts = {}, targetLang = "ES") {
   const [translated, setTranslated] = useState(texts);
   const reqIdRef = useRef(0);
 
   useEffect(() => {
-    const lang = (targetLang || "ES").toUpperCase();
+    const lang = toTranslateCode(targetLang);
     const entries = Object.entries(texts);
 
     // Builds the output dictionary from whatever is currently cached,
@@ -43,7 +47,7 @@ export function useDeepLTranslation(texts = {}, targetLang = "ES") {
       );
 
     // Spanish is the source language: nothing to translate.
-    if (lang === "ES") {
+    if (lang === "es") {
       setTranslated(texts);
       return;
     }
@@ -51,15 +55,7 @@ export function useDeepLTranslation(texts = {}, targetLang = "ES") {
     // Show cached/original values immediately to avoid a flash of empty UI.
     setTranslated(buildResult());
 
-    // Without an API key we cannot translate; keep the original (Spanish) text.
-    if (!API_KEY) {
-      console.warn(
-        "DeepL: REACT_APP_DEEPL_KEY is not set; landing pages will not be translated."
-      );
-      return;
-    }
-
-    // Only request the strings we have not translated before.
+    // Only translate the strings we have not translated before.
     const pending = entries.filter(
       ([, value]) =>
         typeof value === "string" &&
@@ -72,30 +68,22 @@ export function useDeepLTranslation(texts = {}, targetLang = "ES") {
 
     (async () => {
       try {
-        const body = new URLSearchParams();
-        // DeepL accepts multiple `text` params and preserves their order,
-        // so we translate everything in a single request.
-        pending.forEach(([, value]) => body.append("text", value));
-        body.append("source_lang", "ES");
-        body.append("target_lang", lang);
-
-        const res = await fetch(ENDPOINT, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: `DeepL-Auth-Key ${API_KEY}`,
-          },
-          body,
-        });
-        const json = await res.json();
-        const results = json?.translations || [];
-        pending.forEach(([, value], i) => {
-          if (results[i]?.text) {
-            cache[`${lang}::${value}`] = results[i].text;
-          }
-        });
-      } catch (e) {
-        console.error("DeepL translation error:", e);
+        // Amazon Translate handles one text per request; run them in parallel.
+        await Promise.all(
+          pending.map(async ([, value]) => {
+            try {
+              const { text } = await Predictions.convert({
+                translateText: {
+                  source: { text: value, language: "es" },
+                  targetLanguage: lang,
+                },
+              });
+              if (text) cache[`${lang}::${value}`] = text;
+            } catch (e) {
+              console.error("Amazon Translate error for:", value, e);
+            }
+          })
+        );
       } finally {
         // Ignore stale responses (lang/texts changed while awaiting).
         if (reqId === reqIdRef.current) {

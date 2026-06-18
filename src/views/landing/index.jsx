@@ -4,7 +4,7 @@ import bgPlaceholder from "assets/img/usfq/bg-placeholder.png";
 import { useParams, Link } from "react-router-dom";
 import Registro from "./registro/index";
 import { formatDateHour} from 'scripts/utils';
-import { useDeepLTranslation} from 'scripts/useDeepLTranslation';
+import { useAwsTranslation} from 'scripts/useAwsTranslation';
 import { getLandingUI } from 'scripts/landingTranslations';
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { FiExternalLink } from "react-icons/fi";
@@ -47,7 +47,7 @@ export default function SignIn() {
   // Static UI labels (instant, no API quota)
   const ui = getLandingUI(lang);
 
-  // Dynamic, user-generated content translated on the fly via DeepL.
+  // Dynamic, user-generated content translated on the fly via Amazon Translate.
   const baseTexts = useMemo(() => {
     const texts = {
       title: landing?.title || "",
@@ -63,7 +63,7 @@ export default function SignIn() {
     return texts;
   }, [landing, event?.date]);
 
-  const translated = useDeepLTranslation(baseTexts, lang);
+  const translated = useAwsTranslation(baseTexts, lang);
 
   // Generate landing cards
   const [isSubeventLanding, setIsSubeventLanding] = React.useState(false);

@@ -1,8 +1,8 @@
 // Static UI strings for the public landing pages (info page + registration
 // flow). These are fixed labels (not user-generated content), so we keep a
-// local ES/EN dictionary instead of spending DeepL quota on them. Dynamic,
-// user-created content (event title, description, ticket names, ...) is still
-// translated on the fly via useDeepLTranslation.
+// local ES/EN dictionary instead of calling a translation service for them.
+// Dynamic, user-created content (event title, description, ticket names, ...)
+// is translated on the fly via Amazon Translate (useAwsTranslation).
 
 export const LANDING_UI = {
   ES: {

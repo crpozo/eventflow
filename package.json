@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@aws-amplify/predictions": "^6.1.73",
     "@aws-amplify/ui-react": "^6.0.3",
     "@aws-amplify/ui-react-storage": "^3.0.4",
     "@chakra-ui/button": "^2.1.0",
@@ -22,7 +23,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "apexcharts": "3.35.5",
-    "aws-amplify": "^6.0.5",
+    "aws-amplify": "^6.18.0",
     "dayjs": "^1.11.9",
     "dom-to-image": "^2.6.0",
     "dom-to-svg": "^0.12.2",
