@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import logo from "assets/img/usfq/logo_2025.png";
 import bgPlaceholder from "assets/img/usfq/bg-placeholder.png";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Registro from "./registro/index";
 import { formatDateHour} from 'scripts/utils';
 import { useAwsTranslation} from 'scripts/useAwsTranslation';
@@ -21,14 +21,30 @@ import { getEvent, listLandings, eventAttendeesByEventID ,getEventAttendee } fro
 
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
-  const [lang, setLang] = useState(
-    () => localStorage.getItem("landingLang") || "ES"
-  );
+  const { id, lang: langParam } = useParams();
+  const navigate = useNavigate();
+  // Language can come from the URL (/landing/:id/en) so links are shareable per
+  // language; otherwise fall back to the last choice or Spanish.
+  const [lang, setLang] = useState(() => {
+    if (langParam) return langParam.toLowerCase() === "en" ? "EN" : "ES";
+    return localStorage.getItem("landingLang") || "ES";
+  });
   const changeLang = (next) => {
     setLang(next);
     localStorage.setItem("landingLang", next);
+    // Reflect the language in the URL: /landing/:id (ES) or /landing/:id/en (EN).
+    navigate(next === "EN" ? `/landing/${id}/en` : `/landing/${id}`, {
+      replace: true,
+    });
   };
-  const { id } = useParams();
+  // Keep state in sync when the URL language segment changes (e.g. shared link
+  // or browser back/forward). With no language in the URL, keep the current
+  // choice (don't force Spanish).
+  React.useEffect(() => {
+    if (!langParam) return;
+    setLang(langParam.toLowerCase() === "en" ? "EN" : "ES");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [langParam]);
   const [landing, setLanding] = React.useState([]);
   const [event, setEvent] = React.useState([]);
   const [loading, setLoading] = React.useState(true);

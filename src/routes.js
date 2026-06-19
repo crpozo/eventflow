@@ -213,6 +213,13 @@ const routes = [
     component: <LandingRegistro />,
   },
   {
+    name: "Landing idioma",
+    layout: "/landing",
+    path: ":id/:lang",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <Landing />,
+  },
+  {
     name: "Permisos",
     layout: "/admin",
     path: "permisos",
