@@ -254,16 +254,17 @@ export default function SignIn() {
   return (
     <>
       <div className="flex h-[70px] md:h-[90px] w-full bg-usfqPrimary relative">
-        <div className="container flex items-center justify-between">
-          <img src={logo} alt="USFQ Logo" className="w-[150px] md:w-[180px] lg:w-[200px]" />
-          <div className="flex items-center gap-4">
+        <div className="container flex items-center justify-between px-4">
+          <img src={logo} alt="USFQ Logo" className="w-[120px] sm:w-[150px] md:w-[180px] lg:w-[200px]" />
+          <div className="flex items-center gap-2 md:gap-4">
             <Link
               to="https://www.usfq.edu.ec/es"
               className="flex items-center gap-2 whitespace-nowrap md:min-w-[185px] hover:text-red-500 hover:no-underline text-sm"
               target="_blank"
               rel="noopener noreferrer"
             >
-              {ui.officialWeb} <FiExternalLink className="h-4 w-4" />
+              <span className="hidden sm:inline">{ui.officialWeb}</span>{" "}
+              <FiExternalLink className="h-4 w-4" />
             </Link>
 
             {/* Separator */}
