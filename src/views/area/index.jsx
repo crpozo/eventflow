@@ -4,85 +4,45 @@ import Banner from "./components/Banner";
 import NftCard from "components/card/NftCard";
 import { DataStore } from 'aws-amplify/datastore';
 import { Area } from "models";
-import { fetchUserAttributes } from "aws-amplify/auth";
-import { generateClient } from "aws-amplify/api";
+import { usePermissions } from "../../providers/PermissionsProvider";
 import {
   MdAdd,
   MdChevronLeft
 } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 
-const client = generateClient();
-
 const Dashboard = () => {
   const [areas, setAreas] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
   const campusID = JSON.parse(localStorage.getItem("EVENTFLOW.campus"))?.id;
+  // Access resolution (campus/area/event grants) comes from the provider, which
+  // applies the per-user permissions with a legacy role.areas fallback.
+  const { loading: permLoading, isAdmin, areaIDsAllowed } = usePermissions();
 
   useEffect(() => {
     if (!campusID) {
       navigate('/page/campus');
+      return;
     }
+    if (permLoading) return; // wait until access is resolved
 
-    const fetchUserAndAreas = async () => {
+    (async () => {
       try {
-        const attributes = await fetchUserAttributes();
-        const email = attributes.email;
-
-        // 🔎 Buscar al usuario en la base de datos
-        const res = await client.graphql({
-          query: /* GraphQL */ `
-            query ListUsers($filter: ModelUserFilterInput) {
-              listUsers(filter: $filter) {
-                items {
-                  id
-                  email
-                  role {
-                    id
-                    name
-                    areas
-                  }
-                }
-              }
-            }
-          `,
-          variables: {
-            filter: {
-              email: { eq: email },
-              _deleted: { ne: true }
-            }
-          }
-        });
-
-        const user = res.data.listUsers.items[0];
-        if (!user) throw new Error("Usuario no encontrado");
-
-        setCurrentUser(user);
-
-        // 🔄 Obtener todas las áreas del campus
         const allAreasRes = await DataStore.query(Area, (a) => a.campusID.eq(campusID));
-
-        // ✅ Filtrar según rol
-        if (user.role?.name === "Admin") {
+        if (isAdmin || areaIDsAllowed == null) {
           setAreas(allAreasRes);
         } else {
-          const allowedAreaIds = user.role?.areas || [];
-          const filteredAreas = allAreasRes.filter((a) => allowedAreaIds.includes(a.id));
-          setAreas(filteredAreas);
+          setAreas(allAreasRes.filter((a) => areaIDsAllowed.includes(a.id)));
         }
-
       } catch (error) {
-        console.error("Error cargando datos del usuario o áreas:", error);
+        console.error("Error cargando áreas:", error);
       } finally {
         setIsLoading(false);
       }
-    };
-
-    fetchUserAndAreas();
-  }, [campusID, navigate]);
+    })();
+  }, [campusID, navigate, permLoading, isAdmin, areaIDsAllowed]);
 
   if (isLoading) {
     return (
@@ -106,7 +66,7 @@ const Dashboard = () => {
           <p className="text-2xl font-medium text-navy-700 dark:text-white">
             Área académica
           </p>
-          {currentUser?.role?.name === "Admin" && (
+          {isAdmin && (
             <Link className="hover:no-underline" to="crear">
               <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black">
                 Crear Área <MdAdd className="h-4 w-4" />

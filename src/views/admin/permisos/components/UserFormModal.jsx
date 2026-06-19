@@ -37,9 +37,10 @@ export default function UserFormModal({ mode, user, roles, tree, onSubmit, onClo
         email: email.trim().toLowerCase(),
         name: name.trim(),
         roleID,
-        campusIDs: perms.campusIDs,
-        areaIDs: perms.areaIDs,
-        eventIDs: perms.eventIDs,
+        // Admin has full access; don't persist (now-stale) granular permissions.
+        campusIDs: isAdminRole ? [] : perms.campusIDs,
+        areaIDs: isAdminRole ? [] : perms.areaIDs,
+        eventIDs: isAdminRole ? [] : perms.eventIDs,
       });
     } finally {
       setBusy(false);

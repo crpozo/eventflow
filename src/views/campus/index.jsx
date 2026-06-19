@@ -5,6 +5,7 @@ import NftCard from "components/card/NftCard";
 import { DataStore } from "aws-amplify/datastore";
 import { Campus } from "models";
 import { MdAdd } from "react-icons/md";
+import { usePermissions } from "../../providers/PermissionsProvider";
 
 /**
  * Campus list with realtime updates from DataStore.
@@ -16,6 +17,7 @@ const CampusComponent = () => {
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const { isAdmin, campusIDsAllowed } = usePermissions();
 
   React.useEffect(() => {
     let mounted = true;
@@ -41,14 +43,19 @@ const CampusComponent = () => {
     };
   }, []);
 
-  // Memoize sorted list (newest first)
+  // Memoize sorted list (newest first), filtered by the user's allowed campuses
+  // (admins / legacy users see all).
   const sorted = React.useMemo(() => {
-    return [...items].sort((a, b) => {
+    const visible =
+      isAdmin || campusIDsAllowed == null
+        ? items
+        : items.filter((c) => campusIDsAllowed.includes(c.id));
+    return [...visible].sort((a, b) => {
       const aDate = a?.updatedAt ? new Date(a.updatedAt).getTime() : 0;
       const bDate = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
       return bDate - aDate;
     });
-  }, [items]);
+  }, [items, isAdmin, campusIDsAllowed]);
 
   return (
     <div className="campus-page">
