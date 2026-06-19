@@ -1,5 +1,5 @@
 import { Predictions } from "@aws-amplify/predictions";
-import { applyOverride } from "./translateOverrides";
+import { applyOverride, preprocessForTranslation } from "./translateOverrides";
 
 // Module-level cache shared across renders: `${lang}::${text}` -> translation.
 const cache = {};
@@ -22,7 +22,7 @@ export async function translateString(text, lang) {
   try {
     const { text: out } = await Predictions.convert({
       translateText: {
-        source: { text, language: "es" },
+        source: { text: preprocessForTranslation(text, lang), language: "es" },
         targetLanguage: lang,
       },
     });

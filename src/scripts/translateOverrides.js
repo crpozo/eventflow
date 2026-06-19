@@ -33,3 +33,18 @@ export function applyOverride(text, lang) {
   const o = TRANSLATE_OVERRIDES[text.trim().toLowerCase()];
   return o && o[lang] ? o[lang] : null;
 }
+
+// Word-level swaps applied to the SOURCE before sending it to Amazon Translate
+// for English, so the preferred term comes out even when the word is embedded
+// in a longer phrase (the whole-string override above can't catch those).
+// "ponencia(s)" -> "ponente(s)" makes Translate output "speaker(s)".
+const WORD_SWAPS_EN = [
+  [/\bponencias\b/gi, "ponentes"],
+  [/\bponencia\b/gi, "ponente"],
+];
+
+// Preprocess the Spanish source text right before translating to `lang`.
+export function preprocessForTranslation(text, lang) {
+  if (lang !== "en" || typeof text !== "string") return text;
+  return WORD_SWAPS_EN.reduce((acc, [re, repl]) => acc.replace(re, repl), text);
+}

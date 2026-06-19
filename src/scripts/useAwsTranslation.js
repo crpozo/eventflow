@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Predictions } from "@aws-amplify/predictions";
-import { applyOverride } from "./translateOverrides";
+import { applyOverride, preprocessForTranslation } from "./translateOverrides";
 
 // Module-level cache shared across components/renders so toggling languages
 // back and forth never re-calls Amazon Translate for the same string.
@@ -78,7 +78,10 @@ export function useAwsTranslation(texts = {}, targetLang = "ES") {
             try {
               const { text } = await Predictions.convert({
                 translateText: {
-                  source: { text: value, language: "es" },
+                  source: {
+                    text: preprocessForTranslation(value, lang),
+                    language: "es",
+                  },
                   targetLanguage: lang,
                 },
               });
