@@ -197,20 +197,20 @@ export default function SignIn() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Verify if date is expired to show a popup message
+  // Verify if the event is over (uses end date, then start date, then legacy
+  // single date) to show the "expired" popup.
   React.useEffect(() => {
-    if (event && typeof event.date === 'string') {
-      const eventDate = new Date(event.date);
+    const ref = event?.endDate || event?.startDate || event?.date;
+    if (typeof ref === "string") {
+      const eventDate = new Date(ref);
       const now = new Date();
-  
       const hoursDiff = (now - eventDate) / (1000 * 60 * 60);
-  
       if (hoursDiff > 24) {
         setShowExpiredPopup(true);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [event?.date]);
+  }, [event?.endDate, event?.startDate, event?.date]);
 
   // Get EventAttendee parameter + Graphql Data
   React.useEffect(() => {

@@ -151,7 +151,7 @@ const Marketplace = () => {
    setColumns(columns);
    const rows = results.map((event) => ({
      title: event.title,
-     update_date: formatDate(event.date),
+     update_date: formatDate(event.startDate || event.date),
      action: event.id,
      duplicate: event.id,
      model: event,

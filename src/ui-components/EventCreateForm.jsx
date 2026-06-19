@@ -520,45 +520,8 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "description")}
       ></TextAreaField>
       <TextField
-        label="Fecha y hora"
-        isRequired={false}
-        isReadOnly={false}
-        type="datetime-local"
-        value={date && convertToLocal(new Date(date))}
-        onChange={(e) => {
-          let value =
-            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date: value,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.date ?? value;
-          }
-          if (errors.date?.hasError) {
-            runValidationTasks("date", value);
-          }
-          setDate(value);
-        }}
-        onBlur={() => runValidationTasks("date", date)}
-        errorMessage={errors.date?.errorMessage}
-        hasError={errors.date?.hasError}
-        {...getOverrideProps(overrides, "date")}
-      ></TextField>
-      <TextField
         label="Fecha y hora de inicio"
-        descriptiveText="Para eventos de varios días, la fecha en que comienza"
+        descriptiveText="Fecha y hora en que comienza el evento"
         isRequired={false}
         isReadOnly={false}
         type="datetime-local"
@@ -578,7 +541,7 @@ export default function EventCreateForm(props) {
       ></TextField>
       <TextField
         label="Fecha y hora de fin"
-        descriptiveText="Para eventos de varios días, la fecha en que termina"
+        descriptiveText="Fecha y hora en que termina (para eventos de varios días)"
         isRequired={false}
         isReadOnly={false}
         type="datetime-local"
