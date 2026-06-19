@@ -1,7 +1,7 @@
 import React from "react";
 import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
-import { Event, Landing, Form, Badge } from "models"
+import { Event, Landing, Form, Badge, Area, Career } from "models"
 import { useNavigate, Link } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
 import { formatDate } from 'scripts/utils'
@@ -19,6 +19,10 @@ const Marketplace = () => {
   const [columns, setColumns] = React.useState([])
   const [rows, setRows] = React.useState([])
   const [duplicating, setDuplicating] = React.useState(null);
+  // Area filter (admin only): list of areas + careerID -> areaID map + selection
+  const [areas, setAreas] = React.useState([]);
+  const [careerToArea, setCareerToArea] = React.useState({});
+  const [selectedArea, setSelectedArea] = React.useState("");
   const { loading, isAdmin } = usePermissions();
 
   window.localStorage.removeItem('EVENTFLOW.event');
@@ -118,7 +122,6 @@ const Marketplace = () => {
         : await DataStore.query(Event, (e) => e.careerID.eq(JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id));
 
       setEvents(results);
-      buildTable(results);
 
     } catch (error) {
       console.error("Error duplicando evento:", error);
@@ -162,10 +165,23 @@ const Marketplace = () => {
 
     const load = async () => {
       if (isAdmin) {
-        // Admin: get all events
-        const results = await DataStore.query(Event);
+        // Admin: get all events + areas/careers to enable the area filter
+        const [results, areaList, careerList] = await Promise.all([
+          DataStore.query(Event),
+          DataStore.query(Area),
+          DataStore.query(Career),
+        ]);
+        const map = {};
+        careerList.forEach((c) => {
+          map[c.id] = c.areaID;
+        });
+        setCareerToArea(map);
+        setAreas(
+          areaList
+            .slice()
+            .sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+        );
         setEvents(results);
-        buildTable(results);
         return;
       }
 
@@ -177,10 +193,18 @@ const Marketplace = () => {
       }
       const results = await DataStore.query(Event, (e) => e.careerID.eq(subAreaId));
       setEvents(results);
-      buildTable(results);
     };
     load();
   }, [loading, isAdmin, navigate]);
+
+  // Rebuild the table whenever the events or the selected area change.
+  React.useEffect(() => {
+    const filtered = selectedArea
+      ? events.filter((e) => careerToArea[e.careerID] === selectedArea)
+      : events;
+    buildTable(filtered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, selectedArea, careerToArea]);
 
   if(loading){
     return (<div className="bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
@@ -203,6 +227,9 @@ const Marketplace = () => {
               tableData={rows}
               onDuplicate={duplicateEvent}
               duplicating={duplicating}
+              areas={areas}
+              selectedArea={selectedArea}
+              onAreaChange={setSelectedArea}
             />
           </div>
           :

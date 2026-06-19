@@ -13,7 +13,15 @@ import Card from "components/card";
 const PAGINATION_STORAGE_KEY = "EVENTFLOW.events.pagination";
 
 const DevelopmentTable = (props) => {
-  const { columnsData, tableData, onDuplicate, duplicating } = props;
+  const {
+    columnsData,
+    tableData,
+    onDuplicate,
+    duplicating,
+    areas = [],
+    selectedArea = "",
+    onAreaChange,
+  } = props;
   const navigate = useNavigate();
 
   const columns = useMemo(() => columnsData, [columnsData]);
@@ -80,7 +88,22 @@ const DevelopmentTable = (props) => {
         <div className="text-xl font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Filtro por área (solo admin: areas con elementos) */}
+          {areas.length > 0 && onAreaChange && (
+            <select
+              value={selectedArea}
+              onChange={(e) => onAreaChange(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-lightPrimary px-3 py-[11px] text-sm text-navy-700 outline-none dark:!border-navy-700 dark:!bg-navy-900 dark:text-white"
+            >
+              <option value="">Todas las áreas</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.title || "(Sin título)"}
+                </option>
+              ))}
+            </select>
+          )}
           {/* Buscador de eventos */}
           <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-lightPrimary px-3 py-[10px] dark:!border-navy-700 dark:!bg-navy-900">
             <MdSearch className="h-5 w-5 text-gray-500" />
