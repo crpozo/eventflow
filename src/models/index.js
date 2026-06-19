@@ -4,7 +4,7 @@ import { schema } from './schema';
 
 
 
-const { Badge, PaymentLog, EventAttendee, Form, Landing, Attendee, Event, Career, Area, Campus, Role, User } = initSchema(schema);
+const { Badge, PaymentLog, EventAttendee, Form, Landing, Attendee, Event, Career, Area, Campus, Role, User, EventPermission } = initSchema(schema);
 
 export {
   Badge,
@@ -18,5 +18,6 @@ export {
   Area,
   Campus,
   Role,
-  User
+  User,
+  EventPermission
 };

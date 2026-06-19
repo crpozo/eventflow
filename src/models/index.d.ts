@@ -487,3 +487,34 @@ export declare type User = LazyLoading extends LazyLoadingDisabled ? EagerUser :
 export declare const User: (new (init: ModelInit<User>) => User) & {
   copyOf(source: User, mutator: (draft: MutableModel<User>) => MutableModel<User> | void): User;
 }
+type EagerEventPermission = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<EventPermission, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly userID: string;
+  readonly eventID: string;
+  readonly capabilities?: (string | null)[] | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazyEventPermission = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<EventPermission, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly userID: string;
+  readonly eventID: string;
+  readonly capabilities?: (string | null)[] | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type EventPermission = LazyLoading extends LazyLoadingDisabled ? EagerEventPermission : LazyEventPermission
+
+export declare const EventPermission: (new (init: ModelInit<EventPermission>) => EventPermission) & {
+  copyOf(source: EventPermission, mutator: (draft: MutableModel<EventPermission>) => MutableModel<EventPermission> | void): EventPermission;
+}

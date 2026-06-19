@@ -133,3 +133,10 @@ type User @model
   roleID: ID! @index(name: "byRole")
   role: Role @belongsTo(fields: ["roleID"])
 }
+
+type EventPermission @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  userID: ID! @index(name: "byUser")
+  eventID: ID! @index(name: "byEventPermission")
+  capabilities: [String]
+}
