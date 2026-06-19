@@ -12,6 +12,19 @@ export const TRANSLATE_OVERRIDES = {
   "ponencias": { en: "Speakers" },
   "ponente": { en: "Speaker" },
   "ponentes": { en: "Speakers" },
+  // Registration form term fixes (client corrections).
+  "cédula": { en: "ID" },
+  "cedula": { en: "ID" },
+  "apellido": { en: "Surname" },
+  "apellidos": { en: "Surnames" },
+  "sí": { en: "Yes" },
+  // Common Yes/No certificate question wording.
+  "¿le gustaría recibir un certificado de participación?": {
+    en: "Would you like to receive a certificate of participation?",
+  },
+  "¿desea recibir un certificado de participación?": {
+    en: "Would you like to receive a certificate of participation?",
+  },
 };
 
 // Returns the preferred translation for `text` in `lang`, or null if none.
