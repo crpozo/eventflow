@@ -35,16 +35,32 @@ const TEXT_FIELDS = ["label", "placeholder", "description"];
  * placeholders, descriptions and option labels) from Spanish to the target
  * language. Never touches `name`/`value`, so submitted answers stay stable.
  *
- * @param {Array<Object>} questions  FormBuilder form definition (ES source)
- * @param {string} targetLang        "ES" | "EN" (case-insensitive)
- * @returns {Promise<Array<Object>>} translated copy (or original for ES)
+ * Accepts the definition either as an array or as a JSON string (Amplify
+ * DataStore returns AWSJSON fields as strings) and returns the same type.
+ *
+ * @param {Array<Object>|string} questions  FormBuilder form definition (ES source)
+ * @param {string} targetLang               "ES" | "EN" (case-insensitive)
+ * @returns {Promise<Array<Object>|string>} translated copy (or original for ES)
  */
 export async function translateFormData(questions, targetLang) {
   const lang = (targetLang || "es").toLowerCase();
-  if (lang === "es" || !Array.isArray(questions)) return questions;
+  if (lang === "es") return questions;
 
-  return Promise.all(
-    questions.map(async (q) => {
+  // AWSJSON fields arrive as a JSON string; arrays are also supported.
+  let arr = questions;
+  let wasString = false;
+  if (typeof questions === "string") {
+    try {
+      arr = JSON.parse(questions);
+      wasString = true;
+    } catch (e) {
+      return questions;
+    }
+  }
+  if (!Array.isArray(arr)) return questions;
+
+  const translated = await Promise.all(
+    arr.map(async (q) => {
       const out = { ...q };
       await Promise.all(
         TEXT_FIELDS.map(async (field) => {
@@ -65,6 +81,8 @@ export async function translateFormData(questions, targetLang) {
       return out;
     })
   );
+
+  return wasString ? JSON.stringify(translated) : translated;
 }
 
 /**
@@ -78,10 +96,19 @@ export async function translateFormData(questions, targetLang) {
  * @returns {Array<Object>}
  */
 export function restoreOriginalLabels(captured, original) {
-  if (!Array.isArray(captured) || !Array.isArray(original)) return captured;
+  // The original definition may be a JSON string (AWSJSON) or an array.
+  let orig = original;
+  if (typeof original === "string") {
+    try {
+      orig = JSON.parse(original);
+    } catch (e) {
+      return captured;
+    }
+  }
+  if (!Array.isArray(captured) || !Array.isArray(orig)) return captured;
 
   const byName = {};
-  original.forEach((q) => {
+  orig.forEach((q) => {
     if (q && q.name !== undefined) byName[q.name] = q;
   });
 
