@@ -533,6 +533,9 @@ export const getLanding = /* GraphQL */ `
       extraInfo
       userConsentCheck
       metaScripts
+      galleryPhotos
+      partnerLogos
+      customHtml
       createdAt
       updatedAt
       _version
@@ -563,6 +566,9 @@ export const listLandings = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -603,6 +609,9 @@ export const syncLandings = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -704,6 +713,9 @@ export const getEvent = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
