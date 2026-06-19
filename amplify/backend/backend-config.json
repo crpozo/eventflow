@@ -69,6 +69,57 @@
       "service": "Cognito"
     }
   },
+  "function": {
+    "certificateSender": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput",
+            "GraphQLAPIEndpointOutput",
+            "GraphQLAPIKeyOutput"
+          ],
+          "category": "api",
+          "resourceName": "eventflow"
+        },
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "s3eventflowstoragea71837fd"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_certificateSender_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "certificateSender"
+        }
+      ]
+    },
+    "AMPLIFY_function_certificateSender_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "certificateSender"
+        }
+      ]
+    },
+    "AMPLIFY_function_certificateSender_sesFrom": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "certificateSender"
+        }
+      ]
+    }
+  },
   "predictions": {
     "translateEventflow": {
       "convertType": "translateText",

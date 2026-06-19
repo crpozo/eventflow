@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "api": {
+      "eventflow": [
+        "Query",
+        "Mutation"
+      ]
+    },
+    "storage": {
+      "s3eventflowstoragea71837fd": [
+        "read"
+      ],
+      "EventAttendee:@model(appsync)": [
+        "read"
+      ],
+      "Event:@model(appsync)": [
+        "read",
+        "update"
+      ]
+    }
+  },
+  "lambdaLayers": [],
+  "environmentVariableList": [
+    {
+      "cloudFormationParameterName": "sesFrom",
+      "environmentVariableName": "SES_FROM"
+    }
+  ]
+}
