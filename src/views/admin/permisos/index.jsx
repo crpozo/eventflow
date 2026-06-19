@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/api";
 import { post, del } from "aws-amplify/api";
+import { DataStore } from "aws-amplify/datastore";
+import { User } from "models";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { MdAdd, MdEdit, MdDelete, MdSearch } from "react-icons/md";
 import Banner from "./components/Banner";
@@ -52,17 +54,9 @@ const AdminUserManager = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [usersRes, rolesRes, campusRes, areasRes, careersRes, eventsRes] =
+      const [userList, rolesRes, campusRes, areasRes, careersRes, eventsRes] =
         await Promise.all([
-          client.graphql({
-            query: /* GraphQL */ `
-              query {
-                listUsers(filter: { _deleted: { ne: true } }, limit: 1000) {
-                  items { id email name roleID role { id name } campusIDs areaIDs eventIDs }
-                }
-              }
-            `,
-          }),
+          DataStore.query(User),
           client.graphql({
             query: /* GraphQL */ `
               query { listRoles(filter: { _deleted: { ne: true } }) { items { id name } } }
@@ -90,8 +84,22 @@ const AdminUserManager = () => {
           }),
         ]);
 
-      setUsers(usersRes.data.listUsers.items);
-      setRoles(rolesRes.data.listRoles.items);
+      const roleItems = rolesRes.data.listRoles.items;
+      const roleById = {};
+      roleItems.forEach((r) => { roleById[r.id] = r; });
+      setUsers(
+        userList.map((u) => ({
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          roleID: u.roleID,
+          role: roleById[u.roleID] || null,
+          campusIDs: u.campusIDs || [],
+          areaIDs: u.areaIDs || [],
+          eventIDs: u.eventIDs || [],
+        }))
+      );
+      setRoles(roleItems);
 
       // Build Campus -> Area -> Event tree (flattening Career).
       const campuses = campusRes.data.listCampuses.items;
@@ -136,35 +144,20 @@ const AdminUserManager = () => {
     }
   };
 
-  // ── User persistence ────────────────────────────────────────────────────
-  const getUserVersion = async (id) => {
-    const r = await client.graphql({
-      query: /* GraphQL */ `query ($id: ID!) { getUser(id: $id) { _version } }`,
-      variables: { id },
-    });
-    return r.data.getUser?._version;
-  };
-
+  // ── User persistence (via DataStore so versioning + subscriptions stay
+  //    consistent with the rest of the app) ─────────────────────────────────
   const saveExistingUser = async (data) => {
-    const _version = await getUserVersion(data.id);
-    await client.graphql({
-      query: /* GraphQL */ `
-        mutation ($input: UpdateUserInput!) {
-          updateUser(input: $input) { id }
-        }
-      `,
-      variables: {
-        input: {
-          id: data.id,
-          name: data.name,
-          roleID: data.roleID,
-          campusIDs: data.campusIDs,
-          areaIDs: data.areaIDs,
-          eventIDs: data.eventIDs,
-          _version,
-        },
-      },
-    });
+    const existing = await DataStore.query(User, data.id);
+    if (!existing) throw new Error("Usuario no encontrado");
+    await DataStore.save(
+      User.copyOf(existing, (u) => {
+        u.name = data.name;
+        u.roleID = data.roleID;
+        u.campusIDs = data.campusIDs;
+        u.areaIDs = data.areaIDs;
+        u.eventIDs = data.eventIDs;
+      })
+    );
   };
 
   // The userApi REST endpoint (userManager Lambda) may not be deployed yet.
@@ -188,23 +181,17 @@ const AdminUserManager = () => {
     } catch (err) {
       if (!isApiMissing(err)) throw err; // real error (e.g. email already exists)
     }
-    // 2) User record via GraphQL (keeps DataStore versioning correct). The app
-    //    links the login to this record by email.
-    await client.graphql({
-      query: /* GraphQL */ `
-        mutation ($input: CreateUserInput!) { createUser(input: $input) { id } }
-      `,
-      variables: {
-        input: {
-          email: data.email,
-          name: data.name,
-          roleID: data.roleID,
-          campusIDs: data.campusIDs,
-          areaIDs: data.areaIDs,
-          eventIDs: data.eventIDs,
-        },
-      },
-    });
+    // 2) User record via DataStore. The app links the login to it by email.
+    await DataStore.save(
+      new User({
+        email: data.email,
+        name: data.name,
+        roleID: data.roleID,
+        campusIDs: data.campusIDs,
+        areaIDs: data.areaIDs,
+        eventIDs: data.eventIDs,
+      })
+    );
     return loginCreated;
   };
 
@@ -247,13 +234,8 @@ const AdminUserManager = () => {
         if (!isApiMissing(err)) throw err;
       }
       // 2) User record.
-      const _version = await getUserVersion(u.id);
-      await client.graphql({
-        query: /* GraphQL */ `
-          mutation ($input: DeleteUserInput!) { deleteUser(input: $input) { id } }
-        `,
-        variables: { input: { id: u.id, _version } },
-      });
+      const existing = await DataStore.query(User, u.id);
+      if (existing) await DataStore.delete(existing);
       await fetchData();
       alert("Usuario eliminado.");
     } catch (err) {
