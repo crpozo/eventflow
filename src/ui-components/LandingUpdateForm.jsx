@@ -316,12 +316,16 @@ export default function LandingUpdateForm(props) {
   const customHtmlTimer = React.useRef();
   const persistMedia = async (field, nextValue) => {
     if (!landingRecord?.id) return;
+    // De-dupe array values (gallery/logos) so duplicate keys never accumulate.
+    const value = Array.isArray(nextValue)
+      ? [...new Set(nextValue.filter(Boolean))]
+      : nextValue;
     try {
       const fresh = await DataStore.query(Landing, landingRecord.id);
       if (!fresh) return;
       const saved = await DataStore.save(
         Landing.copyOf(fresh, (u) => {
-          u[field] = nextValue;
+          u[field] = value;
         })
       );
       setLandingRecord(saved);
@@ -592,7 +596,7 @@ export default function LandingUpdateForm(props) {
               .map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {
               setGalleryPhotos((prev) => {
-                const next = [...(prev || []), key];
+                const next = [...new Set([...(prev || []), key])];
                 persistMedia("galleryPhotos", next);
                 return next;
               });
@@ -629,7 +633,7 @@ export default function LandingUpdateForm(props) {
               .map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {
               setPartnerLogos((prev) => {
-                const next = [...(prev || []), key];
+                const next = [...new Set([...(prev || []), key])];
                 persistMedia("partnerLogos", next);
                 return next;
               });

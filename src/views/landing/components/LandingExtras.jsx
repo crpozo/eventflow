@@ -5,9 +5,11 @@ import React from "react";
 const CLOUDFRONT = "https://dnuc5lxyun5b.cloudfront.net/public/";
 
 function toUrls(keys) {
-  return (keys || [])
-    .filter(Boolean)
-    .map((k) => (/^https?:\/\//i.test(k) ? k : `${CLOUDFRONT}${k}`));
+  // De-duplicate keys (the admin uploader dedupes by key, so the landing must
+  // too) and resolve each to a URL.
+  return [...new Set((keys || []).filter(Boolean))].map((k) =>
+    /^https?:\/\//i.test(k) ? k : `${CLOUDFRONT}${k}`
+  );
 }
 
 /**
