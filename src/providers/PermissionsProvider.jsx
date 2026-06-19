@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/api";
+import { DataStore } from "aws-amplify/datastore";
+import { EventPermission } from "models";
 
 const client = generateClient();
 
@@ -11,6 +13,9 @@ const Ctx = createContext({
   isReportesOnly: false,
   user: undefined,
   roleName: undefined,
+  eventCapsByEvent: {},
+  isManaged: false,
+  can: () => true,
 });
 
 export const PermissionsProvider = ({ children }) => {
@@ -20,6 +25,8 @@ export const PermissionsProvider = ({ children }) => {
     isReportesOnly: false,
     user: undefined,
     roleName: undefined,
+    eventCapsByEvent: {},
+    isManaged: false,
   });
 
   useEffect(() => {
@@ -57,7 +64,35 @@ export const PermissionsProvider = ({ children }) => {
         console.log("Role Areas:", user?.role?.areas);
         console.log("======================");
 
-        if (mounted) setState({ loading: false, user, isAdmin: !!isAdmin, isReportesOnly: !!isReportesOnly, roleName });
+        // 3) load per-event permissions for this user (if any).
+        // Absent until 'amplify push' provisions EventPermission — degrades to [].
+        let eventCapsByEvent = {};
+        let isManaged = false;
+        if (user?.id && !isAdmin) {
+          try {
+            const perms = await DataStore.query(EventPermission, (p) =>
+              p.userID.eq(user.id)
+            );
+            isManaged = perms.length > 0;
+            eventCapsByEvent = perms.reduce((acc, p) => {
+              acc[p.eventID] = (p.capabilities || []).filter(Boolean);
+              return acc;
+            }, {});
+          } catch (e) {
+            console.warn("EventPermission not available yet:", e?.message);
+          }
+        }
+
+        if (mounted)
+          setState({
+            loading: false,
+            user,
+            isAdmin: !!isAdmin,
+            isReportesOnly: !!isReportesOnly,
+            roleName,
+            eventCapsByEvent,
+            isManaged,
+          });
       } catch (err) {
         console.error("PermissionsProvider error:", err);
         if (mounted) setState((s) => ({ ...s, loading: false }));
@@ -67,7 +102,17 @@ export const PermissionsProvider = ({ children }) => {
     return () => { mounted = false; };
   }, []);
 
-  const value = useMemo(() => state, [state]);
+  const value = useMemo(() => {
+    // can(eventId, section, action): Admin -> always; unmanaged users keep
+    // legacy (area-based) access; managed users are enforced per token.
+    const can = (eventId, section, action = "view") => {
+      if (state.isAdmin) return true;
+      if (!state.isManaged) return true;
+      const caps = state.eventCapsByEvent[eventId] || [];
+      return caps.includes(`${section}:${action}`);
+    };
+    return { ...state, can };
+  }, [state]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };

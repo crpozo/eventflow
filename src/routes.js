@@ -8,6 +8,7 @@ import {
   MdCalendarToday,
 } from "react-icons/md";
 import { LuUserCheck } from "react-icons/lu";
+import EventSectionGuard from "components/EventSectionGuard";
 
 // Admin Imports (lazy-loaded for code-splitting)
 const MainDashboard = React.lazy(() => import("views/admin/default"));
@@ -132,35 +133,55 @@ const routes = [
     layout: "/admin",
     path: "eventos/:id/detalle",
     icon: <MdCalendarToday className="h-6 w-6" />,
-    component: <EventoDetalle />,
+    component: (
+      <EventSectionGuard section="detalle">
+        <EventoDetalle />
+      </EventSectionGuard>
+    ),
   },
   {
     name: "Evento landing",
     layout: "/admin",
     path: "eventos/:id/landing",
     icon: <MdCalendarToday className="h-6 w-6" />,
-    component: <EventoLanding />,
+    component: (
+      <EventSectionGuard section="landing">
+        <EventoLanding />
+      </EventSectionGuard>
+    ),
   },
   {
     name: "Diseño gafete",
     layout: "/admin",
     path: "eventos/:id/diseno-gafete",
     icon: <MdCalendarToday className="h-6 w-6" />,
-    component: <DiseñoGafete />,
+    component: (
+      <EventSectionGuard section="gafete">
+        <DiseñoGafete />
+      </EventSectionGuard>
+    ),
   },
   {
     name: "Evento formulario",
     layout: "/admin",
     path: "eventos/:id/formulario",
     icon: <MdCalendarToday className="h-6 w-6" />,
-    component: <EventoFormulario />,
+    component: (
+      <EventSectionGuard section="formulario">
+        <EventoFormulario />
+      </EventSectionGuard>
+    ),
   },
   {
     name: "Evento Participantes",
     layout: "/admin",
     path: "eventos/:id/participantes",
     icon: <MdCalendarToday className="h-6 w-6" />,
-    component: <EventoParticipantes />,
+    component: (
+      <EventSectionGuard section="participantes">
+        <EventoParticipantes />
+      </EventSectionGuard>
+    ),
   },
   {
     name: "Evento Participantes Detalle",
