@@ -24,6 +24,7 @@ const AreaEditar = React.lazy(() => import("views/area/detalle"));
 const Carrera = React.lazy(() => import("views/carrera"));
 const CarreraCrear = React.lazy(() => import("views/carrera/crear"));
 const CarreraEditar = React.lazy(() => import("views/carrera/detalle"));
+const Navegar = React.lazy(() => import("views/navegar"));
 
 // Event Imports
 const Eventos = React.lazy(() => import("views/admin/eventos"));
@@ -223,7 +224,7 @@ const routes = [
     layout: "/page",
     path: "campus",
     icon: <MdAccountBalance className="h-6 w-6" />,
-    component: <Campus />,
+    component: <Navegar />,
   },
   {
     name: "Privacidad",
