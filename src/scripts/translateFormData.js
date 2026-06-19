@@ -14,8 +14,9 @@ const OVERRIDES = {
 
 // Translates a single string from Spanish to the target language via Amazon
 // Translate, caching the result. Returns the original text on error or when
-// the target language is Spanish.
-async function translateString(text, lang) {
+// the target language is Spanish. Exported so non-FormBuilder text (e.g. the
+// landing consent block) can reuse the same cached translation path.
+export async function translateString(text, lang) {
   if (typeof text !== "string" || text.trim().length === 0 || lang === "es") {
     return text;
   }

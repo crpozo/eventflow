@@ -9,7 +9,7 @@ import { Form } from "models";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils";
 import { getLandingUI } from "scripts/landingTranslations";
-import { translateFormData, restoreOriginalLabels } from "scripts/translateFormData";
+import { translateFormData, restoreOriginalLabels, translateString } from "scripts/translateFormData";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { validateBannerCode } from "../../../services/nomina/validateBannerCode";
 
@@ -108,6 +108,10 @@ const Registro = (props) => {
   const [formBuilderLoading, setFormBuilderLoading] = React.useState(true);
   const [formBuilderError, setFormBuilderError] = React.useState(null); 
   const [userConsentChecked, setUserConsentChecked] = React.useState(false);
+  // Consent text actually shown (ES original, or translated copy on lang change).
+  const [consentHtml, setConsentHtml] = React.useState(
+    props.landing?.userConsentCheck
+  );
 
   const currentUrl = window.location.href;
   const domain = new URL(currentUrl).origin;
@@ -137,6 +141,23 @@ const Registro = (props) => {
       active = false;
     };
   }, [formData, lang]);
+
+  // The consent block is plain HTML (not part of the FormBuilder definition),
+  // so it needs its own translation pass when the language changes.
+  React.useEffect(() => {
+    const source = props.landing?.userConsentCheck;
+    setConsentHtml(source);
+    const target = (lang || "ES").toLowerCase();
+    if (!source || target === "es") return;
+    let active = true;
+    (async () => {
+      const out = await translateString(source, target);
+      if (active) setConsentHtml(out);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [props.landing, lang]);
 
   const memoizedFormBuilder = React.useMemo(
     () => <FormBuilder formData={renderData} />,
@@ -921,7 +942,7 @@ const Registro = (props) => {
                     />
                     <span
                       className="text-sm text-justify leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: props.landing.userConsentCheck }}
+                      dangerouslySetInnerHTML={{ __html: consentHtml }}
                     />
                   </label>
                 </div>
