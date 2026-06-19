@@ -20,11 +20,12 @@ async function translateString(text, lang) {
       },
     });
     cache[key] = out || text;
+    return cache[key];
   } catch (e) {
     console.error("Amazon Translate (form) error for:", text, e);
-    cache[key] = text; // fall back to original so the form still renders
+    // Do NOT cache failures, so it retries once the permission is granted.
+    return text;
   }
-  return cache[key];
 }
 
 // User-visible string fields inside a FormBuilder question definition.
