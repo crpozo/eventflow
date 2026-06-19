@@ -17,6 +17,13 @@ export type AmplifyDependentResourcesAttributes = {
       "UserPoolName": "string"
     }
   },
+  "predictions": {
+    "translateEventflow": {
+      "region": "string",
+      "sourceLang": "string",
+      "targetLang": "string"
+    }
+  },
   "storage": {
     "s3eventflowstoragea71837fd": {
       "BucketName": "string",

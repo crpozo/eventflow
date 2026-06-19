@@ -69,6 +69,13 @@
       "service": "Cognito"
     }
   },
+  "predictions": {
+    "translateEventflow": {
+      "convertType": "translateText",
+      "providerPlugin": "awscloudformation",
+      "service": "Translate"
+    }
+  },
   "storage": {
     "s3eventflowstoragea71837fd": {
       "dependsOn": [],

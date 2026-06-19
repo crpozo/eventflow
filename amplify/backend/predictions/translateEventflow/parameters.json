@@ -1,0 +1,14 @@
+{
+    "resourceName": "translateEventflow",
+    "convertPolicyName": "translateTextPolicy5ff031a4",
+    "authRoleName": {
+        "Ref": "AuthRoleName"
+    },
+    "unauthRoleName": {
+        "Ref": "UnauthRoleName"
+    },
+    "convertType": "translateText",
+    "sourceLang": "es",
+    "targetLang": "en",
+    "access": "authAndGuest"
+}
