@@ -167,14 +167,27 @@ const AdminUserManager = () => {
     });
   };
 
+  // The userApi REST endpoint (userManager Lambda) may not be deployed yet.
+  const isApiMissing = (err) =>
+    /API name is invalid|No API named|not configured|does not exist/i.test(
+      String(err?.message || err)
+    );
+
   const createUser = async (data) => {
-    // 1) Cognito account (sends the invite email). Throws if the email exists.
-    const op = post({
-      apiName: USER_API,
-      path: "/users",
-      options: { body: { email: data.email, name: data.name } },
-    });
-    await op.response;
+    // 1) Cognito account (sends the invite email). If the function isn't
+    //    deployed yet, fall back to creating just the record so the page works.
+    let loginCreated = false;
+    try {
+      const op = post({
+        apiName: USER_API,
+        path: "/users",
+        options: { body: { email: data.email, name: data.name } },
+      });
+      await op.response;
+      loginCreated = true;
+    } catch (err) {
+      if (!isApiMissing(err)) throw err; // real error (e.g. email already exists)
+    }
     // 2) User record via GraphQL (keeps DataStore versioning correct). The app
     //    links the login to this record by email.
     await client.graphql({
@@ -192,28 +205,29 @@ const AdminUserManager = () => {
         },
       },
     });
+    return loginCreated;
   };
 
   const handleSubmit = async (data) => {
     try {
       if (modal.mode === "edit") {
         await saveExistingUser(data);
+        setModal(null);
+        await fetchData();
+        alert("Usuario actualizado.");
       } else {
-        await createUser(data);
+        const loginCreated = await createUser(data);
+        setModal(null);
+        await fetchData();
+        alert(
+          loginCreated
+            ? "Usuario creado e invitado por correo."
+            : "Usuario creado con su rol y permisos.\n\nLa cuenta de acceso (login) se generará cuando despliegues la función 'userManager' (Cognito)."
+        );
       }
-      setModal(null);
-      await fetchData();
-      alert(modal.mode === "edit" ? "Usuario actualizado." : "Usuario creado e invitado por correo.");
     } catch (err) {
       console.error("save user error:", err);
-      if (modal.mode === "create") {
-        alert(
-          "No se pudo crear el usuario.\n\nSi aún no desplegaste la función 'userManager' (Cognito), la creación de cuentas no estará disponible todavía. Ver el runbook. \n\nDetalle: " +
-            (err?.message || err)
-        );
-      } else {
-        alert("No se pudo guardar: " + (err?.message || err));
-      }
+      alert("No se pudo guardar: " + (err?.message || err));
     }
   };
 
@@ -222,11 +236,17 @@ const AdminUserManager = () => {
       alert("No puedes eliminar tu propio usuario.");
       return;
     }
-    if (!window.confirm(`¿Eliminar al usuario ${u.email}? Se borrará su cuenta de acceso.`)) return;
+    if (!window.confirm(`¿Eliminar al usuario ${u.email}?`)) return;
     try {
-      // 1) Cognito account (idempotent in the Lambda). 2) User record.
-      const op = del({ apiName: USER_API, path: `/users/${encodeURIComponent(u.email)}` });
-      await op.response;
+      // 1) Cognito account (idempotent). If the function isn't deployed yet,
+      //    skip it and still remove the record.
+      try {
+        const op = del({ apiName: USER_API, path: `/users/${encodeURIComponent(u.email)}` });
+        await op.response;
+      } catch (err) {
+        if (!isApiMissing(err)) throw err;
+      }
+      // 2) User record.
       const _version = await getUserVersion(u.id);
       await client.graphql({
         query: /* GraphQL */ `
@@ -238,10 +258,7 @@ const AdminUserManager = () => {
       alert("Usuario eliminado.");
     } catch (err) {
       console.error("delete user error:", err);
-      alert(
-        "No se pudo eliminar.\n\nSi aún no desplegaste la función 'userManager' (Cognito), la eliminación no estará disponible. Ver el runbook.\n\nDetalle: " +
-          (err?.message || err)
-      );
+      alert("No se pudo eliminar: " + (err?.message || err));
     }
   };
 

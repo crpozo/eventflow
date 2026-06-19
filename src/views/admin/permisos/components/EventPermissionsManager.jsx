@@ -118,7 +118,7 @@ export default function EventPermissionsManager() {
         Permisos por evento
       </h2>
       <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
-        Configura, por usuario y evento, qué secciones puede ver y editar. ⚠️ Al
+        Configura, por usuario y evento, qué secciones puede ver y editar. Al
         asignar cualquier permiso por evento a un usuario, este pasa a modo
         "gestionado": solo verá los eventos y secciones que le otorgues aquí.
       </p>
