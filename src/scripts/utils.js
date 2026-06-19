@@ -141,7 +141,16 @@ export const formatSpanishDate = (dateString) => {
 
 // Validate Form
 
-export const validateForm = (price) => {
+export const validateForm = (lang = "ES") => {
+    const isEN = String(lang).toUpperCase() === "EN";
+    const messages = {
+      required: isEN
+        ? "This field was not filled out correctly"
+        : "El campo no se ha rellenado correctamente",
+      digits13: isEN
+        ? "This field requires 13 numeric digits"
+        : "El campo requiere de 13 digitos númericos",
+    };
     const form = document.querySelector("#fb-editor .rendered-form");
     const formElements = form.querySelectorAll("[required]");
     let isValid = true;
@@ -153,7 +162,7 @@ export const validateForm = (price) => {
         isValid = false;
         const error = document.createElement("div");
         error.className = "error-message text-red-500";
-        error.textContent = "El campo no se ha rellenado correctamente";
+        error.textContent = messages.required;
         element.insertAdjacentElement("afterend", error);
       }
       // Check type of user identification 
@@ -177,7 +186,7 @@ export const validateForm = (price) => {
             if(!/^\d{13}$/.test(element.value)){
               const error = document.createElement("div");
               error.className = "error-message text-red-500";
-              error.textContent = "El campo requiere de 13 digitos númericos";
+              error.textContent = messages.digits13;
               element.insertAdjacentElement("afterend", error);
             }
             break;   

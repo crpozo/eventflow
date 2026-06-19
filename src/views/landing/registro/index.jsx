@@ -246,7 +246,7 @@ const Registro = (props) => {
   // Submit Form
   const handleSubmit = async () => {
     clearErrorMessages();
-    const isValid = validateForm();
+    const isValid = validateForm(lang);
 
     if (isValid) { 
       setIsProcessing(true);
