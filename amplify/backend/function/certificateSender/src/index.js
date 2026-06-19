@@ -73,6 +73,33 @@ const extractName = (eventAttendee) => {
   return eventAttendee.name || "";
 };
 
+// certificatePosition is stored from the admin form as a JSON string holding a
+// preset key (e.g. '"centro"'). Map each preset to drawing coordinates
+// (top-left %, since the form offers preset positions, not raw coordinates).
+const PRESET_POSITIONS = {
+  "centro": { xPct: 50, yPct: 50, align: "center", fontPct: 6 },
+  "centro-arriba": { xPct: 50, yPct: 30, align: "center", fontPct: 6 },
+  "centro-abajo": { xPct: 50, yPct: 70, align: "center", fontPct: 6 },
+  "inferior-izquierda": { xPct: 28, yPct: 85, align: "center", fontPct: 5 },
+  "inferior-derecha": { xPct: 72, yPct: 85, align: "center", fontPct: 5 },
+};
+
+// Resolve the stored certificatePosition into drawing coordinates. Accepts a
+// preset key string, an object (legacy/manual), or empty -> centered default.
+const resolvePosition = (stored) => {
+  let raw = stored;
+  try {
+    raw = JSON.parse(stored || '""');
+  } catch (e) {
+    /* keep raw */
+  }
+  if (typeof raw === "string") {
+    return PRESET_POSITIONS[raw] || PRESET_POSITIONS["centro"];
+  }
+  if (raw && typeof raw === "object") return raw;
+  return PRESET_POSITIONS["centro"];
+};
+
 const hexToRgb = (hex) => {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "#1a1a1a");
   if (!m) return rgb(0.1, 0.1, 0.1);
@@ -83,23 +110,37 @@ const hexToRgb = (hex) => {
   );
 };
 
-// Build a one-page PDF: template image as the page, name drawn on top.
+// Build a one-page PDF with the attendee name drawn on top of the template.
+// The template can be an image (PNG/JPG) or an existing PDF.
 const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
-  const pdf = await PDFDocument.create();
-  const img = /png/i.test(contentType)
-    ? await pdf.embedPng(templateBytes)
-    : await pdf.embedJpg(templateBytes);
+  let pdf;
+  let page;
+  let pageWidth;
+  let pageHeight;
 
-  const page = pdf.addPage([img.width, img.height]);
-  page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+  if (/pdf/i.test(contentType)) {
+    pdf = await PDFDocument.load(templateBytes);
+    page = pdf.getPages()[0];
+    pageWidth = page.getWidth();
+    pageHeight = page.getHeight();
+  } else {
+    pdf = await PDFDocument.create();
+    const img = /png/i.test(contentType)
+      ? await pdf.embedPng(templateBytes)
+      : await pdf.embedJpg(templateBytes);
+    pageWidth = img.width;
+    pageHeight = img.height;
+    page = pdf.addPage([pageWidth, pageHeight]);
+    page.drawImage(img, { x: 0, y: 0, width: pageWidth, height: pageHeight });
+  }
 
   const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fontSize = (img.width * (pos.fontPct || 6)) / 100;
+  const fontSize = (pageWidth * (pos.fontPct || 6)) / 100;
   const textWidth = font.widthOfTextAtSize(name, fontSize);
 
   // certificatePosition uses top-left % ; pdf-lib origin is bottom-left.
-  const cx = (img.width * (pos.xPct ?? 50)) / 100;
-  const cy = img.height - (img.height * (pos.yPct ?? 50)) / 100;
+  const cx = (pageWidth * (pos.xPct ?? 50)) / 100;
+  const cy = pageHeight - (pageHeight * (pos.yPct ?? 50)) / 100;
 
   let x = cx;
   if ((pos.align || "center") === "center") x = cx - textWidth / 2;
@@ -151,12 +192,7 @@ exports.handler = async () => {
     if (!endIso || new Date(endIso).getTime() > now) continue; // not finished yet
     if (!event.certificate) continue;
 
-    let pos = {};
-    try {
-      pos = JSON.parse(event.certificatePosition || "{}");
-    } catch (e) {
-      pos = {};
-    }
+    const pos = resolvePosition(event.certificatePosition);
 
     // Load template once per event.
     const obj = await s3.send(

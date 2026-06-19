@@ -58,14 +58,17 @@ amplify push
 - Runs on the schedule; scans `Event` for `sendCertificates = true` with no
   `certificatesSentAt`.
 - Only processes events whose `endDate` (or legacy `date`) is in the past.
-- Loads the template image (`Event.certificate`, stored under `public/` in S3),
-  renders each attendee's name at `Event.certificatePosition`
-  (`{xPct,yPct,fontPct,color,align}`), emails a PDF, then stamps
-  `certificatesSentAt`.
+- Loads the template (`Event.certificate`, stored under `public/` in S3),
+  renders each attendee's name at `Event.certificatePosition` — a **preset key**
+  (`centro`, `centro-arriba`, `centro-abajo`, `inferior-izquierda`,
+  `inferior-derecha`) mapped to coordinates in `PRESET_POSITIONS` — emails a PDF,
+  then stamps `certificatesSentAt`.
 
 ## Notes / limitations
 
-- Template is expected to be an **image** (PNG/JPG); matches the admin editor.
+- Template can be an **image** (PNG/JPG) or a **PDF** (the admin uploader accepts
+  both); the name is drawn on the first page.
+- To nudge where the name lands per preset, tweak `PRESET_POSITIONS` in `index.js`.
 - Attendee name is extracted best-effort from `formAnswers` (field matching
   /nombre|name/i). Adjust `extractName()` if your form uses a different field.
 - This code is a tested-by-design reference but has **not** been run end-to-end
