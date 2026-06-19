@@ -167,20 +167,31 @@ const AdminUserManager = () => {
     });
   };
 
-  const createUserViaApi = async (data) => {
-    // Creates the Cognito account + User record through the userManager Lambda.
+  const createUser = async (data) => {
+    // 1) Cognito account (sends the invite email). Throws if the email exists.
     const op = post({
       apiName: USER_API,
       path: "/users",
-      options: { body: data },
+      options: { body: { email: data.email, name: data.name } },
     });
-    const { body } = await op.response;
-    return body.json();
-  };
-
-  const deleteUserViaApi = async (id) => {
-    const op = del({ apiName: USER_API, path: `/users/${id}` });
     await op.response;
+    // 2) User record via GraphQL (keeps DataStore versioning correct). The app
+    //    links the login to this record by email.
+    await client.graphql({
+      query: /* GraphQL */ `
+        mutation ($input: CreateUserInput!) { createUser(input: $input) { id } }
+      `,
+      variables: {
+        input: {
+          email: data.email,
+          name: data.name,
+          roleID: data.roleID,
+          campusIDs: data.campusIDs,
+          areaIDs: data.areaIDs,
+          eventIDs: data.eventIDs,
+        },
+      },
+    });
   };
 
   const handleSubmit = async (data) => {
@@ -188,7 +199,7 @@ const AdminUserManager = () => {
       if (modal.mode === "edit") {
         await saveExistingUser(data);
       } else {
-        await createUserViaApi(data);
+        await createUser(data);
       }
       setModal(null);
       await fetchData();
@@ -213,7 +224,16 @@ const AdminUserManager = () => {
     }
     if (!window.confirm(`¿Eliminar al usuario ${u.email}? Se borrará su cuenta de acceso.`)) return;
     try {
-      await deleteUserViaApi(u.id);
+      // 1) Cognito account (idempotent in the Lambda). 2) User record.
+      const op = del({ apiName: USER_API, path: `/users/${encodeURIComponent(u.email)}` });
+      await op.response;
+      const _version = await getUserVersion(u.id);
+      await client.graphql({
+        query: /* GraphQL */ `
+          mutation ($input: DeleteUserInput!) { deleteUser(input: $input) { id } }
+        `,
+        variables: { input: { id: u.id, _version } },
+      });
       await fetchData();
       alert("Usuario eliminado.");
     } catch (err) {

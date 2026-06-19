@@ -1,0 +1,12 @@
+[
+  {
+    "Action": [
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminDeleteUser",
+      "cognito-idp:AdminGetUser"
+    ],
+    "Resource": [
+      "*"
+    ]
+  }
+]
