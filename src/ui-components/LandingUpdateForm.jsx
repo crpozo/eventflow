@@ -310,6 +310,24 @@ export default function LandingUpdateForm(props) {
     setErrors((errors) => ({ ...errors, [fieldName]: validationResponse }));
     return validationResponse;
   };
+  // Persist gallery / logos / customHtml immediately (re-querying the freshest
+  // record to avoid version conflicts), so uploads are saved without having to
+  // submit the whole form. Matches the previous media-manager behavior.
+  const persistMedia = async (field, nextValue) => {
+    if (!landingRecord?.id) return;
+    try {
+      const fresh = await DataStore.query(Landing, landingRecord.id);
+      if (!fresh) return;
+      const saved = await DataStore.save(
+        Landing.copyOf(fresh, (u) => {
+          u[field] = nextValue;
+        })
+      );
+      setLandingRecord(saved);
+    } catch (e) {
+      console.error("No se pudo guardar el contenido extra:", e);
+    }
+  };
   return (
     <Grid
       as="form"
@@ -572,12 +590,18 @@ export default function LandingUpdateForm(props) {
               .filter(Boolean)
               .map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {
-              setGalleryPhotos((prev) => [...(prev || []), key]);
+              setGalleryPhotos((prev) => {
+                const next = [...(prev || []), key];
+                persistMedia("galleryPhotos", next);
+                return next;
+              });
             }}
             onFileRemove={({ key }) => {
-              setGalleryPhotos((prev) =>
-                (prev || []).filter((k) => k !== key)
-              );
+              setGalleryPhotos((prev) => {
+                const next = (prev || []).filter((k) => k !== key);
+                persistMedia("galleryPhotos", next);
+                return next;
+              });
             }}
             processFile={processFile}
             accessLevel={"public"}
@@ -603,10 +627,18 @@ export default function LandingUpdateForm(props) {
               .filter(Boolean)
               .map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {
-              setPartnerLogos((prev) => [...(prev || []), key]);
+              setPartnerLogos((prev) => {
+                const next = [...(prev || []), key];
+                persistMedia("partnerLogos", next);
+                return next;
+              });
             }}
             onFileRemove={({ key }) => {
-              setPartnerLogos((prev) => (prev || []).filter((k) => k !== key));
+              setPartnerLogos((prev) => {
+                const next = (prev || []).filter((k) => k !== key);
+                persistMedia("partnerLogos", next);
+                return next;
+              });
             }}
             processFile={processFile}
             accessLevel={"public"}
@@ -632,7 +664,10 @@ export default function LandingUpdateForm(props) {
           }
           setCustomHtml(value);
         }}
-        onBlur={() => runValidationTasks("customHtml", customHtml)}
+        onBlur={() => {
+          runValidationTasks("customHtml", customHtml);
+          persistMedia("customHtml", customHtml === "" ? null : customHtml);
+        }}
         errorMessage={errors.customHtml?.errorMessage}
         hasError={errors.customHtml?.hasError}
         {...getOverrideProps(overrides, "customHtml")}
