@@ -464,6 +464,9 @@ type EagerUser = {
   readonly name?: string | null;
   readonly roleID: string;
   readonly role?: Role | null;
+  readonly campusIDs?: (string | null)[] | null;
+  readonly areaIDs?: (string | null)[] | null;
+  readonly eventIDs?: (string | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }
@@ -478,6 +481,9 @@ type LazyUser = {
   readonly name?: string | null;
   readonly roleID: string;
   readonly role: AsyncItem<Role | undefined>;
+  readonly campusIDs?: (string | null)[] | null;
+  readonly areaIDs?: (string | null)[] | null;
+  readonly eventIDs?: (string | null)[] | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
 }

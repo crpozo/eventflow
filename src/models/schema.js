@@ -1365,6 +1365,30 @@ export const schema = {
                         ]
                     }
                 },
+                "campusIDs": {
+                    "name": "campusIDs",
+                    "isArray": true,
+                    "type": "ID",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true
+                },
+                "areaIDs": {
+                    "name": "areaIDs",
+                    "isArray": true,
+                    "type": "ID",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true
+                },
+                "eventIDs": {
+                    "name": "eventIDs",
+                    "isArray": true,
+                    "type": "ID",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,

@@ -132,6 +132,9 @@ type User @model
   name: String
   roleID: ID! @index(name: "byRole")
   role: Role @belongsTo(fields: ["roleID"])
+  campusIDs: [ID]
+  areaIDs: [ID]
+  eventIDs: [ID]
 }
 
 type EventPermission @model @auth(rules: [{allow: public}]) {

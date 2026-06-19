@@ -1,361 +1,369 @@
 import React, { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/api";
-import { updateUser, updateRole } from "graphql/mutations";
+import { post, del } from "aws-amplify/api";
 import { fetchUserAttributes } from "aws-amplify/auth";
+import { MdAdd, MdEdit, MdDelete, MdSearch } from "react-icons/md";
 import Banner from "./components/Banner";
+import UserFormModal from "./components/UserFormModal";
 import EventPermissionsManager from "./components/EventPermissionsManager";
 
 const client = generateClient();
 
+// REST API (Amplify) backed by the userManager Lambda. See the function's
+// README for the deploy runbook. Until deployed, create/delete show a notice.
+const USER_API = "userApi";
+
 const AdminUserManager = () => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [areas, setAreas] = useState([]);
+  const [tree, setTree] = useState([]); // campus -> areas -> events
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [modal, setModal] = useState(null); // { mode, user }
 
   useEffect(() => {
-    const fetchCurrent = async () => {
+    (async () => {
       try {
-        const attributes = await fetchUserAttributes();
-        const email = attributes.email;
-
+        const { email } = await fetchUserAttributes();
         const res = await client.graphql({
           query: /* GraphQL */ `
-            query ListUsers($filter: ModelUserFilterInput) {
+            query ($filter: ModelUserFilterInput) {
               listUsers(filter: { and: [{ _deleted: { ne: true } }, $filter] }) {
-                items {
-                  id
-                  email
-                  roleID
-                  role {
-                    id
-                    name
-                  }
-                }
+                items { id email role { id name } }
               }
             }
           `,
-          variables: {
-            filter: {
-              email: { eq: email },
-            },
-          }
+          variables: { filter: { email: { eq: email } } },
         });
-
-        const userData = res.data.listUsers.items[0];
-        if (userData) {
-          setCurrentUser(userData);
-        } else {
-          console.warn("El usuario no existe en la base de datos.");
-        }
+        setCurrentUser(res.data.listUsers.items[0] || null);
       } catch (err) {
-        console.error("Error obteniendo atributos o usuario:", err);
+        console.error("Error obteniendo usuario:", err);
       } finally {
         setIsLoading(false);
       }
-    };
-
-    fetchCurrent();
+    })();
   }, []);
 
   useEffect(() => {
-    if (currentUser?.role?.name === "Admin") {
-      fetchData();
-    } else if (currentUser && currentUser.role?.name !== "Admin") {
-      // Si no es admin, dejamos de cargar
-      setIsLoading(false);
-    }
+    if (currentUser?.role?.name === "Admin") fetchData();
   }, [currentUser]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [usersRes, rolesRes, areasRes] = await Promise.all([
-        client.graphql({
-          query: /* GraphQL */ `
-            query ListUsers {
-              listUsers(filter: { _deleted: { ne: true } }) {
-                items {
-                  id
-                  email
-                  roleID
-                  role {
-                    id
-                    name
-                  }
+      const [usersRes, rolesRes, campusRes, areasRes, careersRes, eventsRes] =
+        await Promise.all([
+          client.graphql({
+            query: /* GraphQL */ `
+              query {
+                listUsers(filter: { _deleted: { ne: true } }, limit: 1000) {
+                  items { id email name roleID role { id name } campusIDs areaIDs eventIDs }
                 }
               }
-            }
-          `,
-        }),
-        client.graphql({
-          query: /* GraphQL */ `
-            query ListRoles {
-              listRoles(filter: { _deleted: { ne: true } }) {
-                items {
-                  id
-                  name
-                  areas
-                }
-              }
-            }
-          `,
-        }),
-        client.graphql({
-          query: /* GraphQL */ `
-            query ListAreas {
-              listAreas(filter: { _deleted: { ne: true } }) {
-                items {
-                  id
-                  title
-                  description
-                }
-              }
-            }
-          `,
-        }),
-      ]);
-  
+            `,
+          }),
+          client.graphql({
+            query: /* GraphQL */ `
+              query { listRoles(filter: { _deleted: { ne: true } }) { items { id name } } }
+            `,
+          }),
+          client.graphql({
+            query: /* GraphQL */ `
+              query { listCampuses(filter: { _deleted: { ne: true } }, limit: 1000) { items { id title } } }
+            `,
+          }),
+          client.graphql({
+            query: /* GraphQL */ `
+              query { listAreas(filter: { _deleted: { ne: true } }, limit: 1000) { items { id title campusID } } }
+            `,
+          }),
+          client.graphql({
+            query: /* GraphQL */ `
+              query { listCareers(filter: { _deleted: { ne: true } }, limit: 5000) { items { id areaID } } }
+            `,
+          }),
+          client.graphql({
+            query: /* GraphQL */ `
+              query { listEvents(filter: { _deleted: { ne: true } }, limit: 5000) { items { id title careerID } } }
+            `,
+          }),
+        ]);
+
       setUsers(usersRes.data.listUsers.items);
       setRoles(rolesRes.data.listRoles.items);
-      setAreas(areasRes.data.listAreas.items);
+
+      // Build Campus -> Area -> Event tree (flattening Career).
+      const campuses = campusRes.data.listCampuses.items;
+      const areas = areasRes.data.listAreas.items;
+      const careers = careersRes.data.listCareers.items;
+      const events = eventsRes.data.listEvents.items;
+
+      const careerToArea = {};
+      careers.forEach((c) => { careerToArea[c.id] = c.areaID; });
+      const eventsByArea = {};
+      events.forEach((e) => {
+        const areaId = careerToArea[e.careerID];
+        if (!areaId) return;
+        (eventsByArea[areaId] = eventsByArea[areaId] || []).push(e);
+      });
+      const areasByCampus = {};
+      areas.forEach((a) => {
+        (areasByCampus[a.campusID] = areasByCampus[a.campusID] || []).push(a);
+      });
+
+      const builtTree = campuses
+        .map((c) => ({
+          id: c.id,
+          title: c.title,
+          areas: (areasByCampus[c.id] || [])
+            .map((a) => ({
+              id: a.id,
+              title: a.title,
+              events: (eventsByArea[a.id] || []).sort((x, y) =>
+                (x.title || "").localeCompare(y.title || "")
+              ),
+            }))
+            .sort((x, y) => (x.title || "").localeCompare(y.title || "")),
+        }))
+        .sort((x, y) => (x.title || "").localeCompare(y.title || ""));
+      setTree(builtTree);
     } catch (err) {
       console.error("Error fetching data:", err);
+      alert("Error cargando datos. ¿Ya hiciste 'amplify push' con los campos nuevos de User?");
     } finally {
       setIsLoading(false);
     }
   };
-  
 
-  const assignRoleToUser = async (userId, roleId) => {
-    if (userId === currentUser.id && roles.find(r => r.id === roleId)?.name !== "Admin") {
-      alert("No puedes eliminar tu propio rol de Admin.");
-      return;
-    }
-  
-    // ✅ Obtener _version actual del usuario
-    const userData = await client.graphql({
+  // ── User persistence ────────────────────────────────────────────────────
+  const getUserVersion = async (id) => {
+    const r = await client.graphql({
+      query: /* GraphQL */ `query ($id: ID!) { getUser(id: $id) { _version } }`,
+      variables: { id },
+    });
+    return r.data.getUser?._version;
+  };
+
+  const saveExistingUser = async (data) => {
+    const _version = await getUserVersion(data.id);
+    await client.graphql({
       query: /* GraphQL */ `
-        query GetUser($id: ID!) {
-          getUser(id: $id) {
-            id
-            roleID
-            _version
-          }
+        mutation ($input: UpdateUserInput!) {
+          updateUser(input: $input) { id }
         }
       `,
-      variables: { id: userId },
-    });
-  
-    const { _version } = userData.data.getUser;
-  
-    // ✅ Hacer update con _version
-    await client.graphql({
-      query: updateUser,
       variables: {
         input: {
-          id: userId,
-          roleID: roleId,
+          id: data.id,
+          name: data.name,
+          roleID: data.roleID,
+          campusIDs: data.campusIDs,
+          areaIDs: data.areaIDs,
+          eventIDs: data.eventIDs,
           _version,
         },
       },
     });
-  
-    // ✅ Actualizar estado local
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === userId
-          ? { ...u, roleID: roleId, role: roles.find((r) => r.id === roleId) }
-          : u
-      )
-    );
-  
-    if (userId === currentUser.id) {
-      setCurrentUser((prev) => ({
-        ...prev,
-        roleID: roleId,
-        role: roles.find((r) => r.id === roleId),
-      }));
+  };
+
+  const createUserViaApi = async (data) => {
+    // Creates the Cognito account + User record through the userManager Lambda.
+    const op = post({
+      apiName: USER_API,
+      path: "/users",
+      options: { body: data },
+    });
+    const { body } = await op.response;
+    return body.json();
+  };
+
+  const deleteUserViaApi = async (id) => {
+    const op = del({ apiName: USER_API, path: `/users/${id}` });
+    await op.response;
+  };
+
+  const handleSubmit = async (data) => {
+    try {
+      if (modal.mode === "edit") {
+        await saveExistingUser(data);
+      } else {
+        await createUserViaApi(data);
+      }
+      setModal(null);
+      await fetchData();
+      alert(modal.mode === "edit" ? "Usuario actualizado." : "Usuario creado e invitado por correo.");
+    } catch (err) {
+      console.error("save user error:", err);
+      if (modal.mode === "create") {
+        alert(
+          "No se pudo crear el usuario.\n\nSi aún no desplegaste la función 'userManager' (Cognito), la creación de cuentas no estará disponible todavía. Ver el runbook. \n\nDetalle: " +
+            (err?.message || err)
+        );
+      } else {
+        alert("No se pudo guardar: " + (err?.message || err));
+      }
     }
   };
 
-  const updateRoleAreas = async (roleId, areaIds) => {
-    const unique = [...new Set(areaIds)];
-  
-    // ✅ Obtener la versión actual del rol
-    const roleData = await client.graphql({
-      query: /* GraphQL */ `
-        query GetRole($id: ID!) {
-          getRole(id: $id) {
-            id
-            areas
-            _version
-          }
-        }
-      `,
-      variables: { id: roleId },
-    });
-  
-    const { _version } = roleData.data.getRole;
-  
-    // ✅ Enviar _version en la mutación
-    await client.graphql({
-      query: updateRole,
-      variables: {
-        input: {
-          id: roleId,
-          areas: unique,
-          _version, // IMPORTANTE para que funcione en Amplify v2
-        },
-      },
-    });
-  
-    // ✅ Actualizar estado local
-    setRoles((prev) =>
-      prev.map((r) => (r.id === roleId ? { ...r, areas: unique } : r))
-    );
+  const handleDelete = async (u) => {
+    if (u.id === currentUser?.id) {
+      alert("No puedes eliminar tu propio usuario.");
+      return;
+    }
+    if (!window.confirm(`¿Eliminar al usuario ${u.email}? Se borrará su cuenta de acceso.`)) return;
+    try {
+      await deleteUserViaApi(u.id);
+      await fetchData();
+      alert("Usuario eliminado.");
+    } catch (err) {
+      console.error("delete user error:", err);
+      alert(
+        "No se pudo eliminar.\n\nSi aún no desplegaste la función 'userManager' (Cognito), la eliminación no estará disponible. Ver el runbook.\n\nDetalle: " +
+          (err?.message || err)
+      );
+    }
   };
 
-  // Ordenar usuarios por rol: Admin primero, luego alfabéticamente por nombre de rol
-  // IMPORTANTE: Los hooks deben estar antes de cualquier return condicional
-  const sortedUsers = React.useMemo(() => {
-    return [...users].sort((a, b) => {
-      const roleA = a.role?.name || "Sin rol";
-      const roleB = b.role?.name || "Sin rol";
+  const permSummary = (u) => {
+    if (u.role?.name === "Admin") return "Acceso completo";
+    const c = (u.campusIDs || []).filter(Boolean).length;
+    const a = (u.areaIDs || []).filter(Boolean).length;
+    const e = (u.eventIDs || []).filter(Boolean).length;
+    if (!c && !a && !e) return "Sin permisos";
+    return [c && `${c} campus`, a && `${a} áreas`, e && `${e} eventos`]
+      .filter(Boolean)
+      .join(" · ");
+  };
 
-      // Admin siempre primero
-      if (roleA === "Admin" && roleB !== "Admin") return -1;
-      if (roleA !== "Admin" && roleB === "Admin") return 1;
-
-      // Sin rol siempre al final
-      if (roleA === "Sin rol" && roleB !== "Sin rol") return 1;
-      if (roleA !== "Sin rol" && roleB === "Sin rol") return -1;
-
-      // Resto ordenado alfabéticamente
-      return roleA.localeCompare(roleB);
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = !q
+      ? users
+      : users.filter(
+          (u) =>
+            (u.email || "").toLowerCase().includes(q) ||
+            (u.name || "").toLowerCase().includes(q) ||
+            (u.role?.name || "").toLowerCase().includes(q)
+        );
+    return [...list].sort((a, b) => {
+      const ra = a.role?.name || "zzz";
+      const rb = b.role?.name || "zzz";
+      if (ra === "Admin" && rb !== "Admin") return -1;
+      if (rb === "Admin" && ra !== "Admin") return 1;
+      return (a.email || "").localeCompare(b.email || "");
     });
-  }, [users]);
-
+  }, [users, search]);
 
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] w-full flex-col items-center justify-center p-3">
         <span className="loader"></span>
-        <h2 className="mt-4 text-center text-xl">
-          Cargando permisos...
-        </h2>
+        <h2 className="mt-4 text-center text-xl">Cargando permisos...</h2>
       </div>
     );
   }
 
   if (!currentUser || currentUser.role?.name !== "Admin") {
     return (
-      <div className="flex items-center justify-center mt-5 px-4">
-        <div className="p-6 border border-red-200 rounded-xl shadow-sm max-w-md w-full text-center">
-          <h2 className="text-xl font-semibold text-brand-500 mb-2">Acceso denegado</h2>
-          <p>No tienes permisos para acceder a esta sección. Si crees que esto es un error, contacta con el administrador del sistema.</p>
+      <div className="mt-5 flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-xl border border-red-200 p-6 text-center shadow-sm">
+          <h2 className="mb-2 text-xl font-semibold text-brand-500">Acceso denegado</h2>
+          <p>No tienes permisos para acceder a esta sección.</p>
         </div>
       </div>
     );
   }
 
   return (
-
     <div className="admin-manager-page">
-
       <div className="grid h-full">
         <Banner />
       </div>
 
-      <div className="max-w-6xl">
-        <h2 className="text-2xl font-bold mb-6">Gestión de Usuarios y Roles</h2>
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-2xl font-bold">Gestión de usuarios y permisos</h2>
+          <button
+            onClick={() => setModal({ mode: "create", user: null })}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-black"
+          >
+            <MdAdd className="h-5 w-5" /> Crear usuario
+          </button>
+        </div>
 
-        <div className="overflow-hidden rounded-xl border border-gray-200 mb-10 shadow-sm">
-          <table className="min-w-full text-left">
-            <thead className="bg-[#f8f9fb]">
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 dark:border-navy-700">
+          <MdSearch className="h-5 w-5 text-gray-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por email, nombre o rol…"
+            className="w-full bg-transparent text-sm outline-none"
+          />
+        </div>
+
+        <div className="mb-10 overflow-hidden rounded-xl border border-gray-200 shadow-sm dark:border-navy-700">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-[#f8f9fb] dark:!bg-navy-900">
               <tr>
-                <th className="p-3 border-b border-r border-gray-200">Email</th>
-                <th className="p-3 border-b border-r border-gray-200">Rol Actual</th>
-                <th className="p-3 border-b border-gray-200">Asignar Nuevo Rol</th>
+                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Email</th>
+                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Nombre</th>
+                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Rol</th>
+                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Permisos</th>
+                <th className="border-b border-gray-200 p-3 text-right dark:border-navy-700">Acciones</th>
               </tr>
             </thead>
-            <tbody className="bg-white">
-              {sortedUsers.map((u, index) => (
-                <tr key={u.id} className={index !== sortedUsers.length - 1 ? "border-b border-gray-200" : ""}>
-                  <td className="p-2 border-r border-gray-200">{u.email}</td>
-                  <td className="p-2 border-r border-gray-200">{u.role?.name || "Sin rol"}</td>
-                  <td className="py-[10px] px-4">
-                    <select
-                      value={u.roleID || ""}
-                      onChange={(e) => assignRoleToUser(u.id, e.target.value)}
-                      className="border border-gray-300 my-1 px-3 py-2 rounded-md w-full focus:outline-none focus:border-brand-500"
-                    >
-                      <option value="">Seleccionar</option>
-                      {roles.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </select>
+            <tbody className="bg-white dark:!bg-navy-800">
+              {filtered.map((u) => (
+                <tr key={u.id} className="border-b border-gray-100 last:border-b-0 dark:border-navy-700">
+                  <td className="p-3">{u.email}</td>
+                  <td className="p-3">{u.name || "—"}</td>
+                  <td className="p-3">{u.role?.name || "Sin rol"}</td>
+                  <td className="p-3 text-gray-600 dark:text-gray-300">{permSummary(u)}</td>
+                  <td className="p-3">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setModal({ mode: "edit", user: u })}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 dark:border-navy-700 dark:hover:bg-navy-900"
+                      >
+                        <MdEdit className="h-4 w-4" /> Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u)}
+                        disabled={u.id === currentUser?.id}
+                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+                      >
+                        <MdDelete className="h-4 w-4" /> Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="p-6 text-center text-gray-400">
+                    No hay usuarios que coincidan.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        <h2 className="text-xl font-bold mb-4">Permisos por Área por Rol</h2>
-        {roles.map((r) => (
-        <div key={r.id} className="mb-6 border border-gray-200 py-3 px-4 rounded-xl shadow-sm bg-white">
-          <h3 className="font-semibold mb-3 text-lg">{r.name}</h3>
-
-          {/* 🚫 Skip area assignment UI for Admin */}
-          {r.name === "Admin" ? (
-            <p className="text-sm text-[#848484]">
-              El rol Admin tiene acceso completo y no requiere asignación de áreas.
-            </p>
-          ) : (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {areas.map((a) => {
-                  const currentAreas = Array.isArray(r.areas) ? r.areas : [];
-                  const isChecked = currentAreas.includes(a.id);
-                  return (
-                    <label key={a.id} className="flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {
-                          const currentAreas = Array.isArray(r.areas) ? r.areas : [];
-                          const updatedAreas = isChecked
-                            ? currentAreas.filter((id) => id !== a.id) // ✅ Remove
-                            : [...new Set([...currentAreas, a.id])];   // ✅ Add
-                        
-                          // ✅ Primero actualizamos backend
-                          updateRoleAreas(r.id, updatedAreas);
-                        }}
-                      />
-                      <span>{a.title}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <p className="mt-2 text-sm text-gray-600">
-                Áreas asignadas:{" "}
-                {(r.areas || [])
-                  .map((id) => areas.find((a) => a.id === id)?.title)
-                  .filter(Boolean)
-                  .join(", ")}
-              </p>
-            </>
-          )}
-        </div>
-      ))}
-
-      <EventPermissionsManager />
-
+        {/* Per-event section permissions (Ver/Editar) */}
+        <EventPermissionsManager />
       </div>
+
+      {modal && (
+        <UserFormModal
+          mode={modal.mode}
+          user={modal.user}
+          roles={roles}
+          tree={tree}
+          onSubmit={handleSubmit}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 };
