@@ -6,6 +6,7 @@ import Registro from "./registro/index";
 import { formatDateHour} from 'scripts/utils';
 import { useAwsTranslation} from 'scripts/useAwsTranslation';
 import { getLandingUI } from 'scripts/landingTranslations';
+import LandingExtras from './components/LandingExtras';
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { FiExternalLink } from "react-icons/fi";
 import { LuCalendarClock, LuMapPin } from "react-icons/lu";
@@ -498,6 +499,9 @@ export default function SignIn() {
                 <p className="text-[16px] md:text-lg">{translated.extraInfo}</p>
               </div>
             )}
+
+            {/* Gallery + custom HTML + partner logos carousel (below event details) */}
+            <LandingExtras landing={landing} ui={ui} />
 
             {/* <Link to="mailto:sd@usfq.edu.ec" className="mb-2 flex justify-center text-center text-lg hover:text-red-500">
               ¿Requiere soporte?

@@ -22,6 +22,8 @@ export const LANDING_UI = {
     registerInActivity: "Regístrate en una actividad",
     clickForMore: "Haz clic para más detalles",
     additionalNotes: "Notas adicionales",
+    gallery: "Galería",
+    partners: "Aliados",
     // Status screens
     loading: "Cargando...",
     eventNotActive: "El evento no se encuentra activo",
@@ -72,6 +74,8 @@ export const LANDING_UI = {
     registerInActivity: "Register for an activity",
     clickForMore: "Click for more details",
     additionalNotes: "Additional notes",
+    gallery: "Gallery",
+    partners: "Partners",
     // Status screens
     loading: "Loading...",
     eventNotActive: "This event is not active",
