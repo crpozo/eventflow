@@ -39,13 +39,18 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({});
 const ses = new SESClient({});
 
-const {
-  EVENT_TABLE,
-  EVENTATTENDEE_TABLE,
-  BYEVENT_INDEX = "byEvent",
-  STORAGE_BUCKET,
-  SES_FROM,
-} = process.env;
+// Amplify injects table/bucket names with its own naming. Prefer those, but
+// fall back to generic names so the handler also works if you set them manually.
+const EVENT_TABLE =
+  process.env.EVENT_TABLE || process.env.API_EVENTFLOW_EVENTTABLE_NAME;
+const EVENTATTENDEE_TABLE =
+  process.env.EVENTATTENDEE_TABLE ||
+  process.env.API_EVENTFLOW_EVENTATTENDEETABLE_NAME;
+const STORAGE_BUCKET =
+  process.env.STORAGE_BUCKET ||
+  process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
+const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
+const SES_FROM = process.env.SES_FROM;
 
 // Files uploaded from the app with the default ("guest") access level live
 // under the "public/" prefix in the bucket.
