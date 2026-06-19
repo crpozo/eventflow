@@ -257,6 +257,18 @@ export default function SignIn() {
         <div className="container flex items-center justify-between">
           <img src={logo} alt="USFQ Logo" className="w-[150px] md:w-[180px] lg:w-[200px]" />
           <div className="flex items-center gap-4">
+            <Link
+              to="https://www.usfq.edu.ec/es"
+              className="flex items-center gap-2 whitespace-nowrap md:min-w-[185px] hover:text-red-500 hover:no-underline text-sm"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {ui.officialWeb} <FiExternalLink className="h-4 w-4" />
+            </Link>
+
+            {/* Separator */}
+            <span className="h-5 w-px bg-black/20" aria-hidden="true" />
+
             {/* Language switcher (ES / EN) */}
             <div className="flex items-center gap-1">
               <button
@@ -264,32 +276,26 @@ export default function SignIn() {
                 onClick={() => changeLang("ES")}
                 aria-label="Español"
                 title="Español"
-                className={`text-xl leading-none px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
+                className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
                   lang === "ES" ? "opacity-100" : "opacity-40 hover:opacity-100"
                 }`}
               >
-                🇲🇽
+                <span className="text-xl leading-none">🇲🇽</span>
+                <span className="text-xs font-semibold">ES</span>
               </button>
               <button
                 type="button"
                 onClick={() => changeLang("EN")}
                 aria-label="English"
                 title="English"
-                className={`text-xl leading-none px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
+                className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
                   lang === "EN" ? "opacity-100" : "opacity-40 hover:opacity-100"
                 }`}
               >
-                🇺🇸
+                <span className="text-xl leading-none">🇺🇸</span>
+                <span className="text-xs font-semibold">EN</span>
               </button>
             </div>
-            <Link
-              to="https://www.usfq.edu.ec/es"
-              className="flex items-center justify-end gap-2 whitespace-nowrap md:min-w-[185px] hover:text-red-500 hover:no-underline text-sm"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {ui.officialWeb} <FiExternalLink className="h-4 w-4" />
-            </Link>
           </div>
         </div>
       </div>

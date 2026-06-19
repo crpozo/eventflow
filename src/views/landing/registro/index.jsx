@@ -9,6 +9,7 @@ import { Form } from "models";
 import { Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate } from "scripts/utils";
 import { getLandingUI } from "scripts/landingTranslations";
+import { translateFormData, restoreOriginalLabels } from "scripts/translateFormData";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { validateBannerCode } from "../../../services/nomina/validateBannerCode";
 
@@ -55,6 +56,11 @@ const Registro = (props) => {
   const { userData, setUserData, quantityProp, price, eventID, showRegister, setShowRegister, event, eventAttendeeProp, lang} = props;
   const ui = getLandingUI(lang);
   const [formData, setFormData] = React.useState([]);
+  // Form definition actually rendered (ES original or translated copy).
+  const [renderData, setRenderData] = React.useState([]);
+  // Bumped on every renderData change to force FormBuilder to re-run formRender
+  // (it only draws on mount), so switching language actually re-renders the form.
+  const [renderKey, setRenderKey] = React.useState(0);
   const [eventAttendee, setEventAttendee] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [trs, setTrs] = React.useState(null);
@@ -86,7 +92,7 @@ const Registro = (props) => {
       const jq = await loadJQueryAndFormBuilder();
       jq(this.fb.current).formRender({
         dataType: "json",
-        formData,
+        formData: this.props.formData,
       });
 
       // Make modifications to the DOM
@@ -120,9 +126,34 @@ const Registro = (props) => {
     }
   }
 
+  // Translate the form definition on the fly when the language changes.
+  // Shows the original (ES) immediately, then upgrades to the translated copy
+  // once Amazon Translate responds (mirrors the rest of the landing).
+  React.useEffect(() => {
+    if (!formData || formData.length === 0) return;
+    const target = (lang || "ES").toLowerCase();
+
+    setRenderData(formData);
+    setRenderKey((k) => k + 1);
+
+    if (target === "es") return;
+
+    let active = true;
+    (async () => {
+      const translated = await translateFormData(formData, target);
+      if (active) {
+        setRenderData(translated);
+        setRenderKey((k) => k + 1);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [formData, lang]);
+
   const memoizedFormBuilder = React.useMemo(
-    () => <FormBuilder formData={formData} />,
-    [formData]
+    () => <FormBuilder key={renderKey} formData={renderData} />,
+    [renderData, renderKey]
   );
 
   const handleBillingCheckboxChange = (state) => {
@@ -244,6 +275,12 @@ const Registro = (props) => {
         const fbRender = document.querySelector("#fb-editor");
         const jq = await loadJQueryAndFormBuilder();
         let userData = jq(fbRender).formRender("userData");
+
+        // If the form is being shown translated, restore the original Spanish
+        // labels so stored answers stay consistent regardless of display language.
+        if ((lang || "ES").toLowerCase() !== "es") {
+          userData = restoreOriginalLabels(userData, formData);
+        }
 
         if (changeBilling) {
           // Replace the billing information with the new values
