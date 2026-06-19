@@ -7,6 +7,7 @@ import {
   EventUpdateForm
  } from 'ui-components';
 import EventScheduleManager from "./components/EventScheduleManager";
+import CertificateManager from "./components/CertificateManager";
  import {
   MdEditCalendar,
   MdChevronLeft
@@ -65,6 +66,9 @@ const Dashboard = () => {
 
           {/* Multi-day schedule (start + end dates) */}
           <EventScheduleManager key={event.id} event={event} />
+
+          {/* Certificate configuration (template + name position) */}
+          <CertificateManager key={`cert-${event.id}`} event={event} />
         </div>
       }
     </div>
