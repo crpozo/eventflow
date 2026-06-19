@@ -1,0 +1,14 @@
+{
+  "name": "certificateSender",
+  "version": "1.0.0",
+  "description": "Scheduled Lambda that emails personalized certificates to event attendees",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/client-ses": "^3.600.0",
+    "pdf-lib": "^1.17.1",
+    "nodemailer": "^6.9.14"
+  }
+}
