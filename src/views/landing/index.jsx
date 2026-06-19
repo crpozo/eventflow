@@ -264,19 +264,19 @@ export default function SignIn() {
                 onClick={() => changeLang("ES")}
                 aria-label="Español"
                 title="Español"
-                className={`text-xl leading-none px-1 py-1 rounded transition ${
-                  lang === "ES" ? "opacity-100 scale-110" : "opacity-50 hover:opacity-100"
+                className={`text-xl leading-none px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
+                  lang === "ES" ? "opacity-100" : "opacity-40 hover:opacity-100"
                 }`}
               >
-                🇪🇸
+                🇲🇽
               </button>
               <button
                 type="button"
                 onClick={() => changeLang("EN")}
                 aria-label="English"
                 title="English"
-                className={`text-xl leading-none px-1 py-1 rounded transition ${
-                  lang === "EN" ? "opacity-100 scale-110" : "opacity-50 hover:opacity-100"
+                className={`text-xl leading-none px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
+                  lang === "EN" ? "opacity-100" : "opacity-40 hover:opacity-100"
                 }`}
               >
                 🇺🇸
@@ -284,7 +284,7 @@ export default function SignIn() {
             </div>
             <Link
               to="https://www.usfq.edu.ec/es"
-              className="flex items-center gap-2 hover:text-red-500 hover:no-underline text-sm"
+              className="flex items-center justify-end gap-2 whitespace-nowrap md:min-w-[185px] hover:text-red-500 hover:no-underline text-sm"
               target="_blank"
               rel="noopener noreferrer"
             >
