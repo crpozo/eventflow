@@ -586,7 +586,7 @@ export default function LandingUpdateForm(props) {
       >
         {landingRecord && (
           <StorageManager
-            defaultFiles={(galleryPhotos || [])
+            defaultFiles={(landingRecord.galleryPhotos || [])
               .filter(Boolean)
               .map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {
@@ -623,7 +623,7 @@ export default function LandingUpdateForm(props) {
       >
         {landingRecord && (
           <StorageManager
-            defaultFiles={(partnerLogos || [])
+            defaultFiles={(landingRecord.partnerLogos || [])
               .filter(Boolean)
               .map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {

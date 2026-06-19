@@ -1,40 +1,13 @@
 import React from "react";
-import { getUrl } from "aws-amplify/storage";
 
-// Resolves a list of S3 keys (or already-absolute URLs) into displayable URLs.
-function useResolvedUrls(keys) {
-  const [urls, setUrls] = React.useState([]);
-  const keySig = JSON.stringify(keys || []);
+// Public assets are served through CloudFront (same as the landing banner), so
+// keys resolve to a URL synchronously — no slow per-image getUrl() round-trip.
+const CLOUDFRONT = "https://dnuc5lxyun5b.cloudfront.net/public/";
 
-  React.useEffect(() => {
-    let active = true;
-    const list = (keys || []).filter(Boolean);
-    if (list.length === 0) {
-      setUrls([]);
-      return;
-    }
-    (async () => {
-      const resolved = await Promise.all(
-        list.map(async (k) => {
-          if (/^https?:\/\//i.test(k)) return k; // already a URL
-          try {
-            const r = await getUrl({ key: k });
-            return r.url.toString();
-          } catch (e) {
-            console.error("LandingExtras: could not resolve", k, e);
-            return null;
-          }
-        })
-      );
-      if (active) setUrls(resolved.filter(Boolean));
-    })();
-    return () => {
-      active = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keySig]);
-
-  return urls;
+function toUrls(keys) {
+  return (keys || [])
+    .filter(Boolean)
+    .map((k) => (/^https?:\/\//i.test(k) ? k : `${CLOUDFRONT}${k}`));
 }
 
 /**
@@ -46,10 +19,20 @@ function useResolvedUrls(keys) {
  * All driven by the Landing model (galleryPhotos, customHtml, partnerLogos).
  */
 export default function LandingExtras({ landing, ui }) {
-  const gallery = useResolvedUrls(landing?.galleryPhotos);
-  const logos = useResolvedUrls(landing?.partnerLogos);
+  const gallery = toUrls(landing?.galleryPhotos);
+  const logos = toUrls(landing?.partnerLogos);
   const customHtml = landing?.customHtml;
   const hasHtml = typeof customHtml === "string" && customHtml.trim().length > 0;
+  // Lightbox: the URL of the image currently shown enlarged (null = closed).
+  const [lightbox, setLightbox] = React.useState(null);
+
+  // Close the lightbox with the Escape key.
+  React.useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e) => e.key === "Escape" && setLightbox(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
 
   return (
     <>
@@ -66,7 +49,8 @@ export default function LandingExtras({ landing, ui }) {
                 src={url}
                 alt={`${ui.gallery} ${i + 1}`}
                 loading="lazy"
-                className="h-40 w-full rounded-xl object-cover md:h-48"
+                onClick={() => setLightbox(url)}
+                className="h-40 w-full cursor-zoom-in rounded-xl object-cover transition duration-200 hover:opacity-90 md:h-48"
               />
             ))}
           </div>
@@ -97,11 +81,37 @@ export default function LandingExtras({ landing, ui }) {
                   src={url}
                   alt="partner logo"
                   loading="lazy"
-                  className="h-16 w-auto max-w-[160px] object-contain md:h-20"
+                  onClick={() => setLightbox(url)}
+                  className="h-16 w-auto max-w-[160px] cursor-zoom-in object-contain md:h-20"
                 />
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox overlay: click anywhere or the X to close */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            aria-label="Cerrar"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-3xl leading-none text-white transition hover:bg-white/20"
+          >
+            ×
+          </button>
+          <img
+            src={lightbox}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+          />
         </div>
       )}
 
