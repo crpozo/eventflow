@@ -132,7 +132,7 @@ const Marketplace = () => {
    const columns = [
      { Header: "TITULO", accessor: "title" },
      {
-       Header: "ACTUALIZACIÓN",
+       Header: "FECHA DEL EVENTO",
        accessor: "update_date",
        sortType: (rowA, rowB, columnId) => {
          const parseDate = (str) => {

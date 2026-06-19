@@ -7,7 +7,7 @@ import {
   useTable,
 } from "react-table";
 import { IoEnterOutline } from "react-icons/io5";
-import { MdAdd, MdContentCopy } from "react-icons/md";
+import { MdAdd, MdContentCopy, MdSearch } from "react-icons/md";
 import Card from "components/card";
 
 const PAGINATION_STORAGE_KEY = "EVENTFLOW.events.pagination";
@@ -60,7 +60,8 @@ const DevelopmentTable = (props) => {
     nextPage,
     previousPage,
     setPageSize,
-    state: { pageIndex, pageSize },
+    setGlobalFilter,
+    state: { pageIndex, pageSize, globalFilter },
   } = tableInstance;
 
   // Guardar el estado de paginación cada vez que cambie
@@ -75,15 +76,31 @@ const DevelopmentTable = (props) => {
 
   return (
     <Card extra={"w-full h-full p-4"}>
-      <div className="relative flex items-center justify-between">
+      <div className="relative flex flex-wrap items-center justify-between gap-3">
         <div className="text-xl font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
         </div>
-        <Link className="hover:no-underline" to="crear" onClick={handleCreateEvent}>
-          <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
-            Crear Evento <MdAdd className="h-5 w-5" />
-          </button>
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* Buscador de eventos */}
+          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-lightPrimary px-3 py-[10px] dark:!border-navy-700 dark:!bg-navy-900">
+            <MdSearch className="h-5 w-5 text-gray-500" />
+            <input
+              type="text"
+              value={globalFilter || ""}
+              onChange={(e) => {
+                setGlobalFilter(e.target.value || undefined);
+                gotoPage(0);
+              }}
+              placeholder="Buscar evento..."
+              className="bg-transparent text-sm text-navy-700 outline-none placeholder:text-gray-500 dark:text-white"
+            />
+          </div>
+          <Link className="hover:no-underline" to="crear" onClick={handleCreateEvent}>
+            <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+              Crear Evento <MdAdd className="h-5 w-5" />
+            </button>
+          </Link>
+        </div>
       </div>
 
       <div className="h-full overflow-x-scroll xl:overflow-x-hidden">
@@ -132,7 +149,7 @@ const DevelopmentTable = (props) => {
                           {cell.value}
                         </p>
                       );
-                    } else if (cell.column.Header === "ACTUALIZACIÓN") {
+                    } else if (cell.column.Header === "FECHA DEL EVENTO") {
                       data = (
                         <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
