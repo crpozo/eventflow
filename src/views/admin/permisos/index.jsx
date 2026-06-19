@@ -3,6 +3,7 @@ import { generateClient } from "aws-amplify/api";
 import { updateUser, updateRole } from "graphql/mutations";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import Banner from "./components/Banner";
+import EventPermissionsManager from "./components/EventPermissionsManager";
 
 const client = generateClient();
 
@@ -351,6 +352,8 @@ const AdminUserManager = () => {
           )}
         </div>
       ))}
+
+      <EventPermissionsManager />
 
       </div>
     </div>
