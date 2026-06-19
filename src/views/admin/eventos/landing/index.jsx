@@ -4,7 +4,6 @@ import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event, Landing } from "models";
 import { LandingCreateForm, LandingUpdateForm} from 'ui-components';
-import LandingMediaManager from "./components/LandingMediaManager";
 import {
   MdWeb,
 } from "react-icons/md";
@@ -73,12 +72,6 @@ const Dashboard = () => {
               />
           }
         </div>
-
-        {/* Extra content (gallery, partner logos, custom HTML) — only once the
-            landing exists, since it needs the landing record to attach to. */}
-        {landing && landing.id && (
-          <LandingMediaManager key={landing.id} landing={landing} />
-        )}
 
     </div>
   );

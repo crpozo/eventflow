@@ -210,6 +210,9 @@ export default function LandingCreateForm(props) {
     userConsentCheck: "",
     ticketTitle: [],
     ticketPrice: [],
+    galleryPhotos: [],
+    partnerLogos: [],
+    customHtml: "",
   };
   const [active, setActive] = React.useState(initialValues.active);
   const [title, setTitle] = React.useState(initialValues.title);
@@ -229,6 +232,13 @@ export default function LandingCreateForm(props) {
   const [ticketPrice, setTicketPrice] = React.useState(
     initialValues.ticketPrice
   );
+  const [galleryPhotos, setGalleryPhotos] = React.useState(
+    initialValues.galleryPhotos
+  );
+  const [partnerLogos, setPartnerLogos] = React.useState(
+    initialValues.partnerLogos
+  );
+  const [customHtml, setCustomHtml] = React.useState(initialValues.customHtml);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     setActive(initialValues.active);
@@ -243,6 +253,9 @@ export default function LandingCreateForm(props) {
     setCurrentTicketTitleValue("");
     setTicketPrice(initialValues.ticketPrice);
     setCurrentTicketPriceValue("");
+    setGalleryPhotos(initialValues.galleryPhotos);
+    setPartnerLogos(initialValues.partnerLogos);
+    setCustomHtml(initialValues.customHtml);
     setErrors({});
   };
   const [currentTicketTitleValue, setCurrentTicketTitleValue] =
@@ -262,6 +275,9 @@ export default function LandingCreateForm(props) {
     userConsentCheck: [],
     ticketTitle: [],
     ticketPrice: [],
+    galleryPhotos: [],
+    partnerLogos: [],
+    customHtml: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -299,6 +315,9 @@ export default function LandingCreateForm(props) {
           userConsentCheck,
           ticketTitle,
           ticketPrice,
+          galleryPhotos,
+          partnerLogos,
+          customHtml,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -521,6 +540,79 @@ export default function LandingCreateForm(props) {
           {...getOverrideProps(overrides, "mainBanner")}
         ></StorageManager>
       </Field>
+      <Field
+        errorMessage={errors.galleryPhotos?.errorMessage}
+        hasError={errors.galleryPhotos?.hasError}
+        label={"Galería de fotos"}
+        descriptiveText="Fotos que se muestran en la landing, debajo de los detalles del evento."
+        isRequired={false}
+        isReadOnly={false}
+      >
+        <StorageManager
+          defaultFiles={(galleryPhotos || [])
+            .filter(Boolean)
+            .map((key) => ({ key }))}
+          onUploadSuccess={({ key }) => {
+            setGalleryPhotos((prev) => [...(prev || []), key]);
+          }}
+          onFileRemove={({ key }) => {
+            setGalleryPhotos((prev) => (prev || []).filter((k) => k !== key));
+          }}
+          processFile={processFile}
+          accessLevel={"public"}
+          acceptedFileTypes={["image/*"]}
+          isResumable={false}
+          showThumbnails={true}
+          maxFileCount={30}
+          {...getOverrideProps(overrides, "galleryPhotos")}
+        ></StorageManager>
+      </Field>
+      <Field
+        errorMessage={errors.partnerLogos?.errorMessage}
+        hasError={errors.partnerLogos?.hasError}
+        label={"Logos de aliados (carrusel)"}
+        descriptiveText="Logos que se muestran en un carrusel en la landing."
+        isRequired={false}
+        isReadOnly={false}
+      >
+        <StorageManager
+          defaultFiles={(partnerLogos || [])
+            .filter(Boolean)
+            .map((key) => ({ key }))}
+          onUploadSuccess={({ key }) => {
+            setPartnerLogos((prev) => [...(prev || []), key]);
+          }}
+          onFileRemove={({ key }) => {
+            setPartnerLogos((prev) => (prev || []).filter((k) => k !== key));
+          }}
+          processFile={processFile}
+          accessLevel={"public"}
+          acceptedFileTypes={["image/*"]}
+          isResumable={false}
+          showThumbnails={true}
+          maxFileCount={30}
+          {...getOverrideProps(overrides, "partnerLogos")}
+        ></StorageManager>
+      </Field>
+      <TextAreaField
+        label="Bloque HTML personalizado"
+        descriptiveText="Se renderiza tal cual en la landing. Ej: un botón para descargar un PDF. Usa solo HTML de confianza."
+        placeholder={'<a href="https://..." class="...">Descargar PDF</a>'}
+        isRequired={false}
+        isReadOnly={false}
+        value={customHtml}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (errors.customHtml?.hasError) {
+            runValidationTasks("customHtml", value);
+          }
+          setCustomHtml(value);
+        }}
+        onBlur={() => runValidationTasks("customHtml", customHtml)}
+        errorMessage={errors.customHtml?.errorMessage}
+        hasError={errors.customHtml?.hasError}
+        {...getOverrideProps(overrides, "customHtml")}
+      ></TextAreaField>
       <TextField
         label={
           <span style={{ display: "inline-flex" }}>
