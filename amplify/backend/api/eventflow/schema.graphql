@@ -47,6 +47,9 @@ type Landing @model @auth(rules: [{allow: public}]) {
   extraInfo: String
   userConsentCheck: String
   metaScripts: String
+  galleryPhotos: [String]
+  partnerLogos: [String]
+  customHtml: String
 }
 
 type Attendee @model @auth(rules: [{allow: public}]) {
@@ -65,6 +68,12 @@ type Event @model @auth(rules: [{allow: public}]) {
   category: String
   location: String
   date: AWSDateTime
+  startDate: AWSDateTime
+  endDate: AWSDateTime
+  sendCertificates: Boolean
+  certificate: String
+  certificatePosition: AWSJSON
+  certificatesSentAt: AWSDateTime
   contactTemplate: String
   termsCondition: String!
   totalScannedTicket: Int

@@ -168,6 +168,9 @@ type EagerLanding = {
   readonly extraInfo?: string | null;
   readonly userConsentCheck?: string | null;
   readonly metaScripts?: string | null;
+  readonly galleryPhotos?: (string | null)[] | null;
+  readonly partnerLogos?: (string | null)[] | null;
+  readonly customHtml?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly landingEventId?: string | null;
@@ -191,6 +194,9 @@ type LazyLanding = {
   readonly extraInfo?: string | null;
   readonly userConsentCheck?: string | null;
   readonly metaScripts?: string | null;
+  readonly galleryPhotos?: (string | null)[] | null;
+  readonly partnerLogos?: (string | null)[] | null;
+  readonly customHtml?: string | null;
   readonly createdAt?: string | null;
   readonly updatedAt?: string | null;
   readonly landingEventId?: string | null;
@@ -245,6 +251,12 @@ type EagerEvent = {
   readonly category?: string | null;
   readonly location?: string | null;
   readonly date?: string | null;
+  readonly startDate?: string | null;
+  readonly endDate?: string | null;
+  readonly sendCertificates?: boolean | null;
+  readonly certificate?: string | null;
+  readonly certificatePosition?: string | null;
+  readonly certificatesSentAt?: string | null;
   readonly contactTemplate?: string | null;
   readonly termsCondition: string;
   readonly totalScannedTicket?: number | null;
@@ -275,6 +287,12 @@ type LazyEvent = {
   readonly category?: string | null;
   readonly location?: string | null;
   readonly date?: string | null;
+  readonly startDate?: string | null;
+  readonly endDate?: string | null;
+  readonly sendCertificates?: boolean | null;
+  readonly certificate?: string | null;
+  readonly certificatePosition?: string | null;
+  readonly certificatesSentAt?: string | null;
   readonly contactTemplate?: string | null;
   readonly termsCondition: string;
   readonly totalScannedTicket?: number | null;

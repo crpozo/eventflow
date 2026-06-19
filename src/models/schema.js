@@ -505,6 +505,29 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "galleryPhotos": {
+                    "name": "galleryPhotos",
+                    "isArray": true,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true
+                },
+                "partnerLogos": {
+                    "name": "partnerLogos",
+                    "isArray": true,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": [],
+                    "isArrayNullable": true
+                },
+                "customHtml": {
+                    "name": "customHtml",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "createdAt": {
                     "name": "createdAt",
                     "isArray": false,
@@ -721,6 +744,48 @@ export const schema = {
                 },
                 "date": {
                     "name": "date",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "startDate": {
+                    "name": "startDate",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "endDate": {
+                    "name": "endDate",
+                    "isArray": false,
+                    "type": "AWSDateTime",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "sendCertificates": {
+                    "name": "sendCertificates",
+                    "isArray": false,
+                    "type": "Boolean",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "certificate": {
+                    "name": "certificate",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "certificatePosition": {
+                    "name": "certificatePosition",
+                    "isArray": false,
+                    "type": "AWSJSON",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "certificatesSentAt": {
+                    "name": "certificatesSentAt",
                     "isArray": false,
                     "type": "AWSDateTime",
                     "isRequired": false,
