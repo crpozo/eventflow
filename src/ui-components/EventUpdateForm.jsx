@@ -16,15 +16,20 @@ import {
   Heading,
   Icon,
   ScrollView,
+  SelectField,
+  SwitchField,
   Text,
   TextAreaField,
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
+import { Field } from "@aws-amplify/ui-react/internal";
+import { StorageManager } from "@aws-amplify/ui-react-storage";
 import { Event, Badge as Badge0 } from "../models";
 import {
   fetchByPath,
   getOverrideProps,
+  processFile,
   useDataStoreBinding,
   validateField,
 } from "./utils";
@@ -201,6 +206,11 @@ export default function EventUpdateForm(props) {
     title: "",
     description: "",
     date: "",
+    startDate: "",
+    endDate: "",
+    sendCertificates: false,
+    certificate: "",
+    certificatePosition: "",
     termsCondition: "",
     maxRegs: "",
     totalScannedTicket: "",
@@ -215,6 +225,17 @@ export default function EventUpdateForm(props) {
     initialValues.description
   );
   const [date, setDate] = React.useState(initialValues.date);
+  const [startDate, setStartDate] = React.useState(initialValues.startDate);
+  const [endDate, setEndDate] = React.useState(initialValues.endDate);
+  const [sendCertificates, setSendCertificates] = React.useState(
+    initialValues.sendCertificates
+  );
+  const [certificate, setCertificate] = React.useState(
+    initialValues.certificate
+  );
+  const [certificatePosition, setCertificatePosition] = React.useState(
+    initialValues.certificatePosition
+  );
   const [termsCondition, setTermsCondition] = React.useState(
     initialValues.termsCondition
   );
@@ -243,6 +264,11 @@ export default function EventUpdateForm(props) {
     setTitle(cleanValues.title);
     setDescription(cleanValues.description);
     setDate(cleanValues.date);
+    setStartDate(cleanValues.startDate);
+    setEndDate(cleanValues.endDate);
+    setSendCertificates(cleanValues.sendCertificates);
+    setCertificate(cleanValues.certificate);
+    setCertificatePosition(cleanValues.certificatePosition);
     setTermsCondition(cleanValues.termsCondition);
     setMaxRegs(cleanValues.maxRegs);
     setTotalScannedTicket(cleanValues.totalScannedTicket);
@@ -291,6 +317,11 @@ export default function EventUpdateForm(props) {
     title: [{ type: "Required" }],
     description: [],
     date: [],
+    startDate: [],
+    endDate: [],
+    sendCertificates: [],
+    certificate: [],
+    certificatePosition: [],
     termsCondition: [{ type: "Required" }],
     maxRegs: [],
     totalScannedTicket: [],
@@ -346,6 +377,11 @@ export default function EventUpdateForm(props) {
           title,
           description,
           date,
+          startDate,
+          endDate,
+          sendCertificates,
+          certificate,
+          certificatePosition,
           termsCondition,
           maxRegs,
           totalScannedTicket,
@@ -523,6 +559,111 @@ export default function EventUpdateForm(props) {
         {...getOverrideProps(overrides, "date")}
       ></TextField>
       <TextField
+        label="Fecha y hora de inicio"
+        descriptiveText="Para eventos de varios días, la fecha en que comienza"
+        isRequired={false}
+        isReadOnly={false}
+        type="datetime-local"
+        value={startDate && convertToLocal(new Date(startDate))}
+        onChange={(e) => {
+          let value =
+            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
+          if (errors.startDate?.hasError) {
+            runValidationTasks("startDate", value);
+          }
+          setStartDate(value);
+        }}
+        onBlur={() => runValidationTasks("startDate", startDate)}
+        errorMessage={errors.startDate?.errorMessage}
+        hasError={errors.startDate?.hasError}
+        {...getOverrideProps(overrides, "startDate")}
+      ></TextField>
+      <TextField
+        label="Fecha y hora de fin"
+        descriptiveText="Para eventos de varios días, la fecha en que termina"
+        isRequired={false}
+        isReadOnly={false}
+        type="datetime-local"
+        value={endDate && convertToLocal(new Date(endDate))}
+        onChange={(e) => {
+          let value =
+            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
+          if (errors.endDate?.hasError) {
+            runValidationTasks("endDate", value);
+          }
+          setEndDate(value);
+        }}
+        onBlur={() => runValidationTasks("endDate", endDate)}
+        errorMessage={errors.endDate?.errorMessage}
+        hasError={errors.endDate?.hasError}
+        {...getOverrideProps(overrides, "endDate")}
+      ></TextField>
+      <SwitchField
+        label="Certificados"
+        descriptiveText="Al finalizar el evento se envía automáticamente un certificado por correo a cada participante, con su nombre incrustado en la plantilla."
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={!!sendCertificates}
+        onChange={(e) => {
+          setSendCertificates(e.target.checked);
+        }}
+        {...getOverrideProps(overrides, "sendCertificates")}
+      ></SwitchField>
+      {sendCertificates && (
+        <>
+          <Field
+            errorMessage={errors.certificate?.errorMessage}
+            hasError={errors.certificate?.hasError}
+            label={"Plantilla del certificado (imagen o PDF)"}
+            descriptiveText="Sube el diseño del certificado. El nombre del participante se incrustará sobre esta plantilla."
+            isRequired={false}
+            isReadOnly={false}
+          >
+            {eventRecord && (
+              <StorageManager
+                defaultFiles={certificate ? [{ key: certificate }] : []}
+                onUploadSuccess={({ key }) => {
+                  setCertificate(key);
+                }}
+                onFileRemove={() => {
+                  setCertificate(initialValues?.certificate);
+                }}
+                processFile={processFile}
+                accessLevel={"public"}
+                acceptedFileTypes={["image/*", ".pdf"]}
+                isResumable={false}
+                showThumbnails={true}
+                maxFileCount={1}
+                {...getOverrideProps(overrides, "certificate")}
+              ></StorageManager>
+            )}
+          </Field>
+          <SelectField
+            label="Posición del nombre en el certificado"
+            placeholder="Selecciona una posición"
+            isDisabled={false}
+            value={(() => {
+              try {
+                return JSON.parse(certificatePosition);
+              } catch (e) {
+                return certificatePosition || "";
+              }
+            })()}
+            onChange={(e) => {
+              const v = e.target.value;
+              setCertificatePosition(v === "" ? "" : JSON.stringify(v));
+            }}
+            {...getOverrideProps(overrides, "certificatePosition")}
+          >
+            <option value="centro">Centro</option>
+            <option value="centro-arriba">Centro arriba</option>
+            <option value="centro-abajo">Centro abajo</option>
+            <option value="inferior-izquierda">Inferior izquierda</option>
+            <option value="inferior-derecha">Inferior derecha</option>
+          </SelectField>
+        </>
+      )}
+      <TextField
         label={
           <span style={{ display: "inline-flex" }}>
             <span>Términos y condiciones (app móvil)</span>
@@ -643,7 +784,7 @@ export default function EventUpdateForm(props) {
         {...getOverrideProps(overrides, "totalScannedTicket")}
       ></TextField>
       <TextAreaField
-        label="Template email contacto"
+        label="Plantilla de email de contacto"
         isRequired={false}
         isReadOnly={false}
         value={contactTemplate}
