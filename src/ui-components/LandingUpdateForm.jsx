@@ -313,6 +313,7 @@ export default function LandingUpdateForm(props) {
   // Persist gallery / logos / customHtml immediately (re-querying the freshest
   // record to avoid version conflicts), so uploads are saved without having to
   // submit the whole form. Matches the previous media-manager behavior.
+  const customHtmlTimer = React.useRef();
   const persistMedia = async (field, nextValue) => {
     if (!landingRecord?.id) return;
     try {
@@ -663,9 +664,15 @@ export default function LandingUpdateForm(props) {
             runValidationTasks("customHtml", value);
           }
           setCustomHtml(value);
+          // Auto-save shortly after the admin stops typing (no need to blur).
+          clearTimeout(customHtmlTimer.current);
+          customHtmlTimer.current = setTimeout(() => {
+            persistMedia("customHtml", value === "" ? null : value);
+          }, 700);
         }}
         onBlur={() => {
           runValidationTasks("customHtml", customHtml);
+          clearTimeout(customHtmlTimer.current);
           persistMedia("customHtml", customHtml === "" ? null : customHtml);
         }}
         errorMessage={errors.customHtml?.errorMessage}
