@@ -6,6 +6,7 @@ import { Event } from "models"
 import {
   EventUpdateForm
  } from 'ui-components';
+import EventScheduleManager from "./components/EventScheduleManager";
  import {
   MdEditCalendar,
   MdChevronLeft
@@ -61,6 +62,9 @@ const Dashboard = () => {
           <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
             Eliminar
           </button>
+
+          {/* Multi-day schedule (start + end dates) */}
+          <EventScheduleManager key={event.id} event={event} />
         </div>
       }
     </div>

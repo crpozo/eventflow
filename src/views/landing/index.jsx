@@ -50,19 +50,30 @@ export default function SignIn() {
 
   // Dynamic, user-generated content translated on the fly via Amazon Translate.
   const baseTexts = useMemo(() => {
+    // Multi-day: prefer startDate/endDate range, fall back to legacy single date.
+    const startIso = event?.startDate || event?.date;
+    const endIso = event?.endDate;
+    let eventDate = startIso ? formatDateHour(startIso) : "";
+    if (
+      startIso &&
+      endIso &&
+      new Date(endIso).toDateString() !== new Date(startIso).toDateString()
+    ) {
+      eventDate = `${formatDateHour(startIso)} — ${formatDateHour(endIso)}`;
+    }
     const texts = {
       title: landing?.title || "",
       description: landing?.description || "",
       location: landing?.location || "",
       extraInfo: landing?.extraInfo || "",
-      eventDate: event?.date ? formatDateHour(event.date) : "",
+      eventDate,
     };
     // Ticket titles are created per-landing, so translate each one.
     (landing?.ticketTitle || []).forEach((title, i) => {
       texts[`ticket_${i}`] = title || "";
     });
     return texts;
-  }, [landing, event?.date]);
+  }, [landing, event?.date, event?.startDate, event?.endDate]);
 
   const translated = useAwsTranslation(baseTexts, lang);
 
