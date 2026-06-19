@@ -27,6 +27,41 @@ const loadJQueryAndFormBuilder = async () => {
   return jq;
 };
 
+// FormBuilder render wrapper. Defined at module scope so its identity is stable
+// across re-renders: React updates it in place (componentDidUpdate) instead of
+// remounting, so switching language re-renders the form smoothly without the
+// constant "hot reload" flicker.
+class FormBuilder extends Component {
+  fb = createRef();
+
+  async componentDidMount() {
+    await this.renderForm();
+  }
+
+  async componentDidUpdate(prevProps) {
+    if (
+      JSON.stringify(prevProps.formData) !==
+      JSON.stringify(this.props.formData)
+    ) {
+      await this.renderForm();
+    }
+  }
+
+  async renderForm() {
+    const jq = await loadJQueryAndFormBuilder();
+    const el = jq(this.fb.current);
+    el.empty(); // clear previous render before re-rendering (e.g. on lang change)
+    el.formRender({
+      dataType: "json",
+      formData: this.props.formData,
+    });
+  }
+
+  render() {
+    return <div id="fb-editor" ref={this.fb} />;
+  }
+}
+
 const subeventosIds = [
   "364f6cfb-16a6-4f10-839f-e606df7b5537",
   "5eef9fae-24f6-49a5-871c-b84f381ce975",
@@ -58,9 +93,6 @@ const Registro = (props) => {
   const [formData, setFormData] = React.useState([]);
   // Form definition actually rendered (ES original or translated copy).
   const [renderData, setRenderData] = React.useState([]);
-  // Bumped on every renderData change to force FormBuilder to re-run formRender
-  // (it only draws on mount), so switching language actually re-renders the form.
-  const [renderKey, setRenderKey] = React.useState(0);
   const [eventAttendee, setEventAttendee] = React.useState(null);
   const [authorized, setAuthorized] = React.useState(false);
   const [trs, setTrs] = React.useState(null);
@@ -85,47 +117,6 @@ const Registro = (props) => {
   const ticketsRef = useRef(null);
   const formRef = useRef(null);
 
-  // Show form builder class
-  class FormBuilder extends Component {
-    fb = createRef();
-    async componentDidMount() {
-      const jq = await loadJQueryAndFormBuilder();
-      jq(this.fb.current).formRender({
-        dataType: "json",
-        formData: this.props.formData,
-      });
-
-      // Make modifications to the DOM
-      this.modifyDOM();
-    }
-
-    modifyDOM() {
-
-      // Verify the price and modify the end-user ID if necessary
-      /*
-      if (price && parseFloat(price.replace(/[^\d.-]/g, '')) <= 50) {
-        let identificacion = document.querySelector('#identificacion');
-        let tipo_idenfiticacion = document.querySelector('#tipo_identificacion');
-        if (!identificacion || !tipo_idenfiticacion) return;
-        identificacion.parentElement.hidden = true;
-        identificacion.value = '9999999999';
-        tipo_idenfiticacion.parentElement.hidden = true;
-      }
-      */
-    }
-
-    shouldComponentUpdate(nextProps) {
-      return (
-        JSON.stringify(this.props.formData) !==
-        JSON.stringify(nextProps.formData)
-      );
-    }
-
-    render() {
-      return <div id="fb-editor" ref={this.fb} />;
-    }
-  }
-
   // Translate the form definition on the fly when the language changes.
   // Shows the original (ES) immediately, then upgrades to the translated copy
   // once Amazon Translate responds (mirrors the rest of the landing).
@@ -134,17 +125,13 @@ const Registro = (props) => {
     const target = (lang || "ES").toLowerCase();
 
     setRenderData(formData);
-    setRenderKey((k) => k + 1);
 
     if (target === "es") return;
 
     let active = true;
     (async () => {
       const translated = await translateFormData(formData, target);
-      if (active) {
-        setRenderData(translated);
-        setRenderKey((k) => k + 1);
-      }
+      if (active) setRenderData(translated);
     })();
     return () => {
       active = false;
@@ -152,8 +139,8 @@ const Registro = (props) => {
   }, [formData, lang]);
 
   const memoizedFormBuilder = React.useMemo(
-    () => <FormBuilder key={renderKey} formData={renderData} />,
-    [renderData, renderKey]
+    () => <FormBuilder formData={renderData} />,
+    [renderData]
   );
 
   const handleBillingCheckboxChange = (state) => {
