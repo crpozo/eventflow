@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
 import { Form } from "models"
+import { EditableSection, useCanEditSection } from "components/sectionEdit";
 import {
   MdEditCalendar
 } from "react-icons/md";
@@ -23,7 +24,8 @@ const Dashboard = () => {
   const [loading, setLoading] = React.useState(false);
   const navigate = useNavigate();
   const eventId = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
-  const client = generateClient(); 
+  const client = generateClient();
+  const canEdit = useCanEditSection("formulario");
 
   React.useEffect( () => {
 
@@ -70,6 +72,7 @@ const Dashboard = () => {
   }, [eventId, navigate]);
 
   async function createForm(formData) {
+    if (!canEdit) return;
     await DataStore.save(
       new Form({
         "formEventId": eventId,
@@ -80,6 +83,7 @@ const Dashboard = () => {
   }
 
   async function updateForm(form, formData) {
+    if (!canEdit) return;
     const updatedEvent= await DataStore.save(
       Form.copyOf(form, updated => {
         updated.questions = formData;
@@ -252,7 +256,9 @@ const Dashboard = () => {
         <Banner />
       </div>
       <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
-        <FormBuilder />
+        <EditableSection section="formulario">
+          <FormBuilder />
+        </EditableSection>
       </div>
 
     </div>

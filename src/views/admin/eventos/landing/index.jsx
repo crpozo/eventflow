@@ -4,6 +4,7 @@ import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event, Landing } from "models";
 import { LandingCreateForm, LandingUpdateForm} from 'ui-components';
+import { EditableSection } from "components/sectionEdit";
 import {
   MdWeb,
 } from "react-icons/md";
@@ -51,26 +52,28 @@ const Dashboard = () => {
 
       <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
-          {landing && landing.length !== 0 ?
-              <LandingUpdateForm
-                landing={landing}
-                onSuccess={() => {
-                  alert("Landing actualiza con éxito")
-                }}
-              />
-            :
-              <LandingCreateForm
-                onSuccess={() => {
-                  alert("Landing actualiza con éxito")
-                }}
-                onSubmit={(fields) => {
-                  if(event){
-                    fields.Event = event;
-                    return fields  
-                  }
-                }}
-              />
-          }
+          <EditableSection section="landing">
+            {landing && landing.length !== 0 ?
+                <LandingUpdateForm
+                  landing={landing}
+                  onSuccess={() => {
+                    alert("Landing actualiza con éxito")
+                  }}
+                />
+              :
+                <LandingCreateForm
+                  onSuccess={() => {
+                    alert("Landing actualiza con éxito")
+                  }}
+                  onSubmit={(fields) => {
+                    if(event){
+                      fields.Event = event;
+                      return fields
+                    }
+                  }}
+                />
+            }
+          </EditableSection>
         </div>
 
     </div>

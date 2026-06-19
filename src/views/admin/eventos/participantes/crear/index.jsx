@@ -7,6 +7,7 @@ import { Event, Attendee, EventAttendee } from "models"
 import {
   AttendeeCreateForm
  } from 'ui-components';
+import { useCanEditSection } from "components/sectionEdit";
  import {
   MdPersonAddAlt,
   MdChevronLeft
@@ -17,6 +18,7 @@ const Dashboard = () => {
   const id = useParams().id;
   const navigate = useNavigate();
   const eventID = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
+  const canEdit = useCanEditSection("participantes");
 
   React.useEffect(() => {
     if(!id || id === "no-id"){
@@ -26,7 +28,15 @@ const Dashboard = () => {
 
   }, [id, navigate]);
 
+  // View-only (managed) users can't create participants by URL either.
+  React.useEffect(() => {
+    if (!canEdit) {
+      navigate(`/admin/eventos/${eventID}/participantes`);
+    }
+  }, [canEdit, eventID, navigate]);
+
   async function createAttende(fields){
+    if (!canEdit) return;
     const attendee = await DataStore.save(
       new Attendee({
         name: fields.name,

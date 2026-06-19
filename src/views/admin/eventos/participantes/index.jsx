@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
 import { formatDate } from 'scripts/utils'
 import { regenMissingTickets } from "services/regenMissingTickets";
+import { useCanEditSection } from "components/sectionEdit";
 
 const Marketplace = () => {
 
@@ -14,6 +15,7 @@ const Marketplace = () => {
   const [rows, setRows] = React.useState(null);
   const [event, setEvent] = React.useState(null);
   const id = useParams().id;
+  const canEdit = useCanEditSection("participantes");
 
   React.useEffect(() => {
     if(!id || id === "no-id"){
@@ -97,6 +99,7 @@ const Marketplace = () => {
             columnsData={columns}
             tableData={rows}
             event={event}
+            canEdit={canEdit}
           />
         </div>
       </div>

@@ -7,6 +7,7 @@ import { generateClient } from 'aws-amplify/api';
 import { createBadge, updateBadge, updateEvent } from 'graphql/mutations';
 import { getBadge } from 'graphql/queries';
 import { Event, Badge } from "models";
+import { EditableSection, useCanEditSection } from "components/sectionEdit";
 import { BsFiletypePdf } from "react-icons/bs";
 import { MdClose } from "react-icons/md";
 
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const [event, setEvent] = React.useState([]);
   const id = useParams().id;
   const navigate = useNavigate();
+  const canEdit = useCanEditSection("gafete");
 
   React.useEffect(() => {
     if (!id || id === "no-id") {
@@ -155,6 +157,7 @@ const Dashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canEdit) return;
     console.log("handleSubmit iniciado");
 
     if (frontFile && backFile) {
@@ -343,6 +346,7 @@ const Dashboard = () => {
               </h2>
             </div>
           ) : (
+            <EditableSection section="gafete">
             <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
             {/* Campo de Drag and Drop para Front Design */}
             <div>
@@ -503,6 +507,7 @@ const Dashboard = () => {
               </button>
             </div>
           </form>
+            </EditableSection>
           )}
         </div>
       )}

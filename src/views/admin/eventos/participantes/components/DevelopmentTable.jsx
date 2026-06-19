@@ -16,7 +16,7 @@ import DeleteParticipantButton from "./DeleteParticipantButton";
 import DownloadAllBadgesButton from "./DownloadAllBadgesButton";
 
 const DevelopmentTable = (props) => {
-  const { columnsData, tableData, event } = props;
+  const { columnsData, tableData, event, canEdit = true } = props;
 
   const navigate = useNavigate();
 
@@ -61,7 +61,7 @@ const DevelopmentTable = (props) => {
           </div>
           <div className="flex gap-2">
             <DownloadAllBadgesButton event={event} tableData={tableData} />
-            <UploadExcelButton event={event} />
+            {canEdit && <UploadExcelButton event={event} />}
           </div>
         </div>
       </div>
@@ -121,9 +121,11 @@ const DevelopmentTable = (props) => {
                             eventAttendee={row.original.eventAttendee}
                             event={event}
                           />
-                          <DeleteParticipantButton
-                            eventAttendee={row.original.eventAttendee}
-                          />
+                          {canEdit && (
+                            <DeleteParticipantButton
+                              eventAttendee={row.original.eventAttendee}
+                            />
+                          )}
                         </div>
                       );
                     }

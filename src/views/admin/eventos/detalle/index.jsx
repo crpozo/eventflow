@@ -6,6 +6,7 @@ import { Event } from "models"
 import {
   EventUpdateForm
  } from 'ui-components';
+import { EditableSection } from "components/sectionEdit";
  import {
   MdEditCalendar,
   MdChevronLeft
@@ -48,19 +49,21 @@ const Dashboard = () => {
       {event && event.length !== 0 &&
         <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
-          <EventUpdateForm
-            event={event}
-            onSuccess={() => {    
-              alert("Evento actualizado con éxito")        
-            }}
-            onCancel={() => {
-              navigate('/admin/eventos');
-            }}
-          />
+          <EditableSection section="detalle">
+            <EventUpdateForm
+              event={event}
+              onSuccess={() => {
+                alert("Evento actualizado con éxito")
+              }}
+              onCancel={() => {
+                navigate('/admin/eventos');
+              }}
+            />
 
-          <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
-            Eliminar
-          </button>
+            <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
+              Eliminar
+            </button>
+          </EditableSection>
         </div>
       }
     </div>
