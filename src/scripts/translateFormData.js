@@ -1,16 +1,8 @@
 import { Predictions } from "@aws-amplify/predictions";
+import { applyOverride } from "./translateOverrides";
 
 // Module-level cache shared across renders: `${lang}::${text}` -> translation.
 const cache = {};
-
-// Manual overrides for terms Amazon Translate renders wrong in this context.
-// Keyed by lowercased Spanish source -> { <lang>: "preferred translation" }.
-// e.g. "Dirección" is ambiguous (address / direction / directorate); in a form
-// it means the postal address.
-const OVERRIDES = {
-  "dirección": { en: "Address" },
-  "direccion": { en: "Address" },
-};
 
 // Translates a single string from Spanish to the target language via Amazon
 // Translate, caching the result. Returns the original text on error or when
@@ -22,8 +14,8 @@ export async function translateString(text, lang) {
   }
 
   // Honor manual overrides first (also avoids an unnecessary API call).
-  const override = OVERRIDES[text.trim().toLowerCase()];
-  if (override && override[lang]) return override[lang];
+  const override = applyOverride(text, lang);
+  if (override) return override;
 
   const key = `${lang}::${text}`;
   if (cache[key] !== undefined) return cache[key];

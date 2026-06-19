@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Predictions } from "@aws-amplify/predictions";
+import { applyOverride } from "./translateOverrides";
 
 // Module-level cache shared across components/renders so toggling languages
 // back and forth never re-calls Amazon Translate for the same string.
@@ -41,6 +42,8 @@ export function useAwsTranslation(texts = {}, targetLang = "ES") {
           if (typeof value !== "string" || value.trim().length === 0) {
             return [key, value];
           }
+          const override = applyOverride(value, lang);
+          if (override) return [key, override];
           const hit = cache[`${lang}::${value}`];
           return [key, hit !== undefined ? hit : value];
         })
@@ -60,6 +63,7 @@ export function useAwsTranslation(texts = {}, targetLang = "ES") {
       ([, value]) =>
         typeof value === "string" &&
         value.trim().length > 0 &&
+        !applyOverride(value, lang) &&
         cache[`${lang}::${value}`] === undefined
     );
     if (pending.length === 0) return;
