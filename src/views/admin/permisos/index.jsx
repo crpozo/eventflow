@@ -166,10 +166,26 @@ const AdminUserManager = () => {
       String(err?.message || err)
     );
 
+  // Cognito already has a login for this email (AdminCreateUser -> 409
+  // UsernameExistsException). Not a failure: reuse the existing login.
+  const isUserExists = (err) => {
+    const status =
+      err?.response?.statusCode ??
+      err?.$metadata?.httpStatusCode ??
+      err?.statusCode;
+    return (
+      status === 409 ||
+      /409|UsernameExists|already exists|ya existe/i.test(
+        `${err?.message || ""} ${err?.name || ""}`
+      )
+    );
+  };
+
   const createUser = async (data) => {
-    // 1) Cognito account (sends the invite email). If the function isn't
-    //    deployed yet, fall back to creating just the record so the page works.
-    let loginCreated = false;
+    // 1) Cognito account (sends the invite email).
+    //    - function not deployed yet  -> create just the record.
+    //    - login already exists (409) -> reuse it, still create the record.
+    let loginStatus = "none"; // "created" | "exists" | "none"
     try {
       const op = post({
         apiName: USER_API,
@@ -177,9 +193,10 @@ const AdminUserManager = () => {
         options: { body: { email: data.email, name: data.name } },
       });
       await op.response;
-      loginCreated = true;
+      loginStatus = "created";
     } catch (err) {
-      if (!isApiMissing(err)) throw err; // real error (e.g. email already exists)
+      if (isUserExists(err)) loginStatus = "exists";
+      else if (!isApiMissing(err)) throw err; // real error
     }
     // 2) User record via DataStore. The app links the login to it by email.
     await DataStore.save(
@@ -192,7 +209,7 @@ const AdminUserManager = () => {
         eventIDs: data.eventIDs,
       })
     );
-    return loginCreated;
+    return loginStatus;
   };
 
   const handleSubmit = async (data) => {
@@ -203,12 +220,14 @@ const AdminUserManager = () => {
         await fetchData();
         alert("Usuario actualizado.");
       } else {
-        const loginCreated = await createUser(data);
+        const loginStatus = await createUser(data);
         setModal(null);
         await fetchData();
         alert(
-          loginCreated
+          loginStatus === "created"
             ? "Usuario creado e invitado por correo."
+            : loginStatus === "exists"
+            ? "Usuario creado. Ya existía una cuenta de acceso para ese correo; se reutilizó (no se reenvió invitación)."
             : "Usuario creado con su rol y permisos.\n\nLa cuenta de acceso (login) se generará cuando despliegues la función 'userManager' (Cognito)."
         );
       }
