@@ -227,7 +227,7 @@ const routes = [
     component: <Permisos />,
   },
   {
-    name: "Estructura académica",
+    name: "Estructura",
     layout: "/page",
     path: "campus",
     icon: <MdAccountBalance className="h-6 w-6" />,
