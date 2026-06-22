@@ -32,6 +32,7 @@ import {
 } from "./utils";
 import { Field } from "@aws-amplify/ui-react/internal";
 import { DataStore } from "aws-amplify/datastore";
+import { ImageFileList } from "components/storage/ImageFileList";
 function ArrayField({
   items = [],
   onChange,
@@ -257,9 +258,7 @@ export default function LandingUpdateForm(props) {
     setTicketPrice(cleanValues.ticketPrice ?? []);
     setCurrentTicketPriceValue("");
     setGalleryPhotos(cleanValues.galleryPhotos ?? []);
-    setCurrentGalleryPhotosValue("");
     setPartnerLogos(cleanValues.partnerLogos ?? []);
-    setCurrentPartnerLogosValue("");
     setCustomHtml(cleanValues.customHtml);
     setErrors({});
   };
@@ -280,12 +279,6 @@ export default function LandingUpdateForm(props) {
   const [currentTicketPriceValue, setCurrentTicketPriceValue] =
     React.useState("");
   const ticketPriceRef = React.createRef();
-  const [currentGalleryPhotosValue, setCurrentGalleryPhotosValue] =
-    React.useState("");
-  const galleryPhotosRef = React.createRef();
-  const [currentPartnerLogosValue, setCurrentPartnerLogosValue] =
-    React.useState("");
-  const partnerLogosRef = React.createRef();
   const validations = {
     active: [],
     title: [{ type: "Required" }],
@@ -317,6 +310,29 @@ export default function LandingUpdateForm(props) {
     }
     setErrors((errors) => ({ ...errors, [fieldName]: validationResponse }));
     return validationResponse;
+  };
+  // Persist gallery / logos / customHtml immediately (re-querying the freshest
+  // record to avoid version conflicts), so uploads are saved without having to
+  // submit the whole form. Matches the previous media-manager behavior.
+  const customHtmlTimer = React.useRef();
+  const persistMedia = async (field, nextValue) => {
+    if (!landingRecord?.id) return;
+    // De-dupe array values (gallery/logos) so duplicate keys never accumulate.
+    const value = Array.isArray(nextValue)
+      ? [...new Set(nextValue.filter(Boolean))]
+      : nextValue;
+    try {
+      const fresh = await DataStore.query(Landing, landingRecord.id);
+      if (!fresh) return;
+      const saved = await DataStore.save(
+        Landing.copyOf(fresh, (u) => {
+          u[field] = value;
+        })
+      );
+      setLandingRecord(saved);
+    } catch (e) {
+      console.error("No se pudo guardar el contenido extra:", e);
+    }
   };
   return (
     <Grid
@@ -405,9 +421,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             value = result?.active ?? value;
@@ -451,9 +464,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             value = result?.title ?? value;
@@ -494,9 +504,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             value = result?.description ?? value;
@@ -536,9 +543,6 @@ export default function LandingUpdateForm(props) {
                     userConsentCheck,
                     ticketTitle,
                     ticketPrice,
-                    galleryPhotos,
-                    partnerLogos,
-                    customHtml,
                   };
                   const result = onChange(modelFields);
                   value = result?.mainBanner ?? value;
@@ -561,9 +565,6 @@ export default function LandingUpdateForm(props) {
                     userConsentCheck,
                     ticketTitle,
                     ticketPrice,
-                    galleryPhotos,
-                    partnerLogos,
-                    customHtml,
                   };
                   const result = onChange(modelFields);
                   value = result?.mainBanner ?? value;
@@ -577,10 +578,115 @@ export default function LandingUpdateForm(props) {
             isResumable={false}
             showThumbnails={true}
             maxFileCount={1}
+            components={{ FileList: ImageFileList }}
             {...getOverrideProps(overrides, "mainBanner")}
           ></StorageManager>
         )}
       </Field>
+      <Field
+        errorMessage={errors.galleryPhotos?.errorMessage}
+        hasError={errors.galleryPhotos?.hasError}
+        label={"Galería de fotos"}
+        descriptiveText="Fotos que se muestran en la landing, debajo de los detalles del evento."
+        isRequired={false}
+        isReadOnly={false}
+      >
+        {landingRecord && (
+          <StorageManager
+            defaultFiles={[
+              ...new Set((landingRecord.galleryPhotos || []).filter(Boolean)),
+            ].map((key) => ({ key }))}
+            onUploadSuccess={({ key }) => {
+              setGalleryPhotos((prev) => {
+                const next = [...new Set([...(prev || []), key])];
+                persistMedia("galleryPhotos", next);
+                return next;
+              });
+            }}
+            onFileRemove={({ key }) => {
+              setGalleryPhotos((prev) => {
+                const next = (prev || []).filter((k) => k !== key);
+                persistMedia("galleryPhotos", next);
+                return next;
+              });
+            }}
+            processFile={processFile}
+            accessLevel={"public"}
+            acceptedFileTypes={["image/*"]}
+            isResumable={false}
+            showThumbnails={true}
+            maxFileCount={30}
+            components={{ FileList: ImageFileList }}
+            {...getOverrideProps(overrides, "galleryPhotos")}
+          ></StorageManager>
+        )}
+      </Field>
+      <Field
+        errorMessage={errors.partnerLogos?.errorMessage}
+        hasError={errors.partnerLogos?.hasError}
+        label={"Logos de aliados (carrusel)"}
+        descriptiveText="Logos que se muestran en un carrusel en la landing."
+        isRequired={false}
+        isReadOnly={false}
+      >
+        {landingRecord && (
+          <StorageManager
+            defaultFiles={[
+              ...new Set((landingRecord.partnerLogos || []).filter(Boolean)),
+            ].map((key) => ({ key }))}
+            onUploadSuccess={({ key }) => {
+              setPartnerLogos((prev) => {
+                const next = [...new Set([...(prev || []), key])];
+                persistMedia("partnerLogos", next);
+                return next;
+              });
+            }}
+            onFileRemove={({ key }) => {
+              setPartnerLogos((prev) => {
+                const next = (prev || []).filter((k) => k !== key);
+                persistMedia("partnerLogos", next);
+                return next;
+              });
+            }}
+            processFile={processFile}
+            accessLevel={"public"}
+            acceptedFileTypes={["image/*"]}
+            isResumable={false}
+            showThumbnails={true}
+            maxFileCount={30}
+            components={{ FileList: ImageFileList }}
+            {...getOverrideProps(overrides, "partnerLogos")}
+          ></StorageManager>
+        )}
+      </Field>
+      <TextAreaField
+        label="Bloque HTML personalizado"
+        descriptiveText="Se renderiza tal cual en la landing. Ej: un botón para descargar un PDF. Usa solo HTML de confianza."
+        placeholder={'<a href="https://..." class="...">Descargar PDF</a>'}
+        isRequired={false}
+        isReadOnly={false}
+        value={customHtml}
+        onChange={(e) => {
+          let { value } = e.target;
+          if (errors.customHtml?.hasError) {
+            runValidationTasks("customHtml", value);
+          }
+          setCustomHtml(value);
+          // Auto-save shortly after the admin stops typing (no need to blur).
+          clearTimeout(customHtmlTimer.current);
+          customHtmlTimer.current = setTimeout(() => {
+            persistMedia("customHtml", value === "" ? null : value);
+          }, 700);
+        }}
+        onBlur={() => {
+          runValidationTasks("customHtml", customHtml);
+          clearTimeout(customHtmlTimer.current);
+          persistMedia("customHtml", customHtml === "" ? null : customHtml);
+        }}
+        errorMessage={errors.customHtml?.errorMessage}
+        hasError={errors.customHtml?.hasError}
+        {...getOverrideProps(overrides, "customHtml")}
+      ></TextAreaField>
       <TextField
         label={
           <span style={{ display: "inline-flex" }}>
@@ -605,9 +711,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             value = result?.location ?? value;
@@ -641,9 +744,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             value = result?.cost ?? value;
@@ -688,9 +788,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             value = result?.extraInfo ?? value;
@@ -724,9 +821,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck: value,
               ticketTitle,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             value = result?.userConsentCheck ?? value;
@@ -765,9 +859,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle: values,
               ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             values = result?.ticketTitle ?? values;
@@ -824,9 +915,6 @@ export default function LandingUpdateForm(props) {
               userConsentCheck,
               ticketTitle,
               ticketPrice: values,
-              galleryPhotos,
-              partnerLogos,
-              customHtml,
             };
             const result = onChange(modelFields);
             values = result?.ticketPrice ?? values;
@@ -872,160 +960,6 @@ export default function LandingUpdateForm(props) {
           {...getOverrideProps(overrides, "ticketPrice")}
         ></TextField>
       </ArrayField>
-      <ArrayField
-        onChange={async (items) => {
-          let values = items;
-          if (onChange) {
-            const modelFields = {
-              active,
-              title,
-              description,
-              mainBanner,
-              location,
-              cost,
-              extraInfo,
-              userConsentCheck,
-              ticketTitle,
-              ticketPrice,
-              galleryPhotos: values,
-              partnerLogos,
-              customHtml,
-            };
-            const result = onChange(modelFields);
-            values = result?.galleryPhotos ?? values;
-          }
-          setGalleryPhotos(values);
-          setCurrentGalleryPhotosValue("");
-        }}
-        currentFieldValue={currentGalleryPhotosValue}
-        label={"Gallery photos"}
-        items={galleryPhotos}
-        hasError={errors?.galleryPhotos?.hasError}
-        runValidationTasks={async () =>
-          await runValidationTasks("galleryPhotos", currentGalleryPhotosValue)
-        }
-        errorMessage={errors?.galleryPhotos?.errorMessage}
-        setFieldValue={setCurrentGalleryPhotosValue}
-        inputFieldRef={galleryPhotosRef}
-        defaultFieldValue={""}
-      >
-        <TextField
-          label="Gallery photos"
-          isRequired={false}
-          isReadOnly={false}
-          value={currentGalleryPhotosValue}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.galleryPhotos?.hasError) {
-              runValidationTasks("galleryPhotos", value);
-            }
-            setCurrentGalleryPhotosValue(value);
-          }}
-          onBlur={() =>
-            runValidationTasks("galleryPhotos", currentGalleryPhotosValue)
-          }
-          errorMessage={errors.galleryPhotos?.errorMessage}
-          hasError={errors.galleryPhotos?.hasError}
-          ref={galleryPhotosRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "galleryPhotos")}
-        ></TextField>
-      </ArrayField>
-      <ArrayField
-        onChange={async (items) => {
-          let values = items;
-          if (onChange) {
-            const modelFields = {
-              active,
-              title,
-              description,
-              mainBanner,
-              location,
-              cost,
-              extraInfo,
-              userConsentCheck,
-              ticketTitle,
-              ticketPrice,
-              galleryPhotos,
-              partnerLogos: values,
-              customHtml,
-            };
-            const result = onChange(modelFields);
-            values = result?.partnerLogos ?? values;
-          }
-          setPartnerLogos(values);
-          setCurrentPartnerLogosValue("");
-        }}
-        currentFieldValue={currentPartnerLogosValue}
-        label={"Partner logos"}
-        items={partnerLogos}
-        hasError={errors?.partnerLogos?.hasError}
-        runValidationTasks={async () =>
-          await runValidationTasks("partnerLogos", currentPartnerLogosValue)
-        }
-        errorMessage={errors?.partnerLogos?.errorMessage}
-        setFieldValue={setCurrentPartnerLogosValue}
-        inputFieldRef={partnerLogosRef}
-        defaultFieldValue={""}
-      >
-        <TextField
-          label="Partner logos"
-          isRequired={false}
-          isReadOnly={false}
-          value={currentPartnerLogosValue}
-          onChange={(e) => {
-            let { value } = e.target;
-            if (errors.partnerLogos?.hasError) {
-              runValidationTasks("partnerLogos", value);
-            }
-            setCurrentPartnerLogosValue(value);
-          }}
-          onBlur={() =>
-            runValidationTasks("partnerLogos", currentPartnerLogosValue)
-          }
-          errorMessage={errors.partnerLogos?.errorMessage}
-          hasError={errors.partnerLogos?.hasError}
-          ref={partnerLogosRef}
-          labelHidden={true}
-          {...getOverrideProps(overrides, "partnerLogos")}
-        ></TextField>
-      </ArrayField>
-      <TextField
-        label="Custom html"
-        isRequired={false}
-        isReadOnly={false}
-        value={customHtml}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              active,
-              title,
-              description,
-              mainBanner,
-              location,
-              cost,
-              extraInfo,
-              userConsentCheck,
-              ticketTitle,
-              ticketPrice,
-              galleryPhotos,
-              partnerLogos,
-              customHtml: value,
-            };
-            const result = onChange(modelFields);
-            value = result?.customHtml ?? value;
-          }
-          if (errors.customHtml?.hasError) {
-            runValidationTasks("customHtml", value);
-          }
-          setCustomHtml(value);
-        }}
-        onBlur={() => runValidationTasks("customHtml", customHtml)}
-        errorMessage={errors.customHtml?.errorMessage}
-        hasError={errors.customHtml?.hasError}
-        {...getOverrideProps(overrides, "customHtml")}
-      ></TextField>
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
