@@ -415,7 +415,8 @@ export default function SignIn() {
                           {translated.eventDate}
                           {translated.eventDateEnd ? (
                             <>
-                              <br />— {translated.eventDateEnd}
+                              <br />
+                              {translated.eventDateEnd}
                             </>
                           ) : null}
                         </p>
