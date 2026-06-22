@@ -17,6 +17,8 @@ export { default as CareerUpdateForm } from "./CareerUpdateForm";
 export { default as EventAttendeeCreateForm } from "./EventAttendeeCreateForm";
 export { default as EventAttendeeUpdateForm } from "./EventAttendeeUpdateForm";
 export { default as EventCreateForm } from "./EventCreateForm";
+export { default as EventPermissionCreateForm } from "./EventPermissionCreateForm";
+export { default as EventPermissionUpdateForm } from "./EventPermissionUpdateForm";
 export { default as EventUpdateForm } from "./EventUpdateForm";
 export { default as FormCreateForm } from "./FormCreateForm";
 export { default as FormUpdateForm } from "./FormUpdateForm";

@@ -33,6 +33,9 @@ export declare type LandingCreateFormInputValues = {
     userConsentCheck?: string;
     ticketTitle?: string[];
     ticketPrice?: number[];
+    galleryPhotos?: string[];
+    partnerLogos?: string[];
+    customHtml?: string;
 };
 export declare type LandingCreateFormValidationValues = {
     active?: ValidationFunction<boolean>;
@@ -45,6 +48,9 @@ export declare type LandingCreateFormValidationValues = {
     userConsentCheck?: ValidationFunction<string>;
     ticketTitle?: ValidationFunction<string>;
     ticketPrice?: ValidationFunction<number>;
+    galleryPhotos?: ValidationFunction<string>;
+    partnerLogos?: ValidationFunction<string>;
+    customHtml?: ValidationFunction<string>;
 };
 export declare type PrimitiveOverrideProps<T> = Partial<T> & React.DOMAttributes<HTMLDivElement>;
 export declare type LandingCreateFormOverridesProps = {
@@ -62,6 +68,9 @@ export declare type LandingCreateFormOverridesProps = {
     SectionalElement0?: PrimitiveOverrideProps<TextProps>;
     ticketTitle?: PrimitiveOverrideProps<TextFieldProps>;
     ticketPrice?: PrimitiveOverrideProps<TextFieldProps>;
+    galleryPhotos?: PrimitiveOverrideProps<TextFieldProps>;
+    partnerLogos?: PrimitiveOverrideProps<TextFieldProps>;
+    customHtml?: PrimitiveOverrideProps<TextFieldProps>;
 } & EscapeHatchProps;
 export declare type LandingCreateFormProps = React.PropsWithChildren<{
     overrides?: LandingCreateFormOverridesProps | undefined | null;

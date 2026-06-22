@@ -36,6 +36,20 @@
       },
       "providerPlugin": "awscloudformation",
       "service": "AppSync"
+    },
+    "userApi": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "userManager"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
     }
   },
   "auth": {
@@ -92,6 +106,20 @@
       ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    },
+    "userManager": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "eventflow"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
     }
   },
   "parameters": {
@@ -116,6 +144,22 @@
         {
           "category": "function",
           "resourceName": "certificateSender"
+        }
+      ]
+    },
+    "AMPLIFY_function_userManager_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "userManager"
+        }
+      ]
+    },
+    "AMPLIFY_function_userManager_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "userManager"
         }
       ]
     }

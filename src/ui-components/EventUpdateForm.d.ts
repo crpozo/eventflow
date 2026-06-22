@@ -5,7 +5,7 @@
  **************************************************************************/
 
 import * as React from "react";
-import { AutocompleteProps, GridProps, HeadingProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
+import { AutocompleteProps, GridProps, HeadingProps, SwitchFieldProps, TextAreaFieldProps, TextFieldProps } from "@aws-amplify/ui-react";
 import { Event, Badge as Badge0 } from "../models";
 export declare type EscapeHatchProps = {
     [elementHierarchy: string]: Record<string, unknown>;
@@ -30,6 +30,12 @@ export declare type EventUpdateFormInputValues = {
     maxRegs?: number;
     totalScannedTicket?: number;
     contactTemplate?: string;
+    startDate?: string;
+    endDate?: string;
+    sendCertificates?: boolean;
+    certificate?: string;
+    certificatePosition?: string;
+    certificatesSentAt?: string;
     Badge?: Badge0;
     usuarioUSFQ?: string;
     eventIdUSFQ?: string;
@@ -43,6 +49,12 @@ export declare type EventUpdateFormValidationValues = {
     maxRegs?: ValidationFunction<number>;
     totalScannedTicket?: ValidationFunction<number>;
     contactTemplate?: ValidationFunction<string>;
+    startDate?: ValidationFunction<string>;
+    endDate?: ValidationFunction<string>;
+    sendCertificates?: ValidationFunction<boolean>;
+    certificate?: ValidationFunction<string>;
+    certificatePosition?: ValidationFunction<string>;
+    certificatesSentAt?: ValidationFunction<string>;
     Badge?: ValidationFunction<Badge0>;
     usuarioUSFQ?: ValidationFunction<string>;
     eventIdUSFQ?: ValidationFunction<string>;
@@ -58,6 +70,12 @@ export declare type EventUpdateFormOverridesProps = {
     maxRegs?: PrimitiveOverrideProps<TextFieldProps>;
     totalScannedTicket?: PrimitiveOverrideProps<TextFieldProps>;
     contactTemplate?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    startDate?: PrimitiveOverrideProps<TextFieldProps>;
+    endDate?: PrimitiveOverrideProps<TextFieldProps>;
+    sendCertificates?: PrimitiveOverrideProps<SwitchFieldProps>;
+    certificate?: PrimitiveOverrideProps<TextFieldProps>;
+    certificatePosition?: PrimitiveOverrideProps<TextAreaFieldProps>;
+    certificatesSentAt?: PrimitiveOverrideProps<TextFieldProps>;
     Badge?: PrimitiveOverrideProps<AutocompleteProps>;
     SectionalElement0?: PrimitiveOverrideProps<HeadingProps>;
     usuarioUSFQ?: PrimitiveOverrideProps<TextFieldProps>;

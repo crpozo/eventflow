@@ -198,10 +198,16 @@ export default function UserUpdateForm(props) {
     email: "",
     name: "",
     role: undefined,
+    campusIDs: [],
+    areaIDs: [],
+    eventIDs: [],
   };
   const [email, setEmail] = React.useState(initialValues.email);
   const [name, setName] = React.useState(initialValues.name);
   const [role, setRole] = React.useState(initialValues.role);
+  const [campusIDs, setCampusIDs] = React.useState(initialValues.campusIDs);
+  const [areaIDs, setAreaIDs] = React.useState(initialValues.areaIDs);
+  const [eventIDs, setEventIDs] = React.useState(initialValues.eventIDs);
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = userRecord
@@ -212,6 +218,12 @@ export default function UserUpdateForm(props) {
     setRole(cleanValues.role);
     setCurrentRoleValue(undefined);
     setCurrentRoleDisplayValue("");
+    setCampusIDs(cleanValues.campusIDs ?? []);
+    setCurrentCampusIDsValue("");
+    setAreaIDs(cleanValues.areaIDs ?? []);
+    setCurrentAreaIDsValue("");
+    setEventIDs(cleanValues.eventIDs ?? []);
+    setCurrentEventIDsValue("");
     setErrors({});
   };
   const [userRecord, setUserRecord] = React.useState(userModelProp);
@@ -231,6 +243,12 @@ export default function UserUpdateForm(props) {
     React.useState("");
   const [currentRoleValue, setCurrentRoleValue] = React.useState(undefined);
   const roleRef = React.createRef();
+  const [currentCampusIDsValue, setCurrentCampusIDsValue] = React.useState("");
+  const campusIDsRef = React.createRef();
+  const [currentAreaIDsValue, setCurrentAreaIDsValue] = React.useState("");
+  const areaIDsRef = React.createRef();
+  const [currentEventIDsValue, setCurrentEventIDsValue] = React.useState("");
+  const eventIDsRef = React.createRef();
   const getIDValue = {
     role: (r) => JSON.stringify({ id: r?.id }),
   };
@@ -250,6 +268,9 @@ export default function UserUpdateForm(props) {
     email: [{ type: "Required" }],
     name: [],
     role: [],
+    campusIDs: [],
+    areaIDs: [],
+    eventIDs: [],
   };
   const runValidationTasks = async (
     fieldName,
@@ -280,6 +301,9 @@ export default function UserUpdateForm(props) {
           email,
           name,
           role,
+          campusIDs,
+          areaIDs,
+          eventIDs,
         };
         const validationResponses = await Promise.all(
           Object.keys(validations).reduce((promises, fieldName) => {
@@ -349,6 +373,9 @@ export default function UserUpdateForm(props) {
               email: value,
               name,
               role,
+              campusIDs,
+              areaIDs,
+              eventIDs,
             };
             const result = onChange(modelFields);
             value = result?.email ?? value;
@@ -375,6 +402,9 @@ export default function UserUpdateForm(props) {
               email,
               name: value,
               role,
+              campusIDs,
+              areaIDs,
+              eventIDs,
             };
             const result = onChange(modelFields);
             value = result?.name ?? value;
@@ -398,6 +428,9 @@ export default function UserUpdateForm(props) {
               email,
               name,
               role: value,
+              campusIDs,
+              areaIDs,
+              eventIDs,
             };
             const result = onChange(modelFields);
             value = result?.role ?? value;
@@ -464,6 +497,156 @@ export default function UserUpdateForm(props) {
           labelHidden={true}
           {...getOverrideProps(overrides, "role")}
         ></Autocomplete>
+      </ArrayField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              email,
+              name,
+              role,
+              campusIDs: values,
+              areaIDs,
+              eventIDs,
+            };
+            const result = onChange(modelFields);
+            values = result?.campusIDs ?? values;
+          }
+          setCampusIDs(values);
+          setCurrentCampusIDsValue("");
+        }}
+        currentFieldValue={currentCampusIDsValue}
+        label={"Campus i ds"}
+        items={campusIDs}
+        hasError={errors?.campusIDs?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("campusIDs", currentCampusIDsValue)
+        }
+        errorMessage={errors?.campusIDs?.errorMessage}
+        setFieldValue={setCurrentCampusIDsValue}
+        inputFieldRef={campusIDsRef}
+        defaultFieldValue={""}
+      >
+        <TextField
+          label="Campus i ds"
+          isRequired={false}
+          isReadOnly={false}
+          value={currentCampusIDsValue}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.campusIDs?.hasError) {
+              runValidationTasks("campusIDs", value);
+            }
+            setCurrentCampusIDsValue(value);
+          }}
+          onBlur={() => runValidationTasks("campusIDs", currentCampusIDsValue)}
+          errorMessage={errors.campusIDs?.errorMessage}
+          hasError={errors.campusIDs?.hasError}
+          ref={campusIDsRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "campusIDs")}
+        ></TextField>
+      </ArrayField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              email,
+              name,
+              role,
+              campusIDs,
+              areaIDs: values,
+              eventIDs,
+            };
+            const result = onChange(modelFields);
+            values = result?.areaIDs ?? values;
+          }
+          setAreaIDs(values);
+          setCurrentAreaIDsValue("");
+        }}
+        currentFieldValue={currentAreaIDsValue}
+        label={"Area i ds"}
+        items={areaIDs}
+        hasError={errors?.areaIDs?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("areaIDs", currentAreaIDsValue)
+        }
+        errorMessage={errors?.areaIDs?.errorMessage}
+        setFieldValue={setCurrentAreaIDsValue}
+        inputFieldRef={areaIDsRef}
+        defaultFieldValue={""}
+      >
+        <TextField
+          label="Area i ds"
+          isRequired={false}
+          isReadOnly={false}
+          value={currentAreaIDsValue}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.areaIDs?.hasError) {
+              runValidationTasks("areaIDs", value);
+            }
+            setCurrentAreaIDsValue(value);
+          }}
+          onBlur={() => runValidationTasks("areaIDs", currentAreaIDsValue)}
+          errorMessage={errors.areaIDs?.errorMessage}
+          hasError={errors.areaIDs?.hasError}
+          ref={areaIDsRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "areaIDs")}
+        ></TextField>
+      </ArrayField>
+      <ArrayField
+        onChange={async (items) => {
+          let values = items;
+          if (onChange) {
+            const modelFields = {
+              email,
+              name,
+              role,
+              campusIDs,
+              areaIDs,
+              eventIDs: values,
+            };
+            const result = onChange(modelFields);
+            values = result?.eventIDs ?? values;
+          }
+          setEventIDs(values);
+          setCurrentEventIDsValue("");
+        }}
+        currentFieldValue={currentEventIDsValue}
+        label={"Event i ds"}
+        items={eventIDs}
+        hasError={errors?.eventIDs?.hasError}
+        runValidationTasks={async () =>
+          await runValidationTasks("eventIDs", currentEventIDsValue)
+        }
+        errorMessage={errors?.eventIDs?.errorMessage}
+        setFieldValue={setCurrentEventIDsValue}
+        inputFieldRef={eventIDsRef}
+        defaultFieldValue={""}
+      >
+        <TextField
+          label="Event i ds"
+          isRequired={false}
+          isReadOnly={false}
+          value={currentEventIDsValue}
+          onChange={(e) => {
+            let { value } = e.target;
+            if (errors.eventIDs?.hasError) {
+              runValidationTasks("eventIDs", value);
+            }
+            setCurrentEventIDsValue(value);
+          }}
+          onBlur={() => runValidationTasks("eventIDs", currentEventIDsValue)}
+          errorMessage={errors.eventIDs?.errorMessage}
+          hasError={errors.eventIDs?.hasError}
+          ref={eventIDsRef}
+          labelHidden={true}
+          {...getOverrideProps(overrides, "eventIDs")}
+        ></TextField>
       </ArrayField>
       <Flex
         justifyContent="space-between"
