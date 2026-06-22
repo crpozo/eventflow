@@ -8,7 +8,7 @@ import LandingLayout from "layouts/landing";
 import LegalLayout from "layouts/privacidad";
 import UserLayout from "layouts/usuario";
 import logo from "assets/img/usfq/logo_usfq.svg";
-import campus from "assets/img/usfq/USFQ_campus.png";
+import campus from "assets/img/usfq/USFQ_campus.webp";
 import Hotjar from '@hotjar/browser';
 import { PermissionsProvider, usePermissions } from "./providers/PermissionsProvider";
 import { I18n, Hub } from 'aws-amplify/utils';

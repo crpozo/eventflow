@@ -276,6 +276,31 @@ export const syncEventAttendees = /* GraphQL */ `
     }
   }
 `;
+// Slim projection of eventAttendeesByEventID used by the PUBLIC landing only to
+// count registrations for the sold-out check. Selects only `id` (no PII like
+// email/formAnswers/ticket) to keep the payload tiny and avoid exposing
+// attendee data to anonymous visitors.
+export const eventAttendeesIdsByEventID = /* GraphQL */ `
+  query EventAttendeesByEventID(
+    $eventID: ID!
+    $filter: ModelEventAttendeeFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    eventAttendeesByEventID(
+      eventID: $eventID
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
 export const eventAttendeesByEventID = /* GraphQL */ `
   query EventAttendeesByEventID(
     $eventID: ID!

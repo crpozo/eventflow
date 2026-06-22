@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import logo from "assets/img/usfq/logo_2025.png";
-import bgPlaceholder from "assets/img/usfq/bg-placeholder.png";
+import bgPlaceholder from "assets/img/usfq/bg-placeholder.webp";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Registro from "./registro/index";
 import { formatDateHour, formatHour } from 'scripts/utils';
@@ -17,7 +17,7 @@ import {
 } from "react-icons/ai";
 /* GRAPHQL */
 import { generateClient } from 'aws-amplify/api';
-import { getEvent, listLandings, eventAttendeesByEventID ,getEventAttendee } from '../../graphql/queries';
+import { getEvent, listLandings, eventAttendeesIdsByEventID, getEventAttendee } from '../../graphql/queries';
 
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
@@ -131,34 +131,30 @@ export default function SignIn() {
    
     async function getLandingEventGraphql() {
 
-      const resultEvent = await client.graphql({ 
-        query: getEvent,
-        variables: { id: id } 
-      });
+      // Fetch the event and its landing concurrently. The landing FK lives on
+      // the Landing side (landingEventId), so Event.Landing does not resolve and
+      // it must be looked up via listLandings. Running both in parallel saves one
+      // cross-region round-trip vs the previous sequential awaits.
+      const [resultEvent, resultLanding] = await Promise.all([
+        client.graphql({ query: getEvent, variables: { id: id } }),
+        client.graphql({
+          query: listLandings,
+          variables: { filter: { landingEventId: { eq: id } } },
+        }),
+      ]);
 
-      const resultLanding = await client.graphql({ 
-        query: listLandings,
-        variables: {
-          filter: {
-            landingEventId: {
-              eq: id
-            }
-          }
-        }
-      });
+      if (resultEvent.data.getEvent) {
+        const ev = resultEvent.data.getEvent;
+        setEvent(ev);
 
-      if(resultEvent.data.getEvent){
-
-        setEvent(resultEvent.data.getEvent);
-
-        if(resultLanding.data.listLandings.items[0]){
-
-          setLanding(resultLanding.data.listLandings.items[0])
+        const landingItem = resultLanding?.data?.listLandings?.items?.[0];
+        if (landingItem) {
+          setLanding(landingItem);
           // Format price ticket
-          const tickets = resultLanding.data.listLandings.items[0].ticketTitle.map((title, index) => {
+          const tickets = landingItem.ticketTitle.map((title, index) => {
             const cost =
-            resultLanding.data.listLandings.items[0].ticketPrice[index] !== undefined
-                ? `${resultLanding.data.listLandings.items[0].ticketPrice[index].toFixed(2)}`
+              landingItem.ticketPrice[index] !== undefined
+                ? `${landingItem.ticketPrice[index].toFixed(2)}`
                 : "Vacio";
             if (index === 0) setSelectedCost(cost);
             return {
@@ -170,36 +166,36 @@ export default function SignIn() {
           setLoading(false);
         }
 
-        try {
-         // fetch all pages (default page size ~100)
-          let nextToken = null;
-          const allItems = [];
-          do {
-            const resp = await client.graphql({
-              query: eventAttendeesByEventID,
-              variables: {
-                eventID: id,
-                filter: { _deleted: { ne: true } },
-                limit: 1000,
-                nextToken
-              }
-            });
-            const page = resp?.data?.eventAttendeesByEventID;
-            allItems.push(...(page?.items ?? []));
-            nextToken = page?.nextToken ?? null;
-          } while (nextToken);
-
-           const currentRegs = allItems.length;
-          const maxRegs = resultEvent?.data?.getEvent?.maxRegs;
-
-          console.log("currentRegs:", currentRegs);
-          console.log("maxRegs:", maxRegs);
-
-          setIsSoldOut(typeof maxRegs === "number" && currentRegs >= maxRegs);
-        } catch (error) {
-          console.error("Error fetching event attendees or validating maxRegs:", error);
+        // Sold-out check: only relevant when a cap (maxRegs) is set. Count by
+        // paging an id-only projection (no PII) and stop as soon as we reach the
+        // cap — avoids pulling the entire attendee table on this public page.
+        const maxRegs = ev.maxRegs;
+        if (typeof maxRegs === "number") {
+          try {
+            let nextToken = null;
+            let count = 0;
+            do {
+              const resp = await client.graphql({
+                query: eventAttendeesIdsByEventID,
+                variables: {
+                  eventID: id,
+                  filter: { _deleted: { ne: true } },
+                  limit: 1000,
+                  nextToken,
+                },
+              });
+              const page = resp?.data?.eventAttendeesByEventID;
+              count += page?.items?.length ?? 0;
+              nextToken = page?.nextToken ?? null;
+            } while (nextToken && count < maxRegs);
+            setIsSoldOut(count >= maxRegs);
+          } catch (error) {
+            console.error("Error validating maxRegs:", error);
+            setIsSoldOut(false);
+          }
+        } else {
+          setIsSoldOut(false);
         }
-
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -345,12 +341,16 @@ export default function SignIn() {
               className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[400px]"
               src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}
               alt="Banner"
+              fetchpriority="high"
+              decoding="async"
             />
           ) : (
             <img
               className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[400px]"
               src={bgPlaceholder}
               alt="Banner"
+              fetchpriority="high"
+              decoding="async"
             />
           )}
 

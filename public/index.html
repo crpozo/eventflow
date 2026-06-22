@@ -2,6 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- Warm up the cross-region (sa-east-1) AppSync + CloudFront connections
+         early so DNS/TLS overlaps with the bundle download on the landing. -->
+    <link rel="preconnect" href="https://t55gjdtdmvhp5bfc4wtu6yygwa.appsync-api.sa-east-1.amazonaws.com" crossorigin />
+    <link rel="preconnect" href="https://dnuc5lxyun5b.cloudfront.net" crossorigin />
+    <link rel="dns-prefetch" href="https://t55gjdtdmvhp5bfc4wtu6yygwa.appsync-api.sa-east-1.amazonaws.com" />
+    <link rel="dns-prefetch" href="https://dnuc5lxyun5b.cloudfront.net" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" />
@@ -11,7 +17,7 @@
     />
 
     <meta property="og:title" content="Universidad San Francisco de Quito" />
-    <meta property="og:image" content="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.educations.com%2Finstitutions%2Funiversidad-san-francisco-de-quito-usfq&psig=AOvVaw1PK8Qk7yE2Jzvlg95taG9e&ust=1746036647701000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCMjy3MLr_YwDFQAAAAAdAAAAABAE" />
+    <meta property="og:image" content="https://eventflow.ec/logo512.png" />
     <meta property="og:type" content="website" />
 
     <link rel="apple-touch-icon" href="/logo192.png" />

@@ -6,12 +6,14 @@
 @font-face {
   font-family: Outfit;
   src: url("/src/assets/fonts/Outfit.ttf") format("truetype");
+  font-display: swap;
 }
 
 @font-face {
   font-family: Inter;
   src: url("/src/assets/fonts/Inter-Variable.ttf") format("truetype");
-} 
+  font-display: swap;
+}
 
 body, span {
   font-family: "Inter", sans-serif;
