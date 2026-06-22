@@ -412,13 +412,17 @@ export default function SignIn() {
                       <h3 className="text-lg font-bold">{ui.dateAndTime}</h3>
                       {event && (
                         <p className="text-md">
-                          {translated.eventDate}
                           {translated.eventDateEnd ? (
                             <>
+                              <span className="font-semibold">{ui.start}:</span>{" "}
+                              {translated.eventDate}
                               <br />
+                              <span className="font-semibold">{ui.end}:</span>{" "}
                               {translated.eventDateEnd}
                             </>
-                          ) : null}
+                          ) : (
+                            translated.eventDate
+                          )}
                         </p>
                       )}
                     </div>

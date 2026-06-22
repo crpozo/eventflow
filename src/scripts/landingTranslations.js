@@ -11,6 +11,8 @@ export const LANDING_UI = {
     // Event details
     eventDetails: "Detalles del evento",
     dateAndTime: "Fecha y hora",
+    start: "Inicio",
+    end: "Fin",
     location: "Ubicación",
     selectActivity: "Selecciona una actividad",
     confirmAttendance: "Confirma tu asistencia",
@@ -63,6 +65,8 @@ export const LANDING_UI = {
     // Event details
     eventDetails: "Event details",
     dateAndTime: "Date and time",
+    start: "Start",
+    end: "End",
     location: "Location",
     selectActivity: "Select an activity",
     confirmAttendance: "Confirm your attendance",
