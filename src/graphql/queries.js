@@ -744,6 +744,8 @@ export const getEvent = /* GraphQL */ `
       category
       location
       date
+      startDate
+      endDate
       contactTemplate
       termsCondition
       totalScannedTicket
