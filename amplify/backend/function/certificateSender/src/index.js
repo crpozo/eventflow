@@ -78,6 +78,39 @@ const extractName = (eventAttendee) => {
   return eventAttendee.name || "";
 };
 
+// Matches the "¿Desea recibir certificado de participación?" question (answers
+// are stored in Spanish; English kept just in case).
+const CERT_QUESTION =
+  /certificado de participaci[oó]n|certificate of participation/i;
+const isAffirmative = (v) => /^(s[ií]|yes|true|1)$/i.test(String(v ?? "").trim());
+
+// Whether this attendee should receive a certificate:
+//   - the form HAS the certificate question -> only if they answered "Sí"
+//   - the form does NOT have it             -> send to everyone
+const wantsCertificate = (eventAttendee) => {
+  let answers;
+  try {
+    answers = JSON.parse(eventAttendee.formAnswers || "[]");
+  } catch (e) {
+    return true; // unreadable answers -> don't block the send
+  }
+  if (!Array.isArray(answers)) return true;
+  const field = answers.find((a) =>
+    CERT_QUESTION.test(a?.label || a?.name || "")
+  );
+  if (!field) return true; // question not in the form -> send to everyone
+  const selected = Array.isArray(field.userData)
+    ? field.userData[0]
+    : field.userData;
+  // The answer may be stored as the option value or its label; resolve a label.
+  let answer = String(selected ?? "");
+  if (Array.isArray(field.values)) {
+    const opt = field.values.find((v) => String(v?.value) === String(selected));
+    if (opt && opt.label) answer = String(opt.label);
+  }
+  return isAffirmative(answer);
+};
+
 // certificatePosition is stored from the admin form as a JSON string holding a
 // preset key (e.g. '"centro"'). Map each preset to drawing coordinates
 // (top-left %, since the form offers preset positions, not raw coordinates).
@@ -223,6 +256,8 @@ exports.handler = async () => {
       );
       for (const att of page.Items || []) {
         if (!att.email) continue;
+        // Honor the "¿Desea recibir certificado de participación?" answer.
+        if (!wantsCertificate(att)) continue;
         const name = extractName(att) || "Participante";
         try {
           const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
