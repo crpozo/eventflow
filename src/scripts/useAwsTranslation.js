@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Predictions } from "@aws-amplify/predictions";
 import { applyOverride, preprocessForTranslation } from "./translateOverrides";
 
 // Module-level cache shared across components/renders so toggling languages
@@ -72,6 +71,10 @@ export function useAwsTranslation(texts = {}, targetLang = "ES") {
 
     (async () => {
       try {
+        // Lazy-load the Predictions SDK only when a translation is actually
+        // needed (the default ES path early-returns above), so the ~98KB-gz SDK
+        // stays out of the public landing's critical chunk.
+        const { Predictions } = await import("@aws-amplify/predictions");
         // Amazon Translate handles one text per request; run them in parallel.
         await Promise.all(
           pending.map(async ([, value]) => {

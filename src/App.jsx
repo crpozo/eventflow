@@ -1,12 +1,5 @@
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import RtlLayout from "layouts/rtl";
-import AdminLayout from "layouts/admin";
-import AuthLayout from "layouts/auth";
-import PageLayout from "layouts/page";
-import LandingLayout from "layouts/landing"; 
-import LegalLayout from "layouts/privacidad";
-import UserLayout from "layouts/usuario";
 import logo from "assets/img/usfq/logo_usfq.svg";
 import campus from "assets/img/usfq/USFQ_campus.webp";
 import Hotjar from '@hotjar/browser';
@@ -17,6 +10,17 @@ import { useAuthenticator } from '@aws-amplify/ui-react';
 import { Amplify } from 'aws-amplify';
 import config from './amplifyconfiguration.json';
 import '@aws-amplify/ui-react/styles.css';
+
+// Layouts are code-split so a public landing visitor never downloads the admin
+// layout shell (Sidebar -> DataStore/models) or the other layouts they can't see.
+// Every usage below is already wrapped in a <React.Suspense> boundary.
+const RtlLayout = React.lazy(() => import("layouts/rtl"));
+const AdminLayout = React.lazy(() => import("layouts/admin"));
+const AuthLayout = React.lazy(() => import("layouts/auth"));
+const PageLayout = React.lazy(() => import("layouts/page"));
+const LandingLayout = React.lazy(() => import("layouts/landing"));
+const LegalLayout = React.lazy(() => import("layouts/privacidad"));
+const UserLayout = React.lazy(() => import("layouts/usuario"));
 
 I18n.putVocabularies(translations);
 I18n.setLanguage('es');
