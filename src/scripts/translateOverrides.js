@@ -18,11 +18,28 @@ export const TRANSLATE_OVERRIDES = {
   "apellido": { en: "Surname" },
   "apellidos": { en: "Surnames" },
   "sí": { en: "Yes" },
-  // Common Yes/No certificate question wording.
+  // Unaccented "Si" is common in form data; without this Translate reads it as
+  // the conjunction and outputs "If" instead of the Yes/No answer "Yes".
+  "si": { en: "Yes" },
+  // Common Yes/No certificate question wording. The label is authored several
+  // ways (with/without the leading "¿…?", with/without "un"), so list each
+  // variant explicitly — applyOverride matches on the trimmed, lowercased label.
   "¿le gustaría recibir un certificado de participación?": {
     en: "Would you like to receive a certificate of participation?",
   },
+  "¿le gustaría recibir certificado de participación?": {
+    en: "Would you like to receive a certificate of participation?",
+  },
+  "le gustaría recibir certificado de participación": {
+    en: "Would you like to receive a certificate of participation?",
+  },
   "¿desea recibir un certificado de participación?": {
+    en: "Would you like to receive a certificate of participation?",
+  },
+  "¿desea recibir certificado de participación?": {
+    en: "Would you like to receive a certificate of participation?",
+  },
+  "desea recibir certificado de participación": {
     en: "Would you like to receive a certificate of participation?",
   },
 };
