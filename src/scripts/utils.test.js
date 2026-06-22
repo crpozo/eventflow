@@ -1,4 +1,4 @@
-import { formatDateHour, formatDate, formatSpanishDate } from './utils';
+import { formatDateHour, formatHour, formatDate, formatSpanishDate } from './utils';
 
 describe('formatDate', () => {
   it('formats a valid ISO date string', () => {
@@ -36,6 +36,21 @@ describe('formatDateHour', () => {
     // The current implementation does not guard against bad input;
     // it produces a garbage string. This test documents that behavior.
     const result = formatDateHour(undefined);
+    expect(typeof result).toBe('string');
+  });
+});
+
+describe('formatHour', () => {
+  it('returns only the time portion ("hh:mm am/pm"), no date', () => {
+    const result = formatHour('2026-04-29T15:00:00Z');
+    expect(typeof result).toBe('string');
+    // Time only: no weekday or dd/mm/yyyy, just hh:mm am/pm.
+    expect(result).toMatch(/^\d{2}:\d{2} (am|pm)$/);
+    expect(result).not.toMatch(/\d{2}\/\d{2}\/\d{4}/);
+  });
+
+  it('returns a string even for invalid input (no guard in source)', () => {
+    const result = formatHour(undefined);
     expect(typeof result).toBe('string');
   });
 });

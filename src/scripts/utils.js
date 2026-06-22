@@ -62,9 +62,32 @@ export const formatDateHour = (inputDate) => {
     return `${dayOfWeek}, ${("0" + day).slice(-2)}/${(
       "0" + (date.getMonth() + 1)
     ).slice(-2)}/${year} - ${hours}:${formattedMinutes} ${ampm}`;
-    
+
   } catch (e) {
     console.error("formatDateHour: ", e);
+  }
+};
+
+// Returns just the time portion ("09:00 am"), using the exact same hour/minute
+// formatting as formatDateHour. Used to append an end time to a same-day event
+// without repeating the weekday/date.
+export const formatHour = (inputDate) => {
+  try {
+    const date = new Date(inputDate);
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? "pm" : "am";
+
+    if (hours > 12) {
+      hours -= 12;
+    }
+
+    hours = hours < 10 ? "0" + hours : hours;
+    const formattedMinutes = minutes < 10 ? "0" + minutes : minutes;
+
+    return `${hours}:${formattedMinutes} ${ampm}`;
+  } catch (e) {
+    console.error("formatHour: ", e);
   }
 };
 

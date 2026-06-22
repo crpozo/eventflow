@@ -3,7 +3,7 @@ import logo from "assets/img/usfq/logo_2025.png";
 import bgPlaceholder from "assets/img/usfq/bg-placeholder.png";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Registro from "./registro/index";
-import { formatDateHour} from 'scripts/utils';
+import { formatDateHour, formatHour } from 'scripts/utils';
 import { useAwsTranslation} from 'scripts/useAwsTranslation';
 import { getLandingUI } from 'scripts/landingTranslations';
 import LandingExtras from './components/LandingExtras';
@@ -70,12 +70,20 @@ export default function SignIn() {
     const startIso = event?.startDate || event?.date;
     const endIso = event?.endDate;
     let eventDate = startIso ? formatDateHour(startIso) : "";
-    if (
-      startIso &&
-      endIso &&
-      new Date(endIso).toDateString() !== new Date(startIso).toDateString()
-    ) {
-      eventDate = `${formatDateHour(startIso)} — ${formatDateHour(endIso)}`;
+    if (startIso && endIso) {
+      const sameDay =
+        new Date(endIso).toDateString() === new Date(startIso).toDateString();
+      if (sameDay) {
+        // Same calendar day: append only the end time, without repeating the
+        // weekday/date. Skip it when the end time equals the start time.
+        const endHour = formatHour(endIso);
+        if (endHour && endHour !== formatHour(startIso)) {
+          eventDate = `${formatDateHour(startIso)} — ${endHour}`;
+        }
+      } else {
+        // Spans multiple days: show the full end date and time.
+        eventDate = `${formatDateHour(startIso)} — ${formatDateHour(endIso)}`;
+      }
     }
     const texts = {
       title: landing?.title || "",
