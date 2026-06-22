@@ -70,6 +70,9 @@ export default function SignIn() {
     const startIso = event?.startDate || event?.date;
     const endIso = event?.endDate;
     let eventDate = startIso ? formatDateHour(startIso) : "";
+    // For multi-day events the end date renders on its OWN line (see the render
+    // below) so it doesn't cram onto the start line. Empty for single-day events.
+    let eventDateEnd = "";
     if (startIso && endIso) {
       const sameDay =
         new Date(endIso).toDateString() === new Date(startIso).toDateString();
@@ -81,8 +84,8 @@ export default function SignIn() {
           eventDate = `${formatDateHour(startIso)} — ${endHour}`;
         }
       } else {
-        // Spans multiple days: show the full end date and time.
-        eventDate = `${formatDateHour(startIso)} — ${formatDateHour(endIso)}`;
+        // Spans multiple days: the full end date goes on its own line.
+        eventDateEnd = formatDateHour(endIso);
       }
     }
     const texts = {
@@ -91,6 +94,7 @@ export default function SignIn() {
       location: landing?.location || "",
       extraInfo: landing?.extraInfo || "",
       eventDate,
+      eventDateEnd,
     };
     // Ticket titles are created per-landing, so translate each one.
     (landing?.ticketTitle || []).forEach((title, i) => {
@@ -406,7 +410,16 @@ export default function SignIn() {
                     <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
                     <div>
                       <h3 className="text-lg font-bold">{ui.dateAndTime}</h3>
-                      {event && <p className="text-md">{translated.eventDate}</p>}
+                      {event && (
+                        <p className="text-md">
+                          {translated.eventDate}
+                          {translated.eventDateEnd ? (
+                            <>
+                              <br />— {translated.eventDateEnd}
+                            </>
+                          ) : null}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-3">
