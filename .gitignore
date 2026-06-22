@@ -22,6 +22,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Amplify Studio regenerates these unused forms on every `amplify push`; ignore
+# the noise (nothing imports them; they'd be wiped on the next sync anyway).
+src/ui-components/EventPermissionCreateForm.*
+src/ui-components/EventPermissionUpdateForm.*
+
 
 # Update API key date
 #aws appsync update-api-key --api-id 52dhaa7aubfxhbegz7ldxdit5q --id da2-swyipcpkzfgchh2hixruzuajim --expires 1764547200
