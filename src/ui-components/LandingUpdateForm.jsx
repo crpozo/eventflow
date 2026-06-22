@@ -32,6 +32,7 @@ import {
 } from "./utils";
 import { Field } from "@aws-amplify/ui-react/internal";
 import { DataStore } from "aws-amplify/datastore";
+import { ImageFileList } from "components/storage/ImageFileList";
 function ArrayField({
   items = [],
   onChange,
@@ -591,9 +592,9 @@ export default function LandingUpdateForm(props) {
       >
         {landingRecord && (
           <StorageManager
-            defaultFiles={(landingRecord.galleryPhotos || [])
-              .filter(Boolean)
-              .map((key) => ({ key }))}
+            defaultFiles={[
+              ...new Set((landingRecord.galleryPhotos || []).filter(Boolean)),
+            ].map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {
               setGalleryPhotos((prev) => {
                 const next = [...new Set([...(prev || []), key])];
@@ -614,6 +615,7 @@ export default function LandingUpdateForm(props) {
             isResumable={false}
             showThumbnails={true}
             maxFileCount={30}
+            components={{ FileList: ImageFileList }}
             {...getOverrideProps(overrides, "galleryPhotos")}
           ></StorageManager>
         )}
@@ -628,9 +630,9 @@ export default function LandingUpdateForm(props) {
       >
         {landingRecord && (
           <StorageManager
-            defaultFiles={(landingRecord.partnerLogos || [])
-              .filter(Boolean)
-              .map((key) => ({ key }))}
+            defaultFiles={[
+              ...new Set((landingRecord.partnerLogos || []).filter(Boolean)),
+            ].map((key) => ({ key }))}
             onUploadSuccess={({ key }) => {
               setPartnerLogos((prev) => {
                 const next = [...new Set([...(prev || []), key])];
@@ -651,6 +653,7 @@ export default function LandingUpdateForm(props) {
             isResumable={false}
             showThumbnails={true}
             maxFileCount={30}
+            components={{ FileList: ImageFileList }}
             {...getOverrideProps(overrides, "partnerLogos")}
           ></StorageManager>
         )}
