@@ -21,6 +21,9 @@ export const TRANSLATE_OVERRIDES = {
   // Unaccented "Si" is common in form data; without this Translate reads it as
   // the conjunction and outputs "If" instead of the Yes/No answer "Yes".
   "si": { en: "Yes" },
+  // Translate renders the standalone "No" answer as the French "non"; pin it so
+  // the Yes/No option stays "No" in English.
+  "no": { en: "No" },
   // Common Yes/No certificate question wording. The label is authored several
   // ways (with/without the leading "¿…?", with/without "un"), so list each
   // variant explicitly — applyOverride matches on the trimmed, lowercased label.
