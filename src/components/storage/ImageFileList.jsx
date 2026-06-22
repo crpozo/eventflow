@@ -33,13 +33,16 @@ const resolveUrl = ({ file, key }) => {
 export function ImageFileList({ files, isResumable, onCancelUpload, onDeleteUpload }) {
   if (!files || files.length < 1) return null;
 
-  // Collapse duplicate keys to a single tile.
+  // Collapse duplicate keys to a single tile, and drop empty keys (e.g. a
+  // single-file uploader whose defaultFiles is [{ key: undefined }]).
   const seen = new Set();
   const unique = files.filter((f) => {
     if (!f.key || seen.has(f.key)) return false;
     seen.add(f.key);
     return true;
   });
+
+  if (unique.length < 1) return null;
 
   const removeFile = ({ id, status, uploadTask }) => {
     if (

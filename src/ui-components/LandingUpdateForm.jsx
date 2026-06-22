@@ -578,6 +578,7 @@ export default function LandingUpdateForm(props) {
             isResumable={false}
             showThumbnails={true}
             maxFileCount={1}
+            components={{ FileList: ImageFileList }}
             {...getOverrideProps(overrides, "mainBanner")}
           ></StorageManager>
         )}
