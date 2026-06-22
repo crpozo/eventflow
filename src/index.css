@@ -116,6 +116,17 @@ hr.amplify-divider--horizontal {
   border-color: #eeedf2;
 }
 
+/* Soften the focus state on Amplify form inputs: drop the harsh black
+   outline/ring and just tint the existing thin border on brand red. */
+.amplify-grid .amplify-field .amplify-input:focus,
+.amplify-grid .amplify-field .amplify-input:focus-visible,
+.amplify-grid .amplify-field .amplify-textarea:focus,
+.amplify-grid .amplify-field .amplify-textarea:focus-visible {
+  outline: none;
+  border-color: #df1923;
+  box-shadow: none !important;
+}
+
 @media (min-width: 500px) {
   .amplify-flex {
     justify-content: end !important;
