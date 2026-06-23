@@ -52,8 +52,9 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
-// rev 2026-06-23: on-demand test-mode handler (POST /certificate-test) + CORS.
-// (touch to force a redeploy after earlier pushes rolled back this function.)
+// rev 2026-06-23b: on-demand test-mode handler (POST /certificate-test) + CORS.
+// (touch to force a redeploy: Amplify reported "No Change" but the deployed
+//  Lambda was still the pre-CORS version. Bump this string to bust the hash.)
 
 // Files uploaded from the app with the default ("guest") access level live
 // under the "public/" prefix in the bucket.
