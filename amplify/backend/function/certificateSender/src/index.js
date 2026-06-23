@@ -52,9 +52,10 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
-// rev 2026-06-23b: on-demand test-mode handler (POST /certificate-test) + CORS.
-// (touch to force a redeploy: Amplify reported "No Change" but the deployed
-//  Lambda was still the pre-CORS version. Bump this string to bust the hash.)
+// rev 2026-06-23c: on-demand test-mode handler (POST /certificate-test) + CORS.
+// Test now accepts certificateKey/position overrides so the admin can probe the
+// just-uploaded template WITHOUT saving the event first.
+// (touch this string to bust the deploy hash if Amplify reports "No Change".)
 
 // Files uploaded from the app with the default ("guest") access level live
 // under the "public/" prefix in the bucket.
@@ -253,21 +254,26 @@ const handleTest = async (apiEvent, method) => {
   );
   const ev = res.Item;
   if (!ev) return json(404, { error: "Evento no encontrado" });
-  if (!ev.certificate)
+
+  // Let the admin test the template/position currently in the form (already
+  // uploaded to S3) WITHOUT saving the event first; fall back to saved values.
+  const certKey = body.certificateKey || ev.certificate;
+  const positionRaw = body.position || ev.certificatePosition;
+  if (!certKey)
     return json(400, {
-      error: "El evento no tiene una plantilla de certificado configurada",
+      error: "Sube una plantilla de certificado antes de probar",
     });
 
   try {
     const obj = await s3.send(
       new GetObjectCommand({
         Bucket: STORAGE_BUCKET,
-        Key: s3KeyFor(ev.certificate),
+        Key: s3KeyFor(certKey),
       })
     );
     const templateBytes = await streamToBuffer(obj.Body);
     const contentType = obj.ContentType || "image/png";
-    const pos = resolvePosition(ev.certificatePosition);
+    const pos = resolvePosition(positionRaw);
     const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
     await sendEmail(email, ev.title || "Evento", pdf);
     return json(200, { ok: true, sentTo: email });

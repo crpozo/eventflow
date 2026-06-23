@@ -5,7 +5,11 @@ import { post } from "aws-amplify/api";
 // Posts to the userApi /certificate-test endpoint (certificateSender Lambda in
 // test mode), which renders one certificate from the event's template/position
 // and emails it. It does not touch attendees or mark the event as sent.
-export default function TestCertificate({ eventId }) {
+export default function TestCertificate({
+  eventId,
+  certificate,
+  certificatePosition,
+}) {
   const [email, setEmail] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [result, setResult] = React.useState(null); // { ok: boolean, msg: string }
@@ -22,7 +26,16 @@ export default function TestCertificate({ eventId }) {
       const op = post({
         apiName: "userApi",
         path: "/certificate-test",
-        options: { body: { eventId, email: to } },
+        options: {
+          // Send the template/position currently in the form so the test works
+          // against the just-uploaded values, even before saving the event.
+          body: {
+            eventId,
+            email: to,
+            certificateKey: certificate || "",
+            position: certificatePosition || "",
+          },
+        },
       });
       const { body } = await op.response;
       const data = await body.json();

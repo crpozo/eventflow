@@ -631,7 +631,11 @@ export default function EventUpdateForm(props) {
             <option value="inferior-izquierda">Inferior izquierda</option>
             <option value="inferior-derecha">Inferior derecha</option>
           </SelectField>
-          <TestCertificate eventId={eventRecord?.id} />
+          <TestCertificate
+            eventId={eventRecord?.id}
+            certificate={certificate}
+            certificatePosition={certificatePosition}
+          />
         </>
       )}
       <TextField
