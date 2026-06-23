@@ -32,15 +32,36 @@ export default function TestCertificate({ eventId }) {
         setResult({ ok: false, msg: data?.error || "No se pudo enviar." });
       }
     } catch (err) {
-      // Surface the API error body when available, else the generic message.
-      let msg = err?.message || "Error al enviar.";
+      // Amplify rejects on non-2xx. Dig the server's JSON `error` out of the
+      // response body, whatever shape it arrives in, before falling back to the
+      // generic ("Unknown error") message.
+      let msg = "";
+      const resp = err?.response;
+      const bodyVal = resp?.body;
       try {
-        const d = await err?.response?.body?.json?.();
-        if (d?.error) msg = d.error;
+        if (bodyVal && typeof bodyVal.json === "function") {
+          const d = await bodyVal.json();
+          msg = d?.error || d?.message || "";
+        } else if (bodyVal && typeof bodyVal.text === "function") {
+          const t = await bodyVal.text();
+          try {
+            msg = JSON.parse(t)?.error || t;
+          } catch (e) {
+            msg = t;
+          }
+        } else if (typeof bodyVal === "string") {
+          try {
+            msg = JSON.parse(bodyVal)?.error || bodyVal;
+          } catch (e) {
+            msg = bodyVal;
+          }
+        }
       } catch (e) {
-        /* ignore */
+        /* ignore body parse errors */
       }
-      setResult({ ok: false, msg });
+      if (!msg) msg = err?.message || "Error al enviar.";
+      const status = resp?.statusCode;
+      setResult({ ok: false, msg: status ? `(${status}) ${msg}` : msg });
     } finally {
       setSending(false);
     }
