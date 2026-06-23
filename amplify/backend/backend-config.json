@@ -46,6 +46,14 @@
           ],
           "category": "function",
           "resourceName": "userManager"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "certificateSender"
         }
       ],
       "providerPlugin": "awscloudformation",

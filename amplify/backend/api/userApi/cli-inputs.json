@@ -13,6 +13,19 @@
           "delete"
         ]
       }
+    },
+    "/certificate-test": {
+      "name": "/certificate-test",
+      "lambdaFunction": "certificateSender",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
     }
   }
 }

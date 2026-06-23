@@ -28,6 +28,7 @@ const {
   DynamoDBDocumentClient,
   ScanCommand,
   QueryCommand,
+  GetCommand,
   UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
@@ -212,7 +213,72 @@ const sendEmail = async (to, eventTitle, pdfBuffer) => {
   );
 };
 
-exports.handler = async () => {
+// HTTP response shape for the on-demand test endpoint (API Gateway).
+const json = (statusCode, data) => ({
+  statusCode,
+  headers: {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Methods": "OPTIONS,POST",
+  },
+  body: JSON.stringify(data),
+});
+
+// On-demand test: generate ONE certificate from the event's template and email
+// it to `email` (with a sample/given name). Does NOT touch attendees or mark the
+// event as sent — it only proves the template/position/SES work.
+const handleTest = async (apiEvent, method) => {
+  if (method === "OPTIONS") return json(200, { ok: true });
+  if (method !== "POST")
+    return json(405, { error: `Method ${method} not allowed` });
+
+  let body;
+  try {
+    body = JSON.parse(apiEvent.body || "{}");
+  } catch (e) {
+    return json(400, { error: "Cuerpo inválido" });
+  }
+  const eventId = body.eventId;
+  const email = String(body.email || "").trim();
+  const name = String(body.name || "Nombre de Prueba").trim();
+  if (!eventId || !email)
+    return json(400, { error: "eventId y email son requeridos" });
+
+  const res = await ddb.send(
+    new GetCommand({ TableName: EVENT_TABLE, Key: { id: eventId } })
+  );
+  const ev = res.Item;
+  if (!ev) return json(404, { error: "Evento no encontrado" });
+  if (!ev.certificate)
+    return json(400, {
+      error: "El evento no tiene una plantilla de certificado configurada",
+    });
+
+  try {
+    const obj = await s3.send(
+      new GetObjectCommand({
+        Bucket: STORAGE_BUCKET,
+        Key: s3KeyFor(ev.certificate),
+      })
+    );
+    const templateBytes = await streamToBuffer(obj.Body);
+    const contentType = obj.ContentType || "image/png";
+    const pos = resolvePosition(ev.certificatePosition);
+    const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
+    await sendEmail(email, ev.title || "Evento", pdf);
+    return json(200, { ok: true, sentTo: email });
+  } catch (e) {
+    console.error("test certificate failed:", e);
+    return json(500, { error: e?.message || String(e) });
+  }
+};
+
+exports.handler = async (event) => {
+  // On-demand test send via API Gateway (POST { eventId, email, name? }).
+  const method = event?.httpMethod || event?.requestContext?.http?.method;
+  if (method) return handleTest(event, method);
+
   const now = Date.now();
 
   // Events that opted in and have not been processed yet.

@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Banner from "./components/Banner";
+import TestCertificate from "./components/TestCertificate";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event } from "models"
 import {
@@ -63,6 +64,8 @@ const Dashboard = () => {
             <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
               Eliminar
             </button>
+
+            <TestCertificate eventId={id} />
           </EditableSection>
         </div>
       }
