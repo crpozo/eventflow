@@ -46,6 +46,14 @@
           ],
           "category": "function",
           "resourceName": "userManager"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "certificateSender"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -120,6 +128,48 @@
       ],
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_certificateSender_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "certificateSender"
+        }
+      ]
+    },
+    "AMPLIFY_function_certificateSender_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "certificateSender"
+        }
+      ]
+    },
+    "AMPLIFY_function_certificateSender_sesFrom": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "certificateSender"
+        }
+      ]
+    },
+    "AMPLIFY_function_userManager_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "userManager"
+        }
+      ]
+    },
+    "AMPLIFY_function_userManager_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "userManager"
+        }
+      ]
     }
   },
   "predictions": {
