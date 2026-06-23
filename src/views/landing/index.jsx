@@ -411,19 +411,24 @@ export default function SignIn() {
                     <div>
                       <h3 className="text-lg font-bold">{ui.dateAndTime}</h3>
                       {event && (
-                        <p className="text-md">
-                          {translated.eventDateEnd ? (
-                            <>
-                              <span className="font-semibold">{ui.start}:</span>{" "}
-                              {translated.eventDate}
-                              <br />
-                              <span className="font-semibold">{ui.end}:</span>{" "}
-                              {translated.eventDateEnd}
-                            </>
-                          ) : (
-                            translated.eventDate
-                          )}
-                        </p>
+                        <>
+                          <p className="text-md">
+                            {translated.eventDateEnd ? (
+                              <>
+                                <span className="font-semibold">{ui.start}:</span>{" "}
+                                {translated.eventDate}
+                                <br />
+                                <span className="font-semibold">{ui.end}:</span>{" "}
+                                {translated.eventDateEnd}
+                              </>
+                            ) : (
+                              translated.eventDate
+                            )}
+                          </p>
+                          <span className="text-xs text-gray-400">
+                            {ui.quitoTime}
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
