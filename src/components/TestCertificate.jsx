@@ -1,10 +1,10 @@
 import React from "react";
 import { post } from "aws-amplify/api";
 
-// On-demand "Test certificate" sender for the event detail page. Posts to the
-// userApi /certificate-test endpoint (certificateSender Lambda in test mode),
-// which renders one certificate from the event's template/position and emails it
-// to the given address. It does not touch attendees or mark the event as sent.
+// On-demand "Test certificate" sender, rendered inside the event update form.
+// Posts to the userApi /certificate-test endpoint (certificateSender Lambda in
+// test mode), which renders one certificate from the event's template/position
+// and emails it. It does not touch attendees or mark the event as sent.
 export default function TestCertificate({ eventId }) {
   const [email, setEmail] = React.useState("");
   const [sending, setSending] = React.useState(false);
@@ -47,7 +47,7 @@ export default function TestCertificate({ eventId }) {
   };
 
   return (
-    <div className="mt-6 border-t border-gray-100 pt-5 dark:border-navy-700">
+    <div className="mt-2 border-t border-gray-100 pt-5 dark:border-navy-700">
       <h4 className="mb-1 font-semibold text-navy-700 dark:text-white">
         Probar certificado
       </h4>
@@ -60,6 +60,13 @@ export default function TestCertificate({ eventId }) {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => {
+            // Inside the event <form>, Enter would submit it — send the test instead.
+            if (e.key === "Enter") {
+              e.preventDefault();
+              sendTest();
+            }
+          }}
           placeholder="correo@ejemplo.com"
           className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-500 dark:border-navy-600 dark:bg-navy-900 dark:text-white"
         />

@@ -34,6 +34,7 @@ import {
   validateField,
 } from "./utils";
 import { DataStore } from "aws-amplify/datastore";
+import TestCertificate from "components/TestCertificate";
 function ArrayField({
   items = [],
   onChange,
@@ -974,6 +975,7 @@ export default function EventUpdateForm(props) {
         hasError={errors.periodoUSFQ?.hasError}
         {...getOverrideProps(overrides, "periodoUSFQ")}
       ></TextField>
+      <TestCertificate eventId={eventRecord?.id} />
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
