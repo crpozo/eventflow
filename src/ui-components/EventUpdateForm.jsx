@@ -626,6 +626,7 @@ export default function EventUpdateForm(props) {
             <option value="inferior-izquierda">Inferior izquierda</option>
             <option value="inferior-derecha">Inferior derecha</option>
           </SelectField>
+          <TestCertificate eventId={eventRecord?.id} />
         </>
       )}
       <TextField
@@ -975,7 +976,6 @@ export default function EventUpdateForm(props) {
         hasError={errors.periodoUSFQ?.hasError}
         {...getOverrideProps(overrides, "periodoUSFQ")}
       ></TextField>
-      <TestCertificate eventId={eventRecord?.id} />
       <Flex
         justifyContent="space-between"
         {...getOverrideProps(overrides, "CTAFlex")}
