@@ -16,16 +16,20 @@ import {
   Heading,
   Icon,
   ScrollView,
+  SelectField,
   SwitchField,
   Text,
   TextAreaField,
   TextField,
   useTheme,
 } from "@aws-amplify/ui-react";
+import { Field } from "@aws-amplify/ui-react/internal";
+import { StorageManager } from "@aws-amplify/ui-react-storage";
 import { Event, Badge as Badge0, Career } from "../models";
 import {
   fetchByPath,
   getOverrideProps,
+  processFile,
   useDataStoreBinding,
   validateField,
 } from "./utils";
@@ -201,16 +205,15 @@ export default function EventCreateForm(props) {
     title: "",
     description: "",
     date: "",
-    termsCondition: "",
-    maxRegs: "",
-    totalScannedTicket: "",
-    contactTemplate: "",
     startDate: "",
     endDate: "",
     sendCertificates: false,
     certificate: "",
     certificatePosition: "",
-    certificatesSentAt: "",
+    termsCondition: "",
+    maxRegs: "",
+    totalScannedTicket: "",
+    contactTemplate: "",
     careerID: undefined,
     Badge: undefined,
     usuarioUSFQ: "",
@@ -222,16 +225,6 @@ export default function EventCreateForm(props) {
     initialValues.description
   );
   const [date, setDate] = React.useState(initialValues.date);
-  const [termsCondition, setTermsCondition] = React.useState(
-    initialValues.termsCondition
-  );
-  const [maxRegs, setMaxRegs] = React.useState(initialValues.maxRegs);
-  const [totalScannedTicket, setTotalScannedTicket] = React.useState(
-    initialValues.totalScannedTicket
-  );
-  const [contactTemplate, setContactTemplate] = React.useState(
-    initialValues.contactTemplate
-  );
   const [startDate, setStartDate] = React.useState(initialValues.startDate);
   const [endDate, setEndDate] = React.useState(initialValues.endDate);
   const [sendCertificates, setSendCertificates] = React.useState(
@@ -243,8 +236,15 @@ export default function EventCreateForm(props) {
   const [certificatePosition, setCertificatePosition] = React.useState(
     initialValues.certificatePosition
   );
-  const [certificatesSentAt, setCertificatesSentAt] = React.useState(
-    initialValues.certificatesSentAt
+  const [termsCondition, setTermsCondition] = React.useState(
+    initialValues.termsCondition
+  );
+  const [maxRegs, setMaxRegs] = React.useState(initialValues.maxRegs);
+  const [totalScannedTicket, setTotalScannedTicket] = React.useState(
+    initialValues.totalScannedTicket
+  );
+  const [contactTemplate, setContactTemplate] = React.useState(
+    initialValues.contactTemplate
   );
   const [careerID, setCareerID] = React.useState(initialValues.careerID);
   const [Badge, setBadge] = React.useState(initialValues.Badge);
@@ -262,16 +262,15 @@ export default function EventCreateForm(props) {
     setTitle(initialValues.title);
     setDescription(initialValues.description);
     setDate(initialValues.date);
-    setTermsCondition(initialValues.termsCondition);
-    setMaxRegs(initialValues.maxRegs);
-    setTotalScannedTicket(initialValues.totalScannedTicket);
-    setContactTemplate(initialValues.contactTemplate);
     setStartDate(initialValues.startDate);
     setEndDate(initialValues.endDate);
     setSendCertificates(initialValues.sendCertificates);
     setCertificate(initialValues.certificate);
     setCertificatePosition(initialValues.certificatePosition);
-    setCertificatesSentAt(initialValues.certificatesSentAt);
+    setTermsCondition(initialValues.termsCondition);
+    setMaxRegs(initialValues.maxRegs);
+    setTotalScannedTicket(initialValues.totalScannedTicket);
+    setContactTemplate(initialValues.contactTemplate);
     setCareerID(initialValues.careerID);
     setCurrentCareerIDValue(undefined);
     setCurrentCareerIDDisplayValue("");
@@ -316,16 +315,15 @@ export default function EventCreateForm(props) {
     title: [{ type: "Required" }],
     description: [],
     date: [],
-    termsCondition: [{ type: "Required" }],
-    maxRegs: [],
-    totalScannedTicket: [],
-    contactTemplate: [],
     startDate: [],
     endDate: [],
     sendCertificates: [],
     certificate: [],
-    certificatePosition: [{ type: "JSON" }],
-    certificatesSentAt: [],
+    certificatePosition: [],
+    termsCondition: [{ type: "Required" }],
+    maxRegs: [],
+    totalScannedTicket: [],
+    contactTemplate: [],
     careerID: [{ type: "Required" }],
     Badge: [],
     usuarioUSFQ: [],
@@ -367,8 +365,8 @@ export default function EventCreateForm(props) {
     }, {});
     return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
   };
-  // datetime-local value (Ecuador wall-clock "YYYY-MM-DDTHH:mm") -> UTC ISO,
-  // pinned to Ecuador (UTC-5) regardless of the editor's timezone.
+  // Interpreta el datetime-local (naive) SIEMPRE como hora de Quito (UTC-5),
+  // nunca la zona del navegador ni Galápagos.
   const ecuadorLocalToISO = (v) =>
     v ? new Date(`${String(v).slice(0, 16)}:00-05:00`).toISOString() : "";
   return (
@@ -383,16 +381,15 @@ export default function EventCreateForm(props) {
           title,
           description,
           date,
-          termsCondition,
-          maxRegs,
-          totalScannedTicket,
-          contactTemplate,
           startDate,
           endDate,
           sendCertificates,
           certificate,
           certificatePosition,
-          certificatesSentAt,
+          termsCondition,
+          maxRegs,
+          totalScannedTicket,
+          contactTemplate,
           careerID,
           Badge,
           usuarioUSFQ,
@@ -473,12 +470,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
@@ -514,12 +505,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
@@ -540,48 +525,108 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "description")}
       ></TextAreaField>
       <TextField
-        label="Fecha y hora"
+        label="Fecha y hora de inicio"
+        descriptiveText="Fecha y hora en que comienza el evento"
         isRequired={false}
         isReadOnly={false}
         type="datetime-local"
-        value={date && convertToLocal(new Date(date))}
+        value={startDate && convertToLocal(new Date(startDate))}
         onChange={(e) => {
           let value =
             e.target.value === "" ? "" : ecuadorLocalToISO(e.target.value);
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date: value,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.date ?? value;
+          if (errors.startDate?.hasError) {
+            runValidationTasks("startDate", value);
           }
-          if (errors.date?.hasError) {
-            runValidationTasks("date", value);
-          }
-          setDate(value);
+          setStartDate(value);
         }}
-        onBlur={() => runValidationTasks("date", date)}
-        errorMessage={errors.date?.errorMessage}
-        hasError={errors.date?.hasError}
-        {...getOverrideProps(overrides, "date")}
+        onBlur={() => runValidationTasks("startDate", startDate)}
+        errorMessage={errors.startDate?.errorMessage}
+        hasError={errors.startDate?.hasError}
+        {...getOverrideProps(overrides, "startDate")}
       ></TextField>
+      <TextField
+        label="Fecha y hora de fin"
+        descriptiveText="Fecha y hora en que termina (para eventos de varios días)"
+        isRequired={false}
+        isReadOnly={false}
+        type="datetime-local"
+        value={endDate && convertToLocal(new Date(endDate))}
+        onChange={(e) => {
+          let value =
+            e.target.value === "" ? "" : ecuadorLocalToISO(e.target.value);
+          if (errors.endDate?.hasError) {
+            runValidationTasks("endDate", value);
+          }
+          setEndDate(value);
+        }}
+        onBlur={() => runValidationTasks("endDate", endDate)}
+        errorMessage={errors.endDate?.errorMessage}
+        hasError={errors.endDate?.hasError}
+        {...getOverrideProps(overrides, "endDate")}
+      ></TextField>
+      <SwitchField
+        label="Certificados"
+        descriptiveText="Al finalizar el evento se envía automáticamente un certificado por correo a cada participante, con su nombre incrustado en la plantilla."
+        defaultChecked={false}
+        isDisabled={false}
+        isChecked={!!sendCertificates}
+        onChange={(e) => {
+          setSendCertificates(e.target.checked);
+        }}
+        {...getOverrideProps(overrides, "sendCertificates")}
+      ></SwitchField>
+      {sendCertificates && (
+        <>
+          <Field
+            errorMessage={errors.certificate?.errorMessage}
+            hasError={errors.certificate?.hasError}
+            label={"Plantilla del certificado (imagen o PDF)"}
+            descriptiveText="Sube el diseño del certificado. El nombre del participante se incrustará sobre esta plantilla."
+            isRequired={false}
+            isReadOnly={false}
+          >
+            <StorageManager
+              defaultFiles={certificate ? [{ key: certificate }] : []}
+              onUploadSuccess={({ key }) => {
+                setCertificate(key);
+              }}
+              onFileRemove={() => {
+                setCertificate(initialValues?.certificate);
+              }}
+              processFile={processFile}
+              accessLevel={"public"}
+              acceptedFileTypes={["image/*", ".pdf"]}
+              isResumable={false}
+              showThumbnails={true}
+              maxFileCount={1}
+              {...getOverrideProps(overrides, "certificate")}
+            ></StorageManager>
+          </Field>
+          <SelectField
+            label="Posición del nombre en el certificado"
+            placeholder="Selecciona una posición"
+            isDisabled={false}
+            value={(() => {
+              try {
+                return JSON.parse(certificatePosition);
+              } catch (e) {
+                return certificatePosition || "";
+              }
+            })()}
+            onChange={(e) => {
+              const v = e.target.value;
+              setCertificatePosition(v === "" ? "" : JSON.stringify(v));
+            }}
+            {...getOverrideProps(overrides, "certificatePosition")}
+          >
+            <option value="centro">Centro</option>
+            <option value="centro-arriba">Centro arriba</option>
+            <option value="centro-abajo">Centro abajo</option>
+            <option value="inferior-izquierda">Inferior izquierda</option>
+            <option value="inferior-derecha">Inferior derecha</option>
+          </SelectField>
+        </>
+      )}
       <TextAreaField
         label={
           <span style={{ display: "inline-flex" }}>
@@ -603,12 +648,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
@@ -649,12 +688,6 @@ export default function EventCreateForm(props) {
               maxRegs: value,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
@@ -695,12 +728,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket: value,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
@@ -723,7 +750,7 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "totalScannedTicket")}
       ></TextField>
       <TextAreaField
-        label="Template email contacto"
+        label="Plantilla de email de contacto"
         isRequired={false}
         isReadOnly={false}
         onChange={(e) => {
@@ -737,12 +764,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate: value,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
@@ -762,263 +783,6 @@ export default function EventCreateForm(props) {
         hasError={errors.contactTemplate?.hasError}
         {...getOverrideProps(overrides, "contactTemplate")}
       ></TextAreaField>
-      <TextField
-        label="Fecha de inicio"
-        isRequired={false}
-        isReadOnly={false}
-        type="datetime-local"
-        value={startDate && convertToLocal(new Date(startDate))}
-        onChange={(e) => {
-          let value =
-            e.target.value === "" ? "" : ecuadorLocalToISO(e.target.value);
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              startDate: value,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.startDate ?? value;
-          }
-          if (errors.startDate?.hasError) {
-            runValidationTasks("startDate", value);
-          }
-          setStartDate(value);
-        }}
-        onBlur={() => runValidationTasks("startDate", startDate)}
-        errorMessage={errors.startDate?.errorMessage}
-        hasError={errors.startDate?.hasError}
-        {...getOverrideProps(overrides, "startDate")}
-      ></TextField>
-      <TextField
-        label="Fecha de fin"
-        isRequired={false}
-        isReadOnly={false}
-        type="datetime-local"
-        value={endDate && convertToLocal(new Date(endDate))}
-        onChange={(e) => {
-          let value =
-            e.target.value === "" ? "" : ecuadorLocalToISO(e.target.value);
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              startDate,
-              endDate: value,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.endDate ?? value;
-          }
-          if (errors.endDate?.hasError) {
-            runValidationTasks("endDate", value);
-          }
-          setEndDate(value);
-        }}
-        onBlur={() => runValidationTasks("endDate", endDate)}
-        errorMessage={errors.endDate?.errorMessage}
-        hasError={errors.endDate?.hasError}
-        {...getOverrideProps(overrides, "endDate")}
-      ></TextField>
-      <SwitchField
-        label="Enviar certificados"
-        defaultChecked={false}
-        isDisabled={false}
-        isChecked={sendCertificates}
-        onChange={(e) => {
-          let value = e.target.checked;
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates: value,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.sendCertificates ?? value;
-          }
-          if (errors.sendCertificates?.hasError) {
-            runValidationTasks("sendCertificates", value);
-          }
-          setSendCertificates(value);
-        }}
-        onBlur={() => runValidationTasks("sendCertificates", sendCertificates)}
-        errorMessage={errors.sendCertificates?.errorMessage}
-        hasError={errors.sendCertificates?.hasError}
-        {...getOverrideProps(overrides, "sendCertificates")}
-      ></SwitchField>
-      <TextField
-        label="Certificado"
-        isRequired={false}
-        isReadOnly={false}
-        value={certificate}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate: value,
-              certificatePosition,
-              certificatesSentAt,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.certificate ?? value;
-          }
-          if (errors.certificate?.hasError) {
-            runValidationTasks("certificate", value);
-          }
-          setCertificate(value);
-        }}
-        onBlur={() => runValidationTasks("certificate", certificate)}
-        errorMessage={errors.certificate?.errorMessage}
-        hasError={errors.certificate?.hasError}
-        {...getOverrideProps(overrides, "certificate")}
-      ></TextField>
-      <TextAreaField
-        label="Posición del nombre en el certificado"
-        isRequired={false}
-        isReadOnly={false}
-        onChange={(e) => {
-          let { value } = e.target;
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition: value,
-              certificatesSentAt,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.certificatePosition ?? value;
-          }
-          if (errors.certificatePosition?.hasError) {
-            runValidationTasks("certificatePosition", value);
-          }
-          setCertificatePosition(value);
-        }}
-        onBlur={() =>
-          runValidationTasks("certificatePosition", certificatePosition)
-        }
-        errorMessage={errors.certificatePosition?.errorMessage}
-        hasError={errors.certificatePosition?.hasError}
-        {...getOverrideProps(overrides, "certificatePosition")}
-      ></TextAreaField>
-      <TextField
-        label="Certificados enviados el"
-        isRequired={false}
-        isReadOnly={false}
-        type="datetime-local"
-        value={
-          certificatesSentAt && convertToLocal(new Date(certificatesSentAt))
-        }
-        onChange={(e) => {
-          let value =
-            e.target.value === "" ? "" : ecuadorLocalToISO(e.target.value);
-          if (onChange) {
-            const modelFields = {
-              title,
-              description,
-              date,
-              termsCondition,
-              maxRegs,
-              totalScannedTicket,
-              contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt: value,
-              careerID,
-              Badge,
-              usuarioUSFQ,
-              periodoUSFQ,
-              eventIdUSFQ,
-            };
-            const result = onChange(modelFields);
-            value = result?.certificatesSentAt ?? value;
-          }
-          if (errors.certificatesSentAt?.hasError) {
-            runValidationTasks("certificatesSentAt", value);
-          }
-          setCertificatesSentAt(value);
-        }}
-        onBlur={() =>
-          runValidationTasks("certificatesSentAt", certificatesSentAt)
-        }
-        errorMessage={errors.certificatesSentAt?.errorMessage}
-        hasError={errors.certificatesSentAt?.hasError}
-        {...getOverrideProps(overrides, "certificatesSentAt")}
-      ></TextField>
       <ArrayField
         lengthLimit={1}
         onChange={async (items) => {
@@ -1032,12 +796,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID: value,
               Badge,
               usuarioUSFQ,
@@ -1140,12 +898,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge: value,
               usuarioUSFQ,
@@ -1240,12 +992,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ: value,
@@ -1281,12 +1027,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
@@ -1322,12 +1062,6 @@ export default function EventCreateForm(props) {
               maxRegs,
               totalScannedTicket,
               contactTemplate,
-              startDate,
-              endDate,
-              sendCertificates,
-              certificate,
-              certificatePosition,
-              certificatesSentAt,
               careerID,
               Badge,
               usuarioUSFQ,
