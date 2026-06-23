@@ -1,6 +1,13 @@
 
 import { useEffect, useState } from "react";
 
+// All event times in this app are Quito/Ecuador time (America/Guayaquil, a fixed
+// UTC-5, no DST). Returns a Date whose LOCAL getters (getHours, getDate, getDay…)
+// read the Ecuador wall-clock, regardless of the runtime/browser timezone.
+const ECUADOR_TZ = "America/Guayaquil";
+export const toEcuadorWallClock = (input) =>
+  new Date(new Date(input).toLocaleString("en-US", { timeZone: ECUADOR_TZ }));
+
 // Dates
 export const formatDateHour = (inputDate) => {
   try {
@@ -28,21 +35,8 @@ export const formatDateHour = (inputDate) => {
       "Diciembre",
     ];
 
-    const date = new Date(inputDate);
-
-    // Set the Ecuador timezone (America/Guayaquil)
-    const options = {
-      timeZone: 'America/Guayaquil',
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    };
-
-    const dateString = date.toLocaleString('es-EC', options);
+    // Read the wall-clock time in Ecuador (UTC-5), regardless of runtime TZ.
+    const date = toEcuadorWallClock(inputDate);
 
     const dayOfWeek = daysOfWeek[date.getDay()];
     const day = date.getDate();
@@ -73,7 +67,7 @@ export const formatDateHour = (inputDate) => {
 // without repeating the weekday/date.
 export const formatHour = (inputDate) => {
   try {
-    const date = new Date(inputDate);
+    const date = toEcuadorWallClock(inputDate);
     let hours = date.getHours();
     const minutes = date.getMinutes();
     const ampm = hours >= 12 ? "pm" : "am";
@@ -138,7 +132,7 @@ export const formatSpanishDate = (dateString) => {
       "Sábado",
     ];
 
-    const date = new Date(dateString);
+    const date = toEcuadorWallClock(dateString);
     const dayName = days[date.getDay()];
     const monthName = months[date.getMonth()];
     const day = date.getDate();
