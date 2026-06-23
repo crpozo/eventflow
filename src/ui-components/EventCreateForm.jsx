@@ -763,7 +763,7 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "contactTemplate")}
       ></TextAreaField>
       <TextField
-        label="Start date"
+        label="Fecha de inicio"
         isRequired={false}
         isReadOnly={false}
         type="datetime-local"
@@ -806,7 +806,7 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "startDate")}
       ></TextField>
       <TextField
-        label="End date"
+        label="Fecha de fin"
         isRequired={false}
         isReadOnly={false}
         type="datetime-local"
@@ -849,7 +849,7 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "endDate")}
       ></TextField>
       <SwitchField
-        label="Send certificates"
+        label="Enviar certificados"
         defaultChecked={false}
         isDisabled={false}
         isChecked={sendCertificates}
@@ -890,7 +890,7 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "sendCertificates")}
       ></SwitchField>
       <TextField
-        label="Certificate"
+        label="Certificado"
         isRequired={false}
         isReadOnly={false}
         value={certificate}
@@ -931,7 +931,7 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "certificate")}
       ></TextField>
       <TextAreaField
-        label="Certificate position"
+        label="Posición del nombre en el certificado"
         isRequired={false}
         isReadOnly={false}
         onChange={(e) => {
@@ -973,7 +973,7 @@ export default function EventCreateForm(props) {
         {...getOverrideProps(overrides, "certificatePosition")}
       ></TextAreaField>
       <TextField
-        label="Certificates sent at"
+        label="Certificados enviados el"
         isRequired={false}
         isReadOnly={false}
         type="datetime-local"
