@@ -47,7 +47,7 @@ export default function TestCertificate({ eventId }) {
   };
 
   return (
-    <div className="mt-4 rounded-2xl border border-gray-200 p-4 dark:border-navy-700">
+    <div className="mt-6 border-t border-gray-100 pt-5 dark:border-navy-700">
       <h4 className="mb-1 font-semibold text-navy-700 dark:text-white">
         Probar certificado
       </h4>
