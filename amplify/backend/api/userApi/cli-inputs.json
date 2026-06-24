@@ -1,9 +1,9 @@
 {
   "version": 1,
   "paths": {
-    "/users": {
-      "name": "/users",
-      "lambdaFunction": "userManager",
+    "/certificate-test": {
+      "name": "/certificate-test",
+      "lambdaFunction": "certificateSender",
       "permissions": {
         "setting": "private",
         "auth": [
@@ -14,9 +14,9 @@
         ]
       }
     },
-    "/certificate-test": {
-      "name": "/certificate-test",
-      "lambdaFunction": "certificateSender",
+    "/users": {
+      "name": "/users",
+      "lambdaFunction": "userManager",
       "permissions": {
         "setting": "private",
         "auth": [
