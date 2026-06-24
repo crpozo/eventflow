@@ -14,8 +14,9 @@
  * function access to the **auth** (Cognito) category so AUTH_*_USERPOOLID and
  * the cognito-idp:Admin*User IAM are injected. See README.md for the runbook.
  */
-// rev 2026-06-24: SES invite + resend (POST /users {resend}). Bump this string
-// to bust the deploy hash when Amplify wrongly reports "No Change".
+// rev 2026-06-24b: SES invite + resend (POST /users {resend}); resend now CREATES
+// the Cognito account if it doesn't exist (stranded users). Bump this string to
+// bust the deploy hash when Amplify wrongly reports "No Change".
 const {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
@@ -145,26 +146,44 @@ exports.handler = async (event) => {
       // ── Resend login instructions to an EXISTING Cognito user ──
       if (body.resend) {
         let status;
+        let exists = true;
         try {
           const u = await cognito.send(
             new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email })
           );
           status = u.UserStatus;
         } catch (e) {
-          if (e?.name === "UserNotFoundException")
-            return json(404, {
-              error: "No existe una cuenta de acceso para ese correo",
-            });
-          throw e;
+          if (e?.name === "UserNotFoundException") exists = false;
+          else throw e;
         }
         if (!SES_FROM) return json(500, { error: "SES_FROM not configured" });
 
-        // Never finished first login -> issue a fresh temp password and resend
-        // the full invite. Otherwise -> reminder with no password.
+        // No Cognito account yet (e.g. created while the API was down) -> create
+        // it now and send the full invite. If it exists but the user never
+        // finished the first login -> reset the temp password and resend the
+        // invite. If they already set their own password -> reminder only.
         const needsTemp =
-          status === "FORCE_CHANGE_PASSWORD" || status === "RESET_REQUIRED";
+          !exists ||
+          status === "FORCE_CHANGE_PASSWORD" ||
+          status === "RESET_REQUIRED";
         let tempPassword;
-        if (needsTemp) {
+        if (!exists) {
+          tempPassword = genTempPassword();
+          const attrs = [
+            { Name: "email", Value: email },
+            { Name: "email_verified", Value: "true" },
+          ];
+          if (body.name) attrs.push({ Name: "name", Value: body.name });
+          await cognito.send(
+            new AdminCreateUserCommand({
+              UserPoolId: USER_POOL_ID,
+              Username: email,
+              UserAttributes: attrs,
+              TemporaryPassword: tempPassword,
+              MessageAction: "SUPPRESS",
+            })
+          );
+        } else if (needsTemp) {
           tempPassword = genTempPassword();
           await cognito.send(
             new AdminSetUserPasswordCommand({
@@ -195,6 +214,7 @@ exports.handler = async (event) => {
         return json(200, {
           ok: true,
           resent: true,
+          created: !exists,
           emailSent: true,
           withTempPassword: needsTemp,
         });
