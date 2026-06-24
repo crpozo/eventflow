@@ -301,13 +301,17 @@ const AdminUserManager = () => {
       }
     } catch (err) {
       let msg = "";
+      const status = err?.response?.statusCode;
       try {
         const d = await err?.response?.body?.json?.();
         msg = d?.error || "";
       } catch (e) {
         /* ignore */
       }
-      if (!msg && isApiMissing(err))
+      if (!msg && (status === 404 || /unknown error/i.test(String(err?.message || ""))))
+        msg =
+          "El endpoint /users no está desplegado en el API Gateway. Corre 'amplify push' (despliega userManager + userApi).";
+      else if (!msg && isApiMissing(err))
         msg = "La función de acceso (userManager) aún no está desplegada.";
       console.error("resend error:", err);
       alert("No se pudo reenviar el correo." + (msg ? "\n\n" + msg : ""));
