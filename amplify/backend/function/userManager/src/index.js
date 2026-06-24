@@ -14,6 +14,8 @@
  * function access to the **auth** (Cognito) category so AUTH_*_USERPOOLID and
  * the cognito-idp:Admin*User IAM are injected. See README.md for the runbook.
  */
+// rev 2026-06-24: SES invite + resend (POST /users {resend}). Bump this string
+// to bust the deploy hash when Amplify wrongly reports "No Change".
 const {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
