@@ -644,27 +644,53 @@ export default function EventCreateForm(props) {
             <option value="6">Mediano</option>
             <option value="9">Grande</option>
           </SelectField>
-          <Field label="Color del nombre" isRequired={false} isReadOnly={false}>
-            <Flex alignItems="center" gap="0.5rem">
+          <Flex direction="column" gap="6px">
+            <Text fontSize="1rem" color="#304050">
+              Color del nombre
+            </Text>
+            <Flex alignItems="center" gap="8px" wrap="wrap">
+              {["#1a1a1a", "#ffffff", "#1e3a8a", "#b45309", "#7c2d12"].map(
+                (c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    title={c}
+                    onClick={() => updateCertSettings({ color: c })}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: "50%",
+                      background: c,
+                      border:
+                        (certSettings.color || "").toLowerCase() === c
+                          ? "2px solid #2563eb"
+                          : "1px solid #d1d5db",
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  />
+                )
+              )}
               <input
                 type="color"
                 value={certSettings.color}
+                title="Color personalizado"
                 onChange={(e) => updateCertSettings({ color: e.target.value })}
                 style={{
-                  width: 48,
-                  height: 36,
+                  width: 34,
+                  height: 26,
                   border: "1px solid #d1d5db",
-                  borderRadius: 8,
+                  borderRadius: 6,
                   background: "none",
                   cursor: "pointer",
                   padding: 2,
                 }}
               />
-              <Text fontSize="0.875rem" color="#6b7280">
+              <Text fontSize="0.8125rem" color="#6b7280">
                 {certSettings.color}
               </Text>
             </Flex>
-          </Field>
+          </Flex>
         </>
       )}
       <TextAreaField
