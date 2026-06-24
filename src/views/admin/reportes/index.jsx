@@ -43,7 +43,19 @@ const Reportes = () => {
   const [attendees, setAttendees] = useState(null);
   const [eventAttendes, setEventAttendes] = useState(null);
   const [chartsData, setChartsData] = useState([]);
-  const { isAdmin, isReportesOnly, loading: permLoading } = usePermissions();
+  const {
+    isAdmin,
+    isReportesOnly,
+    loading: permLoading,
+    eventIDsAllowed,
+    canSeeCampus,
+    canSeeArea,
+    canSeeEvent,
+  } = usePermissions();
+  // Scope a list of events to what this user may see (admin / no-restriction ->
+  // all). Used so a Reportes (or managed) user only sees their granted events.
+  const scopeEvents = (list) =>
+    !Array.isArray(list) ? list : list.filter((e) => canSeeEvent(e.id));
 
   // --- ADD: date filters state
   const [startDate, setStartDate] = useState("");
@@ -231,9 +243,11 @@ const Reportes = () => {
     }
 
     const subscription = DataStore.observeQuery(Campus).subscribe((results) => {
-      if (results.items.length > 0) {
-        setCampusList(results.items);
-        setCampusSelectID(results.items[0].id);
+      // Only campuses this user is allowed to see (admin -> all).
+      const visible = results.items.filter((c) => canSeeCampus(c.id));
+      if (visible.length > 0) {
+        setCampusList(visible);
+        setCampusSelectID(visible[0].id);
       }
     });
 
@@ -245,8 +259,10 @@ const Reportes = () => {
     let alive = true;
     if (!campusSelectID) return;
 
-    DataStore.query(Area, (a) => a.campusID.eq(campusSelectID)).then(async (areas) => {
+    DataStore.query(Area, (a) => a.campusID.eq(campusSelectID)).then(async (allAreas) => {
       if (!alive) return;
+      // Only areas this user is allowed to see (admin -> all).
+      const areas = allAreas.filter((a) => canSeeArea(a.id));
 
       if (!areas.length) {
         // Reset everything if no areas
@@ -377,11 +393,12 @@ const Reportes = () => {
     const endISO = toEndISO(endDate);
 
     DataStore.query(Event, (ev) => ev.careerID.eq(careerSelectID)).then((results) => {
-      let filtered = results;
+      // Only events this user is allowed to see (admin -> all).
+      let filtered = scopeEvents(results);
 
       // Apply date range client-side if user picked dates
       if (startISO || endISO) {
-        filtered = results.filter((ev) => {
+        filtered = filtered.filter((ev) => {
           const iso = getEventDateISO(ev);
           if (!iso) return false; // exclude events without a valid date
           const afterStart = startISO ? iso >= startISO : true;
@@ -596,9 +613,15 @@ const Reportes = () => {
     try {
       // 1) Traer todos los eventos
       let allEvents = await DataStore.query(Event);
-      // Si NO es admin ni tiene rol Reportes, limitamos a eventos de la subárea actual
-      if (!isAdmin && !isReportesOnly && subAreaId) {
-        allEvents = allEvents.filter((ev) => ev.careerID === subAreaId);
+      // Acotar a lo que el usuario puede ver. Si tiene permisos por evento
+      // (Reportes / managed), limitamos a esos; si no, al subárea (legacy).
+      if (!isAdmin) {
+        if (Array.isArray(eventIDsAllowed)) {
+          const allow = new Set(eventIDsAllowed);
+          allEvents = allEvents.filter((ev) => allow.has(ev.id));
+        } else if (!isReportesOnly && subAreaId) {
+          allEvents = allEvents.filter((ev) => ev.careerID === subAreaId);
+        }
       }
       const eventMap = new Map(allEvents.map((e) => [e.id, e.title]));
       const eventIDs = new Set(allEvents.map((e) => e.id));

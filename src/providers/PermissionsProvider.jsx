@@ -18,9 +18,11 @@ const Ctx = createContext({
   // null = no restriction (admin / legacy "all"); array = allowed ids.
   areaIDsAllowed: null,
   campusIDsAllowed: null,
+  eventIDsAllowed: null,
   can: () => true,
   canSeeArea: () => true,
   canSeeCampus: () => true,
+  canSeeEvent: () => true,
 });
 
 // Loads the Campus->Area->Event hierarchy and resolves the per-user grants
@@ -72,9 +74,24 @@ async function resolveHierarchicalAccess(grants) {
     if (campusId) campusSet.add(campusId);
   });
 
+  // Allowed EVENTS. A campus or area grant includes ALL its events; an event
+  // grant includes ONLY that event. (Event grants expand UP to their area in
+  // areaSet above for navigation, but must NOT pull in sibling events here.)
+  const campusGrantSet = new Set(campusGrant);
+  const fullAreaSet = new Set(areaGrant); // areas whose events are ALL granted
+  areas.forEach((a) => {
+    if (campusGrantSet.has(a.campusID)) fullAreaSet.add(a.id);
+  });
+  const eventSet = new Set(eventGrant);
+  events.forEach((e) => {
+    const areaId = eventToArea[e.id];
+    if (areaId && fullAreaSet.has(areaId)) eventSet.add(e.id);
+  });
+
   return {
     areaIDsAllowed: [...areaSet],
     campusIDsAllowed: [...campusSet],
+    eventIDsAllowed: [...eventSet],
   };
 }
 
@@ -89,6 +106,7 @@ export const PermissionsProvider = ({ children }) => {
     isManaged: false,
     areaIDsAllowed: null,
     campusIDsAllowed: null,
+    eventIDsAllowed: null,
   });
 
   useEffect(() => {
@@ -150,6 +168,7 @@ export const PermissionsProvider = ({ children }) => {
         // the schema isn't deployed yet (-> legacy role.areas).
         let areaIDsAllowed = null; // null = no restriction
         let campusIDsAllowed = null;
+        let eventIDsAllowed = null; // null = no restriction
         if (user?.id && !isAdmin) {
           try {
             const grantsRes = await client.graphql({
@@ -165,6 +184,7 @@ export const PermissionsProvider = ({ children }) => {
             if (resolved) {
               areaIDsAllowed = resolved.areaIDsAllowed;
               campusIDsAllowed = resolved.campusIDsAllowed;
+              eventIDsAllowed = resolved.eventIDsAllowed;
             } else {
               // No per-user grants: keep legacy role.areas for areas, all campuses.
               areaIDsAllowed = (user.role?.areas || []).filter(Boolean);
@@ -188,6 +208,7 @@ export const PermissionsProvider = ({ children }) => {
             isManaged,
             areaIDsAllowed,
             campusIDsAllowed,
+            eventIDsAllowed,
           });
       } catch (err) {
         console.error("PermissionsProvider error:", err);
@@ -211,7 +232,9 @@ export const PermissionsProvider = ({ children }) => {
       state.isAdmin || state.areaIDsAllowed == null || state.areaIDsAllowed.includes(areaId);
     const canSeeCampus = (campusId) =>
       state.isAdmin || state.campusIDsAllowed == null || state.campusIDsAllowed.includes(campusId);
-    return { ...state, can, canSeeArea, canSeeCampus };
+    const canSeeEvent = (eventId) =>
+      state.isAdmin || state.eventIDsAllowed == null || state.eventIDsAllowed.includes(eventId);
+    return { ...state, can, canSeeArea, canSeeCampus, canSeeEvent };
   }, [state]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
