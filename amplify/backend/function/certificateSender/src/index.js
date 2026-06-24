@@ -52,9 +52,10 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
-// rev 2026-06-23c: on-demand test-mode handler (POST /certificate-test) + CORS.
-// Test now accepts certificateKey/position overrides so the admin can probe the
-// just-uploaded template WITHOUT saving the event first.
+// rev 2026-06-23d: on-demand test-mode handler (POST /certificate-test) + CORS.
+// Test accepts certificateKey/position overrides (probe before saving). Whole
+// body wrapped in try/catch so failures return 500+CORS, not an opaque 502.
+// MemorySize bumped to 1024MB (CFN) so embedPng on big templates doesn't OOM.
 // (touch this string to bust the deploy hash if Amplify reports "No Change".)
 
 // Files uploaded from the app with the default ("guest") access level live
@@ -249,22 +250,25 @@ const handleTest = async (apiEvent, method) => {
   if (!eventId || !email)
     return json(400, { error: "eventId y email son requeridos" });
 
-  const res = await ddb.send(
-    new GetCommand({ TableName: EVENT_TABLE, Key: { id: eventId } })
-  );
-  const ev = res.Item;
-  if (!ev) return json(404, { error: "Evento no encontrado" });
-
-  // Let the admin test the template/position currently in the form (already
-  // uploaded to S3) WITHOUT saving the event first; fall back to saved values.
-  const certKey = body.certificateKey || ev.certificate;
-  const positionRaw = body.position || ev.certificatePosition;
-  if (!certKey)
-    return json(400, {
-      error: "Sube una plantilla de certificado antes de probar",
-    });
-
+  // Everything below is wrapped so ANY failure (DynamoDB, S3, PDF render, SES)
+  // returns a clean 500 WITH CORS headers instead of an uncaught crash that
+  // API Gateway surfaces as an opaque 502 with no Access-Control header.
   try {
+    const res = await ddb.send(
+      new GetCommand({ TableName: EVENT_TABLE, Key: { id: eventId } })
+    );
+    const ev = res.Item;
+    if (!ev) return json(404, { error: "Evento no encontrado" });
+
+    // Let the admin test the template/position currently in the form (already
+    // uploaded to S3) WITHOUT saving the event first; fall back to saved values.
+    const certKey = body.certificateKey || ev.certificate;
+    const positionRaw = body.position || ev.certificatePosition;
+    if (!certKey)
+      return json(400, {
+        error: "Sube una plantilla de certificado antes de probar",
+      });
+
     const obj = await s3.send(
       new GetObjectCommand({
         Bucket: STORAGE_BUCKET,
