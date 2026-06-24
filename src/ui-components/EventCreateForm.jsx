@@ -364,6 +364,27 @@ export default function EventCreateForm(props) {
     }, {});
     return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
   };
+  // Certificate name styling stored together in certificatePosition as JSON:
+  // { preset, fontPct, color }. On create it's persisted with the form submit.
+  const certSettings = (() => {
+    try {
+      const v = JSON.parse(certificatePosition || "{}");
+      if (v && typeof v === "object")
+        return {
+          preset: v.preset || "centro",
+          fontPct: v.fontPct ?? 6,
+          color: v.color || "#1a1a1a",
+        };
+      if (typeof v === "string" && v)
+        return { preset: v, fontPct: 6, color: "#1a1a1a" };
+    } catch (e) {
+      /* fall through to defaults */
+    }
+    return { preset: "centro", fontPct: 6, color: "#1a1a1a" };
+  })();
+  const updateCertSettings = (patch) => {
+    setCertificatePosition(JSON.stringify({ ...certSettings, ...patch }));
+  };
   return (
     <Grid
       as="form"
@@ -601,17 +622,8 @@ export default function EventCreateForm(props) {
             label="Posición del nombre en el certificado"
             placeholder="Selecciona una posición"
             isDisabled={false}
-            value={(() => {
-              try {
-                return JSON.parse(certificatePosition);
-              } catch (e) {
-                return certificatePosition || "";
-              }
-            })()}
-            onChange={(e) => {
-              const v = e.target.value;
-              setCertificatePosition(v === "" ? "" : JSON.stringify(v));
-            }}
+            value={certSettings.preset}
+            onChange={(e) => updateCertSettings({ preset: e.target.value })}
             {...getOverrideProps(overrides, "certificatePosition")}
           >
             <option value="centro">Centro</option>
@@ -620,6 +632,39 @@ export default function EventCreateForm(props) {
             <option value="inferior-izquierda">Inferior izquierda</option>
             <option value="inferior-derecha">Inferior derecha</option>
           </SelectField>
+          <SelectField
+            label="Tamaño del nombre"
+            isDisabled={false}
+            value={String(certSettings.fontPct)}
+            onChange={(e) =>
+              updateCertSettings({ fontPct: Number(e.target.value) })
+            }
+          >
+            <option value="4">Pequeño</option>
+            <option value="6">Mediano</option>
+            <option value="9">Grande</option>
+          </SelectField>
+          <Field label="Color del nombre" isRequired={false} isReadOnly={false}>
+            <Flex alignItems="center" gap="0.5rem">
+              <input
+                type="color"
+                value={certSettings.color}
+                onChange={(e) => updateCertSettings({ color: e.target.value })}
+                style={{
+                  width: 48,
+                  height: 36,
+                  border: "1px solid #d1d5db",
+                  borderRadius: 8,
+                  background: "none",
+                  cursor: "pointer",
+                  padding: 2,
+                }}
+              />
+              <Text fontSize="0.875rem" color="#6b7280">
+                {certSettings.color}
+              </Text>
+            </Flex>
+          </Field>
         </>
       )}
       <TextAreaField

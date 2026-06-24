@@ -52,10 +52,11 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
-// rev 2026-06-23d: on-demand test-mode handler (POST /certificate-test) + CORS.
+// rev 2026-06-23e: on-demand test-mode handler (POST /certificate-test) + CORS.
 // Test accepts certificateKey/position overrides (probe before saving). Whole
 // body wrapped in try/catch so failures return 500+CORS, not an opaque 502.
-// MemorySize bumped to 1024MB (CFN) so embedPng on big templates doesn't OOM.
+// MemorySize 1024MB (CFN) so embedPng on big templates doesn't OOM.
+// resolvePosition merges { preset, fontPct, color } -> custom name size/color.
 // (touch this string to bust the deploy hash if Amplify reports "No Change".)
 
 // Files uploaded from the app with the default ("guest") access level live
@@ -140,7 +141,20 @@ const resolvePosition = (stored) => {
   if (typeof raw === "string") {
     return PRESET_POSITIONS[raw] || PRESET_POSITIONS["centro"];
   }
-  if (raw && typeof raw === "object") return raw;
+  if (raw && typeof raw === "object") {
+    // New shape from the admin: { preset, fontPct?, color? }. Start from the
+    // preset's coordinates and apply the optional size/color overrides. Legacy
+    // hand-authored objects (with xPct/yPct) just pass through.
+    if (raw.preset) {
+      const base = PRESET_POSITIONS[raw.preset] || PRESET_POSITIONS["centro"];
+      const merged = { ...base };
+      if (raw.fontPct != null && !isNaN(Number(raw.fontPct)))
+        merged.fontPct = Number(raw.fontPct);
+      if (raw.color) merged.color = raw.color;
+      return merged;
+    }
+    return raw;
+  }
   return PRESET_POSITIONS["centro"];
 };
 
