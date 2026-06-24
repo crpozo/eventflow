@@ -64,14 +64,14 @@ export default function SignIn() {
   // Static UI labels (instant, no API quota)
   const ui = getLandingUI(lang);
 
-  // Event date/time is rendered DIRECTLY (not via Amazon Translate) so it always
-  // shows in the VIEWER's own browser timezone + locale format, independent of
-  // the ES/EN content toggle. Same instant, localized per region.
+  // Event date/time is rendered DIRECTLY (not via Amazon Translate). The wall
+  // clock follows the viewer's browser timezone; the LANGUAGE/FORMAT follows the
+  // page's ES/EN toggle (`lang`) so a Spanish page shows the date in Spanish.
   const { eventDate, eventDateEnd } = useMemo(() => {
     // Multi-day: prefer startDate/endDate range, fall back to legacy single date.
     const startIso = event?.startDate || event?.date;
     const endIso = event?.endDate;
-    let date = startIso ? formatDateHour(startIso) : "";
+    let date = startIso ? formatDateHour(startIso, lang) : "";
     // For multi-day events the end date renders on its OWN line (see the render
     // below) so it doesn't cram onto the start line. Empty for single-day events.
     let end = "";
@@ -81,17 +81,17 @@ export default function SignIn() {
       if (sameDay) {
         // Same calendar day: append only the end time, without repeating the
         // weekday/date. Skip it when the end time equals the start time.
-        const endHour = formatHour(endIso);
-        if (endHour && endHour !== formatHour(startIso)) {
-          date = `${formatDateHour(startIso)} — ${endHour}`;
+        const endHour = formatHour(endIso, lang);
+        if (endHour && endHour !== formatHour(startIso, lang)) {
+          date = `${formatDateHour(startIso, lang)} — ${endHour}`;
         }
       } else {
         // Spans multiple days: the full end date goes on its own line.
-        end = formatDateHour(endIso);
+        end = formatDateHour(endIso, lang);
       }
     }
     return { eventDate: date, eventDateEnd: end };
-  }, [event?.date, event?.startDate, event?.endDate]);
+  }, [event?.date, event?.startDate, event?.endDate, lang]);
 
   // Dynamic, user-generated content translated on the fly via Amazon Translate.
   const baseTexts = useMemo(() => {

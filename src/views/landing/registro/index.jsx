@@ -1032,7 +1032,7 @@ const Registro = (props) => {
                   </div>
                   <div className="ticket-success-info-item">
                     <span className="ticket-success-info-icon">📅</span>
-                    <span>{formatSpanishDate(props.event.date)}</span>
+                    <span>{formatSpanishDate(props.event.date, lang)}</span>
                   </div>
                   {props.event.location && (
                     <div className="ticket-success-info-item">
@@ -1111,7 +1111,7 @@ const Registro = (props) => {
                               {props.event.location}
                             </p>
                             <p className="ticket-date-badge">
-                              {formatSpanishDate(props.event.date)}
+                              {formatSpanishDate(props.event.date, lang)}
                             </p>
                           </div>
                         </div>

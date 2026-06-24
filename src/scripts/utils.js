@@ -1,19 +1,25 @@
 
 import { useEffect, useState } from "react";
 
-// Event times are stored as a fixed instant (UTC ISO). Display is DYNAMIC: each
-// viewer sees the date/time in THEIR OWN browser timezone and locale format
-// (Intl.DateTimeFormat with no explicit locale/timeZone uses the browser
-// defaults). Same instant, different wall-clock + format per region.
+// Event times are stored as a fixed instant (UTC ISO). Display is DYNAMIC:
+//  - TIMEZONE follows the viewer's BROWSER (no explicit timeZone) -> the wall
+//    clock shifts per region (Quito vs Germany).
+//  - LANGUAGE/FORMAT follows the PAGE's selected language (the ES/EN toggle),
+//    passed in as `lang`, NOT the browser locale -> a Spanish page shows the
+//    date in Spanish even on an English-locale browser. Defaults to Spanish.
+
+// Map the app's language code (ES/EN) to an Intl locale.
+const localeFor = (lang) =>
+  String(lang || "ES").toUpperCase() === "EN" ? "en-US" : "es-EC";
 
 // Dates
-export const formatDateHour = (inputDate) => {
+export const formatDateHour = (inputDate, lang) => {
   if (!inputDate) return "";
   try {
     const date = new Date(inputDate);
     if (isNaN(date.getTime())) return "";
-    // Browser locale + browser timezone (no explicit args).
-    return new Intl.DateTimeFormat(undefined, {
+    // Page language for format, browser timezone (no explicit timeZone).
+    return new Intl.DateTimeFormat(localeFor(lang), {
       weekday: "long",
       day: "2-digit",
       month: "2-digit",
@@ -30,12 +36,12 @@ export const formatDateHour = (inputDate) => {
 // Returns just the time portion ("09:00 am"), using the exact same hour/minute
 // formatting as formatDateHour. Used to append an end time to a same-day event
 // without repeating the weekday/date.
-export const formatHour = (inputDate) => {
+export const formatHour = (inputDate, lang) => {
   if (!inputDate) return "";
   try {
     const date = new Date(inputDate);
     if (isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(localeFor(lang), {
       hour: "2-digit",
       minute: "2-digit",
     }).format(date);
@@ -66,13 +72,13 @@ export const formatDate = (inputDate) => {
 };
 
 // Longer form used on the ticket. Despite the name (kept for import stability)
-// it now localizes to the viewer's browser locale + timezone, like the others.
-export const formatSpanishDate = (dateString) => {
+// it localizes to the PAGE language (lang) for format and the browser timezone.
+export const formatSpanishDate = (dateString, lang) => {
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat(localeFor(lang), {
       weekday: "long",
       day: "2-digit",
       month: "long",
