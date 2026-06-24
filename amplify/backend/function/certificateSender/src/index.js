@@ -52,7 +52,7 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
-// rev 2026-06-23e: on-demand test-mode handler (POST /certificate-test) + CORS.
+// rev 2026-06-23f: on-demand test-mode handler (POST /certificate-test) + CORS.
 // Test accepts certificateKey/position overrides (probe before saving). Whole
 // body wrapped in try/catch so failures return 500+CORS, not an opaque 502.
 // MemorySize 1024MB (CFN) so embedPng on big templates doesn't OOM.
@@ -220,7 +220,7 @@ const sendEmail = async (to, eventTitle, pdfBuffer) => {
   const message = await transport.sendMail({
     from: SES_FROM,
     to,
-    subject: `Tu certificado — ${eventTitle}`,
+    subject: "Certificado Evento USFQ",
     text: `Gracias por participar en ${eventTitle}. Adjunto encontrarás tu certificado.`,
     html: `<p>Gracias por participar en <strong>${eventTitle}</strong>.</p><p>Aquí tienes tu certificado.</p>`,
     attachments: [
