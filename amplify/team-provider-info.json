@@ -30,7 +30,7 @@
         "certificateSender": {
           "sesFrom": "tickets@eventflow.ec",
           "deploymentBucketName": "amplify-amplify6808e416ff364-staging-145149-deployment",
-          "s3Key": "amplify-builds/certificateSender-2f656466496c51716755-build.zip"
+          "s3Key": "amplify-builds/certificateSender-4944615843684c426679-build.zip"
         },
         "userManager": {
           "deploymentBucketName": "amplify-amplify6808e416ff364-staging-145149-deployment",
