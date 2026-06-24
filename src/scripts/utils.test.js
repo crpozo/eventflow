@@ -23,50 +23,41 @@ describe('formatDate', () => {
 });
 
 describe('formatDateHour', () => {
-  it('returns a formatted string for a valid date', () => {
+  it('returns a localized non-empty string with year and time', () => {
     const result = formatDateHour('2026-04-29T15:00:00Z');
-    expect(result).toBeDefined();
     expect(typeof result).toBe('string');
-    // Should contain day, date parts and am/pm
-    expect(result).toMatch(/\d{2}\/\d{2}\/\d{4}/);
-    expect(result).toMatch(/(am|pm)$/i);
+    // Locale-agnostic: it now follows the runtime browser locale/timezone.
+    expect(result).toMatch(/2026/);
+    expect(result).toMatch(/\d{1,2}:\d{2}/);
   });
 
-  it('returns a string even for invalid input (no guard in source)', () => {
-    // The current implementation does not guard against bad input;
-    // it produces a garbage string. This test documents that behavior.
-    const result = formatDateHour(undefined);
-    expect(typeof result).toBe('string');
+  it('returns "" for invalid/empty input', () => {
+    expect(formatDateHour(undefined)).toBe('');
   });
 });
 
 describe('formatHour', () => {
-  it('returns only the time portion ("hh:mm am/pm"), no date', () => {
+  it('returns only the time portion, no full date', () => {
     const result = formatHour('2026-04-29T15:00:00Z');
     expect(typeof result).toBe('string');
-    // Time only: no weekday or dd/mm/yyyy, just hh:mm am/pm.
-    expect(result).toMatch(/^\d{2}:\d{2} (am|pm)$/);
-    expect(result).not.toMatch(/\d{2}\/\d{2}\/\d{4}/);
+    // Time only: contains hh:mm, never the year.
+    expect(result).toMatch(/\d{1,2}:\d{2}/);
+    expect(result).not.toMatch(/2026/);
   });
 
-  it('returns a string even for invalid input (no guard in source)', () => {
-    const result = formatHour(undefined);
-    expect(typeof result).toBe('string');
+  it('returns "" for invalid/empty input', () => {
+    expect(formatHour(undefined)).toBe('');
   });
 });
 
 describe('formatSpanishDate', () => {
-  it('returns a formatted Spanish date string', () => {
+  it('returns a localized non-empty string with the year', () => {
     const result = formatSpanishDate('2026-04-29T15:00:00Z');
-    expect(result).toBeDefined();
     expect(typeof result).toBe('string');
-    // Should contain year
     expect(result).toMatch(/2026/);
-    expect(result).toMatch(/(AM|PM)$/);
   });
 
-  it('returns a string even for invalid input (no guard in source)', () => {
-    const result = formatSpanishDate(undefined);
-    expect(typeof result).toBe('string');
+  it('returns "" for invalid/empty input', () => {
+    expect(formatSpanishDate(undefined)).toBe('');
   });
 });

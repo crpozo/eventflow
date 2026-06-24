@@ -359,7 +359,6 @@ export default function EventUpdateForm(props) {
       calendar: "iso8601",
       numberingSystem: "latn",
       hourCycle: "h23",
-      timeZone: "America/Guayaquil",
     });
     const parts = df.formatToParts(date).reduce((acc, part) => {
       acc[part.type] = part.value;
@@ -367,10 +366,6 @@ export default function EventUpdateForm(props) {
     }, {});
     return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
   };
-  // Interpreta el datetime-local (naive) SIEMPRE como hora de Quito (UTC-5),
-  // nunca la zona del navegador ni Galápagos.
-  const ecuadorLocalToISO = (v) =>
-    v ? new Date(`${String(v).slice(0, 16)}:00-05:00`).toISOString() : "";
   return (
     <Grid
       as="form"
@@ -537,7 +532,7 @@ export default function EventUpdateForm(props) {
         value={startDate && convertToLocal(new Date(startDate))}
         onChange={(e) => {
           let value =
-            e.target.value === "" ? "" : ecuadorLocalToISO(e.target.value);
+            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
           if (errors.startDate?.hasError) {
             runValidationTasks("startDate", value);
           }
@@ -557,7 +552,7 @@ export default function EventUpdateForm(props) {
         value={endDate && convertToLocal(new Date(endDate))}
         onChange={(e) => {
           let value =
-            e.target.value === "" ? "" : ecuadorLocalToISO(e.target.value);
+            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
           if (errors.endDate?.hasError) {
             runValidationTasks("endDate", value);
           }

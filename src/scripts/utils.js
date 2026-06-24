@@ -1,64 +1,29 @@
 
 import { useEffect, useState } from "react";
 
-// All event times in this app are Quito/Ecuador time (America/Guayaquil, a fixed
-// UTC-5, no DST). Returns a Date whose LOCAL getters (getHours, getDate, getDay…)
-// read the Ecuador wall-clock, regardless of the runtime/browser timezone.
-const ECUADOR_TZ = "America/Guayaquil";
-export const toEcuadorWallClock = (input) =>
-  new Date(new Date(input).toLocaleString("en-US", { timeZone: ECUADOR_TZ }));
+// Event times are stored as a fixed instant (UTC ISO). Display is DYNAMIC: each
+// viewer sees the date/time in THEIR OWN browser timezone and locale format
+// (Intl.DateTimeFormat with no explicit locale/timeZone uses the browser
+// defaults). Same instant, different wall-clock + format per region.
 
 // Dates
 export const formatDateHour = (inputDate) => {
+  if (!inputDate) return "";
   try {
-    const daysOfWeek = [
-      "Domingo",
-      "Lunes",
-      "Martes",
-      "Miércoles",
-      "Jueves",
-      "Viernes",
-      "Sábado",
-    ];
-    const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
-
-    // Read the wall-clock time in Ecuador (UTC-5), regardless of runtime TZ.
-    const date = toEcuadorWallClock(inputDate);
-
-    const dayOfWeek = daysOfWeek[date.getDay()];
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    let hours = date.getHours();
-    const minutes = date.getMinutes();
-    const ampm = hours >= 12 ? "pm" : "am";
-
-    if (hours > 12) {
-      hours -= 12;
-    }
-
-    hours = hours < 10 ? "0" + hours : hours;
-    const formattedMinutes = minutes < 10 ? "0" + minutes : minutes;
-
-    return `${dayOfWeek}, ${("0" + day).slice(-2)}/${(
-      "0" + (date.getMonth() + 1)
-    ).slice(-2)}/${year} - ${hours}:${formattedMinutes} ${ampm}`;
-
+    const date = new Date(inputDate);
+    if (isNaN(date.getTime())) return "";
+    // Browser locale + browser timezone (no explicit args).
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   } catch (e) {
     console.error("formatDateHour: ", e);
+    return "";
   }
 };
 
@@ -66,22 +31,17 @@ export const formatDateHour = (inputDate) => {
 // formatting as formatDateHour. Used to append an end time to a same-day event
 // without repeating the weekday/date.
 export const formatHour = (inputDate) => {
+  if (!inputDate) return "";
   try {
-    const date = toEcuadorWallClock(inputDate);
-    let hours = date.getHours();
-    const minutes = date.getMinutes();
-    const ampm = hours >= 12 ? "pm" : "am";
-
-    if (hours > 12) {
-      hours -= 12;
-    }
-
-    hours = hours < 10 ? "0" + hours : hours;
-    const formattedMinutes = minutes < 10 ? "0" + minutes : minutes;
-
-    return `${hours}:${formattedMinutes} ${ampm}`;
+    const date = new Date(inputDate);
+    if (isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   } catch (e) {
     console.error("formatHour: ", e);
+    return "";
   }
 };
 
@@ -105,53 +65,24 @@ export const formatDate = (inputDate) => {
   }
 };
 
+// Longer form used on the ticket. Despite the name (kept for import stability)
+// it now localizes to the viewer's browser locale + timezone, like the others.
 export const formatSpanishDate = (dateString) => {
+  if (!dateString) return "";
   try {
-    const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
-
-    const days = [
-      "Domingo",
-      "Lunes",
-      "Martes",
-      "Miércoles",
-      "Jueves",
-      "Viernes",
-      "Sábado",
-    ];
-
-    const date = toEcuadorWallClock(dateString);
-    const dayName = days[date.getDay()];
-    const monthName = months[date.getMonth()];
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-
-    const formattedDate = `${dayName}, ${monthName} ${month
-      .toString()
-      .padStart(2, "0")}/${day.toString().padStart(2, "0")}/${year} - ${hours
-      .toString()
-      .padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${
-      hours >= 12 ? "PM" : "AM"
-    }`;
-
-    return formattedDate;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   } catch (e) {
     console.error("formatSpanishDate: ", e);
+    return "";
   }
 };
 

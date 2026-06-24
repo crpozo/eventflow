@@ -64,15 +64,17 @@ export default function SignIn() {
   // Static UI labels (instant, no API quota)
   const ui = getLandingUI(lang);
 
-  // Dynamic, user-generated content translated on the fly via Amazon Translate.
-  const baseTexts = useMemo(() => {
+  // Event date/time is rendered DIRECTLY (not via Amazon Translate) so it always
+  // shows in the VIEWER's own browser timezone + locale format, independent of
+  // the ES/EN content toggle. Same instant, localized per region.
+  const { eventDate, eventDateEnd } = useMemo(() => {
     // Multi-day: prefer startDate/endDate range, fall back to legacy single date.
     const startIso = event?.startDate || event?.date;
     const endIso = event?.endDate;
-    let eventDate = startIso ? formatDateHour(startIso) : "";
+    let date = startIso ? formatDateHour(startIso) : "";
     // For multi-day events the end date renders on its OWN line (see the render
     // below) so it doesn't cram onto the start line. Empty for single-day events.
-    let eventDateEnd = "";
+    let end = "";
     if (startIso && endIso) {
       const sameDay =
         new Date(endIso).toDateString() === new Date(startIso).toDateString();
@@ -81,27 +83,30 @@ export default function SignIn() {
         // weekday/date. Skip it when the end time equals the start time.
         const endHour = formatHour(endIso);
         if (endHour && endHour !== formatHour(startIso)) {
-          eventDate = `${formatDateHour(startIso)} — ${endHour}`;
+          date = `${formatDateHour(startIso)} — ${endHour}`;
         }
       } else {
         // Spans multiple days: the full end date goes on its own line.
-        eventDateEnd = formatDateHour(endIso);
+        end = formatDateHour(endIso);
       }
     }
+    return { eventDate: date, eventDateEnd: end };
+  }, [event?.date, event?.startDate, event?.endDate]);
+
+  // Dynamic, user-generated content translated on the fly via Amazon Translate.
+  const baseTexts = useMemo(() => {
     const texts = {
       title: landing?.title || "",
       description: landing?.description || "",
       location: landing?.location || "",
       extraInfo: landing?.extraInfo || "",
-      eventDate,
-      eventDateEnd,
     };
     // Ticket titles are created per-landing, so translate each one.
     (landing?.ticketTitle || []).forEach((title, i) => {
       texts[`ticket_${i}`] = title || "";
     });
     return texts;
-  }, [landing, event?.date, event?.startDate, event?.endDate]);
+  }, [landing]);
 
   const translated = useAwsTranslation(baseTexts, lang);
 
@@ -411,24 +416,19 @@ export default function SignIn() {
                     <div>
                       <h3 className="text-lg font-bold">{ui.dateAndTime}</h3>
                       {event && (
-                        <>
-                          <p className="text-md">
-                            {translated.eventDateEnd ? (
-                              <>
-                                <span className="font-semibold">{ui.start}:</span>{" "}
-                                {translated.eventDate}
-                                <br />
-                                <span className="font-semibold">{ui.end}:</span>{" "}
-                                {translated.eventDateEnd}
-                              </>
-                            ) : (
-                              translated.eventDate
-                            )}
-                          </p>
-                          <span className="text-xs text-gray-400">
-                            {ui.quitoTime}
-                          </span>
-                        </>
+                        <p className="text-md">
+                          {eventDateEnd ? (
+                            <>
+                              <span className="font-semibold">{ui.start}:</span>{" "}
+                              {eventDate}
+                              <br />
+                              <span className="font-semibold">{ui.end}:</span>{" "}
+                              {eventDateEnd}
+                            </>
+                          ) : (
+                            eventDate
+                          )}
+                        </p>
                       )}
                     </div>
                   </div>
