@@ -9,7 +9,8 @@ import {
 import { EditableSection } from "components/sectionEdit";
  import {
   MdEditCalendar,
-  MdChevronLeft
+  MdChevronLeft,
+  MdDeleteOutline
 } from "react-icons/md";
 
 const Dashboard = () => {
@@ -60,7 +61,12 @@ const Dashboard = () => {
               }}
             />
 
-            <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
+            <button
+              type="button"
+              onClick={deleteEvent}
+              className="mt-4 inline-flex items-center gap-2 self-start rounded-xl bg-red-500 px-5 py-2.5 text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200"
+            >
+              <MdDeleteOutline className="h-4 w-4" />
               Eliminar
             </button>
           </EditableSection>
