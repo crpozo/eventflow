@@ -406,8 +406,17 @@ export default function SignIn() {
 
               <div className="grid grid-cols-1 items-start gap-7 sm:gap-5 lg:grid-cols-3">
                 <div className="flex items-center gap-5 lg:col-span-1">
-                  <div>
-                    {event && <p className="text-md">{translated.description}</p>}
+                  <div className="min-w-0">
+                    {event && (
+                      // Admin-authored description may contain HTML (<br>, links).
+                      // Render it; break-words keeps long URLs from overflowing.
+                      <div
+                        className="text-md break-words [overflow-wrap:anywhere] [&_a]:font-medium [&_a]:text-red-500 [&_a]:underline"
+                        dangerouslySetInnerHTML={{
+                          __html: translated.description || "",
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col lg:items-start gap-5 lg:ml-[40px] mt-auto mb-auto lg:col-span-1">
