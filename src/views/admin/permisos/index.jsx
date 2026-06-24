@@ -4,7 +4,7 @@ import { post, del } from "aws-amplify/api";
 import { DataStore } from "aws-amplify/datastore";
 import { User } from "models";
 import { fetchUserAttributes } from "aws-amplify/auth";
-import { MdAdd, MdEdit, MdDelete, MdSearch } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdSearch, MdOutlineMail } from "react-icons/md";
 import Banner from "./components/Banner";
 import UserFormModal from "./components/UserFormModal";
 import EventPermissionsManager from "./components/EventPermissionsManager";
@@ -274,6 +274,46 @@ const AdminUserManager = () => {
     }
   };
 
+  // Resend the login instructions email to an existing user. The backend
+  // resets a fresh temp password if they never logged in, else sends a reminder.
+  const handleResend = async (u) => {
+    if (!window.confirm(`¿Reenviar las instrucciones de acceso a ${u.email}?`))
+      return;
+    try {
+      const op = post({
+        apiName: USER_API,
+        path: "/users",
+        options: { body: { email: u.email, name: u.name, resend: true } },
+      });
+      const { body } = await op.response;
+      const result = await body.json().catch(() => ({}));
+      if (result.emailSent) {
+        alert(`Instrucciones de acceso reenviadas a ${u.email}.`);
+      } else if (result.withTempPassword && result.tempPassword) {
+        alert(
+          `No se pudo enviar el correo. Comparte esta contraseña temporal manualmente con ${u.email}:\n\n${result.tempPassword}\n\nDeberá cambiarla en el primer inicio de sesión.`
+        );
+      } else {
+        alert(
+          "No se pudo reenviar el correo." +
+            (result.emailError ? "\n\n" + result.emailError : "")
+        );
+      }
+    } catch (err) {
+      let msg = "";
+      try {
+        const d = await err?.response?.body?.json?.();
+        msg = d?.error || "";
+      } catch (e) {
+        /* ignore */
+      }
+      if (!msg && isApiMissing(err))
+        msg = "La función de acceso (userManager) aún no está desplegada.";
+      console.error("resend error:", err);
+      alert("No se pudo reenviar el correo." + (msg ? "\n\n" + msg : ""));
+    }
+  };
+
   const permSummary = (u) => {
     if (u.role?.name === "Admin") return "Acceso completo";
     const c = (u.campusIDs || []).filter(Boolean).length;
@@ -376,6 +416,13 @@ const AdminUserManager = () => {
                         className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 dark:border-navy-700 dark:hover:bg-navy-900"
                       >
                         <MdEdit className="h-4 w-4" /> Editar
+                      </button>
+                      <button
+                        onClick={() => handleResend(u)}
+                        title="Reenviar instrucciones de acceso por correo"
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 dark:border-navy-700 dark:hover:bg-navy-900"
+                      >
+                        <MdOutlineMail className="h-4 w-4" /> Reenviar
                       </button>
                       <button
                         onClick={() => handleDelete(u)}

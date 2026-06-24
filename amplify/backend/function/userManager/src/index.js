@@ -18,6 +18,8 @@ const {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
   AdminDeleteUserCommand,
+  AdminGetUserCommand,
+  AdminSetUserPasswordCommand,
 } = require("@aws-sdk/client-cognito-identity-provider");
 const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 
@@ -83,6 +85,35 @@ const buildInviteEmail = (email, name, tempPassword) => {
   });
 };
 
+// Reminder for a user who ALREADY set their password (resend with no temp pw).
+const buildReminderEmail = (email, name) => {
+  const hi = name ? `Hola ${name},` : "Hola,";
+  const html =
+    `<div style="font-family:Arial,sans-serif;font-size:15px;color:#1a1a1a;line-height:1.5">` +
+    `<p>${hi}</p>` +
+    `<p>Tienes una cuenta en <strong>Eventflow</strong> (gestión de eventos USFQ).</p>` +
+    `<p><strong>Usuario:</strong> ${email}</p>` +
+    `<p>Ingresa en <a href="${LOGIN_URL}">${LOGIN_URL}</a> con tu correo y contraseña. ` +
+    `Si la olvidaste, usa la opción <strong>"¿Olvidaste tu contraseña?"</strong> en la pantalla de inicio de sesión.</p>` +
+    `<p>— Equipo Eventflow USFQ</p></div>`;
+  const text =
+    `${hi}\n\nTienes una cuenta en Eventflow (gestión de eventos USFQ).\n\n` +
+    `Usuario: ${email}\n\nIngresa en ${LOGIN_URL} con tu correo y contraseña. ` +
+    `Si la olvidaste, usa "¿Olvidaste tu contraseña?" en la pantalla de inicio.\n\n` +
+    `— Equipo Eventflow USFQ`;
+  return new SendEmailCommand({
+    Source: SES_FROM,
+    Destination: { ToAddresses: [email] },
+    Message: {
+      Subject: { Data: "Acceso a Eventflow USFQ", Charset: "UTF-8" },
+      Body: {
+        Html: { Data: html, Charset: "UTF-8" },
+        Text: { Data: text, Charset: "UTF-8" },
+      },
+    },
+  });
+};
+
 const json = (statusCode, data) => ({
   statusCode,
   headers: {
@@ -108,6 +139,64 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || "{}");
       const email = (body.email || "").trim().toLowerCase();
       if (!email) return json(400, { error: "email is required" });
+
+      // ── Resend login instructions to an EXISTING Cognito user ──
+      if (body.resend) {
+        let status;
+        try {
+          const u = await cognito.send(
+            new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email })
+          );
+          status = u.UserStatus;
+        } catch (e) {
+          if (e?.name === "UserNotFoundException")
+            return json(404, {
+              error: "No existe una cuenta de acceso para ese correo",
+            });
+          throw e;
+        }
+        if (!SES_FROM) return json(500, { error: "SES_FROM not configured" });
+
+        // Never finished first login -> issue a fresh temp password and resend
+        // the full invite. Otherwise -> reminder with no password.
+        const needsTemp =
+          status === "FORCE_CHANGE_PASSWORD" || status === "RESET_REQUIRED";
+        let tempPassword;
+        if (needsTemp) {
+          tempPassword = genTempPassword();
+          await cognito.send(
+            new AdminSetUserPasswordCommand({
+              UserPoolId: USER_POOL_ID,
+              Username: email,
+              Password: tempPassword,
+              Permanent: false,
+            })
+          );
+        }
+        try {
+          await ses.send(
+            needsTemp
+              ? buildInviteEmail(email, body.name, tempPassword)
+              : buildReminderEmail(email, body.name)
+          );
+        } catch (e) {
+          console.error("resend email failed:", e);
+          return json(200, {
+            ok: true,
+            resent: false,
+            emailSent: false,
+            withTempPassword: needsTemp,
+            ...(needsTemp ? { tempPassword } : {}),
+            emailError: e?.message || String(e),
+          });
+        }
+        return json(200, {
+          ok: true,
+          resent: true,
+          emailSent: true,
+          withTempPassword: needsTemp,
+        });
+      }
 
       const attrs = [
         { Name: "email", Value: email },
