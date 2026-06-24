@@ -170,6 +170,14 @@
           "resourceName": "userManager"
         }
       ]
+    },
+    "AMPLIFY_function_userManager_sesFrom": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "userManager"
+        }
+      ]
     }
   },
   "predictions": {

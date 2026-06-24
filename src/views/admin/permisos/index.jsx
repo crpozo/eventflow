@@ -185,15 +185,24 @@ const AdminUserManager = () => {
     // 1) Cognito account (sends the invite email).
     //    - function not deployed yet  -> create just the record.
     //    - login already exists (409) -> reuse it, still create the record.
-    let loginStatus = "none"; // "created" | "exists" | "none"
+    let loginStatus = "none"; // "created" | "created-noemail" | "exists" | "none"
+    let tempPassword;
     try {
       const op = post({
         apiName: USER_API,
         path: "/users",
         options: { body: { email: data.email, name: data.name } },
       });
-      await op.response;
-      loginStatus = "created";
+      const { body } = await op.response;
+      const result = await body.json().catch(() => ({}));
+      if (result?.emailSent === false) {
+        // Cognito user exists but the SES invite failed -> the temp password
+        // comes back so the admin can relay it manually (don't claim success).
+        loginStatus = "created-noemail";
+        tempPassword = result.tempPassword;
+      } else {
+        loginStatus = "created";
+      }
     } catch (err) {
       if (isUserExists(err)) loginStatus = "exists";
       else if (!isApiMissing(err)) throw err; // real error
@@ -209,7 +218,7 @@ const AdminUserManager = () => {
         eventIDs: data.eventIDs,
       })
     );
-    return loginStatus;
+    return { loginStatus, tempPassword };
   };
 
   const handleSubmit = async (data) => {
@@ -220,12 +229,14 @@ const AdminUserManager = () => {
         await fetchData();
         alert("Usuario actualizado.");
       } else {
-        const loginStatus = await createUser(data);
+        const { loginStatus, tempPassword } = await createUser(data);
         setModal(null);
         await fetchData();
         alert(
           loginStatus === "created"
             ? "Usuario creado e invitado por correo."
+            : loginStatus === "created-noemail"
+            ? `Usuario creado, pero NO se pudo enviar el correo de invitación.\n\nComparte esta contraseña temporal manualmente con ${data.email}:\n\n${tempPassword || "(no disponible)"}\n\nDeberá cambiarla en el primer inicio de sesión.`
             : loginStatus === "exists"
             ? "Usuario creado. Ya existía una cuenta de acceso para ese correo; se reutilizó (no se reenvió invitación)."
             : "Usuario creado con su rol y permisos.\n\nLa cuenta de acceso (login) se generará cuando despliegues la función 'userManager' (Cognito)."

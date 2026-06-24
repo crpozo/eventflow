@@ -19,6 +19,9 @@
     "autheventflowUserPoolId": {
       "Type": "String",
       "Default": "autheventflowUserPoolId"
+    },
+    "sesFrom": {
+      "Type": "String"
     }
   },
   "Conditions": {
@@ -76,6 +79,9 @@
             },
             "AUTH_EVENTFLOW_USERPOOLID": {
               "Ref": "autheventflowUserPoolId"
+            },
+            "SES_FROM": {
+              "Ref": "sesFrom"
             }
           }
         },
@@ -243,6 +249,16 @@
                 "cognito-idp:AdminCreateUser",
                 "cognito-idp:AdminDeleteUser",
                 "cognito-idp:AdminGetUser"
+              ],
+              "Resource": [
+                "*"
+              ],
+              "Effect": "Allow"
+            },
+            {
+              "Action": [
+                "ses:SendEmail",
+                "ses:SendRawEmail"
               ],
               "Resource": [
                 "*"

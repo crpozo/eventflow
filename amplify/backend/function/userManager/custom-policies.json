@@ -8,5 +8,14 @@
     "Resource": [
       "*"
     ]
+  },
+  {
+    "Action": [
+      "ses:SendEmail",
+      "ses:SendRawEmail"
+    ],
+    "Resource": [
+      "*"
+    ]
   }
 ]

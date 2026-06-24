@@ -4,6 +4,7 @@
   "description": "REST Lambda for Cognito user create/delete from the admin Permisos page",
   "main": "index.js",
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.600.0"
+    "@aws-sdk/client-cognito-identity-provider": "^3.600.0",
+    "@aws-sdk/client-ses": "^3.967.0"
   }
 }
