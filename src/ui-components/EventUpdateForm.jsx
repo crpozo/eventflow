@@ -35,6 +35,7 @@ import {
 } from "./utils";
 import { DataStore } from "aws-amplify/datastore";
 import TestCertificate from "components/TestCertificate";
+import CertificatePreview from "components/CertificatePreview";
 function ArrayField({
   items = [],
   onChange,
@@ -720,6 +721,12 @@ export default function EventUpdateForm(props) {
               </Text>
             </Flex>
           </Flex>
+          <CertificatePreview
+            certificate={certificate}
+            preset={certSettings.preset}
+            fontPct={certSettings.fontPct}
+            color={certSettings.color}
+          />
           <TestCertificate
             eventId={eventRecord?.id}
             certificate={certificate}

@@ -34,6 +34,7 @@ import {
   validateField,
 } from "./utils";
 import { DataStore } from "aws-amplify/datastore";
+import CertificatePreview from "components/CertificatePreview";
 function ArrayField({
   items = [],
   onChange,
@@ -691,6 +692,12 @@ export default function EventCreateForm(props) {
               </Text>
             </Flex>
           </Flex>
+          <CertificatePreview
+            certificate={certificate}
+            preset={certSettings.preset}
+            fontPct={certSettings.fontPct}
+            color={certSettings.color}
+          />
         </>
       )}
       <TextAreaField
