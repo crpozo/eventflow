@@ -30,12 +30,12 @@
         "certificateSender": {
           "sesFrom": "tickets@eventflow.ec",
           "deploymentBucketName": "amplify-amplify6808e416ff364-staging-145149-deployment",
-          "s3Key": "amplify-builds/certificateSender-4944615843684c426679-build.zip"
+          "s3Key": "amplify-builds/certificateSender-31324a472b6a36706f44-build.zip"
         },
         "userManager": {
           "sesFrom": "tickets@eventflow.ec",
           "deploymentBucketName": "amplify-amplify6808e416ff364-staging-145149-deployment",
-          "s3Key": "amplify-builds/userManager-584b35766a3442615a72-build.zip"
+          "s3Key": "amplify-builds/userManager-5a7436715a356170567a-build.zip"
         }
       }
     }
