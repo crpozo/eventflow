@@ -367,25 +367,58 @@ export default function EventUpdateForm(props) {
     }, {});
     return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
   };
-  // Certificate name styling lives together in certificatePosition as JSON:
-  // { preset, fontPct, color }. Backward compatible with the old plain string.
+  // Certificate name styling/placement lives in certificatePosition as JSON:
+  // { xPct, yPct, fontPct, color, sendAt }. Backward compatible with the old
+  // preset string / { preset } object (mapped to xPct/yPct here).
+  const CERT_PRESETS = {
+    centro: { xPct: 50, yPct: 50 },
+    "centro-arriba": { xPct: 50, yPct: 30 },
+    "centro-abajo": { xPct: 50, yPct: 70 },
+    "inferior-izquierda": { xPct: 28, yPct: 85 },
+    "inferior-derecha": { xPct: 72, yPct: 85 },
+  };
   const certSettings = (() => {
+    const defaults = {
+      xPct: 50,
+      yPct: 50,
+      fontPct: 6,
+      color: "#1a1a1a",
+      sendAt: "",
+    };
     try {
       const v = JSON.parse(certificatePosition || "{}");
-      if (v && typeof v === "object")
+      if (typeof v === "string" && v) {
+        const p = CERT_PRESETS[v] || CERT_PRESETS.centro;
+        return { ...defaults, xPct: p.xPct, yPct: p.yPct };
+      }
+      if (v && typeof v === "object") {
+        let xPct = v.xPct;
+        let yPct = v.yPct;
+        if (xPct == null || yPct == null) {
+          const p = CERT_PRESETS[v.preset] || CERT_PRESETS.centro;
+          xPct = p.xPct;
+          yPct = p.yPct;
+        }
         return {
-          preset: v.preset || "centro",
+          xPct: Number(xPct),
+          yPct: Number(yPct),
           fontPct: v.fontPct ?? 6,
           color: v.color || "#1a1a1a",
           sendAt: v.sendAt || "",
         };
-      if (typeof v === "string" && v)
-        return { preset: v, fontPct: 6, color: "#1a1a1a", sendAt: "" };
+      }
     } catch (e) {
       /* fall through to defaults */
     }
-    return { preset: "centro", fontPct: 6, color: "#1a1a1a", sendAt: "" };
+    return defaults;
   })();
+  // Which preset (if any) the current x/y matches, for the dropdown.
+  const currentPreset =
+    Object.keys(CERT_PRESETS).find(
+      (k) =>
+        CERT_PRESETS[k].xPct === certSettings.xPct &&
+        CERT_PRESETS[k].yPct === certSettings.yPct
+    ) || "custom";
   // Auto-save just the certificate fields so uploading/adjusting persists
   // WITHOUT clicking Update (you can test right away).
   const persistCert = async (cert, posJson) => {
@@ -647,11 +680,14 @@ export default function EventUpdateForm(props) {
             )}
           </Field>
           <SelectField
-            label="Posición del nombre en el certificado"
+            label="Posición del nombre (atajo — o arrastra en la vista previa)"
             placeholder="Selecciona una posición"
             isDisabled={false}
-            value={certSettings.preset}
-            onChange={(e) => updateCertSettings({ preset: e.target.value })}
+            value={currentPreset}
+            onChange={(e) => {
+              const p = CERT_PRESETS[e.target.value];
+              if (p) updateCertSettings({ xPct: p.xPct, yPct: p.yPct });
+            }}
             {...getOverrideProps(overrides, "certificatePosition")}
           >
             <option value="centro">Centro</option>
@@ -659,6 +695,7 @@ export default function EventUpdateForm(props) {
             <option value="centro-abajo">Centro abajo</option>
             <option value="inferior-izquierda">Inferior izquierda</option>
             <option value="inferior-derecha">Inferior derecha</option>
+            <option value="custom">Personalizado (arrastrado)</option>
           </SelectField>
           <SelectField
             label="Tamaño del nombre"
@@ -755,9 +792,16 @@ export default function EventUpdateForm(props) {
           </Flex>
           <CertificatePreview
             certificate={certificate}
-            preset={certSettings.preset}
+            xPct={certSettings.xPct}
+            yPct={certSettings.yPct}
             fontPct={certSettings.fontPct}
             color={certSettings.color}
+            onPositionChange={(x, y) =>
+              updateCertSettings({ xPct: x, yPct: y }, { persist: false })
+            }
+            onPositionCommit={() =>
+              persistCert(certificate, certificatePosition)
+            }
           />
           <TestCertificate
             eventId={eventRecord?.id}
