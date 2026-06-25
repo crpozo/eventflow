@@ -100,6 +100,9 @@ export default function SignIn() {
       description: landing?.description || "",
       location: landing?.location || "",
       extraInfo: landing?.extraInfo || "",
+      // Custom HTML block (e.g. agenda link) — translated like the rest so its
+      // visible text follows the ES/EN toggle. Amazon Translate preserves tags.
+      customHtml: landing?.customHtml || "",
     };
     // Ticket titles are created per-landing, so translate each one.
     (landing?.ticketTitle || []).forEach((title, i) => {
@@ -418,12 +421,15 @@ export default function SignIn() {
                       />
                     )}
                     {/* Admin "Bloque HTML personalizado" (e.g. a PDF/agenda link),
-                        rendered right under the description so it's visible. */}
-                    {landing?.customHtml &&
-                      String(landing.customHtml).trim().length > 0 && (
+                        rendered right under the description so it's visible. Uses
+                        the translated value so it follows the ES/EN toggle. */}
+                    {translated.customHtml &&
+                      String(translated.customHtml).trim().length > 0 && (
                         <div
                           className="landing-custom-html mt-3 text-md break-words [overflow-wrap:anywhere] [&_a]:font-medium [&_a]:text-red-500 [&_a]:underline"
-                          dangerouslySetInnerHTML={{ __html: landing.customHtml }}
+                          dangerouslySetInnerHTML={{
+                            __html: translated.customHtml,
+                          }}
                         />
                       )}
                   </div>
