@@ -695,8 +695,85 @@ export default function EventUpdateForm(props) {
             <option value="centro-abajo">Centro abajo</option>
             <option value="inferior-izquierda">Inferior izquierda</option>
             <option value="inferior-derecha">Inferior derecha</option>
-            <option value="custom">Personalizado (arrastrado)</option>
+            <option value="custom">Personalizado</option>
           </SelectField>
+          <Flex direction="column" gap="4px">
+            <Text fontSize="1rem" color="#304050">
+              Posición exacta (% de la imagen)
+            </Text>
+            <Flex alignItems="center" gap="16px" wrap="wrap">
+              <Flex alignItems="center" gap="6px">
+                <Text fontSize="0.875rem" color="#6b7280">
+                  Horizontal
+                </Text>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={certSettings.xPct}
+                  onChange={(e) =>
+                    updateCertSettings(
+                      {
+                        xPct: Math.max(
+                          0,
+                          Math.min(100, Number(e.target.value) || 0)
+                        ),
+                      },
+                      { persist: false }
+                    )
+                  }
+                  onBlur={() => persistCert(certificate, certificatePosition)}
+                  style={{
+                    width: 72,
+                    border: "1px solid #d1d5db",
+                    borderRadius: 8,
+                    padding: "6px 8px",
+                  }}
+                />
+                <Text fontSize="0.875rem" color="#6b7280">
+                  %
+                </Text>
+              </Flex>
+              <Flex alignItems="center" gap="6px">
+                <Text fontSize="0.875rem" color="#6b7280">
+                  Vertical
+                </Text>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={certSettings.yPct}
+                  onChange={(e) =>
+                    updateCertSettings(
+                      {
+                        yPct: Math.max(
+                          0,
+                          Math.min(100, Number(e.target.value) || 0)
+                        ),
+                      },
+                      { persist: false }
+                    )
+                  }
+                  onBlur={() => persistCert(certificate, certificatePosition)}
+                  style={{
+                    width: 72,
+                    border: "1px solid #d1d5db",
+                    borderRadius: 8,
+                    padding: "6px 8px",
+                  }}
+                />
+                <Text fontSize="0.875rem" color="#6b7280">
+                  %
+                </Text>
+              </Flex>
+            </Flex>
+            <Text fontSize="0.8125rem" color="#6b7280">
+              0% = arriba/izquierda, 100% = abajo/derecha. También puedes
+              arrastrar el nombre en la vista previa.
+            </Text>
+          </Flex>
           <SelectField
             label="Tamaño del nombre"
             isDisabled={false}
