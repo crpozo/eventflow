@@ -23,8 +23,8 @@ function toUrls(keys) {
 export default function LandingExtras({ landing, ui }) {
   const gallery = toUrls(landing?.galleryPhotos);
   const logos = toUrls(landing?.partnerLogos);
-  const customHtml = landing?.customHtml;
-  const hasHtml = typeof customHtml === "string" && customHtml.trim().length > 0;
+  // NOTE: customHtml now renders under the event description (landing/index.jsx),
+  // not here, so the agenda/PDF link shows next to the event details.
   // Lightbox: the URL of the image currently shown enlarged (null = closed).
   const [lightbox, setLightbox] = React.useState(null);
 
@@ -57,15 +57,6 @@ export default function LandingExtras({ landing, ui }) {
             ))}
           </div>
         </div>
-      )}
-
-      {/* Custom HTML block (admin-controlled) */}
-      {hasHtml && (
-        <div
-          className="landing-custom-html mb-[40px] md:mb-[45px]"
-          // Content is authored by trusted admins from the event admin panel.
-          dangerouslySetInnerHTML={{ __html: customHtml }}
-        />
       )}
 
       {/* Partner logos carousel (continuous auto-scroll) */}

@@ -417,6 +417,15 @@ export default function SignIn() {
                         }}
                       />
                     )}
+                    {/* Admin "Bloque HTML personalizado" (e.g. a PDF/agenda link),
+                        rendered right under the description so it's visible. */}
+                    {landing?.customHtml &&
+                      String(landing.customHtml).trim().length > 0 && (
+                        <div
+                          className="landing-custom-html mt-3 text-md break-words [overflow-wrap:anywhere] [&_a]:font-medium [&_a]:text-red-500 [&_a]:underline"
+                          dangerouslySetInnerHTML={{ __html: landing.customHtml }}
+                        />
+                      )}
                   </div>
                 </div>
                 <div className="flex flex-col lg:items-start gap-5 lg:ml-[40px] mt-auto mb-auto lg:col-span-1">
