@@ -410,12 +410,6 @@ export default function EventCreateForm(props) {
     }
     return defaults;
   })();
-  const currentPreset =
-    Object.keys(CERT_PRESETS).find(
-      (k) =>
-        CERT_PRESETS[k].xPct === certSettings.xPct &&
-        CERT_PRESETS[k].yPct === certSettings.yPct
-    ) || "custom";
   const updateCertSettings = (patch) => {
     setCertificatePosition(JSON.stringify({ ...certSettings, ...patch }));
   };
@@ -652,91 +646,54 @@ export default function EventCreateForm(props) {
               {...getOverrideProps(overrides, "certificate")}
             ></StorageManager>
           </Field>
-          <SelectField
-            label="Posición del nombre (atajo — o arrastra en la vista previa)"
-            placeholder="Selecciona una posición"
-            isDisabled={false}
-            value={currentPreset}
-            onChange={(e) => {
-              const p = CERT_PRESETS[e.target.value];
-              if (p) updateCertSettings({ xPct: p.xPct, yPct: p.yPct });
-            }}
-            {...getOverrideProps(overrides, "certificatePosition")}
-          >
-            <option value="centro">Centro</option>
-            <option value="centro-arriba">Centro arriba</option>
-            <option value="centro-abajo">Centro abajo</option>
-            <option value="inferior-izquierda">Inferior izquierda</option>
-            <option value="inferior-derecha">Inferior derecha</option>
-            <option value="custom">Personalizado</option>
-          </SelectField>
-          <Flex direction="column" gap="4px">
+          <Flex direction="column" gap="10px">
             <Text fontSize="1rem" color="#304050">
-              Posición exacta (% de la imagen)
+              Posición del nombre
             </Text>
-            <Flex alignItems="center" gap="16px" wrap="wrap">
-              <Flex alignItems="center" gap="6px">
+            <Flex direction="column" gap="2px">
+              <Flex justifyContent="space-between">
                 <Text fontSize="0.875rem" color="#6b7280">
                   Horizontal
                 </Text>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  value={certSettings.xPct}
-                  onChange={(e) =>
-                    updateCertSettings({
-                      xPct: Math.max(
-                        0,
-                        Math.min(100, Number(e.target.value) || 0)
-                      ),
-                    })
-                  }
-                  style={{
-                    width: 72,
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    padding: "6px 8px",
-                  }}
-                />
-                <Text fontSize="0.875rem" color="#6b7280">
-                  %
+                <Text fontSize="0.875rem" color="#304050">
+                  {certSettings.xPct}%
                 </Text>
               </Flex>
-              <Flex alignItems="center" gap="6px">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.5"
+                value={certSettings.xPct}
+                onChange={(e) =>
+                  updateCertSettings({ xPct: Number(e.target.value) })
+                }
+                style={{ width: "100%", accentColor: "#e11d48" }}
+              />
+            </Flex>
+            <Flex direction="column" gap="2px">
+              <Flex justifyContent="space-between">
                 <Text fontSize="0.875rem" color="#6b7280">
                   Vertical
                 </Text>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  value={certSettings.yPct}
-                  onChange={(e) =>
-                    updateCertSettings({
-                      yPct: Math.max(
-                        0,
-                        Math.min(100, Number(e.target.value) || 0)
-                      ),
-                    })
-                  }
-                  style={{
-                    width: 72,
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    padding: "6px 8px",
-                  }}
-                />
-                <Text fontSize="0.875rem" color="#6b7280">
-                  %
+                <Text fontSize="0.875rem" color="#304050">
+                  {certSettings.yPct}%
                 </Text>
               </Flex>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.5"
+                value={certSettings.yPct}
+                onChange={(e) =>
+                  updateCertSettings({ yPct: Number(e.target.value) })
+                }
+                style={{ width: "100%", accentColor: "#e11d48" }}
+              />
             </Flex>
             <Text fontSize="0.8125rem" color="#6b7280">
-              0% = arriba/izquierda, 100% = abajo/derecha. También puedes
-              arrastrar el nombre en la vista previa.
+              Mueve los deslizadores o arrastra el nombre en la vista previa.
             </Text>
           </Flex>
           <SelectField
