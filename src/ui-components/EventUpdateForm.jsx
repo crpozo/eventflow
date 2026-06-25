@@ -377,13 +377,14 @@ export default function EventUpdateForm(props) {
           preset: v.preset || "centro",
           fontPct: v.fontPct ?? 6,
           color: v.color || "#1a1a1a",
+          sendAt: v.sendAt || "",
         };
       if (typeof v === "string" && v)
-        return { preset: v, fontPct: 6, color: "#1a1a1a" };
+        return { preset: v, fontPct: 6, color: "#1a1a1a", sendAt: "" };
     } catch (e) {
       /* fall through to defaults */
     }
-    return { preset: "centro", fontPct: 6, color: "#1a1a1a" };
+    return { preset: "centro", fontPct: 6, color: "#1a1a1a", sendAt: "" };
   })();
   // Auto-save just the certificate fields so uploading/adjusting persists
   // WITHOUT clicking Update (you can test right away).
@@ -720,6 +721,37 @@ export default function EventUpdateForm(props) {
                 {certSettings.color}
               </Text>
             </Flex>
+          </Flex>
+          <Flex direction="column" gap="4px">
+            <Text fontSize="1rem" color="#304050">
+              Enviar el certificado el (opcional)
+            </Text>
+            <input
+              type="datetime-local"
+              value={
+                certSettings.sendAt
+                  ? convertToLocal(new Date(certSettings.sendAt))
+                  : ""
+              }
+              onChange={(e) =>
+                updateCertSettings({
+                  sendAt: e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : "",
+                })
+              }
+              style={{
+                maxWidth: 280,
+                border: "1px solid #d1d5db",
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: "0.95rem",
+              }}
+            />
+            <Text fontSize="0.8125rem" color="#6b7280">
+              Si lo dejas vacío, se envían automáticamente cuando termina el
+              evento. Solo a quienes pidieron certificado en el formulario.
+            </Text>
           </Flex>
           <CertificatePreview
             certificate={certificate}

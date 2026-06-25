@@ -52,7 +52,8 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
-// rev 2026-06-23f: on-demand test-mode handler (POST /certificate-test) + CORS.
+// rev 2026-06-24: on-demand test-mode handler (POST /certificate-test) + CORS.
+// Batch send now honors an optional certificatePosition.sendAt (scheduled time).
 // Test accepts certificateKey/position overrides (probe before saving). Whole
 // body wrapped in try/catch so failures return 500+CORS, not an opaque 502.
 // MemorySize 1024MB (CFN) so embedPng on big templates doesn't OOM.
@@ -319,8 +320,18 @@ exports.handler = async (event) => {
   );
 
   for (const event of events.Items || []) {
-    const endIso = event.endDate || event.date;
-    if (!endIso || new Date(endIso).getTime() > now) continue; // not finished yet
+    // Optional scheduled send time, stored in the certificatePosition JSON as
+    // `sendAt` (ISO). If set, certificates go out at/after that moment; if not,
+    // they go out once the event has ended (legacy behavior).
+    let scheduledAt;
+    try {
+      const cfg = JSON.parse(event.certificatePosition || "null");
+      if (cfg && typeof cfg === "object" && cfg.sendAt) scheduledAt = cfg.sendAt;
+    } catch (e) {
+      /* not JSON / no schedule */
+    }
+    const triggerIso = scheduledAt || event.endDate || event.date;
+    if (!triggerIso || new Date(triggerIso).getTime() > now) continue; // not yet
     if (!event.certificate) continue;
 
     const pos = resolvePosition(event.certificatePosition);
