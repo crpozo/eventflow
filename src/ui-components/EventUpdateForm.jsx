@@ -210,6 +210,7 @@ export default function EventUpdateForm(props) {
     date: "",
     startDate: "",
     endDate: "",
+    timezone: "America/Guayaquil",
     sendCertificates: false,
     certificate: "",
     certificatePosition: "",
@@ -229,6 +230,7 @@ export default function EventUpdateForm(props) {
   const [date, setDate] = React.useState(initialValues.date);
   const [startDate, setStartDate] = React.useState(initialValues.startDate);
   const [endDate, setEndDate] = React.useState(initialValues.endDate);
+  const [timezone, setTimezone] = React.useState(initialValues.timezone);
   const [sendCertificates, setSendCertificates] = React.useState(
     initialValues.sendCertificates
   );
@@ -268,6 +270,7 @@ export default function EventUpdateForm(props) {
     setDate(cleanValues.date);
     setStartDate(cleanValues.startDate);
     setEndDate(cleanValues.endDate);
+    setTimezone(cleanValues.timezone);
     setSendCertificates(cleanValues.sendCertificates);
     setCertificate(cleanValues.certificate);
     setCertificatePosition(cleanValues.certificatePosition);
@@ -321,6 +324,7 @@ export default function EventUpdateForm(props) {
     date: [],
     startDate: [],
     endDate: [],
+    timezone: [],
     sendCertificates: [],
     certificate: [],
     certificatePosition: [],
@@ -350,6 +354,10 @@ export default function EventUpdateForm(props) {
     setErrors((errors) => ({ ...errors, [fieldName]: validationResponse }));
     return validationResponse;
   };
+  // Show/edit the datetime in the EVENT's timezone (not the browser's), so the
+  // wall clock typed by the admin matches the venue. Fixed offset (no DST).
+  const eventTzOffset =
+    timezone === "Pacific/Galapagos" ? "-06:00" : "-05:00";
   const convertToLocal = (date) => {
     const df = new Intl.DateTimeFormat("default", {
       year: "numeric",
@@ -360,6 +368,7 @@ export default function EventUpdateForm(props) {
       calendar: "iso8601",
       numberingSystem: "latn",
       hourCycle: "h23",
+      timeZone: timezone || "America/Guayaquil",
     });
     const parts = df.formatToParts(date).reduce((acc, part) => {
       acc[part.type] = part.value;
@@ -447,6 +456,7 @@ export default function EventUpdateForm(props) {
           date,
           startDate,
           endDate,
+          timezone,
           sendCertificates,
           certificate,
           certificatePosition,
@@ -599,7 +609,11 @@ export default function EventUpdateForm(props) {
         value={startDate && convertToLocal(new Date(startDate))}
         onChange={(e) => {
           let value =
-            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
+            e.target.value === ""
+              ? ""
+              : new Date(
+                  `${e.target.value.slice(0, 16)}:00${eventTzOffset}`
+                ).toISOString();
           if (errors.startDate?.hasError) {
             runValidationTasks("startDate", value);
           }
@@ -619,7 +633,11 @@ export default function EventUpdateForm(props) {
         value={endDate && convertToLocal(new Date(endDate))}
         onChange={(e) => {
           let value =
-            e.target.value === "" ? "" : new Date(e.target.value).toISOString();
+            e.target.value === ""
+              ? ""
+              : new Date(
+                  `${e.target.value.slice(0, 16)}:00${eventTzOffset}`
+                ).toISOString();
           if (errors.endDate?.hasError) {
             runValidationTasks("endDate", value);
           }
@@ -630,6 +648,17 @@ export default function EventUpdateForm(props) {
         hasError={errors.endDate?.hasError}
         {...getOverrideProps(overrides, "endDate")}
       ></TextField>
+      <SelectField
+        label="Zona horaria del evento"
+        descriptiveText="Las horas se muestran a todos en esta zona, con su etiqueta (ej. GMT-6). Ingresa las horas de inicio/fin en esta misma zona."
+        value={timezone || "America/Guayaquil"}
+        onChange={(e) => setTimezone(e.target.value)}
+      >
+        <option value="America/Guayaquil">
+          Ecuador continental — Quito (GMT-5)
+        </option>
+        <option value="Pacific/Galapagos">Galápagos (GMT-6)</option>
+      </SelectField>
       <SwitchField
         label="Certificados"
         descriptiveText="Al finalizar el evento se envía automáticamente un certificado por correo a cada participante, con su nombre incrustado en la plantilla."

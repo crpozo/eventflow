@@ -7,7 +7,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { DataStore } from "aws-amplify/datastore";
 import { Form } from "models";
 import { Attendee, EventAttendee } from "models";
-import { validateForm, formatSpanishDate } from "scripts/utils";
+import { validateForm, formatSpanishDate, tzLabel } from "scripts/utils";
 import { getLandingUI } from "scripts/landingTranslations";
 import { translateFormData, restoreOriginalLabels, translateString } from "scripts/translateFormData";
 import { uploadData, getUrl } from "aws-amplify/storage";
@@ -1032,7 +1032,7 @@ const Registro = (props) => {
                   </div>
                   <div className="ticket-success-info-item">
                     <span className="ticket-success-info-icon">📅</span>
-                    <span>{formatSpanishDate(props.event.date, lang)}</span>
+                    <span>{formatSpanishDate(props.event.date, lang, props.event?.timezone)}{" "}({tzLabel(props.event?.timezone)})</span>
                   </div>
                   {props.event.location && (
                     <div className="ticket-success-info-item">
@@ -1111,7 +1111,7 @@ const Registro = (props) => {
                               {props.event.location}
                             </p>
                             <p className="ticket-date-badge">
-                              {formatSpanishDate(props.event.date, lang)}
+                              {formatSpanishDate(props.event.date, lang, props.event?.timezone)}{" "}({tzLabel(props.event?.timezone)})
                             </p>
                           </div>
                         </div>

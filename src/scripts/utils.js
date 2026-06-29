@@ -1,24 +1,40 @@
 
 import { useEffect, useState } from "react";
 
-// Event times are stored as a fixed instant (UTC ISO). Display is DYNAMIC:
-//  - TIMEZONE follows the viewer's BROWSER (no explicit timeZone) -> the wall
-//    clock shifts per region (Quito vs Germany).
-//  - LANGUAGE/FORMAT follows the PAGE's selected language (the ES/EN toggle),
-//    passed in as `lang`, NOT the browser locale -> a Spanish page shows the
-//    date in Spanish even on an English-locale browser. Defaults to Spanish.
+// Event times are stored as a fixed instant (UTC ISO). Display is pinned to the
+// EVENT's own timezone (passed in as `tz`, an IANA zone) so EVERY viewer sees
+// the same wall-clock as the venue — not their own browser time. A label like
+// "(GMT-6)" is shown next to the time so it's unambiguous. The page LANGUAGE
+// (ES/EN toggle, `lang`) still drives the locale/format. Default tz = mainland
+// Ecuador (America/Guayaquil, GMT-5). Ecuador has no DST, so offsets are fixed.
+
+const ECUADOR_DEFAULT_TZ = "America/Guayaquil";
 
 // Map the app's language code (ES/EN) to an Intl locale.
 const localeFor = (lang) =>
   String(lang || "ES").toUpperCase() === "EN" ? "en-US" : "es-EC";
 
+// Short GMT label for an event timezone (for "(GMT-6)" next to the time).
+export const tzLabel = (tz) =>
+  tz === "Pacific/Galapagos" ? "GMT-6" : "GMT-5";
+
+// Fixed UTC offset per Ecuador zone (no DST).
+const tzOffset = (tz) => (tz === "Pacific/Galapagos" ? "-06:00" : "-05:00");
+
+// Convert a naive datetime-local string ("2026-07-06T08:30") to a UTC ISO using
+// the EVENT timezone's fixed offset, so "08:30" means 08:30 in the venue's zone.
+export const eventLocalToISO = (value, tz) =>
+  value
+    ? new Date(`${String(value).slice(0, 16)}:00${tzOffset(tz)}`).toISOString()
+    : "";
+
 // Dates
-export const formatDateHour = (inputDate, lang) => {
+export const formatDateHour = (inputDate, lang, tz = ECUADOR_DEFAULT_TZ) => {
   if (!inputDate) return "";
   try {
     const date = new Date(inputDate);
     if (isNaN(date.getTime())) return "";
-    // Page language for format, browser timezone (no explicit timeZone).
+    // Page language for format; event timezone for the wall clock.
     return new Intl.DateTimeFormat(localeFor(lang), {
       weekday: "long",
       day: "2-digit",
@@ -26,6 +42,7 @@ export const formatDateHour = (inputDate, lang) => {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: tz || ECUADOR_DEFAULT_TZ,
     }).format(date);
   } catch (e) {
     console.error("formatDateHour: ", e);
@@ -36,7 +53,7 @@ export const formatDateHour = (inputDate, lang) => {
 // Returns just the time portion ("09:00 am"), using the exact same hour/minute
 // formatting as formatDateHour. Used to append an end time to a same-day event
 // without repeating the weekday/date.
-export const formatHour = (inputDate, lang) => {
+export const formatHour = (inputDate, lang, tz = ECUADOR_DEFAULT_TZ) => {
   if (!inputDate) return "";
   try {
     const date = new Date(inputDate);
@@ -44,6 +61,7 @@ export const formatHour = (inputDate, lang) => {
     return new Intl.DateTimeFormat(localeFor(lang), {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: tz || ECUADOR_DEFAULT_TZ,
     }).format(date);
   } catch (e) {
     console.error("formatHour: ", e);
@@ -72,8 +90,8 @@ export const formatDate = (inputDate) => {
 };
 
 // Longer form used on the ticket. Despite the name (kept for import stability)
-// it localizes to the PAGE language (lang) for format and the browser timezone.
-export const formatSpanishDate = (dateString, lang) => {
+// it localizes to the PAGE language (lang) for format and the EVENT timezone.
+export const formatSpanishDate = (dateString, lang, tz = ECUADOR_DEFAULT_TZ) => {
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
@@ -85,6 +103,7 @@ export const formatSpanishDate = (dateString, lang) => {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: tz || ECUADOR_DEFAULT_TZ,
     }).format(date);
   } catch (e) {
     console.error("formatSpanishDate: ", e);

@@ -3,7 +3,7 @@ import logo from "assets/img/usfq/logo_2025.png";
 import bgPlaceholder from "assets/img/usfq/bg-placeholder.webp";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Registro from "./registro/index";
-import { formatDateHour, formatHour } from 'scripts/utils';
+import { formatDateHour, formatHour, tzLabel } from 'scripts/utils';
 import { useAwsTranslation} from 'scripts/useAwsTranslation';
 import { getLandingUI } from 'scripts/landingTranslations';
 import LandingExtras from './components/LandingExtras';
@@ -64,14 +64,16 @@ export default function SignIn() {
   // Static UI labels (instant, no API quota)
   const ui = getLandingUI(lang);
 
-  // Event date/time is rendered DIRECTLY (not via Amazon Translate). The wall
-  // clock follows the viewer's browser timezone; the LANGUAGE/FORMAT follows the
-  // page's ES/EN toggle (`lang`) so a Spanish page shows the date in Spanish.
+  // Event date/time is rendered DIRECTLY (not via Amazon Translate), pinned to
+  // the EVENT's timezone so every viewer sees the venue's wall clock (with a
+  // "(GMT-6)" label). The LANGUAGE/FORMAT follows the page's ES/EN toggle.
+  const eventTz = event?.timezone || "America/Guayaquil";
+  const eventTzLabel = tzLabel(eventTz);
   const { eventDate, eventDateEnd } = useMemo(() => {
     // Multi-day: prefer startDate/endDate range, fall back to legacy single date.
     const startIso = event?.startDate || event?.date;
     const endIso = event?.endDate;
-    let date = startIso ? formatDateHour(startIso, lang) : "";
+    let date = startIso ? formatDateHour(startIso, lang, eventTz) : "";
     // For multi-day events the end date renders on its OWN line (see the render
     // below) so it doesn't cram onto the start line. Empty for single-day events.
     let end = "";
@@ -81,17 +83,17 @@ export default function SignIn() {
       if (sameDay) {
         // Same calendar day: append only the end time, without repeating the
         // weekday/date. Skip it when the end time equals the start time.
-        const endHour = formatHour(endIso, lang);
-        if (endHour && endHour !== formatHour(startIso, lang)) {
-          date = `${formatDateHour(startIso, lang)} — ${endHour}`;
+        const endHour = formatHour(endIso, lang, eventTz);
+        if (endHour && endHour !== formatHour(startIso, lang, eventTz)) {
+          date = `${formatDateHour(startIso, lang, eventTz)} — ${endHour}`;
         }
       } else {
         // Spans multiple days: the full end date goes on its own line.
-        end = formatDateHour(endIso, lang);
+        end = formatDateHour(endIso, lang, eventTz);
       }
     }
     return { eventDate: date, eventDateEnd: end };
-  }, [event?.date, event?.startDate, event?.endDate, lang]);
+  }, [event?.date, event?.startDate, event?.endDate, lang, eventTz]);
 
   // Dynamic, user-generated content translated on the fly via Amazon Translate.
   const baseTexts = useMemo(() => {
@@ -440,19 +442,24 @@ export default function SignIn() {
                     <div>
                       <h3 className="text-lg font-bold">{ui.dateAndTime}</h3>
                       {event && (
-                        <p className="text-md">
-                          {eventDateEnd ? (
-                            <>
-                              <span className="font-semibold">{ui.start}:</span>{" "}
-                              {eventDate}
-                              <br />
-                              <span className="font-semibold">{ui.end}:</span>{" "}
-                              {eventDateEnd}
-                            </>
-                          ) : (
-                            eventDate
-                          )}
-                        </p>
+                        <>
+                          <p className="text-md">
+                            {eventDateEnd ? (
+                              <>
+                                <span className="font-semibold">{ui.start}:</span>{" "}
+                                {eventDate}
+                                <br />
+                                <span className="font-semibold">{ui.end}:</span>{" "}
+                                {eventDateEnd}
+                              </>
+                            ) : (
+                              eventDate
+                            )}
+                          </p>
+                          <span className="text-xs text-gray-400">
+                            ({eventTzLabel})
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
