@@ -654,9 +654,7 @@ export default function EventUpdateForm(props) {
         value={timezone || "America/Guayaquil"}
         onChange={(e) => setTimezone(e.target.value)}
       >
-        <option value="America/Guayaquil">
-          Ecuador continental — Quito (GMT-5)
-        </option>
+        <option value="America/Guayaquil">Quito (GMT-5)</option>
         <option value="Pacific/Galapagos">Galápagos (GMT-6)</option>
       </SelectField>
       <SwitchField
