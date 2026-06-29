@@ -763,6 +763,13 @@ export const schema = {
                     "isRequired": false,
                     "attributes": []
                 },
+                "timezone": {
+                    "name": "timezone",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
                 "sendCertificates": {
                     "name": "sendCertificates",
                     "isArray": false,
@@ -1545,5 +1552,5 @@ export const schema = {
     "enums": {},
     "nonModels": {},
     "codegenVersion": "3.4.4",
-    "version": "24274a7e2634ef54f98297009441cbfb"
+    "version": "b6cd469e1dfa68e6f4eab29c475e5dda"
 };

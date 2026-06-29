@@ -253,6 +253,7 @@ type EagerEvent = {
   readonly date?: string | null;
   readonly startDate?: string | null;
   readonly endDate?: string | null;
+  readonly timezone?: string | null;
   readonly sendCertificates?: boolean | null;
   readonly certificate?: string | null;
   readonly certificatePosition?: string | null;
@@ -289,6 +290,7 @@ type LazyEvent = {
   readonly date?: string | null;
   readonly startDate?: string | null;
   readonly endDate?: string | null;
+  readonly timezone?: string | null;
   readonly sendCertificates?: boolean | null;
   readonly certificate?: string | null;
   readonly certificatePosition?: string | null;
@@ -493,6 +495,7 @@ export declare type User = LazyLoading extends LazyLoadingDisabled ? EagerUser :
 export declare const User: (new (init: ModelInit<User>) => User) & {
   copyOf(source: User, mutator: (draft: MutableModel<User>) => MutableModel<User> | void): User;
 }
+
 type EagerEventPermission = {
   readonly [__modelMeta__]: {
     identifier: ManagedIdentifier<EventPermission, 'id'>;
