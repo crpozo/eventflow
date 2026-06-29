@@ -224,6 +224,13 @@ export const createForm = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -267,6 +274,13 @@ export const updateForm = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -310,6 +324,13 @@ export const deleteForm = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -353,6 +374,13 @@ export const createLanding = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -380,6 +408,9 @@ export const createLanding = /* GraphQL */ `
       extraInfo
       userConsentCheck
       metaScripts
+      galleryPhotos
+      partnerLogos
+      customHtml
       createdAt
       updatedAt
       _version
@@ -406,6 +437,13 @@ export const updateLanding = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -433,6 +471,9 @@ export const updateLanding = /* GraphQL */ `
       extraInfo
       userConsentCheck
       metaScripts
+      galleryPhotos
+      partnerLogos
+      customHtml
       createdAt
       updatedAt
       _version
@@ -459,6 +500,13 @@ export const deleteLanding = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -486,6 +534,9 @@ export const deleteLanding = /* GraphQL */ `
       extraInfo
       userConsentCheck
       metaScripts
+      galleryPhotos
+      partnerLogos
+      customHtml
       createdAt
       updatedAt
       _version
@@ -581,6 +632,9 @@ export const createEvent = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -609,6 +663,13 @@ export const createEvent = /* GraphQL */ `
       category
       location
       date
+      startDate
+      endDate
+      timezone
+      sendCertificates
+      certificate
+      certificatePosition
+      certificatesSentAt
       contactTemplate
       termsCondition
       totalScannedTicket
@@ -661,6 +722,9 @@ export const updateEvent = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -689,6 +753,13 @@ export const updateEvent = /* GraphQL */ `
       category
       location
       date
+      startDate
+      endDate
+      timezone
+      sendCertificates
+      certificate
+      certificatePosition
+      certificatesSentAt
       contactTemplate
       termsCondition
       totalScannedTicket
@@ -741,6 +812,9 @@ export const deleteEvent = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -769,6 +843,13 @@ export const deleteEvent = /* GraphQL */ `
       category
       location
       date
+      startDate
+      endDate
+      timezone
+      sendCertificates
+      certificate
+      certificatePosition
+      certificatesSentAt
       contactTemplate
       termsCondition
       totalScannedTicket
@@ -1114,6 +1195,9 @@ export const createUser = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
+      campusIDs
+      areaIDs
+      eventIDs
       createdAt
       updatedAt
       _version
@@ -1144,6 +1228,9 @@ export const updateUser = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
+      campusIDs
+      areaIDs
+      eventIDs
       createdAt
       updatedAt
       _version
@@ -1174,6 +1261,66 @@ export const deleteUser = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
+      campusIDs
+      areaIDs
+      eventIDs
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const createEventPermission = /* GraphQL */ `
+  mutation CreateEventPermission(
+    $input: CreateEventPermissionInput!
+    $condition: ModelEventPermissionConditionInput
+  ) {
+    createEventPermission(input: $input, condition: $condition) {
+      id
+      userID
+      eventID
+      capabilities
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const updateEventPermission = /* GraphQL */ `
+  mutation UpdateEventPermission(
+    $input: UpdateEventPermissionInput!
+    $condition: ModelEventPermissionConditionInput
+  ) {
+    updateEventPermission(input: $input, condition: $condition) {
+      id
+      userID
+      eventID
+      capabilities
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const deleteEventPermission = /* GraphQL */ `
+  mutation DeleteEventPermission(
+    $input: DeleteEventPermissionInput!
+    $condition: ModelEventPermissionConditionInput
+  ) {
+    deleteEventPermission(input: $input, condition: $condition) {
+      id
+      userID
+      eventID
+      capabilities
       createdAt
       updatedAt
       _version

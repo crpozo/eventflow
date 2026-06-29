@@ -206,6 +206,13 @@ export const onCreateForm = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -246,6 +253,13 @@ export const onUpdateForm = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -286,6 +300,13 @@ export const onDeleteForm = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -326,6 +347,13 @@ export const onCreateLanding = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -353,6 +381,9 @@ export const onCreateLanding = /* GraphQL */ `
       extraInfo
       userConsentCheck
       metaScripts
+      galleryPhotos
+      partnerLogos
+      customHtml
       createdAt
       updatedAt
       _version
@@ -376,6 +407,13 @@ export const onUpdateLanding = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -403,6 +441,9 @@ export const onUpdateLanding = /* GraphQL */ `
       extraInfo
       userConsentCheck
       metaScripts
+      galleryPhotos
+      partnerLogos
+      customHtml
       createdAt
       updatedAt
       _version
@@ -426,6 +467,13 @@ export const onDeleteLanding = /* GraphQL */ `
         category
         location
         date
+        startDate
+        endDate
+        timezone
+        sendCertificates
+        certificate
+        certificatePosition
+        certificatesSentAt
         contactTemplate
         termsCondition
         totalScannedTicket
@@ -453,6 +501,9 @@ export const onDeleteLanding = /* GraphQL */ `
       extraInfo
       userConsentCheck
       metaScripts
+      galleryPhotos
+      partnerLogos
+      customHtml
       createdAt
       updatedAt
       _version
@@ -536,6 +587,9 @@ export const onCreateEvent = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -564,6 +618,13 @@ export const onCreateEvent = /* GraphQL */ `
       category
       location
       date
+      startDate
+      endDate
+      timezone
+      sendCertificates
+      certificate
+      certificatePosition
+      certificatesSentAt
       contactTemplate
       termsCondition
       totalScannedTicket
@@ -613,6 +674,9 @@ export const onUpdateEvent = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -641,6 +705,13 @@ export const onUpdateEvent = /* GraphQL */ `
       category
       location
       date
+      startDate
+      endDate
+      timezone
+      sendCertificates
+      certificate
+      certificatePosition
+      certificatesSentAt
       contactTemplate
       termsCondition
       totalScannedTicket
@@ -690,6 +761,9 @@ export const onDeleteEvent = /* GraphQL */ `
         extraInfo
         userConsentCheck
         metaScripts
+        galleryPhotos
+        partnerLogos
+        customHtml
         createdAt
         updatedAt
         _version
@@ -718,6 +792,13 @@ export const onDeleteEvent = /* GraphQL */ `
       category
       location
       date
+      startDate
+      endDate
+      timezone
+      sendCertificates
+      certificate
+      certificatePosition
+      certificatesSentAt
       contactTemplate
       termsCondition
       totalScannedTicket
@@ -1024,6 +1105,9 @@ export const onCreateUser = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
+      campusIDs
+      areaIDs
+      eventIDs
       createdAt
       updatedAt
       _version
@@ -1051,6 +1135,9 @@ export const onUpdateUser = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
+      campusIDs
+      areaIDs
+      eventIDs
       createdAt
       updatedAt
       _version
@@ -1078,6 +1165,63 @@ export const onDeleteUser = /* GraphQL */ `
         _lastChangedAt
         __typename
       }
+      campusIDs
+      areaIDs
+      eventIDs
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onCreateEventPermission = /* GraphQL */ `
+  subscription OnCreateEventPermission(
+    $filter: ModelSubscriptionEventPermissionFilterInput
+  ) {
+    onCreateEventPermission(filter: $filter) {
+      id
+      userID
+      eventID
+      capabilities
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onUpdateEventPermission = /* GraphQL */ `
+  subscription OnUpdateEventPermission(
+    $filter: ModelSubscriptionEventPermissionFilterInput
+  ) {
+    onUpdateEventPermission(filter: $filter) {
+      id
+      userID
+      eventID
+      capabilities
+      createdAt
+      updatedAt
+      _version
+      _deleted
+      _lastChangedAt
+      __typename
+    }
+  }
+`;
+export const onDeleteEventPermission = /* GraphQL */ `
+  subscription OnDeleteEventPermission(
+    $filter: ModelSubscriptionEventPermissionFilterInput
+  ) {
+    onDeleteEventPermission(filter: $filter) {
+      id
+      userID
+      eventID
+      capabilities
       createdAt
       updatedAt
       _version
