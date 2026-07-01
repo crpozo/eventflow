@@ -150,6 +150,86 @@ export declare const Form: (new (init: ModelInit<Form>) => Form) & {
   copyOf(source: Form, mutator: (draft: MutableModel<Form>) => MutableModel<Form> | void): Form;
 }
 
+type EagerSurvey = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Survey, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly questions?: string | null;
+  readonly active?: boolean | null;
+  readonly emailSubject?: string | null;
+  readonly emailIntro?: string | null;
+  readonly sendAt?: string | null;
+  readonly sentAt?: string | null;
+  readonly insights?: string | null;
+  readonly insightsAt?: string | null;
+  readonly Event?: Event | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+  readonly surveyEventId?: string | null;
+}
+
+type LazySurvey = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<Survey, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly questions?: string | null;
+  readonly active?: boolean | null;
+  readonly emailSubject?: string | null;
+  readonly emailIntro?: string | null;
+  readonly sendAt?: string | null;
+  readonly sentAt?: string | null;
+  readonly insights?: string | null;
+  readonly insightsAt?: string | null;
+  readonly Event: AsyncItem<Event | undefined>;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+  readonly surveyEventId?: string | null;
+}
+
+export declare type Survey = LazyLoading extends LazyLoadingDisabled ? EagerSurvey : LazySurvey
+
+export declare const Survey: (new (init: ModelInit<Survey>) => Survey) & {
+  copyOf(source: Survey, mutator: (draft: MutableModel<Survey>) => MutableModel<Survey> | void): Survey;
+}
+
+type EagerSurveyResponse = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<SurveyResponse, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly surveyID: string;
+  readonly eventID: string;
+  readonly token?: string | null;
+  readonly answers?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+type LazySurveyResponse = {
+  readonly [__modelMeta__]: {
+    identifier: ManagedIdentifier<SurveyResponse, 'id'>;
+    readOnlyFields: 'createdAt' | 'updatedAt';
+  };
+  readonly id: string;
+  readonly surveyID: string;
+  readonly eventID: string;
+  readonly token?: string | null;
+  readonly answers?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export declare type SurveyResponse = LazyLoading extends LazyLoadingDisabled ? EagerSurveyResponse : LazySurveyResponse
+
+export declare const SurveyResponse: (new (init: ModelInit<SurveyResponse>) => SurveyResponse) & {
+  copyOf(source: SurveyResponse, mutator: (draft: MutableModel<SurveyResponse>) => MutableModel<SurveyResponse> | void): SurveyResponse;
+}
+
 type EagerLanding = {
   readonly [__modelMeta__]: {
     identifier: ManagedIdentifier<Landing, 'id'>;
@@ -247,6 +327,7 @@ type EagerEvent = {
   readonly Landing?: Landing | null;
   readonly careerID: string;
   readonly Form?: Form | null;
+  readonly Survey?: Survey | null;
   readonly EventAttendees?: (EventAttendee | null)[] | null;
   readonly category?: string | null;
   readonly location?: string | null;
@@ -270,6 +351,7 @@ type EagerEvent = {
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
   readonly eventFormId?: string | null;
+  readonly eventSurveyId?: string | null;
   readonly eventBadgeId?: string | null;
 }
 
@@ -284,6 +366,7 @@ type LazyEvent = {
   readonly Landing: AsyncItem<Landing | undefined>;
   readonly careerID: string;
   readonly Form: AsyncItem<Form | undefined>;
+  readonly Survey: AsyncItem<Survey | undefined>;
   readonly EventAttendees: AsyncCollection<EventAttendee>;
   readonly category?: string | null;
   readonly location?: string | null;
@@ -307,6 +390,7 @@ type LazyEvent = {
   readonly updatedAt?: string | null;
   readonly eventLandingId?: string | null;
   readonly eventFormId?: string | null;
+  readonly eventSurveyId?: string | null;
   readonly eventBadgeId?: string | null;
 }
 
