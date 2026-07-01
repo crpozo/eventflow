@@ -26,6 +26,32 @@
           "delete"
         ]
       }
+    },
+    "/survey-analyze": {
+      "name": "/survey-analyze",
+      "lambdaFunction": "surveyManager",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
+    },
+    "/survey-test": {
+      "name": "/survey-test",
+      "lambdaFunction": "surveyManager",
+      "permissions": {
+        "setting": "private",
+        "auth": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ]
+      }
     }
   }
 }

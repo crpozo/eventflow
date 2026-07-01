@@ -54,6 +54,14 @@
           ],
           "category": "function",
           "resourceName": "userManager"
+        },
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "surveyManager"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -186,6 +194,22 @@
       ]
     },
     "AMPLIFY_function_surveyManager_bedrockRegion": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "surveyManager"
+        }
+      ]
+    },
+    "AMPLIFY_function_surveyManager_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "surveyManager"
+        }
+      ]
+    },
+    "AMPLIFY_function_surveyManager_s3Key": {
       "usedBy": [
         {
           "category": "function",

@@ -36,6 +36,14 @@
           "sesFrom": "tickets@eventflow.ec",
           "deploymentBucketName": "amplify-amplify6808e416ff364-staging-145149-deployment",
           "s3Key": "amplify-builds/userManager-5a7436715a356170567a-build.zip"
+        },
+        "surveyManager": {
+          "sesFrom": "tickets@eventflow.ec",
+          "appUrl": "https://eventflow.ec",
+          "bedrockRegion": "sa-east-1",
+          "bedrockModelId": "global.anthropic.claude-opus-4-8",
+          "deploymentBucketName": "amplify-amplify6808e416ff364-staging-145149-deployment",
+          "s3Key": "amplify-builds/surveyManager-7155564d675558476368-build.zip"
         }
       }
     }
