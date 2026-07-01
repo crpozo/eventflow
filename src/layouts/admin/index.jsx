@@ -25,7 +25,9 @@ export default function Admin(props) {
       routeResult?.props.match.route.path === 'eventos/:id/diseno-gafete' ||
       routeResult?.props.match.route.path === 'eventos/:id/detalle' ||
       routeResult?.props.match.route.path === 'eventos/:id/formulario' ||
-      routeResult?.props.match.route.path === 'eventos/:id/participantes'){
+      routeResult?.props.match.route.path === 'eventos/:id/participantes' ||
+      routeResult?.props.match.route.path === 'eventos/:id/encuesta' ||
+      routeResult?.props.match.route.path === 'eventos/:id/encuesta-dashboard'){
       setActivePath(routeResult?.props.match.route.path)
     } else {
       setActivePath('')
