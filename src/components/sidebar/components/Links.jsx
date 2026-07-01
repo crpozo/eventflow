@@ -25,7 +25,7 @@ export function SidebarLinks(props) {
       ) {
         return (
           <div key={index}>
-          { route.path != 'campus/editar' && route.path != 'campus/crear' && route.path != 'campus/area' && route.path != 'campus/area/editar' && route.path != 'campus/area/crear' &&  route.path != 'campus/area/subarea' && route.path != 'campus/area/subarea/crear' && route.path != 'campus/area/subarea/editar' && route.path != 'eventos/crear' && route.path != 'eventos/:id/landing' && route.path != 'eventos/:id/detalle' && route.path != 'eventos/:id/diseno-gafete' && route.path != 'eventos/:id/participantes' && route.path != 'eventos/:id/participantes/crear' && route.path != 'eventos/:id/participantes/:id' && route.path != 'eventos/:id/formulario'  &&
+          { route.path != 'campus/editar' && route.path != 'campus/crear' && route.path != 'campus/area' && route.path != 'campus/area/editar' && route.path != 'campus/area/crear' &&  route.path != 'campus/area/subarea' && route.path != 'campus/area/subarea/crear' && route.path != 'campus/area/subarea/editar' && route.path != 'eventos/crear' && route.path != 'eventos/:id/landing' && route.path != 'eventos/:id/detalle' && route.path != 'eventos/:id/diseno-gafete' && route.path != 'eventos/:id/participantes' && route.path != 'eventos/:id/participantes/crear' && route.path != 'eventos/:id/participantes/:id' && route.path != 'eventos/:id/formulario' && route.path != 'eventos/:id/encuesta' && route.path != 'eventos/:id/encuesta-dashboard'  &&
           <Link className="hover:no-underline" key={index} to={route.layout + "/" + route.path}>
             <div className="relative mb-2 flex hover:cursor-pointer">
               <li

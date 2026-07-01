@@ -38,6 +38,9 @@ const EventoFormulario = React.lazy(() => import("views/admin/eventos/formulario
 const EventoParticipantes = React.lazy(() => import("views/admin/eventos/participantes"));
 const EventoParticipantesCrear = React.lazy(() => import("views/admin/eventos/participantes/crear"));
 const EventoParticipantesDetalle = React.lazy(() => import("views/admin/eventos/participantes/detalle"));
+const EventoEncuesta = React.lazy(() => import("views/admin/eventos/encuesta"));
+const EventoEncuestaDashboard = React.lazy(() => import("views/admin/eventos/encuesta-dashboard"));
+const LandingEncuesta = React.lazy(() => import("views/landing/encuesta"));
 
 // Other Imports
 const Privacidad = React.lazy(() => import("views/privacidad"));
@@ -185,6 +188,28 @@ const routes = [
     ),
   },
   {
+    name: "Evento Encuesta",
+    layout: "/admin",
+    path: "eventos/:id/encuesta",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: (
+      <EventSectionGuard section="formulario">
+        <EventoEncuesta />
+      </EventSectionGuard>
+    ),
+  },
+  {
+    name: "Evento Encuesta Resultados",
+    layout: "/admin",
+    path: "eventos/:id/encuesta-dashboard",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: (
+      <EventSectionGuard section="participantes">
+        <EventoEncuestaDashboard />
+      </EventSectionGuard>
+    ),
+  },
+  {
     name: "Evento Participantes Detalle",
     layout: "/usuario",
     path: ":id",
@@ -211,6 +236,13 @@ const routes = [
     path: ":id/registro",
     icon: <MdCalendarToday className="h-6 w-6" />,
     component: <LandingRegistro />,
+  },
+  {
+    name: "Encuesta",
+    layout: "/landing",
+    path: ":id/encuesta",
+    icon: <MdCalendarToday className="h-6 w-6" />,
+    component: <LandingEncuesta />,
   },
   {
     name: "Landing idioma",

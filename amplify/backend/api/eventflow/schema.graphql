@@ -33,6 +33,35 @@ type Form @model @auth(rules: [{allow: public}]) {
   Event: Event @belongsTo
 }
 
+# Per-event feedback survey. `questions` is the jQuery formBuilder definition
+# (same shape as Form.questions). Config: active (whether the sender emails it),
+# emailSubject/emailIntro (the invite), sendAt (optional override; defaults to the
+# event end), sentAt (one-shot stamp so it never re-sends). insights/insightsAt
+# cache the Claude AI analysis so the dashboard doesn't re-analyze on every load.
+type Survey @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  questions: AWSJSON
+  active: Boolean
+  emailSubject: String
+  emailIntro: String
+  sendAt: AWSDateTime
+  sentAt: AWSDateTime
+  insights: AWSJSON
+  insightsAt: AWSDateTime
+  Event: Event @belongsTo
+}
+
+# One anonymous submission. `token` is the attendee id carried in the email link,
+# used only to de-duplicate and measure response rate — never surfaced as identity.
+# `answers` is the formRender('userData') array (same shape as EventAttendee.formAnswers).
+type SurveyResponse @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  surveyID: ID! @index(name: "bySurvey")
+  eventID: ID! @index(name: "byEventResponse")
+  token: String
+  answers: AWSJSON
+}
+
 type Landing @model @auth(rules: [{allow: public}]) {
   id: ID!
   active: Boolean
@@ -64,6 +93,7 @@ type Event @model @auth(rules: [{allow: public}]) {
   Landing: Landing @hasOne
   careerID: ID! @index(name: "byCareer")
   Form: Form @hasOne
+  Survey: Survey @hasOne
   EventAttendees: [EventAttendee] @hasMany(indexName: "byEvent", fields: ["id"])
   category: String
   location: String
