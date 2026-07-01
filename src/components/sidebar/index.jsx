@@ -160,16 +160,6 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                 to={ `eventos/${event?.id}/formulario/`}>
                   Formulario
               </Link>
-              <Link 
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/diseno-gafete` ? "bg-gray-200" : ""}`}
-               to={ `eventos/${event?.id}/diseno-gafete/`}>
-                  Diseño Gafete
-              </Link>
-              <Link
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`}
-                to={ `eventos/${event?.id}/participantes/`}>
-                  Participantes
-              </Link>
               <Link
                 className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/encuesta` ? "bg-gray-200" : ""}`}
                 to={ `eventos/${event?.id}/encuesta/`}>
@@ -179,6 +169,16 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                 className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/encuesta-dashboard` ? "bg-gray-200" : ""}`}
                 to={ `eventos/${event?.id}/encuesta-dashboard/`}>
                   Resultados encuesta
+              </Link>
+              <Link
+                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/diseno-gafete` ? "bg-gray-200" : ""}`}
+               to={ `eventos/${event?.id}/diseno-gafete/`}>
+                  Diseño Gafete
+              </Link>
+              <Link
+                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`}
+                to={ `eventos/${event?.id}/participantes/`}>
+                  Participantes
               </Link>
             </div>
           </div>
