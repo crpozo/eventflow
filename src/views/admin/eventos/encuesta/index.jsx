@@ -171,8 +171,15 @@ const Dashboard = () => {
       alert(`Correo de prueba enviado a ${testEmail}`);
     } catch (e) {
       console.error("sendTest:", e);
+      const status = e?.response?.statusCode;
+      let detail = "";
+      try {
+        detail = JSON.parse(e?.response?.body || "{}").error || "";
+      } catch (_) {}
       alert(
-        "No se pudo enviar la prueba. Verifica que la encuesta esté guardada y que el envío esté desplegado."
+        `No se pudo enviar la prueba${status ? ` (HTTP ${status})` : ""}${
+          detail ? `: ${detail}` : ""
+        }`
       );
     } finally {
       setTesting(false);

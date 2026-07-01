@@ -122,8 +122,17 @@ const Dashboard = () => {
       alert("Análisis completado.");
     } catch (e) {
       console.error("analyze:", e);
+      // Surface the real backend error (Lambda returns { error }) instead of a
+      // generic message — API Gateway/Bedrock failures differ in fix.
+      const status = e?.response?.statusCode;
+      let detail = "";
+      try {
+        detail = JSON.parse(e?.response?.body || "{}").error || "";
+      } catch (_) {}
       alert(
-        "No se pudo analizar. Verifica que la función de IA esté desplegada y con API key configurada."
+        `No se pudo analizar${status ? ` (HTTP ${status})` : ""}${
+          detail ? `: ${detail}` : ""
+        }`
       );
     } finally {
       setAnalyzing(false);

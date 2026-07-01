@@ -1014,3 +1014,20 @@ p.amplify-field__description{
     max-width: 360px;
   }
 }
+/* ── Public survey (/landing/:id/encuesta) ──────────────────────────────
+   The registro form uses a 2-column layout (.form-group at ~47% + float).
+   Surveys read better as a single full-width column, so override inside
+   the survey wrapper only. */
+.survey-form .rendered-form .form-group {
+  width: 100% !important;
+  float: none !important;
+  margin-right: 0 !important;
+}
+.survey-form .rendered-form label {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.survey-form .rendered-form .radio,
+.survey-form .rendered-form .checkbox {
+  margin-bottom: 6px;
+}

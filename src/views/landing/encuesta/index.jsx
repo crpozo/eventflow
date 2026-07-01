@@ -196,11 +196,13 @@ const SurveyPublic = () => {
       <p className="text-gray-500 mb-5 text-sm">
         Tu respuesta es anónima. Toma menos de 2 minutos.
       </p>
-      <SurveyRender formData={survey.questions} />
+      <div className="survey-form">
+        <SurveyRender formData={survey.questions} />
+      </div>
       <button
         onClick={handleSubmit}
         disabled={submitting}
-        className="mt-6 w-full rounded-xl bg-brand-500 py-3 text-white font-medium transition hover:bg-black disabled:opacity-50"
+        className="mt-5 w-full rounded-xl bg-brand-500 py-2.5 text-[15px] text-white font-semibold transition hover:bg-black disabled:opacity-50"
       >
         {submitting ? "Enviando…" : "Enviar respuesta"}
       </button>
