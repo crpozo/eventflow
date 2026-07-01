@@ -19,6 +19,52 @@ require("formBuilder");
 // the same Survey row and is edited in the config card below.
 const USER_API = "userApi";
 
+// Module scope so its identity is stable across re-renders: the config inputs
+// live in the same page component, and a class declared inline would be a NEW
+// type on every keystroke — React would unmount/remount it and re-init the
+// jQuery builder each time (layout jumps, lost work-in-progress). jQuery owns
+// this subtree, so never re-render it; props are still refreshed on the
+// instance, so onSave always sees the latest state.
+class SurveyBuilder extends Component {
+  fb = createRef();
+
+  componentDidMount() {
+    $(this.fb.current).formBuilder({
+      formData: this.props.formData,
+      onSave: () => {
+        const json = $(this.fb.current).formBuilder("getData", "json");
+        if (json) this.props.onSave(JSON.parse(json));
+      },
+      i18n: {
+        override: {
+          "en-US": {
+            save: "Guardar encuesta",
+            header: "Título",
+            paragraph: "Descripción",
+            select: "Selección",
+            text: "Texto corto",
+            textArea: "Texto largo",
+            number: "Número",
+            dateField: "Fecha",
+            "radio-group": "Opción única",
+            "checkbox-group": "Opción múltiple",
+          },
+        },
+      },
+      // Allow rating/choice fields; drop file uploads, buttons, hidden, autocomplete.
+      disableFields: ["autocomplete", "button", "hidden", "file"],
+    });
+  }
+
+  shouldComponentUpdate() {
+    return false; // jQuery owns this DOM
+  }
+
+  render() {
+    return <div id="fb-editor" ref={this.fb} />;
+  }
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const stored = JSON.parse(localStorage.getItem("EVENTFLOW.event") || "null");
@@ -133,47 +179,13 @@ const Dashboard = () => {
     }
   }
 
-  class FormBuilder extends Component {
-    fb = createRef();
-    componentDidMount() {
-      $(this.fb.current).formBuilder({
-        formData: surveyData,
-        onSave: this.handleSave,
-        i18n: {
-          override: {
-            "en-US": {
-              save: "Guardar encuesta",
-              header: "Título",
-              paragraph: "Descripción",
-              select: "Selección",
-              text: "Texto corto",
-              textArea: "Texto largo",
-              number: "Número",
-              dateField: "Fecha",
-              "radio-group": "Opción única",
-              "checkbox-group": "Opción múltiple",
-            },
-          },
-        },
-        // Allow rating/choice fields; drop file uploads, buttons, hidden, autocomplete.
-        disableFields: ["autocomplete", "button", "hidden", "file"],
+  function handleBuilderSave(questions) {
+    persistSurvey({ questions })
+      .then(() => alert("Encuesta guardada con éxito"))
+      .catch((e) => {
+        console.error("save survey:", e);
+        alert("No se pudo guardar la encuesta");
       });
-    }
-
-    handleSave = () => {
-      const json = $(this.fb.current).formBuilder("getData", "json");
-      if (!json) return;
-      persistSurvey({ questions: JSON.parse(json) })
-        .then(() => alert("Encuesta guardada con éxito"))
-        .catch((e) => {
-          console.error("save survey:", e);
-          alert("No se pudo guardar la encuesta");
-        });
-    };
-
-    render() {
-      return <div id="fb-editor" ref={this.fb} />;
-    }
   }
 
   if (!ready) {
@@ -204,7 +216,14 @@ const Dashboard = () => {
           IA analiza).
         </p>
         <EditableSection section="formulario">
-          <FormBuilder />
+          {/* key: remount ONLY when the Survey record (dis)appears — e.g. the
+              saved questions arrive from DataStore sync after first paint —
+              never on config keystrokes. */}
+          <SurveyBuilder
+            key={survey?.id || "new"}
+            formData={surveyData}
+            onSave={handleBuilderSave}
+          />
         </EditableSection>
       </div>
 

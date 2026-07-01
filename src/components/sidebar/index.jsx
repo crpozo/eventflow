@@ -104,7 +104,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
       {/* Nav item end */}
       { activePath != '' &&
         <div
-          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full bg-gray pb-10 shadow-2xl shadow-white/5 transition-all ${
+          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full max-h-screen overflow-y-auto bg-gray pb-10 shadow-2xl shadow-white/5 transition-all ${
             open
               ? 'left-[-14px] translate-x-[100px] xl:translate-x-[110px]'
               : 'left-[-14px] -translate-x-96 xl:translate-x-[110px]'
