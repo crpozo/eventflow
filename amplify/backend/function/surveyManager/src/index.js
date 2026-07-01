@@ -27,7 +27,7 @@
  *   -- Anthropic backend:
  *   ANTHROPIC_API_KEY  plain value OR Amplify-secret SSM path (starts with "/")
  *   ANALYSIS_MODEL     model id, default "claude-opus-4-8"
- * rev 2026-07-01c (dual backend)
+ * rev 2026-07-01d (model: global sonnet-5 profile)
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
