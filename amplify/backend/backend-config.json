@@ -45,7 +45,7 @@
             "Arn"
           ],
           "category": "function",
-          "resourceName": "userManager"
+          "resourceName": "certificateSender"
         },
         {
           "attributes": [
@@ -53,7 +53,7 @@
             "Arn"
           ],
           "category": "function",
-          "resourceName": "certificateSender"
+          "resourceName": "userManager"
         }
       ],
       "providerPlugin": "awscloudformation",
@@ -115,6 +115,20 @@
       "providerPlugin": "awscloudformation",
       "service": "Lambda"
     },
+    "surveyManager": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "GraphQLAPIIdOutput"
+          ],
+          "category": "api",
+          "resourceName": "eventflow"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
     "userManager": {
       "build": true,
       "dependsOn": [
@@ -152,6 +166,38 @@
         {
           "category": "function",
           "resourceName": "certificateSender"
+        }
+      ]
+    },
+    "AMPLIFY_function_surveyManager_appUrl": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "surveyManager"
+        }
+      ]
+    },
+    "AMPLIFY_function_surveyManager_bedrockModelId": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "surveyManager"
+        }
+      ]
+    },
+    "AMPLIFY_function_surveyManager_bedrockRegion": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "surveyManager"
+        }
+      ]
+    },
+    "AMPLIFY_function_surveyManager_sesFrom": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "surveyManager"
         }
       ]
     },

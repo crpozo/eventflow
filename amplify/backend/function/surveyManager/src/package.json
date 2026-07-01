@@ -1,0 +1,15 @@
+{
+  "name": "surveyManager",
+  "version": "1.0.0",
+  "description": "Event feedback surveys: scheduled sender to checked-in attendees + REST endpoints for test-send and Claude AI analysis (Bedrock or Anthropic API)",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "@aws-sdk/client-ses": "^3.600.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.600.0",
+    "@aws-sdk/client-ssm": "^3.600.0",
+    "@anthropic-ai/sdk": "^0.109.0",
+    "nodemailer": "^6.9.14"
+  }
+}

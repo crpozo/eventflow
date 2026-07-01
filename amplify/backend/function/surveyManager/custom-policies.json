@@ -1,0 +1,19 @@
+[
+  {
+    "Action": [
+      "ses:SendRawEmail",
+      "ses:SendEmail"
+    ],
+    "Resource": [
+      "*"
+    ]
+  },
+  {
+    "Action": [
+      "bedrock:InvokeModel"
+    ],
+    "Resource": [
+      "*"
+    ]
+  }
+]
