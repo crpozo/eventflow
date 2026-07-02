@@ -1,12 +1,10 @@
 import React,{ Component, createRef} from "react";
 import { useNavigate } from "react-router-dom";
-import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
 import { Form } from "models"
 import { EditableSection, useCanEditSection } from "components/sectionEdit";
-import {
-  MdEditCalendar
-} from "react-icons/md";
+import { PageHeader, Card } from "components/adminUi";
+import { readStoredEvent } from "scripts/utils";
 /* GRAPHQL */
 import { generateClient } from 'aws-amplify/api';
 import { getForm } from '../../../../graphql/queries';
@@ -23,7 +21,8 @@ const Dashboard = () => {
   const [formExist, setFormExist] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const navigate = useNavigate();
-  const eventId = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
+  const storedEvent = readStoredEvent();
+  const eventId = storedEvent?.id;
   const client = generateClient();
   const canEdit = useCanEditSection("formulario");
 
@@ -241,9 +240,9 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
         <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
+        <h2 className="mt-2 text-center text-xl text-black dark:text-white">
           Cargando...
         </h2>
       </div>
@@ -251,16 +250,21 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="campus-page">
-      <div className="grid h-full">
-        <Banner />
-      </div>
-      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+    <div className="campus-page mt-3">
+      <PageHeader
+        crumbs={[
+          { label: "Eventos", to: "/admin/eventos" },
+          { label: storedEvent?.title || "Evento" },
+          { label: "Formulario" },
+        ]}
+        title="Formulario de registro"
+        subtitle="Preguntas que responden los asistentes al inscribirse."
+      />
+      <Card>
         <EditableSection section="formulario">
           <FormBuilder />
         </EditableSection>
-      </div>
-
+      </Card>
     </div>
   );
 };

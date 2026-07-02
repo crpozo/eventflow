@@ -5,7 +5,17 @@ import { post } from "aws-amplify/api";
 import { Survey } from "models";
 import { readStoredEvent } from "scripts/utils";
 import { EditableSection, useCanEditSection } from "components/sectionEdit";
-import { MdContentCopy, MdSend } from "react-icons/md";
+import {
+  PageHeader,
+  Card,
+  Field,
+  TextInput,
+  TextArea,
+  Toggle,
+  CopyField,
+  PrimaryButton,
+} from "components/adminUi";
+import { MdSend } from "react-icons/md";
 import $ from "jquery";
 window.jQuery = $;
 window.$ = $;
@@ -85,7 +95,6 @@ const Dashboard = () => {
 
   const [testEmail, setTestEmail] = React.useState("");
   const [testing, setTesting] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
 
   const publicLink = `${window.location.origin}/landing/${eventId}/encuesta`;
 
@@ -149,12 +158,6 @@ const Dashboard = () => {
     }
   }
 
-  function copyLink() {
-    navigator.clipboard?.writeText(publicLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
-
   async function sendTest() {
     if (!testEmail) {
       alert("Escribe un correo para la prueba");
@@ -205,141 +208,118 @@ const Dashboard = () => {
     );
   }
 
-  const inputCls =
-    "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-navy-700 outline-none focus:border-brand-500";
-
   return (
-    <div className="campus-page">
-      <div className="grid h-full">
-        <h2 className="text-2xl font-bold text-navy-700 dark:text-white mb-2 mt-2">
-          Encuesta del evento
-        </h2>
-      </div>
+    <div className="campus-page mt-3">
+      <PageHeader
+        crumbs={[
+          { label: "Eventos", to: "/admin/eventos" },
+          { label: stored?.title || "Evento" },
+          { label: "Encuesta" },
+        ]}
+        title="Encuesta del evento"
+        subtitle="Diseña las preguntas y configura el envío a los asistentes."
+      />
 
-      {/* Builder */}
-      <div className="relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl dark:!bg-navy-800 dark:text-white overflow-hidden">
-        <p className="text-sm text-gray-500 mb-3">
-          Diseña las preguntas. Usa <b>Opción única</b> (radio) para escalas de
-          satisfacción y <b>Texto largo</b> para comentarios abiertos (los que la
-          IA analiza).
-        </p>
-        <EditableSection section="formulario">
-          {/* key: remount ONLY when the Survey record (dis)appears — e.g. the
-              saved questions arrive from DataStore sync after first paint —
-              never on config keystrokes. */}
-          <SurveyBuilder
-            key={survey?.id || "new"}
-            formData={surveyData}
-            onSave={handleBuilderSave}
-          />
-        </EditableSection>
-      </div>
-
-      {/* Config + share */}
-      <div className="mt-4 relative flex flex-col gap-4 bg-white bg-clip-border shadow-card px-[20px] py-[20px] rounded-3xl dark:!bg-navy-800 dark:text-white">
-        <h3 className="text-lg font-bold text-navy-700 dark:text-white">
-          Envío e invitación
-        </h3>
-
-        <label className="flex items-center gap-2 text-sm text-navy-700 dark:text-white">
-          <input
-            type="checkbox"
-            checked={active}
-            onChange={(e) => setActive(e.target.checked)}
-            className="h-4 w-4 accent-brand-500"
-          />
-          Activar envío automático al finalizar el evento (solo a quienes hicieron
-          check-in)
-        </label>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-navy-700 dark:text-white">
-              Asunto del correo
-            </label>
-            <input
-              className={inputCls}
-              value={emailSubject}
-              placeholder="Cuéntanos tu experiencia — Evento USFQ"
-              onChange={(e) => setEmailSubject(e.target.value)}
+      <div className="flex flex-col gap-5">
+        {/* Builder */}
+        <Card
+          title="Preguntas"
+          subtitle={
+            <>
+              Diseña las preguntas. Usa <b>Opción única</b> (radio) para escalas
+              de satisfacción y <b>Texto largo</b> para comentarios abiertos
+              (los que la IA analiza).
+            </>
+          }
+          className="overflow-hidden"
+        >
+          <EditableSection section="formulario">
+            {/* key: remount ONLY when the Survey record (dis)appears — e.g. the
+                saved questions arrive from DataStore sync after first paint —
+                never on config keystrokes. */}
+            <SurveyBuilder
+              key={survey?.id || "new"}
+              formData={surveyData}
+              onSave={handleBuilderSave}
             />
+          </EditableSection>
+        </Card>
+
+        {/* Config */}
+        <Card
+          title="Envío e invitación"
+          subtitle="Correo que reciben los asistentes con el enlace a la encuesta."
+        >
+          {/* label: clicking the text toggles too (button is labelable) */}
+          <label className="mb-4 flex cursor-pointer items-center gap-3">
+            <Toggle checked={active} onChange={(v) => setActive(v)} />
+            <span className="text-sm text-navy-700 dark:text-white">
+              Activar envío automático al finalizar el evento (solo a quienes
+              hicieron check-in)
+            </span>
+          </label>
+
+          <div className="grid gap-x-4 sm:grid-cols-2">
+            <Field label="Asunto del correo">
+              <TextInput
+                value={emailSubject}
+                placeholder="Cuéntanos tu experiencia — Evento USFQ"
+                onChange={(e) => setEmailSubject(e.target.value)}
+              />
+            </Field>
+            <Field label="Enviar el" hint="Opcional — por defecto, al finalizar.">
+              <TextInput
+                type="datetime-local"
+                value={sendAt}
+                onChange={(e) => setSendAt(e.target.value)}
+              />
+            </Field>
           </div>
-          <div>
-            <label className="text-sm font-medium text-navy-700 dark:text-white">
-              Enviar el (opcional — por defecto, al finalizar)
-            </label>
-            <input
-              type="datetime-local"
-              className={inputCls}
-              value={sendAt}
-              onChange={(e) => setSendAt(e.target.value)}
+
+          <Field label="Mensaje de invitación">
+            <TextArea
+              rows={3}
+              value={emailIntro}
+              placeholder="Gracias por asistir. Tu opinión nos ayuda a mejorar; toma menos de 2 minutos."
+              onChange={(e) => setEmailIntro(e.target.value)}
             />
+          </Field>
+
+          <div className="mt-4">
+            <PrimaryButton onClick={saveConfig} disabled={savingCfg || !canEdit}>
+              {savingCfg ? "Guardando..." : "Guardar configuración"}
+            </PrimaryButton>
           </div>
-        </div>
+        </Card>
 
-        <div>
-          <label className="text-sm font-medium text-navy-700 dark:text-white">
-            Mensaje de invitación
-          </label>
-          <textarea
-            className={inputCls}
-            rows={3}
-            value={emailIntro}
-            placeholder="Gracias por asistir. Tu opinión nos ayuda a mejorar; toma menos de 2 minutos."
-            onChange={(e) => setEmailIntro(e.target.value)}
-          />
-        </div>
+        {/* Share + test */}
+        <Card
+          title="Compartir y probar"
+          subtitle="Comparte el enlace público o envíate una prueba del correo."
+        >
+          <Field label="Enlace público de la encuesta">
+            <CopyField value={publicLink} />
+          </Field>
 
-        <div>
-          <button
-            onClick={saveConfig}
-            disabled={savingCfg || !canEdit}
-            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-black disabled:opacity-50"
-          >
-            {savingCfg ? "Guardando..." : "Guardar configuración"}
-          </button>
-        </div>
-
-        <div className="h-px bg-gray-200 dark:bg-navy-700" />
-
-        {/* Public link */}
-        <div>
-          <label className="text-sm font-medium text-navy-700 dark:text-white">
-            Enlace público de la encuesta
-          </label>
-          <div className="mt-1 flex items-center gap-2">
-            <input className={inputCls} readOnly value={publicLink} />
-            <button
-              onClick={copyLink}
-              className="flex shrink-0 items-center gap-1 rounded-xl border border-gray-200 px-3 py-2 text-sm text-navy-700 hover:bg-gray-100"
-            >
-              <MdContentCopy /> {copied ? "Copiado" : "Copiar"}
-            </button>
-          </div>
-        </div>
-
-        {/* Test send */}
-        <div>
-          <label className="text-sm font-medium text-navy-700 dark:text-white">
-            Enviar prueba a mi correo
-          </label>
-          <div className="mt-1 flex items-center gap-2">
-            <input
-              className={inputCls}
-              type="email"
-              placeholder="tucorreo@usfq.edu.ec"
-              value={testEmail}
-              onChange={(e) => setTestEmail(e.target.value)}
-            />
-            <button
-              onClick={sendTest}
-              disabled={testing}
-              className="flex shrink-0 items-center gap-1 rounded-xl bg-navy-700 px-3 py-2 text-sm text-white hover:bg-black disabled:opacity-50"
-            >
-              <MdSend /> {testing ? "Enviando..." : "Enviar prueba"}
-            </button>
-          </div>
-        </div>
+          <Field label="Enviar prueba a mi correo">
+            <div className="flex items-center gap-2">
+              <TextInput
+                type="email"
+                placeholder="tucorreo@usfq.edu.ec"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+              />
+              <PrimaryButton
+                onClick={sendTest}
+                disabled={testing}
+                className="flex shrink-0 items-center gap-1.5"
+              >
+                <MdSend className="h-4 w-4" />
+                {testing ? "Enviando..." : "Enviar prueba"}
+              </PrimaryButton>
+            </div>
+          </Field>
+        </Card>
       </div>
     </div>
   );

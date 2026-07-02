@@ -1,10 +1,10 @@
 import React from "react";
-import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
 import { EventAttendee, Event } from "models"
 import { useNavigate, useParams } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
-import { formatDate } from 'scripts/utils'
+import { PageHeader } from "components/adminUi";
+import { formatDate, readStoredEvent } from 'scripts/utils'
 import { regenMissingTickets } from "services/regenMissingTickets";
 import { useCanEditSection } from "components/sectionEdit";
 
@@ -16,6 +16,7 @@ const Marketplace = () => {
   const [event, setEvent] = React.useState(null);
   const id = useParams().id;
   const canEdit = useCanEditSection("participantes");
+  const stored = readStoredEvent();
 
   React.useEffect(() => {
     if(!id || id === "no-id"){
@@ -91,7 +92,17 @@ const Marketplace = () => {
   return (
     <div className="grid h-full grid-cols-1 gap-5">
       <div className="col-span-1 h-fit w-full xl:col-span-1 2xl:col-span-2">
-        <Banner />
+        <PageHeader
+          crumbs={[
+            { label: "Eventos", to: "/admin/eventos" },
+            // Prefer the id-matched event; the localStorage cache can hold a
+            // previously visited event's title.
+            { label: event?.title || stored?.title || "Evento" },
+            { label: "Participantes" },
+          ]}
+          title="Participantes"
+          subtitle="Asistentes registrados, check-in y acciones."
+        />
 
         <div className="grid h-full grid-cols-1 gap-5">
 

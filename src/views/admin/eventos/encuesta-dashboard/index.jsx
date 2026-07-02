@@ -5,6 +5,13 @@ import { post } from "aws-amplify/api";
 import * as XLSX from "xlsx";
 import { Survey, SurveyResponse, EventAttendee } from "models";
 import { readStoredEvent } from "scripts/utils";
+import {
+  PageHeader,
+  Card,
+  Chip,
+  PrimaryButton,
+  SecondaryButton,
+} from "components/adminUi";
 import { MdAutoAwesome, MdFileDownload, MdRefresh } from "react-icons/md";
 
 // Per-event survey results dashboard: AI insights (cached on Survey.insights),
@@ -22,10 +29,11 @@ const stripHtml = (s) =>
 const valOf = (f) =>
   Array.isArray(f?.userData) ? f.userData.filter(Boolean).join(", ") : "";
 
-const SENT_COLOR = {
-  positivo: "#16a34a",
-  neutral: "#6b7280",
-  negativo: "#dc2626",
+// Chip colors for theme sentiment tags (adminUi Chip palette).
+const SENT_CHIP = {
+  positivo: "green",
+  neutral: "gray",
+  negativo: "red",
 };
 
 const Dashboard = () => {
@@ -170,74 +178,72 @@ const Dashboard = () => {
     );
   }
 
-  const card =
-    "relative flex flex-col rounded-3xl bg-white bg-clip-border p-5 shadow-card dark:!bg-navy-800 dark:text-white";
-
   return (
-    <div className="campus-page flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold text-navy-700 dark:text-white">
-          Resultados de la encuesta
-        </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={analyze}
-            disabled={analyzing}
-            className="flex items-center gap-1 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-black disabled:opacity-50"
-          >
-            {insights ? <MdRefresh /> : <MdAutoAwesome />}
-            {analyzing
-              ? "Analizando…"
-              : insights
-              ? "Re-analizar con IA"
-              : "Analizar con IA"}
-          </button>
-          <button
-            onClick={exportExcel}
-            className="flex items-center gap-1 rounded-xl border border-gray-200 px-4 py-2 text-sm text-navy-700 hover:bg-gray-100 dark:text-white"
-          >
-            <MdFileDownload /> Exportar Excel
-          </button>
-        </div>
-      </div>
+    <div className="campus-page mt-3">
+      <PageHeader
+        crumbs={[
+          { label: "Eventos", to: "/admin/eventos" },
+          { label: eventTitle },
+          { label: "Resultados encuesta" },
+        ]}
+        title="Resultados de la encuesta"
+        subtitle="Respuestas, análisis con IA y exportación."
+        actions={
+          <>
+            <PrimaryButton
+              onClick={analyze}
+              disabled={analyzing}
+              className="flex items-center gap-1.5"
+            >
+              {insights ? <MdRefresh /> : <MdAutoAwesome />}
+              {analyzing
+                ? "Analizando…"
+                : insights
+                ? "Re-analizar con IA"
+                : "Analizar con IA"}
+            </PrimaryButton>
+            <SecondaryButton onClick={exportExcel}>
+              <MdFileDownload /> Exportar Excel
+            </SecondaryButton>
+          </>
+        }
+      />
 
+      <div className="flex flex-col gap-5">
       {/* Metrics */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className={card}>
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Card>
           <p className="text-sm text-gray-500">Respuestas</p>
           <p className="text-3xl font-bold text-navy-700 dark:text-white">
             {responses.length}
           </p>
-        </div>
-        <div className={card}>
+        </Card>
+        <Card>
           <p className="text-sm text-gray-500">Check-ins</p>
           <p className="text-3xl font-bold text-navy-700 dark:text-white">
             {checkedIn}
           </p>
-        </div>
-        <div className={card}>
+        </Card>
+        <Card>
           <p className="text-sm text-gray-500">Tasa de respuesta</p>
           <p className="text-3xl font-bold text-navy-700 dark:text-white">
             {responseRate !== null ? `${responseRate}%` : "—"}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* AI insights */}
       {insights ? (
-        <div className={card}>
-          <div className="mb-3 flex items-center gap-2">
-            <MdAutoAwesome className="text-brand-500" />
-            <h3 className="text-lg font-bold text-navy-700 dark:text-white">
-              Análisis con IA
-            </h3>
-            {survey?.insightsAt && (
+        <Card
+          title="Análisis con IA"
+          headerRight={
+            survey?.insightsAt ? (
               <span className="text-xs text-gray-400">
                 {new Date(survey.insightsAt).toLocaleString("es-EC")}
               </span>
-            )}
-          </div>
-
+            ) : null
+          }
+        >
           {insights.executiveSummary && (
             <p className="mb-4 text-[15px] leading-relaxed text-navy-700 dark:text-gray-100">
               {insights.executiveSummary}
@@ -286,17 +292,12 @@ const Dashboard = () => {
                       <span className="font-medium text-navy-700 dark:text-white">
                         {t.title}
                       </span>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-xs text-white"
-                        style={{
-                          background: SENT_COLOR[t.sentiment] || "#6b7280",
-                        }}
-                      >
+                      <Chip color={SENT_CHIP[t.sentiment] || "gray"}>
                         {t.sentiment}
                         {typeof t.mentions === "number"
                           ? ` · ${t.mentions}`
                           : ""}
-                      </span>
+                      </Chip>
                     </div>
                     {t.summary && (
                       <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
@@ -349,7 +350,7 @@ const Dashboard = () => {
           {Array.isArray(insights.recommendations) &&
             insights.recommendations.length > 0 && (
               <div className="mt-4">
-                <p className="mb-1 text-sm font-semibold text-brand-600">
+                <p className="mb-1 text-sm font-semibold text-navy-700 dark:text-white">
                   Recomendaciones accionables
                 </p>
                 <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-200">
@@ -359,22 +360,19 @@ const Dashboard = () => {
                 </ul>
               </div>
             )}
-        </div>
+        </Card>
       ) : (
-        <div className={card}>
+        <Card title="Análisis con IA">
           <p className="text-sm text-gray-500">
             Aún no hay análisis de IA. Pulsa <b>Analizar con IA</b> para generar un
             resumen ejecutivo, sentimiento, temas y recomendaciones a partir de las{" "}
             {responses.length} respuesta(s).
           </p>
-        </div>
+        </Card>
       )}
 
       {/* Detail table */}
-      <div className={card}>
-        <h3 className="mb-3 text-lg font-bold text-navy-700 dark:text-white">
-          Respuestas individuales (anónimas)
-        </h3>
+      <Card title="Respuestas individuales (anónimas)">
         {rows.length === 0 ? (
           <p className="text-sm text-gray-500">Todavía no hay respuestas.</p>
         ) : (
@@ -419,6 +417,7 @@ const Dashboard = () => {
             </table>
           </div>
         )}
+      </Card>
       </div>
     </div>
   );

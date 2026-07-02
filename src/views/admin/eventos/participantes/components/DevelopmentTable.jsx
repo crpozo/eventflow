@@ -1,4 +1,4 @@
-import Card from "components/card";
+import { Card } from "components/adminUi";
 import React, { useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -53,7 +53,7 @@ const DevelopmentTable = (props) => {
   initialState.pageSize = 50;
 
   return (
-    <Card extra={"w-full h-full p-4"}>
+    <Card className="w-full h-full">
       <div className="relative flex items-center ">
         <div className="w-full flex flex-row justify-between">
           <div className="text-2xl font-medium text-navy-700 dark:text-white">
