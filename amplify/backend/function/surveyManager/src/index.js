@@ -190,7 +190,14 @@ const SYSTEM =
   "abierto de asistentes y entregas insights claros y accionables para los " +
   "organizadores (stakeholders). Sé honesto y específico. Responde SIEMPRE en " +
   "español. Devuelve ÚNICAMENTE un objeto JSON válido con la estructura pedida, " +
-  "sin texto adicional y sin markdown.";
+  "sin texto adicional y sin markdown. REGLA CRÍTICA: tu análisis debe ser " +
+  "PROPORCIONAL a la evidencia. Nunca inventes conclusiones que las respuestas " +
+  "no sostienen. Si hay muy pocas respuestas o su contenido no es sustantivo " +
+  "(texto de prueba como 'test', 'asdf', monosílabos, campos vacíos o simples " +
+  "identificadores de opción), el executiveSummary debe decirlo en 1-2 frases " +
+  "('Aún no hay suficiente feedback sustantivo para un análisis confiable...') " +
+  "y themes, strengths, concerns y recommendations deben quedar VACÍOS ([]) o " +
+  "casi vacíos. Es mejor un análisis corto y honesto que uno largo e inventado.";
 
 const userPrompt = (eventTitle, responses) =>
   `Evento: ${eventTitle}\nTotal de respuestas: ${responses.length}\n\n` +
@@ -198,7 +205,10 @@ const userPrompt = (eventTitle, responses) =>
   "Analiza este feedback (resumen ejecutivo, sentimiento general, temas " +
   "principales con cuántas respuestas los mencionan y citas de ejemplo, " +
   "fortalezas, preocupaciones y recomendaciones accionables para el próximo " +
-  `evento).\n\nDevuelve SOLO este JSON:\n${SHAPE}`;
+  "evento). Básate SOLO en lo que las respuestas realmente dicen: no rellenes " +
+  "ni especules. Si el material no da para una sección, devuélvela vacía. Solo " +
+  "cita textualmente frases escritas por asistentes (nunca valores mecánicos " +
+  `como 'option-1').\n\nDevuelve SOLO este JSON:\n${SHAPE}`;
 
 // Bedrock backend via the model-agnostic Converse API: works with ANY chat
 // model in the catalog (Gemma, Nova, Claude…) — switching models is just the

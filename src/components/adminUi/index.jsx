@@ -213,6 +213,7 @@ const CHIP_COLORS = {
   green: "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
   gray: "bg-gray-100 text-gray-600 dark:bg-navy-700 dark:text-gray-300",
   red: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300",
+  amber: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300",
 };
 
 export function Chip({ color = "gray", dot = true, children }) {

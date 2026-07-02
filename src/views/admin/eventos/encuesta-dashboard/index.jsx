@@ -158,8 +158,12 @@ const Dashboard = () => {
     [responses]
   );
 
+  // Capped at 100: with test data (anonymous links answered without check-in)
+  // responses can exceed check-ins and a ">100%" rate reads as a bug.
   const responseRate =
-    checkedIn > 0 ? Math.round((responses.length / checkedIn) * 100) : null;
+    checkedIn > 0
+      ? Math.min(100, Math.round((responses.length / checkedIn) * 100))
+      : null;
 
   async function analyze() {
     if (analyzing) return;
