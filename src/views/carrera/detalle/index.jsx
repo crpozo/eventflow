@@ -66,8 +66,8 @@ const Dashboard = () => {
           </Card>
 
           <Card
-            title="Zona de peligro"
-            subtitle="Eliminar la subárea es permanente: no se puede deshacer."
+            title="Eliminar subárea"
+            subtitle="Esta acción es permanente y no se puede deshacer."
           >
             <button
               type="button"

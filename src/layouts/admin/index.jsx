@@ -120,7 +120,9 @@ export default function Admin(props) {
                 {...rest}
               />
             </div>
-            <div className="flex-grow mx-auto w-full pt-4 md:pr-2">
+            {/* max-w keeps content dense on wide monitors instead of
+                stretching cards across the full viewport */}
+            <div className="flex-grow mx-auto w-full max-w-[1480px] pt-4 md:pr-2">
               <Routes>
                 {getRoutes(routes)}
                 <Route

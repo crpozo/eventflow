@@ -3,29 +3,71 @@ import { useNavigate, Link } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event } from "models"
 import {
-  MdBarChart
+  MdBarChart,
+  MdCalendarToday,
+  MdOutlineCalendarMonth,
+  MdAdd,
+  MdChevronRight,
+  MdCheckCircleOutline,
+  MdOutlineUpcoming,
 } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
 import { PageHeader, Card, TYPE } from "components/adminUi";
 
-const cards = [
+const SHORTCUTS = [
   {
     title: "Todos mis eventos",
-    gradient: "bg-gradient-to-br from-[#FFFFFF] to-[#fff]",
+    desc: "Administra cada evento: landing, formulario, encuesta y participantes.",
+    Icon: MdCalendarToday,
     link: "/admin/eventos",
   },
   {
     title: "Visualizar Reportes",
-    gradient: "bg-gradient-to-br from-[#FFFFFF] to-[#fff]",
+    desc: "Métricas de registro y check-in, con exportación a Excel.",
+    Icon: MdBarChart,
     link: "/admin/reportes",
   },
   {
     title: "Crear un evento",
-    gradient: "bg-gradient-to-br from-[#FFFFFF] to-[#fff]",
+    desc: "Configura un nuevo evento en minutos.",
+    Icon: MdAdd,
     link: "/admin/eventos/crear",
   },
 ];
+
+// Compact "lun 06/07/2026 · 09:00" in the event's timezone.
+const compactDate = (iso, tz) => {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    const zone = tz || "America/Guayaquil";
+    const date = new Intl.DateTimeFormat("es-EC", {
+      weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", timeZone: zone,
+    }).format(d);
+    const hour = new Intl.DateTimeFormat("es-EC", {
+      hour: "2-digit", minute: "2-digit", hour12: false, timeZone: zone,
+    }).format(d);
+    return `${date} · ${hour}`;
+  } catch (e) {
+    return "";
+  }
+};
+
+const Metric = ({ Icon, label, value }) => (
+  <Card>
+    <div className="flex items-center gap-4">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+        <Icon className="h-6 w-6" />
+      </div>
+      <div>
+        <p className={TYPE.metricLabel}>{label}</p>
+        <p className={TYPE.metricValue}>{value}</p>
+      </div>
+    </div>
+  </Card>
+);
 
 const Dashboard = () => {
 
@@ -58,6 +100,17 @@ const Dashboard = () => {
     );
   }
 
+  const now = new Date();
+  const upcoming = events
+    .filter((e) => e.date && new Date(e.date) > now)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const thisMonth = events.filter((e) => {
+    if (!e.date) return false;
+    const d = new Date(e.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const finished = events.filter((e) => e.date && new Date(e.date) <= now);
+
   return (
     <div className="mt-3">
       <PageHeader
@@ -70,47 +123,79 @@ const Dashboard = () => {
         <div className="flex flex-col gap-5">
 
           {/* Metrics */}
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <Card>
-              <p className={TYPE.metricLabel}>Total eventos</p>
-              <p className={`${TYPE.metricValue} mt-1 flex items-center gap-2`}>
-                <MdBarChart className="h-7 w-7 text-brand-500" /> {events.length}
-              </p>
-            </Card>
-
-            <Card>
-              <p className={TYPE.metricLabel}>Próximos eventos</p>
-              <p className={`${TYPE.metricValue} mt-1 flex items-center gap-2`}>
-                <MdBarChart className="h-7 w-7 text-brand-500" />
-                {events.filter(e => new Date(e.date) > new Date()).length}
-              </p>
-            </Card>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <Metric Icon={MdBarChart} label="Total eventos" value={events.length} />
+            <Metric Icon={MdOutlineUpcoming} label="Próximos" value={upcoming.length} />
+            <Metric Icon={MdOutlineCalendarMonth} label="Este mes" value={thisMonth.length} />
+            <Metric Icon={MdCheckCircleOutline} label="Finalizados" value={finished.length} />
           </div>
 
-          {/* Shortcuts */}
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {cards.map((card, index) => (
-              <Link
-                to={card.link}
-                key={index}
-                className="rounded-2xl bg-white p-5 shadow-card transition hover:shadow-xl hover:no-underline dark:!bg-navy-800 dark:text-white"
-              >
-                <div className="flex h-full flex-col justify-between">
-                  <h3 className="text-base font-bold text-navy-700 dark:text-white">
-                    {card.title}
-                  </h3>
-                  <div className="mt-4 flex items-center gap-1 text-sm font-medium text-gray-500">
-                    Ver más <span className="text-brand-500">→</span>
-                  </div>
+          <div className="grid gap-5 xl:grid-cols-3">
+            {/* Upcoming events list */}
+            <Card
+              title="Próximos eventos"
+              subtitle="Los siguientes en el calendario."
+              className="xl:col-span-2"
+            >
+              {upcoming.length === 0 ? (
+                <p className="text-[15px] text-gray-400">
+                  No hay eventos próximos en el calendario.
+                </p>
+              ) : (
+                <div className="flex flex-col">
+                  {upcoming.slice(0, 6).map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => navigate(`/admin/eventos/${e.id}/detalle/`)}
+                      className="flex items-center justify-between gap-3 border-b border-gray-100 py-3 text-left transition last:border-0 hover:bg-gray-50 dark:border-white/5 dark:hover:bg-navy-700"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-[15px] font-semibold text-navy-700 dark:text-white">
+                          {e.title}
+                        </p>
+                        <p className="mt-0.5 text-sm text-gray-500">
+                          {compactDate(e.date, e.timezone)}
+                          {e.location ? ` · ${e.location}` : ""}
+                        </p>
+                      </div>
+                      <MdChevronRight className="h-5 w-5 shrink-0 text-gray-300" />
+                    </button>
+                  ))}
                 </div>
-              </Link>
-            ))}
+              )}
+            </Card>
+
+            {/* Shortcuts */}
+            <div className="flex flex-col gap-5">
+              {SHORTCUTS.map(({ title, desc, Icon, link }) => (
+                <Link
+                  to={link}
+                  key={link}
+                  className="group flex items-start gap-4 rounded-2xl bg-white p-5 shadow-card transition hover:shadow-xl hover:no-underline dark:!bg-navy-800 dark:text-white"
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold text-navy-700 dark:text-white">
+                      {title}
+                    </h3>
+                    <p className="mt-0.5 text-sm text-gray-500">{desc}</p>
+                    <span className="mt-1.5 flex items-center gap-1 text-[15px] font-medium text-brand-500">
+                      Ver más
+                      <MdChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
 
         </div>
       ) : (
         <Card>
-          <p className="flex items-center gap-2 text-sm text-navy-700 dark:text-white">
+          <p className="flex items-center gap-2 text-[15px] text-navy-700 dark:text-white">
             <AiOutlineWarning /> No existen eventos en la base de datos...
           </p>
         </Card>

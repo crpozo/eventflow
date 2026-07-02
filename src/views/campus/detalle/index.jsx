@@ -63,8 +63,8 @@ const Dashboard = () => {
           </Card>
 
           <Card
-            title="Zona de peligro"
-            subtitle="Eliminar el campus es permanente: no se puede deshacer."
+            title="Eliminar campus"
+            subtitle="Esta acción es permanente y no se puede deshacer."
           >
             <button
               type="button"

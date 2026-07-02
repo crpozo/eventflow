@@ -70,8 +70,8 @@ const Dashboard = () => {
           </Card>
 
           <Card
-            title="Zona de peligro"
-            subtitle="Eliminar el evento es permanente: no se puede deshacer."
+            title="Eliminar evento"
+            subtitle="Esta acción es permanente y no se puede deshacer."
           >
             <button
               type="button"
@@ -80,7 +80,7 @@ const Dashboard = () => {
               className="inline-flex items-center gap-2 rounded-xl border border-red-500 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
             >
               <MdDeleteOutline className="h-4 w-4" />
-              Eliminar evento
+              Eliminar definitivamente
             </button>
           </Card>
         </div>
