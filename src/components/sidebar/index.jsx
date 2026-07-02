@@ -8,12 +8,31 @@ import { Landing } from "models"
 import { formatDateHour, tzLabel } from 'scripts/utils'
 import { DataStore } from 'aws-amplify/datastore';
 import {
-  MdChevronLeft
+  MdChevronLeft,
+  MdInfoOutline,
+  MdWeb,
+  MdListAlt,
+  MdPoll,
+  MdInsights,
+  MdBadge,
+  MdPeople,
 } from "react-icons/md";
 import {
   LiaExternalLinkAltSolid,
 } from "react-icons/lia";
 import { usePermissions } from "../../providers/PermissionsProvider";
+
+// Event sub-nav sections (secondary sidebar). Path segment must match the
+// route path suffix in routes.js (eventos/:id/<path>).
+const EVENT_SECTIONS = [
+  { path: "detalle", label: "Detalle Evento", Icon: MdInfoOutline },
+  { path: "landing", label: "Landing page", Icon: MdWeb },
+  { path: "formulario", label: "Formulario", Icon: MdListAlt },
+  { path: "encuesta", label: "Encuesta", Icon: MdPoll },
+  { path: "encuesta-dashboard", label: "Resultados encuesta", Icon: MdInsights },
+  { path: "diseno-gafete", label: "Diseño Gafete", Icon: MdBadge },
+  { path: "participantes", label: "Participantes", Icon: MdPeople },
+];
 
 const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
@@ -110,18 +129,25 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
               : 'left-[-14px] -translate-x-96 xl:translate-x-[110px]'
           } w-[268px] xl:w-[268px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0`}
           >
-          <div className="mt-[10px] h-px dark:bg-white/30" />
           <div className="flex flex-col">
-            <div className="pt-2 pb-3 border-b border-gray-700">
-              <Link className="pl-[20px] pr-[25px] xl:pl-[30px] xl:pr-[35px] flex items-center text-brand-500 hover:no-underline hover:text-navy-700" to={ `eventos/`}>
-                <MdChevronLeft className="h-6 w-6 mr-2" /> Eventos
+            {/* Back to events */}
+            <div className="px-4 pt-4 pb-2">
+              <Link className="flex items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline" to={ `eventos/`}>
+                <MdChevronLeft className="h-5 w-5" /> Eventos
               </Link>
             </div>
-            <div className="flex flex-col px-[25px] xl:px-[25px] py-[30px] border-b border-gray-700">
-              {/* <GoDot className="h-5 w-5" />
-              <GoDotFill className="h-5 w-5 fill-green-500" /> */}
-              <select
-                  className="text-sm w-full py-2.5 pl-3 pr-[40px] text-black bg-white border rounded-3xl shadow-sm outline-none appearance-none text-ellipsis max-w-[110px] mb-4 focus:border-indigo-600 select-arrow cursor-pointer"
+
+            {/* Event header: compact title + meta + controls in one row */}
+            <div className="px-5 pb-4 border-b border-gray-200 dark:border-white/10">
+              <h2 className="text-base font-semibold leading-snug text-navy-700 dark:text-white">
+                {event?.title}
+              </h2>
+              <p className="mt-1 text-xs text-gray-500">
+                {formatDateHour(event?.date, "ES", event?.timezone)} ({tzLabel(event?.timezone)})
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <select
+                  className="cursor-pointer rounded-lg border border-gray-200 bg-white py-1.5 pl-2.5 pr-7 text-xs font-medium text-navy-700 outline-none select-arrow appearance-none focus:border-brand-500 dark:border-white/10 dark:bg-navy-800 dark:text-white"
                   onChange={(e) => {
                     if(e.target.value == 'public'){
                       updateLanding(true)
@@ -131,56 +157,36 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                   }}
                   value={isActive ? "public" : "hidden"}
                 >
-                <option value="public">
-                  Público
-                </option>
-                <option value="hidden">
-                  Oculto
-                </option>
-              </select>
-              <h2 className="text-2xl font-medium mb-3">{event?.title}</h2>
-              <p className="text-sm text-gray-500 mb-3">{formatDateHour(event?.date, "ES", event?.timezone)} ({tzLabel(event?.timezone)})</p>
-              <Link className="flex text-brand-500 pointer items-center hover:no-underline hover:text-black" to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
-                Link del evento <LiaExternalLinkAltSolid className="ml-2 h-5 w-5" />
-              </Link>
+                  <option value="public">Público</option>
+                  <option value="hidden">Oculto</option>
+                </select>
+                <Link
+                  className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-brand-500 hover:bg-gray-50 hover:text-navy-700 hover:no-underline dark:border-white/10 dark:hover:bg-navy-700"
+                  to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
+                  Ver landing <LiaExternalLinkAltSolid className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <Link 
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/detalle` ? "bg-gray-200" : ""}`}
-               to={ `eventos/${event?.id}/detalle/`}>
-                  Detalle Evento
-              </Link>
-              <Link 
-                className={`px-[25px] xl:px-[25px] py-[15px] hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/landing` ? "bg-gray-200" : ""}`}
-               to={ `eventos/${event?.id}/landing/`}>
-                  Landing page
-              </Link>
-              <Link 
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/formulario` ? "bg-gray-200" : ""}`}
-                to={ `eventos/${event?.id}/formulario/`}>
-                  Formulario
-              </Link>
-              <Link
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/encuesta` ? "bg-gray-200" : ""}`}
-                to={ `eventos/${event?.id}/encuesta/`}>
-                  Encuesta
-              </Link>
-              <Link
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/encuesta-dashboard` ? "bg-gray-200" : ""}`}
-                to={ `eventos/${event?.id}/encuesta-dashboard/`}>
-                  Resultados encuesta
-              </Link>
-              <Link
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/diseno-gafete` ? "bg-gray-200" : ""}`}
-               to={ `eventos/${event?.id}/diseno-gafete/`}>
-                  Diseño Gafete
-              </Link>
-              <Link
-                className={`px-[25px] xl:px-[25px] py-[15px]  hover:bg-gray-200 hover:text-black hover:no-underline ${activePath === `eventos/:id/participantes` ? "bg-gray-200" : ""}`}
-                to={ `eventos/${event?.id}/participantes/`}>
-                  Participantes
-              </Link>
-            </div>
+
+            {/* Section nav: compact items with icons + pill active state */}
+            <nav className="flex flex-col py-2">
+              {EVENT_SECTIONS.map(({ path, label, Icon }) => {
+                const active = activePath === `eventos/:id/${path}`;
+                return (
+                  <Link
+                    key={path}
+                    className={`mx-3 my-[2px] flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:no-underline ${
+                      active
+                        ? "bg-brand-500 text-white hover:bg-brand-500 hover:text-white"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
+                    }`}
+                    to={ `eventos/${event?.id}/${path}/`}>
+                    <Icon className={`h-5 w-5 shrink-0 ${active ? "text-white" : "text-gray-400"}`} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
          
         </div>
