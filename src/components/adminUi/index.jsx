@@ -35,7 +35,7 @@ export const TYPE = {
 /* ── Page header: breadcrumb + title + right-side actions ─────────────── */
 export function PageHeader({ crumbs = [], title, subtitle, actions }) {
   return (
-    <div className="mb-5">
+    <div className="mb-4">
       {/* A single crumb just duplicates the title (e.g. "Dashboard / Dashboard")
           — breadcrumbs only render when there's actual hierarchy. */}
       {crumbs.length > 1 && (
@@ -76,10 +76,10 @@ export function PageHeader({ crumbs = [], title, subtitle, actions }) {
 export function Card({ title, subtitle, headerRight, children, className = "" }) {
   return (
     <section
-      className={`rounded-2xl bg-white p-5 shadow-card dark:!bg-navy-800 dark:text-white ${className}`}
+      className={`rounded-2xl bg-white p-4 shadow-card dark:!bg-navy-800 dark:text-white ${className}`}
     >
       {(title || headerRight) && (
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             {title && (
               <h3 className="text-lg font-bold text-navy-700 dark:text-white">

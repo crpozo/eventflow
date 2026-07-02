@@ -16,6 +16,13 @@ import {
   MdBarChart,
   MdAccountBalance,
   MdOutlineCalendarMonth,
+  MdInfoOutline,
+  MdWeb,
+  MdListAlt,
+  MdPoll,
+  MdInsights,
+  MdBadge,
+  MdPeople,
 } from "react-icons/md";
 import { LuUserCheck } from "react-icons/lu";
 import {
@@ -34,16 +41,16 @@ const RAIL_ITEMS = [
 ];
 
 // Event sub-nav sections (secondary sidebar). Path segment must match the
-// route path suffix in routes.js (eventos/:id/<path>). Per the mock: plain
-// text items (no icons), soft red pill + chevron when active.
+// route path suffix in routes.js (eventos/:id/<path>). Items show an icon +
+// label; the active one gets a soft red pill + chevron.
 const EVENT_SECTIONS = [
-  { path: "detalle", label: "Detalle Evento" },
-  { path: "landing", label: "Landing page" },
-  { path: "formulario", label: "Formulario" },
-  { path: "encuesta", label: "Encuesta" },
-  { path: "encuesta-dashboard", label: "Resultados encuesta" },
-  { path: "diseno-gafete", label: "Diseño Gafete" },
-  { path: "participantes", label: "Participantes" },
+  { path: "detalle", label: "Detalle Evento", Icon: MdInfoOutline },
+  { path: "landing", label: "Landing page", Icon: MdWeb },
+  { path: "formulario", label: "Formulario", Icon: MdListAlt },
+  { path: "encuesta", label: "Encuesta", Icon: MdPoll },
+  { path: "encuesta-dashboard", label: "Resultados encuesta", Icon: MdInsights },
+  { path: "diseno-gafete", label: "Diseño Gafete", Icon: MdBadge },
+  { path: "participantes", label: "Participantes", Icon: MdPeople },
 ];
 
 // Compact date for the event header, e.g. "lun 06/07/2026 · 09:00" in the
@@ -253,13 +260,13 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
           <p className="px-6 pt-4 pb-1 text-xs font-bold uppercase tracking-wider text-gray-400">
             Gestión del evento
           </p>
-          <nav className="flex flex-col pb-2">
-            {EVENT_SECTIONS.map(({ path, label }) => {
+          <nav className="flex flex-col gap-1 pb-3 pt-1">
+            {EVENT_SECTIONS.map(({ path, label, Icon }) => {
               const active = activePath === `eventos/:id/${path}`;
               return (
                 <Link
                   key={path}
-                  className={`mx-3 my-[2px] flex items-center justify-between rounded-xl px-4 py-2.5 text-sm transition hover:no-underline ${
+                  className={`mx-3 flex items-center justify-between rounded-xl px-4 py-3 text-base transition hover:no-underline ${
                     active
                       ? "bg-red-50 font-semibold text-brand-500 hover:text-brand-500"
                       // navy-700, NOT gray-700: this theme's gray-700 is
@@ -267,7 +274,14 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                       : "font-medium text-navy-700 hover:bg-gray-50 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
                   }`}
                   to={ `eventos/${event?.id}/${path}/`}>
-                  {label}
+                  <span className="flex min-w-0 items-center gap-3">
+                    <Icon
+                      className={`h-5 w-5 shrink-0 ${
+                        active ? "text-brand-500" : "text-gray-400"
+                      }`}
+                    />
+                    <span className="truncate">{label}</span>
+                  </span>
                   {active && <MdChevronRight className="h-4 w-4 shrink-0" />}
                 </Link>
               );

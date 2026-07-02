@@ -12,7 +12,11 @@ import {
   Form,
 } from "models";
 import * as XLSX from "xlsx";
-import { MdFileDownload } from "react-icons/md";
+import {
+  MdFileDownload,
+  MdPeople,
+  MdCheckCircleOutline,
+} from "react-icons/md";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
 import { usePermissions } from "../../../providers/PermissionsProvider"
 import {
@@ -903,8 +907,8 @@ const Reportes = () => {
         }
       />
 
-      <Card title="Filtros" className="mb-5">
-        <div className="relative mb-4 flex flex-col gap-2 sm:flex-row sm:gap-5">
+      <Card title="Filtros" className="mb-4">
+        <div className="relative mb-3 flex flex-col gap-2 sm:flex-row sm:gap-4">
           <div className="flex min-w-0 flex-col sm:flex-initial">
             <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
               Fecha inicio
@@ -941,7 +945,7 @@ const Reportes = () => {
         </div>
 
 
-        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-5">
+        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
 
           <div className="flex w-full flex-col min-w-0">
             <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Campus</label>
@@ -1014,21 +1018,43 @@ const Reportes = () => {
 
       {/* Metrics */}
 
-      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
-          <p className={TYPE.metricLabel}>Total Registros</p>
-          <p className={TYPE.metricValue}>{totalRegistros}</p>
-          <p className="mt-0.5 text-xs text-gray-400">Participante/s</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+              <MdPeople className="h-5 w-5" />
+            </div>
+            <div>
+              <p className={TYPE.metricLabel}>Total Registros</p>
+              <p className={`${TYPE.metricValue} leading-tight`}>
+                {totalRegistros}{" "}
+                <span className="text-xs font-normal text-gray-400">
+                  participante/s
+                </span>
+              </p>
+            </div>
+          </div>
         </Card>
         <Card>
-          <p className={TYPE.metricLabel}>Total Check-in</p>
-          <p className={TYPE.metricValue}>{totalCheckIn}</p>
-          <p className="mt-0.5 text-xs text-gray-400">Participante/s</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+              <MdCheckCircleOutline className="h-5 w-5" />
+            </div>
+            <div>
+              <p className={TYPE.metricLabel}>Total Check-in</p>
+              <p className={`${TYPE.metricValue} leading-tight`}>
+                {totalCheckIn}{" "}
+                <span className="text-xs font-normal text-gray-400">
+                  participante/s
+                </span>
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
 
       {/* Tables & Charts */}
-      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
         {chartsData &&
           chartsData?.map((chart, index) => (
             <PieChartApache key={index} option={chart.options} height="450px" />
