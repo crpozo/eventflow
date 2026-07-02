@@ -56,14 +56,14 @@ const compactDate = (iso, tz) => {
 };
 
 const Metric = ({ Icon, label, value }) => (
-  <Card>
-    <div className="flex items-center gap-4">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
-        <Icon className="h-6 w-6" />
+  <Card className="!p-4">
+    <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+        <Icon className="h-5 w-5" />
       </div>
       <div>
         <p className={TYPE.metricLabel}>{label}</p>
-        <p className={TYPE.metricValue}>{value}</p>
+        <p className={`${TYPE.metricValue} leading-tight`}>{value}</p>
       </div>
     </div>
   </Card>
@@ -112,7 +112,7 @@ const Dashboard = () => {
   const finished = events.filter((e) => e.date && new Date(e.date) <= now);
 
   return (
-    <div className="mt-3">
+    <div className="mt-2">
       <PageHeader
         crumbs={[{ label: "Dashboard" }]}
         title="Dashboard"
@@ -120,22 +120,23 @@ const Dashboard = () => {
       />
 
       {events.length !== 0 ? (
-        <div className="flex flex-col gap-5">
+        // Compact by design: the whole dashboard must fit ONE viewport.
+        <div className="flex flex-col gap-4">
 
           {/* Metrics */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Metric Icon={MdBarChart} label="Total eventos" value={events.length} />
             <Metric Icon={MdOutlineUpcoming} label="Próximos" value={upcoming.length} />
             <Metric Icon={MdOutlineCalendarMonth} label="Este mes" value={thisMonth.length} />
             <Metric Icon={MdCheckCircleOutline} label="Finalizados" value={finished.length} />
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-3">
+          <div className="grid gap-4 xl:grid-cols-3">
             {/* Upcoming events list */}
             <Card
               title="Próximos eventos"
               subtitle="Los siguientes en el calendario."
-              className="xl:col-span-2"
+              className="xl:col-span-2 !p-4"
             >
               {upcoming.length === 0 ? (
                 <p className="text-[15px] text-gray-400">
@@ -143,12 +144,12 @@ const Dashboard = () => {
                 </p>
               ) : (
                 <div className="flex flex-col">
-                  {upcoming.slice(0, 6).map((e) => (
+                  {upcoming.slice(0, 4).map((e) => (
                     <button
                       key={e.id}
                       type="button"
                       onClick={() => navigate(`/admin/eventos/${e.id}/detalle/`)}
-                      className="flex items-center justify-between gap-3 border-b border-gray-100 py-3 text-left transition last:border-0 hover:bg-gray-50 dark:border-white/5 dark:hover:bg-navy-700"
+                      className="flex items-center justify-between gap-3 border-b border-gray-100 py-2.5 text-left transition last:border-0 hover:bg-gray-50 dark:border-white/5 dark:hover:bg-navy-700"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-[15px] font-semibold text-navy-700 dark:text-white">
@@ -167,22 +168,22 @@ const Dashboard = () => {
             </Card>
 
             {/* Shortcuts */}
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4">
               {SHORTCUTS.map(({ title, desc, Icon, link }) => (
                 <Link
                   to={link}
                   key={link}
-                  className="group flex items-start gap-4 rounded-2xl bg-white p-5 shadow-card transition hover:shadow-xl hover:no-underline dark:!bg-navy-800 dark:text-white"
+                  className="group flex flex-1 items-center gap-4 rounded-2xl bg-white p-4 shadow-card transition hover:shadow-xl hover:no-underline dark:!bg-navy-800 dark:text-white"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-lg font-bold text-navy-700 dark:text-white">
+                    <h3 className="text-lg font-bold leading-tight text-navy-700 dark:text-white">
                       {title}
                     </h3>
-                    <p className="mt-0.5 text-sm text-gray-500">{desc}</p>
-                    <span className="mt-1.5 flex items-center gap-1 text-[15px] font-medium text-brand-500">
+                    <p className="mt-0.5 line-clamp-1 text-sm text-gray-500">{desc}</p>
+                    <span className="mt-1 flex items-center gap-1 text-[15px] font-medium text-brand-500">
                       Ver más
                       <MdChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                     </span>
