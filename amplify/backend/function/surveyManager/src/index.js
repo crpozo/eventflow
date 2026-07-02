@@ -70,7 +70,7 @@ const surveyLink = (eventId, token) =>
   `${APP_URL}/landing/${eventId}/encuesta${token ? `?a=${encodeURIComponent(token)}` : ""}`;
 
 const inviteHtml = (eventTitle, intro, link) => `
-  <div style="font-family:Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
+  <div style="font-family:Helvetica,Arial,sans-serif;max-width:520px;margin:0;color:#1a1a1a;text-align:left">
     <h2 style="color:#0b1f3a">${eventTitle}</h2>
     <p>${intro || "Gracias por asistir. Tu opinión nos ayuda a mejorar los próximos eventos; toma menos de 2 minutos y es anónima."}</p>
     <p style="margin:24px 0">
