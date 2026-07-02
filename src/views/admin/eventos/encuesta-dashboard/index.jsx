@@ -120,13 +120,19 @@ const Dashboard = () => {
   }, [eventId, navigate]);
 
   const insights = React.useMemo(() => {
-    const raw = apiInsights?.insights ?? survey?.insights;
-    if (!raw) return null;
+    let val = apiInsights?.insights ?? survey?.insights;
+    if (!val) return null;
+    // AWSJSON can arrive single or DOUBLE encoded (the Lambda used to store a
+    // stringified object, which AWSJSON wraps again): keep parsing while it's
+    // still a string, then only accept a real object.
     try {
-      return typeof raw === "string" ? JSON.parse(raw) : raw;
+      for (let i = 0; i < 3 && typeof val === "string"; i++) {
+        val = JSON.parse(val);
+      }
     } catch {
       return null;
     }
+    return val && typeof val === "object" ? val : null;
   }, [apiInsights, survey]);
 
   const insightsAt = apiInsights?.insightsAt ?? survey?.insightsAt;

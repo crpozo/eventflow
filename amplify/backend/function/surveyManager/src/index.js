@@ -27,7 +27,7 @@
  *   -- Anthropic backend:
  *   ANTHROPIC_API_KEY  plain value OR Amplify-secret SSM path (starts with "/")
  *   ANALYSIS_MODEL     model id, default "claude-opus-4-8"
- * rev 2026-07-02a (Bedrock via Converse API; modelo Gemma 3 hasta habilitar Anthropic)
+ * rev 2026-07-02b (insights se guarda como Map nativo, no string — evita doble encoding AWSJSON)
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -325,7 +325,9 @@ const handleAnalyze = async (body) => {
       TableName: SURVEY_TABLE,
       Key: { id: survey.id },
       UpdateExpression: "SET insights = :i, insightsAt = :t",
-      ExpressionAttributeValues: { ":i": JSON.stringify(insights), ":t": nowIso },
+      // Objeto nativo (Map), NO JSON.stringify: AWSJSON re-encodea los strings
+      // al leerlos por GraphQL y el dashboard recibiría doble-encoded.
+      ExpressionAttributeValues: { ":i": insights, ":t": nowIso },
     })
   );
   return json(200, { ok: true, insights, insightsAt: nowIso });
