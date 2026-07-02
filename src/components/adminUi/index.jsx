@@ -127,7 +127,15 @@ const inputCls =
   "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3 text-base text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white";
 
 export function TextInput(props) {
-  return <input {...props} className={`${inputCls} ${props.className || ""}`} />;
+  // Fixed height: native controls (datetime-local, date…) have a different
+  // intrinsic height than text inputs, so side-by-side fields misalign.
+  // 50px = py-3 (24) + text-base line (24) + borders (2).
+  return (
+    <input
+      {...props}
+      className={`${inputCls} h-[50px] ${props.className || ""}`}
+    />
+  );
 }
 
 export function TextArea(props) {
