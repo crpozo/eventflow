@@ -6,7 +6,30 @@ import { MdCheck, MdContentCopy, MdChevronRight } from "react-icons/md";
  * adminUi — shared building blocks for the redesigned admin pages
  * (breadcrumb header, cards, labeled fields with counters, toggle, copy field,
  * buttons, chips). Tailwind-only, no external UI deps, dark-mode aware.
+ *
+ * ── TYPOGRAPHY STANDARD ──────────────────────────────────────────────────
+ * Families come from index.css and are INHERITED — never set font-family here:
+ * Inter for body/span, Outfit for h1–h6.
+ *
+ *  Página     · título h1: text-3xl font-bold text-navy-700
+ *             · subtítulo: text-sm text-gray-500 · breadcrumb: text-sm
+ *  Tarjeta    · título h3: text-base font-bold  · subtítulo: text-sm gray-500
+ *  Campos     · label: text-sm font-semibold navy-700 · control: text-sm
+ *             · hint/counter: text-xs gray-400
+ *  Botones    · text-sm font-semibold (primario y secundario por igual)
+ *  Micro      · chips y botones mini: text-xs font-medium
+ *  Métricas   · valor: TYPE.metricValue · etiqueta: TYPE.metricLabel
+ *  Tablas     · encabezado: TYPE.th · celda: TYPE.td
+ * Any new admin page must use these tokens/components — no ad-hoc sizes.
  */
+
+// Reusable class tokens for patterns that aren't full components.
+export const TYPE = {
+  metricValue: "text-3xl font-bold text-navy-700 dark:text-white",
+  metricLabel: "text-sm text-gray-500",
+  th: "text-xs font-bold uppercase tracking-wide text-gray-500",
+  td: "text-sm text-navy-700 dark:text-gray-100",
+};
 
 /* ── Page header: breadcrumb + title + right-side actions ─────────────── */
 export function PageHeader({ crumbs = [], title, subtitle, actions }) {
@@ -174,7 +197,7 @@ export function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-navy-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700 ${className}`}
+      className={`flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-navy-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700 ${className}`}
     >
       {children}
     </button>

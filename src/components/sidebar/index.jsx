@@ -173,7 +173,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
             </div>
 
             {/* Section nav: compact items with icons + pill active state */}
-            <p className="px-6 pt-4 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+            <p className="px-6 pt-4 pb-1 text-xs font-bold uppercase tracking-wider text-gray-400">
               Gestión del evento
             </p>
             <nav className="flex flex-col pb-2">

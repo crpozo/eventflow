@@ -1,4 +1,4 @@
-import { Card } from "components/adminUi";
+import { Card, TYPE } from "components/adminUi";
 import React, { useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -56,9 +56,9 @@ const DevelopmentTable = (props) => {
     <Card className="w-full h-full">
       <div className="relative flex items-center ">
         <div className="w-full flex flex-row justify-between">
-          <div className="text-2xl font-medium text-navy-700 dark:text-white">
+          <h3 className="text-base font-bold text-navy-700 dark:text-white">
             Tabla de participantes
-          </div>
+          </h3>
           <div className="flex gap-2">
             <DownloadAllBadgesButton event={event} tableData={tableData} />
             {canEdit && <UploadExcelButton event={event} />}
@@ -83,7 +83,7 @@ const DevelopmentTable = (props) => {
                     className="border-b border-gray-200 pb-[10px] pr-32 text-start dark:!border-navy-700 "
                     key={index}
                   >
-                    <div className="text-sm font-bold tracking-wide text-gray-600">
+                    <div className={TYPE.th}>
                       {column.render("Header")}
                     </div>
                   </th>
@@ -104,13 +104,13 @@ const DevelopmentTable = (props) => {
                     let data = "";
                     if (cell.column.Header === "Email") {
                       data = (
-                        <p className="text-[15px] text-navy-700 dark:text-white">
+                        <p className={TYPE.td}>
                           {cell.value}
                         </p>
                       );
                     } else if (cell.column.Header === "Creacion") {
                       data = (
-                        <p className="text-[15px] text-navy-700 dark:text-white">
+                        <p className={TYPE.td}>
                           {cell.value}
                         </p>
                       );
@@ -133,7 +133,7 @@ const DevelopmentTable = (props) => {
                       <td
                         {...cell.getCellProps()}
                         key={index}
-                        className="pb-3 pt-[14px] text-[14px]"
+                        className="pb-3 pt-[14px] text-sm"
                       >
                         {data}
                       </td>

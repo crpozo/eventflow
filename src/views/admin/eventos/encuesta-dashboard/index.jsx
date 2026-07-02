@@ -11,6 +11,7 @@ import {
   Chip,
   PrimaryButton,
   SecondaryButton,
+  TYPE,
 } from "components/adminUi";
 import { MdAutoAwesome, MdFileDownload, MdRefresh } from "react-icons/md";
 
@@ -214,19 +215,19 @@ const Dashboard = () => {
       <div className="grid gap-5 sm:grid-cols-3">
         <Card>
           <p className="text-sm text-gray-500">Respuestas</p>
-          <p className="text-3xl font-bold text-navy-700 dark:text-white">
+          <p className={TYPE.metricValue}>
             {responses.length}
           </p>
         </Card>
         <Card>
           <p className="text-sm text-gray-500">Check-ins</p>
-          <p className="text-3xl font-bold text-navy-700 dark:text-white">
+          <p className={TYPE.metricValue}>
             {checkedIn}
           </p>
         </Card>
         <Card>
           <p className="text-sm text-gray-500">Tasa de respuesta</p>
-          <p className="text-3xl font-bold text-navy-700 dark:text-white">
+          <p className={TYPE.metricValue}>
             {responseRate !== null ? `${responseRate}%` : "—"}
           </p>
         </Card>
@@ -245,7 +246,7 @@ const Dashboard = () => {
           }
         >
           {insights.executiveSummary && (
-            <p className="mb-4 text-[15px] leading-relaxed text-navy-700 dark:text-gray-100">
+            <p className="mb-4 text-sm leading-relaxed text-navy-700 dark:text-gray-100">
               {insights.executiveSummary}
             </p>
           )}
@@ -379,7 +380,7 @@ const Dashboard = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-500 dark:border-navy-700">
+                <tr className={`border-b border-gray-200 text-left dark:border-navy-700 ${TYPE.th}`}>
                   <th className="py-2 pr-3">#</th>
                   {columns.map((c) => (
                     <th key={c.name} className="py-2 pr-3">

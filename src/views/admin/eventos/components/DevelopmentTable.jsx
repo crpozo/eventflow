@@ -85,9 +85,9 @@ const DevelopmentTable = (props) => {
   return (
     <Card extra={"w-full h-full p-4"}>
       <div className="relative flex flex-wrap items-center justify-between gap-3">
-        <div className="text-xl font-bold text-navy-700 dark:text-white">
+        <h3 className="text-base font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
-        </div>
+        </h3>
         <div className="flex flex-wrap items-center gap-3">
           {/* Filtro por área (solo admin: areas con elementos) */}
           {areas.length > 0 && onAreaChange && (
@@ -143,7 +143,7 @@ const DevelopmentTable = (props) => {
                     className="border-b border-gray-200 pr-32 pb-[10px] text-start dark:!border-navy-700 "
                     key={index}
                   >
-                    <div className="text-sm font-bold tracking-wide text-gray-600">
+                    <div className="text-xs font-bold uppercase tracking-wide text-gray-500">
                       {column.render("Header")}
                     </div>
                   </th>
@@ -168,13 +168,13 @@ const DevelopmentTable = (props) => {
                     let data = "";
                     if (cell.column.Header === "TITULO") {
                       data = (
-                        <p className="text-[15px] text-navy-700 dark:text-white">
+                        <p className="text-sm text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     } else if (cell.column.Header === "FECHA DEL EVENTO") {
                       data = (
-                        <p className="text-[15px] text-navy-700 dark:text-white">
+                        <p className="text-sm text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
@@ -188,7 +188,7 @@ const DevelopmentTable = (props) => {
                               JSON.stringify(cell.row.original.model)
                             );
                           }}
-                          className="flex items-center gap-2 text-[15px] cursor-pointer hover:text-brand-500"
+                          className="flex items-center gap-2 text-sm cursor-pointer hover:text-brand-500"
                         >
                           Ingresar <IoEnterOutline className="text-brand-500 hover:text-black transition" />
                         </span>
@@ -204,7 +204,7 @@ const DevelopmentTable = (props) => {
                             }
                           }}
                           disabled={isDuplicating}
-                          className={`flex items-center gap-2 text-[15px] focus:outline-none px-3 py-2 rounded-lg transition ${
+                          className={`flex items-center gap-2 text-sm focus:outline-none px-3 py-2 rounded-lg transition ${
                             isDuplicating
                               ? 'text-gray-500 cursor-not-allowed'
                               : 'text-black hover:text-blue-500 cursor-pointer'
@@ -224,7 +224,7 @@ const DevelopmentTable = (props) => {
                       <td
                         {...cell.getCellProps()}
                         key={index}
-                        className="px-2 pt-[14px] pb-3 text-[14px]"
+                        className="px-2 pt-[14px] pb-3 text-sm"
                       >
                         {data}
                       </td>
