@@ -1,5 +1,4 @@
 import React from "react";
-import Banner from "./components/Banner";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event, Landing, Form, Badge, Area, Career } from "models"
 import { useNavigate, Link } from "react-router-dom";
@@ -9,7 +8,8 @@ import {
   MdAdd,
 } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
-import { usePermissions } from "../../../providers/PermissionsProvider"; 
+import { usePermissions } from "../../../providers/PermissionsProvider";
+import { PageHeader, Card, PrimaryButton } from "components/adminUi";
 
 
 const Marketplace = () => {
@@ -207,43 +207,46 @@ const Marketplace = () => {
   }, [events, selectedArea, careerToArea]);
 
   if(loading){
-    return (<div className="bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
+    return (
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
         <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
-          Cargando...
-        </h2>
-      </div>)
+        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
+      </div>
+    )
   }
 
   return (
-    <div className="grid h-full grid-cols-1 gap-5">
-      <div className="col-span-1 h-fit w-full xl:col-span-1 2xl:col-span-2">
-        <Banner />
+    <div className="mt-3">
+      <PageHeader
+        crumbs={[{ label: "Eventos" }]}
+        title="Eventos"
+        subtitle="Crea y administra los eventos de la organización."
+      />
 
-        {events.length !== 0 ?
-          <div className="grid h-full grid-cols-1 gap-5">
-            <DevelopmentTable
-              columnsData={columns}
-              tableData={rows}
-              onDuplicate={duplicateEvent}
-              duplicating={duplicating}
-              areas={areas}
-              selectedArea={selectedArea}
-              onAreaChange={setSelectedArea}
-            />
-          </div>
-          :
-          <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
-          <Link className="hover:no-underline mb-4" to="crear">
-            <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+      {events.length !== 0 ?
+        <div className="grid h-full grid-cols-1 gap-5">
+          <DevelopmentTable
+            columnsData={columns}
+            tableData={rows}
+            onDuplicate={duplicateEvent}
+            duplicating={duplicating}
+            areas={areas}
+            selectedArea={selectedArea}
+            onAreaChange={setSelectedArea}
+          />
+        </div>
+        :
+        <Card>
+          <Link className="mb-4 inline-block hover:no-underline" to="crear">
+            <PrimaryButton type="button" className="flex items-center gap-1">
               Crear Evento <MdAdd className="h-5 w-5" />
-            </button>
+            </PrimaryButton>
           </Link>
-            <p className="flex gap-2 items-center"> <AiOutlineWarning/> No existen eventos en la base de datos...</p>
-          </div>
-        }
-        
-      </div>
+          <p className="flex items-center gap-2 text-sm text-navy-700 dark:text-white">
+            <AiOutlineWarning /> No existen eventos en la base de datos...
+          </p>
+        </Card>
+      }
     </div>
   );
 };

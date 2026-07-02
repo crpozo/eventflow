@@ -5,7 +5,7 @@ import { DataStore } from "aws-amplify/datastore";
 import { User } from "models";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { MdAdd, MdEdit, MdDelete, MdSearch, MdOutlineMail } from "react-icons/md";
-import Banner from "./components/Banner";
+import { PageHeader, Card, PrimaryButton, TYPE } from "components/adminUi";
 import UserFormModal from "./components/UserFormModal";
 import EventPermissionsManager from "./components/EventPermissionsManager";
 
@@ -350,9 +350,11 @@ const AdminUserManager = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center p-3">
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
         <span className="loader"></span>
-        <h2 className="mt-4 text-center text-xl">Cargando permisos...</h2>
+        <h2 className="mt-2 text-xl text-black dark:text-white">
+          Cargando permisos…
+        </h2>
       </div>
     );
   }
@@ -360,78 +362,91 @@ const AdminUserManager = () => {
   if (!currentUser || currentUser.role?.name !== "Admin") {
     return (
       <div className="mt-5 flex items-center justify-center px-4">
-        <div className="w-full max-w-md rounded-xl border border-red-200 p-6 text-center shadow-sm">
-          <h2 className="mb-2 text-xl font-semibold text-brand-500">Acceso denegado</h2>
-          <p>No tienes permisos para acceder a esta sección.</p>
-        </div>
+        <Card title="Acceso denegado" className="w-full max-w-md">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            No tienes permisos para acceder a esta sección.
+          </p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="admin-manager-page">
-      <div className="grid h-full">
-        <Banner />
-      </div>
-
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-2xl font-bold">Gestión de usuarios y permisos</h2>
-          <button
+    <div className="admin-manager-page mt-3">
+      <PageHeader
+        crumbs={[{ label: "Permisos" }]}
+        title="Permisos"
+        subtitle="Usuarios, roles y accesos por evento."
+        actions={
+          <PrimaryButton
             onClick={() => setModal({ mode: "create", user: null })}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-black"
+            className="flex items-center gap-1.5"
           >
             <MdAdd className="h-5 w-5" /> Crear usuario
-          </button>
-        </div>
+          </PrimaryButton>
+        }
+      />
 
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 dark:border-navy-700">
-          <MdSearch className="h-5 w-5 text-gray-400" />
+      <Card
+        title="Usuarios"
+        subtitle="Cuentas del panel, su rol y el alcance de sus permisos."
+      >
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 dark:border-white/10 dark:bg-navy-900">
+          <MdSearch className="h-5 w-5 shrink-0 text-gray-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por email, nombre o rol…"
-            className="w-full bg-transparent text-sm outline-none"
+            className="w-full bg-transparent text-sm text-navy-700 outline-none dark:text-white"
           />
         </div>
 
-        <div className="mb-10 overflow-hidden rounded-xl border border-gray-200 shadow-sm dark:border-navy-700">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-[#f8f9fb] dark:!bg-navy-900">
-              <tr>
-                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Email</th>
-                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Nombre</th>
-                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Rol</th>
-                <th className="border-b border-gray-200 p-3 dark:border-navy-700">Permisos</th>
-                <th className="border-b border-gray-200 p-3 text-right dark:border-navy-700">Acciones</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr
+                className={`border-b border-gray-200 text-left dark:border-navy-700 ${TYPE.th}`}
+              >
+                <th className="py-2 pr-3">Email</th>
+                <th className="py-2 pr-3">Nombre</th>
+                <th className="py-2 pr-3">Rol</th>
+                <th className="py-2 pr-3">Permisos</th>
+                <th className="py-2 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:!bg-navy-800">
+            <tbody>
               {filtered.map((u) => (
-                <tr key={u.id} className="border-b border-gray-100 last:border-b-0 dark:border-navy-700">
-                  <td className="p-3">{u.email}</td>
-                  <td className="p-3">{u.name || "—"}</td>
-                  <td className="p-3">{u.role?.name || "Sin rol"}</td>
-                  <td className="p-3 text-gray-600 dark:text-gray-300">{permSummary(u)}</td>
-                  <td className="p-3">
+                <tr
+                  key={u.id}
+                  className="border-b border-gray-100 last:border-b-0 dark:border-navy-700"
+                >
+                  <td className={`py-2.5 pr-3 ${TYPE.td}`}>{u.email}</td>
+                  <td className={`py-2.5 pr-3 ${TYPE.td}`}>{u.name || "—"}</td>
+                  <td className={`py-2.5 pr-3 ${TYPE.td}`}>
+                    {u.role?.name || "Sin rol"}
+                  </td>
+                  <td className="py-2.5 pr-3 text-sm text-gray-600 dark:text-gray-300">
+                    {permSummary(u)}
+                  </td>
+                  <td className="py-2.5">
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setModal({ mode: "edit", user: u })}
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 dark:border-navy-700 dark:hover:bg-navy-900"
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-navy-700 transition hover:bg-gray-50 dark:border-navy-700 dark:text-white dark:hover:bg-navy-900"
                       >
                         <MdEdit className="h-4 w-4" /> Editar
                       </button>
                       <button
                         onClick={() => handleResend(u)}
                         title="Reenviar instrucciones de acceso por correo"
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 dark:border-navy-700 dark:hover:bg-navy-900"
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-navy-700 transition hover:bg-gray-50 dark:border-navy-700 dark:text-white dark:hover:bg-navy-900"
                       >
                         <MdOutlineMail className="h-4 w-4" /> Reenviar
                       </button>
                       <button
                         onClick={() => handleDelete(u)}
                         disabled={u.id === currentUser?.id}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+                        className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-40 dark:border-red-900/40"
                       >
                         <MdDelete className="h-4 w-4" /> Eliminar
                       </button>
@@ -441,7 +456,7 @@ const AdminUserManager = () => {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-gray-400">
+                  <td colSpan={5} className="p-6 text-center text-sm text-gray-400">
                     No hay usuarios que coincidan.
                   </td>
                 </tr>
@@ -449,10 +464,10 @@ const AdminUserManager = () => {
             </tbody>
           </table>
         </div>
+      </Card>
 
-        {/* Per-event section permissions (Ver/Editar) */}
-        <EventPermissionsManager />
-      </div>
+      {/* Per-event section permissions (Ver/Editar) */}
+      <EventPermissionsManager />
 
       {modal && (
         <UserFormModal

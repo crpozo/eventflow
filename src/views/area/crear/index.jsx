@@ -1,11 +1,7 @@
 import React from "react";
-import Banner from "./components/Banner";
-import { useNavigate,  Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AreaCreateForm } from 'ui-components';
-import {
-  MdOutlinePermIdentity,
-  MdChevronLeft
-} from "react-icons/md";
+import { PageHeader, Card } from "components/adminUi";
 
 const Dashboard = () => {
 
@@ -13,44 +9,41 @@ const Dashboard = () => {
   const campusID = JSON.parse(localStorage.getItem("EVENTFLOW.campus")).id
 
   return (
-    <div className="area-page">
-      <div className="grid h-full">
-        <Banner />
-      </div>
+    <div className="area-page mt-3">
+      <PageHeader
+        crumbs={[
+          { label: "Estructura", to: "/page/campus" },
+          { label: "Áreas", to: "/page/campus/area" },
+          { label: "Crear" },
+        ]}
+        title="Crear área"
+        subtitle="Registra una nueva área académica para este campus."
+      />
 
-      <Link
-        to="/page/campus/area"
-        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
-      >
-        <MdChevronLeft className="h-7 w-7" /> Lista de areas
-      </Link>
+      <Card title="Información del área">
+        <AreaCreateForm
 
-      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] pt-[34px] rounded-3xl sm:px-[34px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+          overrides={{
+            campusId: {
+              errorMessage: "El titulo es un campo obligatorio"
+            }
+          }}
 
-          <AreaCreateForm 
-
-            overrides={{
-              campusId: {
-                errorMessage: "El titulo es un campo obligatorio"
-              }
-            }}
-
-            onSuccess={() => {
-              alert("Area creada con éxito")
-              navigate(`/page/campus/area`);
-            }}
-            onSubmit={(fields) => {
-              if(campusID){
-                fields.campusID = campusID;
-                return fields;
-              }
-            }}
-            onCancel={() => {
-              navigate(`/page/campus/area`);
-            }}
-          />
-
-        </div>
+          onSuccess={() => {
+            alert("Area creada con éxito")
+            navigate(`/page/campus/area`);
+          }}
+          onSubmit={(fields) => {
+            if(campusID){
+              fields.campusID = campusID;
+              return fields;
+            }
+          }}
+          onCancel={() => {
+            navigate(`/page/campus/area`);
+          }}
+        />
+      </Card>
     </div>
   );
 };

@@ -1,23 +1,21 @@
 import React from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
-import Banner from "./components/Banner";
+import { useNavigate, useParams } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
 
-import { Event, Attendee, EventAttendee } from "models"
+import { Attendee, EventAttendee } from "models"
 import {
   AttendeeCreateForm
  } from 'ui-components';
 import { useCanEditSection } from "components/sectionEdit";
- import {
-  MdPersonAddAlt,
-  MdChevronLeft
-} from "react-icons/md";
+import { readStoredEvent } from "scripts/utils";
+import { PageHeader, Card } from "components/adminUi";
 
 const Dashboard = () => {
 
   const id = useParams().id;
   const navigate = useNavigate();
-  const eventID = JSON.parse(localStorage.getItem("EVENTFLOW.event")).id;
+  const storedEvent = readStoredEvent();
+  const eventID = storedEvent?.id;
   const canEdit = useCanEditSection("participantes");
 
   React.useEffect(() => {
@@ -60,39 +58,38 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="event-detail-page">
-      <div className="grid h-full">
-        <Banner />
-      </div>
+    <div className="event-detail-page mt-3">
+      <PageHeader
+        crumbs={[
+          { label: "Eventos", to: "/admin/eventos" },
+          { label: storedEvent?.title || "Evento" },
+          { label: "Participantes", to: `/admin/eventos/${eventID}/participantes` },
+          { label: "Crear" },
+        ]}
+        title="Agregar participante"
+        subtitle="Registra manualmente un participante para este evento."
+      />
 
-      <Link
-        to={`/admin/eventos/${eventID}/participantes`}
-        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
-      >
-        <MdChevronLeft className="h-7 w-7" /> Lista de participantes
-      </Link>
+      <Card title="Datos del participante">
+        <AttendeeCreateForm
 
-        <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+          onSuccess={() => {
+            alert("Participante creado con éxito");
+            navigate(`/admin/eventos/${eventID}/participantes`);
+          }}
 
-          <AttendeeCreateForm
+          onSubmit={async (fields) => {
+            let attendee = await createAttende(fields);
+            createEventAttendee(eventID, attendee.id);
+            return;
+          }}
 
-            onSuccess={() => {
-              alert("Participante creado con éxito");    
-              navigate(`/admin/eventos/${eventID}/participantes`);     
-            }}
+          onCancel={() => {
+            navigate(`/admin/eventos/${eventID}/participantes`);
+          }}
 
-            onSubmit={async (fields) => {
-              let attendee = await createAttende(fields);
-              createEventAttendee(eventID, attendee.id);
-              return;
-            }}
-
-            onCancel={() => {
-              navigate(`/admin/eventos/${eventID}/participantes`);
-            }}
-
-          />
-        </div>
+        />
+      </Card>
 
     </div>
   );

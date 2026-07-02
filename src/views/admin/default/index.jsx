@@ -1,6 +1,4 @@
 import React from "react";
-import Banner from "./components/Banner";
-import NftCard from "components/card/NftCard";
 import { useNavigate, Link } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event } from "models"
@@ -9,6 +7,7 @@ import {
 } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
+import { PageHeader, Card, TYPE } from "components/adminUi";
 
 const cards = [
   {
@@ -28,14 +27,14 @@ const cards = [
   },
 ];
 
-const Dashboard = () => { 
+const Dashboard = () => {
 
   const [events, setEvents] = React.useState([]);
   const navigate = useNavigate();
   const { loading, isAdmin } = usePermissions();
 
   React.useEffect(() => {
-    if (loading) return; 
+    if (loading) return;
     let sub;
     if (isAdmin) {
       sub = DataStore.observeQuery(Event).subscribe((results) => setEvents(results.items));
@@ -52,68 +51,70 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex top-[-10px] min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
         <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
-          Cargando...
-        </h2>
+        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
       </div>
-    )
+    );
   }
 
   return (
-    <div>
-      <div className="grid h-full">
-        <Banner />
-      </div>  
+    <div className="mt-3">
+      <PageHeader
+        crumbs={[{ label: "Dashboard" }]}
+        title="Dashboard"
+        subtitle="Resumen general de tus eventos."
+      />
 
-      <div className="!z-5 relative flex flex-col bg-white bg-clip-border py-[10px] pb-[30px] ml-[-20px] px-3 rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+      {events.length !== 0 ? (
+        <div className="flex flex-col gap-5">
 
-        {events.length !== 0 ? 
-          <>
+          {/* Metrics */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Card>
+              <p className={TYPE.metricLabel}>Total eventos</p>
+              <p className={`${TYPE.metricValue} mt-1 flex items-center gap-2`}>
+                <MdBarChart className="h-7 w-7 text-brand-500" /> {events.length}
+              </p>
+            </Card>
 
-            {/* Metrics */}
-            <div className="grid grid-cols-1 gap-[20px] md:grid-cols-2 lg:grid-cols-2 mb-6">
-              <div className="rounded-2xl p-6 bg-white shadow-md border-[1px] border-[#f0f0f0] h-[120px] flex flex-col justify-between">
-                  <h3 className="text-lg font-semibold">Total eventos</h3>
-                <p className="text-3xl font-bold text-navy-800 flex gap-2 items-center dark:text-white">
-                  <MdBarChart className="h-7 w-7 text-brand-500" /> {events.length}
-                </p>
-              </div>
+            <Card>
+              <p className={TYPE.metricLabel}>Próximos eventos</p>
+              <p className={`${TYPE.metricValue} mt-1 flex items-center gap-2`}>
+                <MdBarChart className="h-7 w-7 text-brand-500" />
+                {events.filter(e => new Date(e.date) > new Date()).length}
+              </p>
+            </Card>
+          </div>
 
-              <div className="rounded-2xl p-6 bg-white shadow-md border-[1px] border-[#f0f0f0] h-[120px] flex flex-col justify-between">
-                <h3 className="text-lg font-semibold">Próximos eventos</h3>
-                <p className="text-3xl flex gap-2 items-center font-bold text-navy-800 dark:text-white">
-                  <MdBarChart className="h-7 w-7 text-brand-500" />
-                  {events.filter(e => new Date(e.date) > new Date()).length}
-                </p>
-              </div>
-            </div>
-
-            {/* Shortcuts */}
-            <div className="grid grid-cols-1 gap-[20px] md:grid-cols-2 lg:grid-cols-3 ">
-              {cards.map((card, index) => (
-                <Link
-                  to={card.link}
-                  key={index}
-                  className={`rounded-2xl p-6 bg-white shadow-md border border-gray-200 text-black hover:shadow-xl transition-transform hover:scale-[1.02] no-underline hover:no-underline hover:text-brand-500`}
-                >
-                  <div className="flex flex-col h-full justify-between">
-                    <h3 className="text-lg font-semibold">{card.title}</h3>
-                    <div className="mt-4 text-sm font-medium flex items-center gap-1 text-black">
-                      Ver más <span className="text-brand-500">→</span>
-                    </div>
+          {/* Shortcuts */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {cards.map((card, index) => (
+              <Link
+                to={card.link}
+                key={index}
+                className="rounded-2xl bg-white p-5 shadow-card transition hover:shadow-xl hover:no-underline dark:!bg-navy-800 dark:text-white"
+              >
+                <div className="flex h-full flex-col justify-between">
+                  <h3 className="text-base font-bold text-navy-700 dark:text-white">
+                    {card.title}
+                  </h3>
+                  <div className="mt-4 flex items-center gap-1 text-sm font-medium text-gray-500">
+                    Ver más <span className="text-brand-500">→</span>
                   </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+              </Link>
+            ))}
+          </div>
 
-          </>
-          :
-          <p className="flex gap-2 items-center"> <AiOutlineWarning/> No existen eventos en la base de datos...</p>
-        }
-
-      </div>
+        </div>
+      ) : (
+        <Card>
+          <p className="flex items-center gap-2 text-sm text-navy-700 dark:text-white">
+            <AiOutlineWarning /> No existen eventos en la base de datos...
+          </p>
+        </Card>
+      )}
 
     </div>
   );

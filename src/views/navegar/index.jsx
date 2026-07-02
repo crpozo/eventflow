@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DataStore } from "aws-amplify/datastore";
 import { Campus, Area, Career } from "models";
 import { usePermissions } from "../../providers/PermissionsProvider";
+import { PageHeader, Card, PrimaryButton } from "components/adminUi";
 import { MdAdd, MdEdit, MdChevronRight, MdArrowForward } from "react-icons/md";
 
 /**
@@ -98,16 +99,22 @@ export default function Navegar() {
 
   if (loading || permLoading) {
     return (
-      <div className="flex min-h-[50vh] w-full flex-col items-center justify-center p-3">
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
         <span className="loader"></span>
-        <h2 className="mt-4 text-center text-xl">Cargando…</h2>
+        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
       </div>
     );
   }
 
   return (
-    <div className="navegar-page">
-      {/* Breadcrumb */}
+    <div className="navegar-page mt-3">
+      <PageHeader
+        crumbs={[{ label: "Estructura" }]}
+        title="Estructura"
+        subtitle="Navega por campus, áreas y subáreas para llegar a los eventos."
+      />
+
+      {/* Interactive level breadcrumb (resets the selection, not navigation) */}
       <div className="mb-4 flex flex-wrap items-center gap-1 text-sm">
         <button
           onClick={() => { setCampus(null); setArea(null); }}
@@ -117,7 +124,7 @@ export default function Navegar() {
         </button>
         {campus && (
           <>
-            <MdChevronRight className="h-4 w-4 text-gray-400" />
+            <MdChevronRight className="h-4 w-4 text-gray-300" />
             <button
               onClick={() => setArea(null)}
               className={`font-medium ${level === "area" ? "text-brand-500" : "text-gray-500 hover:text-navy-700 dark:hover:text-white"}`}
@@ -128,27 +135,28 @@ export default function Navegar() {
         )}
         {area && (
           <>
-            <MdChevronRight className="h-4 w-4 text-gray-400" />
+            <MdChevronRight className="h-4 w-4 text-gray-300" />
             <span className="font-medium text-brand-500">{area.title}</span>
           </>
         )}
       </div>
 
-      <div className="!z-5 relative flex flex-col rounded-[20px] bg-white bg-clip-border px-[25px] py-[25px] shadow-card dark:!bg-navy-800 dark:text-white dark:shadow-none">
-        <div className="mb-5 flex flex-col items-center justify-between gap-3 sm:flex-row sm:gap-0">
-          <p className="text-2xl font-bold text-navy-700 dark:text-white">{h.title}</p>
-          {isAdmin && (
-            <button
+      <Card
+        title={h.title}
+        headerRight={
+          isAdmin ? (
+            <PrimaryButton
+              type="button"
               onClick={() => navigate(h.createPath)}
-              className="linear flex items-center gap-1 rounded-xl bg-brand-500 px-3 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black"
+              className="flex items-center gap-1.5"
             >
               {h.create} <MdAdd className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
+            </PrimaryButton>
+          ) : null
+        }
+      >
         {options.length === 0 ? (
-          <p className="py-8 text-center text-gray-500">
+          <p className="py-8 text-center text-sm text-gray-500">
             No hay {level === "campus" ? "campus" : level === "area" ? "áreas" : "subáreas"} disponibles.
           </p>
         ) : (
@@ -159,7 +167,7 @@ export default function Navegar() {
                 className="group flex items-center justify-between rounded-xl border border-gray-200 p-4 transition hover:border-brand-500 hover:shadow-md dark:border-navy-700"
               >
                 <button onClick={() => onSelect(item)} className="flex flex-1 items-center gap-3 text-left">
-                  <span className="text-lg font-medium text-navy-700 dark:text-white">{item.title}</span>
+                  <span className="text-sm font-semibold text-navy-700 dark:text-white">{item.title}</span>
                 </button>
                 <div className="flex items-center gap-1">
                   {isAdmin && (
@@ -183,7 +191,7 @@ export default function Navegar() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

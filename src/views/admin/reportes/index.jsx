@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { graphic } from "echarts";
-import { MdBarChart } from "react-icons/md";
-import Widget from "components/widget/Widget";
 import { useNavigate } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
 import {
@@ -13,11 +11,18 @@ import {
   EventAttendee,
   Form,
 } from "models";
-import Banner from "./components/Banner";
 import * as XLSX from "xlsx";
 import { MdFileDownload } from "react-icons/md";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
 import { usePermissions } from "../../../providers/PermissionsProvider"
+import {
+  PageHeader,
+  Card,
+  TextInput,
+  PrimaryButton,
+  SecondaryButton,
+  TYPE,
+} from "components/adminUi";
 
 
 const Reportes = () => {
@@ -870,49 +875,53 @@ const Reportes = () => {
   }, [attendees]);
 
   return (
-    <div className="report-page px-2 sm:px-0">
-      <Banner />
-      <div className="filters bg-white p-3 sm:p-4 mb-[35px] mt-3 rounded-[20px] border border-[#f2f2f2]">
-
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-          <h3 className="text-xl font-semibold text-gray-800 sm:mb-0">Filtros</h3>
-
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:ml-auto">
-            <button
+    <div className="report-page mt-3 px-2 sm:px-0">
+      <PageHeader
+        crumbs={[{ label: "Reportes" }]}
+        title="Reportes"
+        subtitle="Métricas y exportación de datos de tus eventos."
+        actions={
+          <>
+            {/* Short labels below sm so both buttons fit a phone viewport */}
+            <PrimaryButton
               onClick={() => exportToExcel(attendees, eventAttendes)}
-              className="linear flex items-center justify-center gap-1 rounded-xl bg-green-500 py-2.5 sm:py-[12px] px-3 sm:pl-3 sm:pr-3 text-xs sm:text-sm font-medium text-white transition duration-200 hover:bg-black whitespace-nowrap"
+              className="flex items-center gap-1.5 whitespace-nowrap"
             >
+              <MdFileDownload className="h-4 w-4" />
               <span className="hidden sm:inline">Exportar evento actual</span>
               <span className="sm:hidden">Evento actual</span>
-              <MdFileDownload className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-            <button
+            </PrimaryButton>
+            <SecondaryButton
               onClick={exportAllEventsToExcel}
-              className="linear flex items-center justify-center gap-1 rounded-xl bg-blue-500 py-2.5 sm:py-[12px] px-3 sm:pl-3 sm:pr-3 text-xs sm:text-sm font-medium text-white transition duration-200 hover:bg-black whitespace-nowrap"
+              className="whitespace-nowrap"
             >
+              <MdFileDownload className="h-4 w-4" />
               <span className="hidden sm:inline">Exportar base completa</span>
               <span className="sm:hidden">Base completa</span>
-              <MdFileDownload className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-          </div>
-        </div>
+            </SecondaryButton>
+          </>
+        }
+      />
 
-        <div className="relative flex flex-col sm:flex-row gap-2 sm:gap-5 mb-3 sm:mb-[15px]">
-          <div className="flex flex-col sm:flex-initial min-w-0">
-            <label className="mb-1 text-sm text-gray-800">Fecha inicio</label>
-            <input
+      <Card title="Filtros" className="mb-5">
+        <div className="relative mb-4 flex flex-col gap-2 sm:flex-row sm:gap-5">
+          <div className="flex min-w-0 flex-col sm:flex-initial">
+            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
+              Fecha inicio
+            </label>
+            <TextInput
               type="date"
-              className="w-full rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-2 sm:pr-[12px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
 
-          <div className="flex flex-col sm:flex-initial min-w-0">
-            <label className="mb-1 text-sm text-gray-800">Fecha fin</label>
-            <input
+          <div className="flex min-w-0 flex-col sm:flex-initial">
+            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
+              Fecha fin
+            </label>
+            <TextInput
               type="date"
-              className="w-full rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-2 sm:pr-[12px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
@@ -920,14 +929,14 @@ const Reportes = () => {
 
           {/* Reset button */}
           <div className="flex items-end">
-            <button
+            <SecondaryButton
               type="button"
               onClick={() => { setStartDate(""); setEndDate(""); }}
-              className="w-full sm:w-auto h-[38px] sm:h-[42px] rounded-md border px-3 sm:px-4 text-xs sm:text-sm hover:bg-gray-50 whitespace-nowrap"
+              className="w-full justify-center whitespace-nowrap sm:w-auto"
               aria-label="Resetear fechas"
             >
               Restablecer
-            </button>
+            </SecondaryButton>
           </div>
         </div>
 
@@ -935,9 +944,9 @@ const Reportes = () => {
         <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-5">
 
           <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1 text-sm text-gray-800">Campus</label>
+            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Campus</label>
             <select
-              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
               onChange={(e) => setCampusSelectID(e.target.value)}
               value={campusSelectID}
             >
@@ -951,9 +960,9 @@ const Reportes = () => {
           </div>
 
           <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1 text-sm text-gray-800">Área</label>
+            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Área</label>
             <select
-              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
               onChange={(e) => setAreaSelectID(e.target.value)}
             >
               {areaList &&
@@ -968,9 +977,9 @@ const Reportes = () => {
           </div>
 
           <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1 text-sm text-gray-800">Subárea</label>
+            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Subárea</label>
             <select
-              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
               onChange={(e) => setCareerSelectID(e.target.value)}
             >
               {careerList &&
@@ -983,9 +992,9 @@ const Reportes = () => {
           </div>
 
           <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1 text-sm text-gray-800">Eventos</label>
+            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Eventos</label>
             <select
-              className="select-arrow w-full appearance-none truncate rounded-md border bg-white py-2 sm:py-2.5 pl-2 sm:pl-3 pr-8 sm:pr-[40px] text-sm text-black shadow-sm outline-none focus:border-indigo-600"
+              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
               onChange={(e) => setEventSelectID(e.target.value)}
             >
               {/* <option value="0">
@@ -1001,35 +1010,21 @@ const Reportes = () => {
           </div>
 
         </div>
-      </div>
+      </Card>
 
-      {/* Card widget */}
+      {/* Metrics */}
 
       <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2">
-        <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"Total Registros"}
-          subtitle={totalRegistros}
-          description={"Participante/s"}
-        />
-        <Widget
-          icon={<MdBarChart className="h-6 w-6" />}
-          title={"Total Check-in"}
-          subtitle={totalCheckIn}
-          description={"Participante/s"}
-        />
-        {/* <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"Total Bruto"}
-          subtitle="$90"
-          description={""}
-        />
-         <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"Total Neto"}
-          subtitle="$90"
-          description={""}
-        /> */}
+        <Card>
+          <p className={TYPE.metricLabel}>Total Registros</p>
+          <p className={TYPE.metricValue}>{totalRegistros}</p>
+          <p className="mt-0.5 text-xs text-gray-400">Participante/s</p>
+        </Card>
+        <Card>
+          <p className={TYPE.metricLabel}>Total Check-in</p>
+          <p className={TYPE.metricValue}>{totalCheckIn}</p>
+          <p className="mt-0.5 text-xs text-gray-400">Participante/s</p>
+        </Card>
       </div>
 
       {/* Tables & Charts */}

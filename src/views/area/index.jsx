@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import Banner from "./components/Banner";
 import NftCard from "components/card/NftCard";
 import { DataStore } from 'aws-amplify/datastore';
 import { Area } from "models";
 import { usePermissions } from "../../providers/PermissionsProvider";
-import {
-  MdAdd,
-  MdChevronLeft
-} from "react-icons/md";
-import { AiOutlineWarning } from "react-icons/ai";
+import { PageHeader, Card, PrimaryButton } from "components/adminUi";
+import { MdAdd } from "react-icons/md";
 
 const Dashboard = () => {
   const [areas, setAreas] = useState([]);
@@ -46,37 +42,36 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
         <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
-          Cargando...
-        </h2>
+        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
       </div>
     );
   }
 
   return (
-    <div className="campus-page">
-      <div className="grid h-full">
-        <Banner />
-      </div>
-
-      <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[25px] py-[25px] rounded-[20px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
-        <div className="flex flex-col items-center justify-between gap-3 mb-4 sm:flex-row sm:gap-0">
-          <p className="text-2xl font-medium text-navy-700 dark:text-white">
-            Área académica
-          </p>
-          {isAdmin && (
+    <div className="campus-page mt-3">
+      <PageHeader
+        crumbs={[
+          { label: "Estructura", to: "/page/campus" },
+          { label: "Áreas" },
+        ]}
+        title="Áreas académicas"
+        subtitle="Selecciona un área del campus para ver sus subáreas."
+        actions={
+          isAdmin && (
             <Link className="hover:no-underline" to="crear">
-              <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black">
-                Crear Área <MdAdd className="h-4 w-4" />
-              </button>
+              <PrimaryButton type="button" className="flex items-center gap-1.5">
+                Crear área <MdAdd className="h-4 w-4" />
+              </PrimaryButton>
             </Link>
-          )}
-        </div>
+          )
+        }
+      />
 
+      <Card>
         {areas.length !== 0 ? (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4 3xl:grid-cols-4 mb-4">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4 3xl:grid-cols-4">
             {areas
               .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
               .map((area) => (
@@ -95,11 +90,11 @@ const Dashboard = () => {
               ))}
           </div>
         ) : (
-          <p className="flex gap-2 items-center">
-            <AiOutlineWarning /> No existen áreas disponibles para tu rol en este campus...
+          <p className="text-sm text-gray-500">
+            No existen áreas disponibles para tu rol en este campus…
           </p>
         )}
-      </div>
+      </Card>
     </div>
   );
 };

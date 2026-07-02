@@ -1,75 +1,82 @@
 import React from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
-import Banner from "./components/Banner";
-import { DataStore } from 'aws-amplify/datastore';
-import { Campus } from "models"
-import {
-  CampusUpdateForm
- } from 'ui-components';
- import {
-  MdOutlinePermIdentity,
-  MdChevronLeft
-} from "react-icons/md";
+import { useNavigate, useLocation } from "react-router-dom";
+import { DataStore } from "aws-amplify/datastore";
+import { Campus } from "models";
+import { CampusUpdateForm } from "ui-components";
+import { PageHeader, Card } from "components/adminUi";
+import { MdDeleteOutline } from "react-icons/md";
 
 const Dashboard = () => {
-
   const [campus, setCampus] = React.useState({});
   const navigate = useNavigate();
   const id = useLocation().state?.id;
 
-  React.useEffect(() => { 
-
-    if(!id){
-      navigate('/page/campus');
+  React.useEffect(() => {
+    if (!id) {
+      navigate("/page/campus");
       return;
     }
 
-    DataStore.query(Campus, (c) => c.id.eq(id)).then( results => {
+    DataStore.query(Campus, (c) => c.id.eq(id)).then((results) => {
       setCampus(results[0]);
     });
-
   }, [id, navigate]);
 
   const deleteEvent = () => {
     DataStore.delete(campus);
-    alert("Campus eliminado con éxito")
-    navigate('/page/campus');
-  }
+    alert("Campus eliminado con éxito");
+    navigate("/page/campus");
+  };
 
-  if(!campus){
-    return <p>Loading...</p>
+  if (!campus) {
+    return (
+      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
+        <span className="loader"></span>
+        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
+      </div>
+    );
   }
 
   return (
-    <div className="campus-page">
-      <div className="grid h-full">
-        <Banner />
-      </div>
-      <Link
-        to="/page/campus"
-        className="flex gap items-center mb-[32px] font-medium text-brand-500 hover:no-underline hover:text-navy-700 dark:hover:text-white"
-      >
-        <MdChevronLeft className="h-7 w-7" /> Lista de campus
-      </Link>
-      {campus &&
-        <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
+    <div className="campus-page mt-3">
+      <PageHeader
+        crumbs={[
+          { label: "Estructura", to: "/page/campus" },
+          { label: "Editar campus" },
+        ]}
+        title="Editar campus"
+        subtitle="Actualiza la información del campus."
+      />
 
-          <CampusUpdateForm
-            campus={campus}
-            onSuccess={() => {
-              navigate('/page/campus');
-            }}
-            onCancel={() => {
-              navigate('/page/campus');
-            }}
-          />
-          
-          <button onClick={deleteEvent} className="max-w-[120px] ml-3 sm:mt-[-66px] linear rounded-xl bg-red-500 py-[10px] text-sm font-medium text-white transition duration-200 hover:bg-red-600 active:bg-red-700 dark:bg-red-400 dark:text-white dark:hover:bg-red-300 dark:active:bg-red-200">
-            Eliminar
-          </button>
+      {campus && (
+        <div className="flex flex-col gap-5">
+          <Card title="Información del campus">
+            <CampusUpdateForm
+              campus={campus}
+              onSuccess={() => {
+                navigate("/page/campus");
+              }}
+              onCancel={() => {
+                navigate("/page/campus");
+              }}
+            />
+          </Card>
 
+          <Card
+            title="Zona de peligro"
+            subtitle="Eliminar el campus es permanente: no se puede deshacer."
+          >
+            <button
+              type="button"
+              onClick={deleteEvent}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              <MdDeleteOutline className="h-4 w-4" />
+              Eliminar campus
+            </button>
+          </Card>
         </div>
-      }
+      )}
     </div>
   );
 };
