@@ -1,38 +1,76 @@
 /* eslint-disable */
 import React from "react";
 import { HiX } from "react-icons/hi";
-import Links from "./components/Links";
-import { Link, useParams } from "react-router-dom";
-import routes from "routes.js";
+import { Link, useLocation } from "react-router-dom";
 import { Landing } from "models"
-import { formatDateHour, tzLabel } from 'scripts/utils'
+import { tzLabel } from 'scripts/utils'
 import { DataStore } from 'aws-amplify/datastore';
+import Dropdown from "components/dropdown";
+import { useAuthenticator } from "@aws-amplify/ui-react";
+import { Chip } from "components/adminUi";
 import {
   MdChevronLeft,
-  MdInfoOutline,
-  MdWeb,
-  MdListAlt,
-  MdPoll,
-  MdInsights,
-  MdBadge,
-  MdPeople,
+  MdChevronRight,
+  MdHome,
+  MdCalendarToday,
+  MdBarChart,
+  MdAccountBalance,
+  MdOutlineCalendarMonth,
 } from "react-icons/md";
+import { LuUserCheck } from "react-icons/lu";
 import {
   LiaExternalLinkAltSolid,
 } from "react-icons/lia";
 import { usePermissions } from "../../providers/PermissionsProvider";
 
-// Event sub-nav sections (secondary sidebar). Path segment must match the
-// route path suffix in routes.js (eventos/:id/<path>).
-const EVENT_SECTIONS = [
-  { path: "detalle", label: "Detalle Evento", Icon: MdInfoOutline },
-  { path: "landing", label: "Landing page", Icon: MdWeb },
-  { path: "formulario", label: "Formulario", Icon: MdListAlt },
-  { path: "encuesta", label: "Encuesta", Icon: MdPoll },
-  { path: "encuesta-dashboard", label: "Resultados encuesta", Icon: MdInsights },
-  { path: "diseno-gafete", label: "Diseño Gafete", Icon: MdBadge },
-  { path: "participantes", label: "Participantes", Icon: MdPeople },
+// Icon-only primary rail (mock: black bar, "ef" logo on top, avatar at bottom).
+const RAIL_ITEMS = [
+  { to: "/admin/dashboard", Icon: MdHome, match: "dashboard", label: "Dashboard" },
+  { to: "/admin/eventos", Icon: MdCalendarToday, match: "eventos", label: "Eventos" },
+  { to: "/admin/reportes", Icon: MdBarChart, match: "reportes", label: "Reportes" },
+  { to: "/admin/permisos", Icon: LuUserCheck, match: "permisos", label: "Permisos" },
+  { to: "/page/campus", Icon: MdAccountBalance, match: "campus", label: "Estructura" },
 ];
+
+// Event sub-nav sections (secondary sidebar). Path segment must match the
+// route path suffix in routes.js (eventos/:id/<path>). Per the mock: plain
+// text items (no icons), soft red pill + chevron when active.
+const EVENT_SECTIONS = [
+  { path: "detalle", label: "Detalle Evento" },
+  { path: "landing", label: "Landing page" },
+  { path: "formulario", label: "Formulario" },
+  { path: "encuesta", label: "Encuesta" },
+  { path: "encuesta-dashboard", label: "Resultados encuesta" },
+  { path: "diseno-gafete", label: "Diseño Gafete" },
+  { path: "participantes", label: "Participantes" },
+];
+
+// Compact date for the event header, e.g. "lun 06/07/2026 · 09:00" in the
+// EVENT's timezone (matches the mock).
+const compactDate = (iso, tz) => {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    const zone = tz || "America/Guayaquil";
+    const date = new Intl.DateTimeFormat("es-EC", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone: zone,
+    }).format(d);
+    const hour = new Intl.DateTimeFormat("es-EC", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: zone,
+    }).format(d);
+    return `${date} · ${hour}`;
+  } catch (e) {
+    return "";
+  }
+};
 
 const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
@@ -40,20 +78,15 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
   const [landing, setLanding] = React.useState(null);
   const [isActive, setIsActive] = React.useState(false);
   const { isAdmin } = usePermissions();
+  const location = useLocation();
+  const { user, signOut } = useAuthenticator((context) => [context.user]);
 
- const filteredRoutes = React.useMemo(() => {
-    return routes
-  //  if (!isAdmin) return routes;
-  //  return routes.filter((r) => {
-  //    const name = (r?.name || "").toLowerCase();
-  //    const path = (r?.path || "").toLowerCase();
-  //    // ajusta los términos si tu item usa otro label/path
-  //    const matchesBlocklist =
-  //      /restablecer|reset|restore/.test(name) ||
-  //      /restablecer|reset|restore/.test(path) ||
-  //      `${r?.layout || ""}/${path}` === "/page/campus";
-  //    return !matchesBlocklist;
-   }, []);
+  // Initials for the rail avatar (from the login email).
+  const initials = String(
+    user?.signInDetails?.loginId || user?.username || "US"
+  )
+    .slice(0, 2)
+    .toUpperCase();
 
   React.useEffect(() => {
     const event = localStorage.getItem('EVENTFLOW.event');
@@ -72,7 +105,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
         setLanding(items[0] || null)
         setIsActive(items[0]?.active ?? false)
       });
-  
+
       return () => {
         sub.unsubscribe();
       };
@@ -93,113 +126,153 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
   return (
     <>
+    {/* ── Primary rail: black, icons-only, ef logo + avatar ── */}
     <div
-      className={`sm:none duration-175 linear fixed !z-50 flex min-h-[96%] flex-col bg-black pb-10 shadow-2xl shadow-white/5 transition-all max-w-[204px] ${activePath != '' ? 'rounded-l-3xl max-w-[100px]' : 'rounded-3xl'} ml-2 xl:ml-3 mt-3 mb-4 dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0	 ${
+      className={`fixed top-0 left-0 !z-50 flex h-full min-h-screen w-[72px] flex-col items-center bg-black py-4 transition-all dark:!bg-navy-900 md:!z-50 lg:!z-50 xl:!z-0 ${
         open ? "translate-x-0" : "-translate-x-96"
       }`}
     >
       <span
-        className={`absolute ${activePath != '' ? 'top-6 -right-[240px] text-black z-[60]' : 'top-4 right-4 text-white'}  block cursor-pointer xl:hidden`}
+        className={`absolute ${activePath != '' ? 'top-5 -right-[300px] text-black z-[60]' : 'top-5 -right-8 text-black'} block cursor-pointer xl:hidden`}
         onClick={onClose}
       >
         <HiX />
       </span>
 
-      {/* <div className={`mx-[56px] mt-[50px] flex items-center`}>
-        <div className="mt-1 ml-1 h-2.5 font-poppins text-[26px] font-bold uppercase text-navy-700 dark:text-white">
-          Eventflow
-        </div>
-      </div> */}
-      <div className="mt-[15px] mb-7 h-px dark:bg-white/30" />
-      {/* Nav item */}
+      {/* ef logo */}
+      <Link
+        to="/admin/dashboard"
+        className="mb-6 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-base font-bold lowercase text-white hover:no-underline"
+      >
+        ef
+      </Link>
 
-      <ul className="mb-auto pt-1">
-        <Links routes={filteredRoutes} activePath={activePath} />
-      </ul>
+      {/* Nav icons */}
+      <nav className="flex flex-1 flex-col items-center gap-2">
+        {RAIL_ITEMS.map(({ to, Icon, match, label }) => {
+          const active = location.pathname.includes(match);
+          return (
+            <Link
+              key={to}
+              to={to}
+              title={label}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl transition hover:no-underline ${
+                active
+                  ? "bg-brand-500 text-white"
+                  : "text-gray-400 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+            </Link>
+          );
+        })}
+      </nav>
 
-      {/* Free Horizon Card */}
-      {/* <div className="flex justify-center">
-        <SidebarCard />
-      </div> */}
-
-      {/* Nav item end */}
-      { activePath != '' &&
-        <div
-          className={`sm:none bg-white duration-175 linear fixed rounded-r-3xl !z-50 min-h-full max-h-screen overflow-y-auto bg-gray pb-10 shadow-2xl shadow-white/5 transition-all ${
-            open
-              ? 'left-[-14px] translate-x-[100px] xl:translate-x-[110px]'
-              : 'left-[-14px] -translate-x-96 xl:translate-x-[110px]'
-          } w-[268px] xl:w-[268px] dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0`}
+      {/* Avatar + sign out */}
+      <Dropdown
+        button={
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white"
+            aria-label="Menú de usuario"
           >
-          <div className="flex flex-col">
-            {/* Back to events */}
-            <div className="px-4 pt-4 pb-2">
-              <Link className="flex items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline" to={ `eventos/`}>
-                <MdChevronLeft className="h-5 w-5" /> Eventos
-              </Link>
-            </div>
-
-            {/* Event header: compact title + meta + controls in one row */}
-            <div className="px-5 pb-4 border-b border-gray-200 dark:border-white/10">
-              <h2 className="text-base font-semibold leading-snug text-navy-700 dark:text-white">
-                {event?.title}
-              </h2>
-              <p className="mt-1 text-xs text-gray-500">
-                {formatDateHour(event?.date, "ES", event?.timezone)} ({tzLabel(event?.timezone)})
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <select
-                  className="cursor-pointer rounded-lg border border-gray-200 bg-white py-1.5 pl-2.5 pr-7 text-xs font-medium text-navy-700 outline-none select-arrow appearance-none focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white"
-                  disabled={!landing}
-                  title={!landing ? "Crea la landing del evento primero" : undefined}
-                  onChange={(e) => {
-                    if(e.target.value == 'public'){
-                      updateLanding(true)
-                    } else if(e.target.value == 'hidden'){
-                      updateLanding(false)
-                    }
-                  }}
-                  value={isActive ? "public" : "hidden"}
-                >
-                  <option value="public">Público</option>
-                  <option value="hidden">Oculto</option>
-                </select>
-                <Link
-                  className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-brand-500 hover:bg-gray-50 hover:text-navy-700 hover:no-underline dark:border-white/10 dark:hover:bg-navy-700"
-                  to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
-                  Ver landing <LiaExternalLinkAltSolid className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Section nav: compact items with icons + pill active state */}
-            <p className="px-6 pt-4 pb-1 text-xs font-bold uppercase tracking-wider text-gray-400">
-              Gestión del evento
+            {initials}
+          </button>
+        }
+        children={
+          <div className="flex w-48 flex-col rounded-2xl bg-white p-3 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white">
+            <p className="mb-2 truncate text-xs text-gray-400">
+              {user?.signInDetails?.loginId || ""}
             </p>
-            <nav className="flex flex-col pb-2">
-              {EVENT_SECTIONS.map(({ path, label, Icon }) => {
-                const active = activePath === `eventos/:id/${path}`;
-                return (
-                  <Link
-                    key={path}
-                    className={`mx-3 my-[2px] flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:no-underline ${
-                      active
-                        ? "bg-brand-500 text-white hover:bg-brand-500 hover:text-white"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
-                    }`}
-                    to={ `eventos/${event?.id}/${path}/`}>
-                    <Icon className={`h-5 w-5 shrink-0 ${active ? "text-white" : "text-gray-400"}`} />
-                    {label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <button
+              className="text-left text-sm font-medium text-gray-800 hover:text-brand-500 focus:outline-none dark:text-white"
+              onClick={signOut}
+            >
+              Cerrar sesión
+            </button>
           </div>
-         
-        </div>
-      }
-      
+        }
+        classNames={"bottom-12 left-10 w-max z-[60]"}
+      />
     </div>
+
+    {/* ── Secondary panel: event management ── */}
+    { activePath != '' &&
+      <div
+        className={`fixed top-0 left-0 !z-40 h-full min-h-screen w-[284px] overflow-y-auto border-r border-gray-100 bg-white pb-10 shadow-sm transition-all dark:border-white/10 dark:!bg-navy-800 dark:text-white md:!z-40 xl:!z-0 ${
+          open ? 'translate-x-[72px]' : '-translate-x-96 xl:translate-x-[72px]'
+        }`}
+      >
+        <div className="flex flex-col">
+          {/* Back to events */}
+          <div className="px-4 pt-4 pb-2">
+            <Link className="flex items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline" to={ `eventos/`}>
+              <MdChevronLeft className="h-5 w-5" /> Eventos
+            </Link>
+          </div>
+
+          {/* Event header: status chips + compact title + meta (mock layout) */}
+          <div className="px-5 pb-4 border-b border-gray-100 dark:border-white/10">
+            <div className="mb-2.5 flex items-center gap-2">
+              <Chip color={isActive ? "green" : "gray"}>
+                {isActive ? "Publicado" : "Oculto"}
+              </Chip>
+              <select
+                className="cursor-pointer appearance-none rounded-full bg-gray-100 py-1 pl-2.5 pr-6 text-xs font-medium text-navy-700 outline-none select-arrow disabled:cursor-not-allowed disabled:opacity-50 dark:bg-navy-700 dark:text-white"
+                disabled={!landing}
+                title={!landing ? "Crea la landing del evento primero" : undefined}
+                onChange={(e) => {
+                  if(e.target.value == 'public'){
+                    updateLanding(true)
+                  } else if(e.target.value == 'hidden'){
+                    updateLanding(false)
+                  }
+                }}
+                value={isActive ? "public" : "hidden"}
+              >
+                <option value="public">Público</option>
+                <option value="hidden">Oculto</option>
+              </select>
+            </div>
+            <h2 className="text-base font-semibold leading-snug text-navy-700 dark:text-white">
+              {event?.title}
+            </h2>
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500">
+              <MdOutlineCalendarMonth className="h-4 w-4 shrink-0" />
+              {compactDate(event?.date, event?.timezone)} ({tzLabel(event?.timezone)})
+            </p>
+            <Link
+              className="mt-2 flex w-fit items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline"
+              to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
+              Link del evento <LiaExternalLinkAltSolid className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* Section nav: plain text items, soft red pill + chevron when active */}
+          <p className="px-6 pt-4 pb-1 text-xs font-bold uppercase tracking-wider text-gray-400">
+            Gestión del evento
+          </p>
+          <nav className="flex flex-col pb-2">
+            {EVENT_SECTIONS.map(({ path, label }) => {
+              const active = activePath === `eventos/:id/${path}`;
+              return (
+                <Link
+                  key={path}
+                  className={`mx-3 my-[2px] flex items-center justify-between rounded-xl px-4 py-2.5 text-sm transition hover:no-underline ${
+                    active
+                      ? "bg-red-50 font-semibold text-brand-500 hover:text-brand-500"
+                      : "font-medium text-gray-700 hover:bg-gray-50 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
+                  }`}
+                  to={ `eventos/${event?.id}/${path}/`}>
+                  {label}
+                  {active && <MdChevronRight className="h-4 w-4 shrink-0" />}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+    }
     </>
   );
 };

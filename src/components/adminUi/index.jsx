@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { MdCheck, MdContentCopy, MdChevronRight } from "react-icons/md";
+import { MdCheck, MdContentCopy } from "react-icons/md";
 
 /**
  * adminUi — shared building blocks for the redesigned admin pages
@@ -39,7 +39,7 @@ export function PageHeader({ crumbs = [], title, subtitle, actions }) {
         <nav className="mb-2 flex flex-wrap items-center gap-1 text-sm text-gray-500">
           {crumbs.map((c, i) => (
             <React.Fragment key={i}>
-              {i > 0 && <MdChevronRight className="h-4 w-4 text-gray-300" />}
+              {i > 0 && <span className="text-gray-300">/</span>}
               {c.to ? (
                 <Link
                   to={c.to}
@@ -238,7 +238,9 @@ export function SavedAgo({ savedAt }) {
       ? "hace un momento"
       : secs < 3600
       ? `hace ${Math.floor(secs / 60)} min`
-      : `hace ${Math.floor(secs / 3600)} h`;
+      : secs < 86400
+      ? `hace ${Math.floor(secs / 3600)} h`
+      : `hace ${Math.floor(secs / 86400)} d`;
   return (
     <span className="flex items-center gap-1 text-sm text-gray-500">
       <MdCheck className="h-4 w-4 text-teal-600" /> Guardado {label}

@@ -105,18 +105,22 @@ export default function Admin(props) {
         {/* Main Content */}
         <main
           className={`flex mx-[12px] transition-all md:pr-2
-          ${ activePath !== '' ? "xl:ml-[410px]" : "xl:ml-[250px]"} `}
+          ${ activePath !== '' ? "xl:ml-[372px]" : "xl:ml-[88px]"} `}
         >
           {/* Routes */}
           <div className="h-full flex flex-col min-h-screen w-full px-2">
-            <Navbar
-              onOpenSidenav={() => setOpen(true)}
-              logoText={"Eventflow Tailwind React"}
-              brandText={"Dashboard"}
-              secondary={getActiveNavbar(routes)}
-              {...rest}
-            />
-            <div className="flex-grow mx-auto w-full md:pr-2">
+            {/* Mock has no top bar on desktop (sign-out lives in the rail
+                avatar); keep the navbar below xl for the hamburger + logo. */}
+            <div className="xl:hidden">
+              <Navbar
+                onOpenSidenav={() => setOpen(true)}
+                logoText={"Eventflow Tailwind React"}
+                brandText={"Dashboard"}
+                secondary={getActiveNavbar(routes)}
+                {...rest}
+              />
+            </div>
+            <div className="flex-grow mx-auto w-full pt-4 md:pr-2">
               <Routes>
                 {getRoutes(routes)}
                 <Route
