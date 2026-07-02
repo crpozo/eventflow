@@ -213,15 +213,15 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
       >
         <div className="flex flex-col">
           {/* Back to events */}
-          <div className="px-4 pt-4 pb-2">
+          <div className="px-4 pt-5 pb-3">
             <Link className="flex items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline" to={ `eventos/`}>
               <MdChevronLeft className="h-5 w-5" /> Eventos
             </Link>
           </div>
 
           {/* Event header: status chips + compact title + meta (mock layout) */}
-          <div className="px-5 pb-4 border-b border-gray-100 dark:border-white/10">
-            <div className="mb-2.5 flex items-center gap-2">
+          <div className="px-5 pb-6 border-b border-gray-100 dark:border-white/10">
+            <div className="mb-4 flex items-center gap-2">
               <Chip color={isActive ? "green" : "gray"}>
                 {isActive ? "Publicado" : "Oculto"}
               </Chip>
@@ -245,19 +245,19 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
             <h2 className="text-base font-semibold leading-snug text-navy-700 dark:text-white">
               {event?.title}
             </h2>
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500">
+            <p className="mt-2.5 flex items-center gap-1.5 text-xs text-gray-500">
               <MdOutlineCalendarMonth className="h-4 w-4 shrink-0" />
               {compactDate(event?.date, event?.timezone)} ({tzLabel(event?.timezone)})
             </p>
             <Link
-              className="mt-2 flex w-fit items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline"
+              className="mt-3.5 flex w-fit items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline"
               to={ `/landing/${event?.id}`} target="_blank" rel="noopener noreferrer">
               Link del evento <LiaExternalLinkAltSolid className="h-4 w-4" />
             </Link>
           </div>
 
           {/* Section nav: plain text items, soft red pill + chevron when active */}
-          <p className="px-6 pt-4 pb-1 text-xs font-bold uppercase tracking-wider text-gray-400">
+          <p className="px-6 pt-5 pb-2 text-xs font-bold uppercase tracking-wider text-gray-400">
             Gestión del evento
           </p>
           <nav className="flex flex-col gap-1 pb-3 pt-1">
