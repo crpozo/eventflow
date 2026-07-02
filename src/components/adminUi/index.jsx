@@ -16,7 +16,8 @@ import { MdCheck, MdContentCopy } from "react-icons/md";
  *  Tarjeta    · título h3: text-lg font-bold  · subtítulo: text-base gray-500
  *  Campos     · label: text-base font-semibold navy-700 · control: text-base
  *             · hint/counter: text-xs gray-400
- *  Botones    · text-base font-semibold (primario y secundario por igual)
+ *  Botones    · text-sm font-semibold, px-3.5 py-2 — compactos (primario y
+ *               secundario por igual); el cuerpo/inputs se quedan en text-base
  *  Micro      · chips y botones mini: text-xs font-medium
  *  Métricas   · valor: TYPE.metricValue · etiqueta: TYPE.metricLabel
  *  Tablas     · encabezado: TYPE.th · celda: TYPE.td (text-base)
@@ -39,7 +40,7 @@ export function PageHeader({ crumbs = [], title, subtitle, actions }) {
       {/* A single crumb just duplicates the title (e.g. "Dashboard / Dashboard")
           — breadcrumbs only render when there's actual hierarchy. */}
       {crumbs.length > 1 && (
-        <nav className="mb-2 flex flex-wrap items-center gap-1 text-sm text-gray-500">
+        <nav className="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
           {crumbs.map((c, i) => (
             <React.Fragment key={i}>
               {i > 0 && <span className="text-gray-300">/</span>}
@@ -64,7 +65,7 @@ export function PageHeader({ crumbs = [], title, subtitle, actions }) {
           <h1 className="text-3xl font-bold text-navy-700 dark:text-white">
             {title}
           </h1>
-          {subtitle && <p className="mt-1 text-base text-gray-500">{subtitle}</p>}
+          {subtitle && <p className="mt-2 text-base text-gray-500">{subtitle}</p>}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
@@ -189,7 +190,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`rounded-xl bg-brand-500 px-4 py-2.5 text-base font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>
@@ -200,7 +201,7 @@ export function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-base font-semibold text-navy-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700 ${className}`}
+      className={`flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-navy-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700 ${className}`}
     >
       {children}
     </button>
