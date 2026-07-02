@@ -266,17 +266,17 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
               return (
                 <Link
                   key={path}
-                  className={`mx-3 flex items-center justify-between rounded-xl px-4 py-3 text-base transition hover:no-underline ${
+                  className={`mx-3 flex items-center justify-between rounded-xl px-4 py-3 text-sm transition hover:no-underline ${
                     active
-                      ? "bg-red-50 font-semibold text-brand-500 hover:text-brand-500"
+                      ? "bg-red-50 font-medium text-brand-500 hover:text-brand-500"
                       // navy-700, NOT gray-700: this theme's gray-700 is
                       // #DEDEDE (nearly white) and unreadable on white.
-                      : "font-medium text-navy-700 hover:bg-gray-50 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
+                      : "font-normal text-navy-700 hover:bg-gray-50 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
                   }`}
                   to={ `eventos/${event?.id}/${path}/`}>
                   <span className="flex min-w-0 items-center gap-3">
                     <Icon
-                      className={`h-5 w-5 shrink-0 ${
+                      className={`h-[18px] w-[18px] shrink-0 ${
                         active ? "text-brand-500" : "text-gray-400"
                       }`}
                     />
