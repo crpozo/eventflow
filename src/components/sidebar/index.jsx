@@ -67,11 +67,10 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
 
     if(event){
       const sub = DataStore.observeQuery(Landing, (l) => l.landingEventId.eq(event.id)).subscribe(({ items }) => {
-        if(items.length > 0){
-          setLanding(items[0])
-          setIsActive(items[0].active)
-        }
-      
+        // Always reset (null when the event has no landing yet) so switching
+        // events never leaves the previous event's landing/active state behind.
+        setLanding(items[0] || null)
+        setIsActive(items[0]?.active ?? false)
       });
   
       return () => {
@@ -82,7 +81,10 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
   }, [event])
 
   async function updateLanding(state) {
-    const updatedLanding = await DataStore.save(
+    // No landing record yet (new event): nothing to toggle — the landing page
+    // section creates it on first save.
+    if (!landing) return;
+    await DataStore.save(
       Landing.copyOf(landing, updated => {
         updated.active = state;
       })
@@ -147,7 +149,9 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
               </p>
               <div className="mt-3 flex items-center gap-2">
                 <select
-                  className="cursor-pointer rounded-lg border border-gray-200 bg-white py-1.5 pl-2.5 pr-7 text-xs font-medium text-navy-700 outline-none select-arrow appearance-none focus:border-brand-500 dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                  className="cursor-pointer rounded-lg border border-gray-200 bg-white py-1.5 pl-2.5 pr-7 text-xs font-medium text-navy-700 outline-none select-arrow appearance-none focus:border-brand-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white"
+                  disabled={!landing}
+                  title={!landing ? "Crea la landing del evento primero" : undefined}
                   onChange={(e) => {
                     if(e.target.value == 'public'){
                       updateLanding(true)
@@ -169,7 +173,10 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
             </div>
 
             {/* Section nav: compact items with icons + pill active state */}
-            <nav className="flex flex-col py-2">
+            <p className="px-6 pt-4 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+              Gestión del evento
+            </p>
+            <nav className="flex flex-col pb-2">
               {EVENT_SECTIONS.map(({ path, label, Icon }) => {
                 const active = activePath === `eventos/:id/${path}`;
                 return (

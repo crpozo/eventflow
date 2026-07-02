@@ -27,7 +27,11 @@ const Dashboard = () => {
 
     DataStore.query(Event, (e) => e.id.eq(id)).then( results => {
       setEvent(results[0]);
-      localStorage.setItem("EVENTFLOW.event", JSON.stringify(results[0]))
+      // Never store JSON.stringify(undefined) — it writes the literal string
+      // "undefined", which crashes pages that JSON.parse this key.
+      if (results[0]) {
+        localStorage.setItem("EVENTFLOW.event", JSON.stringify(results[0]))
+      }
     });
   }, [id, navigate]);
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DataStore } from "aws-amplify/datastore";
 import { post } from "aws-amplify/api";
 import { Survey } from "models";
+import { readStoredEvent } from "scripts/utils";
 import { EditableSection, useCanEditSection } from "components/sectionEdit";
 import { MdContentCopy, MdSend } from "react-icons/md";
 import $ from "jquery";
@@ -67,7 +68,7 @@ class SurveyBuilder extends Component {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const stored = JSON.parse(localStorage.getItem("EVENTFLOW.event") || "null");
+  const stored = readStoredEvent();
   const eventId = stored?.id;
 
   const [survey, setSurvey] = React.useState(null);

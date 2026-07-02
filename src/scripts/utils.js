@@ -14,6 +14,19 @@ const ECUADOR_DEFAULT_TZ = "America/Guayaquil";
 const localeFor = (lang) =>
   String(lang || "ES").toUpperCase() === "EN" ? "en-US" : "es-EC";
 
+// Safely read the event cached by the events table. Some pages have stored the
+// literal string "undefined" (JSON.stringify(undefined)), which is truthy and
+// makes a bare JSON.parse throw during render — white-screening the route.
+export const readStoredEvent = () => {
+  try {
+    const raw = localStorage.getItem("EVENTFLOW.event");
+    if (!raw || raw === "undefined") return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+};
+
 // Short GMT label for an event timezone (for "(GMT-6)" next to the time).
 export const tzLabel = (tz) =>
   tz === "Pacific/Galapagos" ? "GMT-6" : "GMT-5";

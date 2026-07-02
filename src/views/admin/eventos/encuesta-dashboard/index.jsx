@@ -4,6 +4,7 @@ import { DataStore } from "aws-amplify/datastore";
 import { post } from "aws-amplify/api";
 import * as XLSX from "xlsx";
 import { Survey, SurveyResponse, EventAttendee } from "models";
+import { readStoredEvent } from "scripts/utils";
 import { MdAutoAwesome, MdFileDownload, MdRefresh } from "react-icons/md";
 
 // Per-event survey results dashboard: AI insights (cached on Survey.insights),
@@ -29,7 +30,7 @@ const SENT_COLOR = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const stored = JSON.parse(localStorage.getItem("EVENTFLOW.event") || "null");
+  const stored = readStoredEvent();
   const eventId = stored?.id;
   const eventTitle = stored?.title || "Evento";
 
