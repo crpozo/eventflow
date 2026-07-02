@@ -324,7 +324,7 @@ const Dashboard = () => {
                         ? "#16a34a"
                         : (Number(insights.overallSentiment.score) || 0) >= 40
                         ? "#f59e0b"
-                        : "#dc2626",
+                        : "#e41b23",
                   }}
                 />
               </div>

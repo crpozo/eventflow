@@ -695,7 +695,7 @@ export default function EventCreateForm(props) {
                 onChange={(e) =>
                   updateCertSettings({ xPct: Number(e.target.value) })
                 }
-                style={{ width: "100%", accentColor: "#e11d48" }}
+                style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
             <Flex direction="column" gap="2px">
@@ -716,7 +716,7 @@ export default function EventCreateForm(props) {
                 onChange={(e) =>
                   updateCertSettings({ yPct: Number(e.target.value) })
                 }
-                style={{ width: "100%", accentColor: "#e11d48" }}
+                style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
             <Text fontSize="0.8125rem" color="#6b7280">

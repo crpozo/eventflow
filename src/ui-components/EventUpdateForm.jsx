@@ -726,7 +726,7 @@ export default function EventUpdateForm(props) {
                 }
                 onMouseUp={() => persistCert(certificate, certificatePosition)}
                 onTouchEnd={() => persistCert(certificate, certificatePosition)}
-                style={{ width: "100%", accentColor: "#e11d48" }}
+                style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
             <Flex direction="column" gap="2px">
@@ -752,7 +752,7 @@ export default function EventUpdateForm(props) {
                 }
                 onMouseUp={() => persistCert(certificate, certificatePosition)}
                 onTouchEnd={() => persistCert(certificate, certificatePosition)}
-                style={{ width: "100%", accentColor: "#e11d48" }}
+                style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
             <Text fontSize="0.8125rem" color="#6b7280">

@@ -74,7 +74,7 @@ const inviteHtml = (eventTitle, intro, link) => `
     <h2 style="color:#0b1f3a">${eventTitle}</h2>
     <p>${intro || "Gracias por asistir. Tu opinión nos ayuda a mejorar los próximos eventos; toma menos de 2 minutos y es anónima."}</p>
     <p style="margin:24px 0">
-      <a href="${link}" style="background:#e11d48;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold">
+      <a href="${link}" style="background:#e41b23;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold">
         Responder la encuesta
       </a>
     </p>
