@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { DataStore } from "aws-amplify/datastore";
-import { post } from "aws-amplify/api";
+import { post, generateClient } from "aws-amplify/api";
 import * as XLSX from "xlsx";
 import { Survey, SurveyResponse, EventAttendee } from "models";
 import { readStoredEvent } from "scripts/utils";
@@ -37,6 +37,22 @@ const SENT_CHIP = {
   negativo: "red",
 };
 
+// The analyzer Lambda writes insights straight to DynamoDB, which DataStore's
+// local cache never picks up (no AppSync _version/_lastChangedAt stamp). Plain
+// GraphQL reads DynamoDB directly, so insights are fetched through this query
+// instead of the DataStore record.
+const INSIGHTS_QUERY = /* GraphQL */ `
+  query SurveyInsightsByEvent($filter: ModelSurveyFilterInput) {
+    listSurveys(filter: $filter) {
+      items {
+        id
+        insights
+        insightsAt
+      }
+    }
+  }
+`;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const stored = readStoredEvent();
@@ -48,13 +64,38 @@ const Dashboard = () => {
   const [checkedIn, setCheckedIn] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [analyzing, setAnalyzing] = React.useState(false);
+  // Insights fetched OUTSIDE DataStore (see INSIGHTS_QUERY note) + the ones
+  // returned inline by the analyze endpoint. Preferred over survey.insights.
+  const [apiInsights, setApiInsights] = React.useState(null);
+
+  const gqlClient = React.useMemo(() => generateClient(), []);
+
+  const refreshInsights = React.useCallback(async () => {
+    if (!eventId) return;
+    try {
+      const res = await gqlClient.graphql({
+        query: INSIGHTS_QUERY,
+        variables: { filter: { surveyEventId: { eq: eventId } } },
+      });
+      const item = res?.data?.listSurveys?.items?.[0];
+      if (item?.insights) {
+        setApiInsights({ insights: item.insights, insightsAt: item.insightsAt });
+      }
+    } catch (e) {
+      console.error("insights fetch:", e);
+    }
+  }, [eventId, gqlClient]);
+
+  React.useEffect(() => {
+    refreshInsights();
+  }, [refreshInsights]);
 
   React.useEffect(() => {
     if (!eventId) {
       navigate("/admin");
       return;
     }
-    // Live survey (so insights refresh after analysis writes them back).
+    // Live survey (questions/config; insights come from refreshInsights).
     const sub = DataStore.observeQuery(Survey, (s) =>
       s.surveyEventId.eq(eventId)
     ).subscribe(({ items }) => setSurvey(items[0] || null));
@@ -79,15 +120,16 @@ const Dashboard = () => {
   }, [eventId, navigate]);
 
   const insights = React.useMemo(() => {
-    if (!survey?.insights) return null;
+    const raw = apiInsights?.insights ?? survey?.insights;
+    if (!raw) return null;
     try {
-      return typeof survey.insights === "string"
-        ? JSON.parse(survey.insights)
-        : survey.insights;
+      return typeof raw === "string" ? JSON.parse(raw) : raw;
     } catch {
       return null;
     }
-  }, [survey]);
+  }, [apiInsights, survey]);
+
+  const insightsAt = apiInsights?.insightsAt ?? survey?.insightsAt;
 
   // Columns for the detail table, from the survey definition (stable order).
   const columns = React.useMemo(() => {
@@ -127,9 +169,14 @@ const Dashboard = () => {
         options: { body: { eventId } },
       });
       const { body } = await op.response;
-      await body.json().catch(() => ({}));
-      // observeQuery on Survey will pick up the written-back insights.
-      alert("Análisis completado.");
+      // The endpoint returns the freshly generated insights — render them
+      // immediately (DataStore never syncs the Lambda's direct-DDB write).
+      const data = await body.json().catch(() => ({}));
+      if (data?.insights) {
+        setApiInsights({ insights: data.insights, insightsAt: data.insightsAt });
+      } else {
+        await refreshInsights();
+      }
     } catch (e) {
       console.error("analyze:", e);
       // Surface the real backend error (Lambda returns { error }) instead of a
@@ -238,9 +285,9 @@ const Dashboard = () => {
         <Card
           title="Análisis con IA"
           headerRight={
-            survey?.insightsAt ? (
+            insightsAt ? (
               <span className="text-xs text-gray-400">
-                {new Date(survey.insightsAt).toLocaleString("es-EC")}
+                {new Date(insightsAt).toLocaleString("es-EC")}
               </span>
             ) : null
           }
