@@ -41,7 +41,7 @@
           "sesFrom": "tickets@eventflow.ec",
           "appUrl": "https://eventflow.ec",
           "bedrockRegion": "sa-east-1",
-          "bedrockModelId": "global.anthropic.claude-sonnet-5",
+          "bedrockModelId": "google.gemma-3-12b-it",
           "deploymentBucketName": "amplify-amplify6808e416ff364-staging-145149-deployment",
           "s3Key": "amplify-builds/surveyManager-4b59344e716a7a2b6252-build.zip"
         }

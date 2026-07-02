@@ -27,7 +27,7 @@
  *   -- Anthropic backend:
  *   ANTHROPIC_API_KEY  plain value OR Amplify-secret SSM path (starts with "/")
  *   ANALYSIS_MODEL     model id, default "claude-opus-4-8"
- * rev 2026-07-01d (model: global sonnet-5 profile)
+ * rev 2026-07-02a (Bedrock via Converse API; modelo Gemma 3 hasta habilitar Anthropic)
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -200,33 +200,37 @@ const userPrompt = (eventTitle, responses) =>
   "fortalezas, preocupaciones y recomendaciones accionables para el próximo " +
   `evento).\n\nDevuelve SOLO este JSON:\n${SHAPE}`;
 
-// Bedrock backend — Claude via InvokeModel, auth by the Lambda IAM role.
+// Bedrock backend via the model-agnostic Converse API: works with ANY chat
+// model in the catalog (Gemma, Nova, Claude…) — switching models is just the
+// BEDROCK_MODEL_ID env var, no code change. Auth is the Lambda's IAM role.
+// The system instructions ride inside the user message because some open
+// models (e.g. Gemma) reject Converse's dedicated `system` field.
 const analyzeBedrock = async (eventTitle, responses) => {
   const {
     BedrockRuntimeClient,
-    InvokeModelCommand,
+    ConverseCommand,
   } = require("@aws-sdk/client-bedrock-runtime");
   const bedrock = new BedrockRuntimeClient({
     region: process.env.BEDROCK_REGION || "us-east-1",
   });
-  const body = {
-    anthropic_version: "bedrock-2023-05-31",
-    max_tokens: 4000,
-    system: SYSTEM,
-    messages: [{ role: "user", content: userPrompt(eventTitle, responses) }],
-  };
   const res = await bedrock.send(
-    new InvokeModelCommand({
+    new ConverseCommand({
       modelId: BEDROCK_MODEL_ID,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify(body),
+      messages: [
+        {
+          role: "user",
+          content: [
+            { text: `${SYSTEM}\n\n${userPrompt(eventTitle, responses)}` },
+          ],
+        },
+      ],
+      inferenceConfig: { maxTokens: 4000 },
     })
   );
-  const payload = JSON.parse(Buffer.from(res.body).toString("utf-8"));
-  const textBlock = (payload.content || []).find((b) => b.type === "text");
-  if (!textBlock) throw new Error("La IA no devolvió contenido");
-  return extractJson(textBlock.text);
+  const parts = res?.output?.message?.content || [];
+  const text = parts.map((p) => p.text || "").join("");
+  if (!text) throw new Error("La IA no devolvió contenido");
+  return extractJson(text);
 };
 
 // Resolve the Anthropic key: plain env value, or an Amplify secret (SSM path).
