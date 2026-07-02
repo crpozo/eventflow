@@ -353,7 +353,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="mt-2">
+    <div>
       <PageHeader
         crumbs={[{ label: "Dashboard" }]}
         title="Dashboard"
@@ -491,7 +491,7 @@ const Dashboard = () => {
                                 : ""
                             }`}
                           >
-                            <td className="w-full max-w-0 py-3 pr-4">
+                            <td className="w-full max-w-0 py-2.5 pr-4">
                               <p className="truncate text-base font-bold text-navy-700 dark:text-white">
                                 {e.title}
                               </p>
@@ -499,11 +499,11 @@ const Dashboard = () => {
                                 {relativeWhen(eventStart(e), e.timezone)}
                               </p>
                             </td>
-                            <td className={`${TYPE.td} whitespace-nowrap py-3 pr-4`}>
+                            <td className={`${TYPE.td} whitespace-nowrap py-2.5 pr-4`}>
                               {compactDate(eventStart(e), e.timezone)}
                             </td>
-                            <td className="py-3 pr-4">{chipFor(e.id)}</td>
-                            <td className="whitespace-nowrap py-3 text-right">
+                            <td className="py-2.5 pr-4">{chipFor(e.id)}</td>
+                            <td className="whitespace-nowrap py-2.5 text-right">
                               <span className="inline-flex items-center gap-1">
                                 {count > 0 ? (
                                   <span className="text-base font-bold text-navy-700 dark:text-white">
@@ -564,7 +564,7 @@ const Dashboard = () => {
                     </>
                   )}
                 </p>
-                <div className="flex h-32 items-end justify-between gap-2">
+                <div className="flex h-28 items-end justify-between gap-2">
                   {chart.buckets.map((b, i) => {
                     const isLast = i === chart.buckets.length - 1;
                     return (
@@ -584,7 +584,7 @@ const Dashboard = () => {
                         <div
                           className={`w-full rounded-md ${barColor(i, chart.buckets.length)}`}
                           style={{
-                            height: `${chartMax > 0 ? Math.max(6, Math.round((b.value / chartMax) * 76)) : 6}px`,
+                            height: `${chartMax > 0 ? Math.max(6, Math.round((b.value / chartMax) * 60)) : 6}px`,
                           }}
                         />
                         {/* Always text-xs (no ad-hoc sizes per the adminUi
@@ -607,7 +607,7 @@ const Dashboard = () => {
 
               {/* Dark report card for the featured upcoming event */}
               {featured && (
-                <div className="rounded-2xl bg-navy-800 p-5 text-white shadow-card">
+                <div className="rounded-2xl bg-navy-800 p-4 text-white shadow-card">
                   <h3 className="line-clamp-1 text-lg font-bold">
                     Reporte del {featured.title}
                   </h3>
@@ -615,7 +615,7 @@ const Dashboard = () => {
                     {countByEvent.get(featured.id) || 0} inscritos hasta hoy. Exporta
                     la lista para logística y check-in.
                   </p>
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-3 flex gap-2">
                     <button
                       type="button"
                       onClick={() => navigate("/admin/reportes")}

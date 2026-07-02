@@ -2,7 +2,6 @@ import React from "react";
 import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
 import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
-import Footer from "components/footer/Footer";
 import routes from "routes.js";
 import { usePermissions } from "../../providers/PermissionsProvider";
 
@@ -81,14 +80,11 @@ export default function Admin(props) {
               secondary={false}
               {...rest}
             />
-            <div className="flex-grow mx-auto w-full pt-6">
+            <div className="flex-grow mx-auto w-full pt-6 pb-4">
               <Routes>
                 {getRoutes(routes)}
                 <Route path="/" element={<Navigate to="/admin/reportes" replace />} />
               </Routes>
-            </div>
-            <div className="p-3">
-              <Footer />
             </div>
           </div>
         </main>
@@ -122,7 +118,9 @@ export default function Admin(props) {
             </div>
             {/* max-w keeps content dense on wide monitors instead of
                 stretching cards across the full viewport */}
-            <div className="flex-grow mx-auto w-full max-w-[1480px] pt-4 md:pr-2">
+            {/* No footer: admin pages (dashboard especially) must fit one
+                viewport without scrolling. */}
+            <div className="flex-grow mx-auto w-full max-w-[1480px] pt-4 pb-4 md:pr-2">
               <Routes>
                 {getRoutes(routes)}
                 <Route
@@ -130,9 +128,6 @@ export default function Admin(props) {
                   element={<Navigate to="/admin/dashboard" replace />}
                 />
               </Routes>
-            </div>
-            <div className="p-3">
-              <Footer />
             </div>
           </div>
         </main>
