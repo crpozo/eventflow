@@ -162,30 +162,37 @@ export default function Navegar() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {options.map((item) => (
+              // The WHOLE card selects the item (not just the title): the
+              // container handles the click; inner actions stopPropagation.
               <div
                 key={item.id}
-                className="group flex items-center justify-between rounded-xl border border-gray-200 p-4 transition hover:border-brand-500 hover:shadow-md dark:border-navy-700"
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(item)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onSelect(item);
+                }}
+                className="group flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-200 p-5 transition hover:border-brand-500 hover:shadow-md dark:border-navy-700"
               >
-                <button onClick={() => onSelect(item)} className="flex flex-1 items-center gap-3 text-left">
-                  <span className="text-sm font-semibold text-navy-700 dark:text-white">{item.title}</span>
-                </button>
-                <div className="flex items-center gap-1">
+                <span className="min-w-0 truncate text-base font-semibold text-navy-700 dark:text-white">
+                  {item.title}
+                </span>
+                <div className="flex shrink-0 items-center gap-1">
                   {isAdmin && (
                     <button
-                      onClick={() => navigate(h.editPath, { state: { id: item.id } })}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(h.editPath, { state: { id: item.id } });
+                      }}
                       aria-label="Editar"
                       className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-navy-700 dark:hover:bg-navy-900 dark:hover:text-white"
                     >
                       <MdEdit className="h-5 w-5" />
                     </button>
                   )}
-                  <button
-                    onClick={() => onSelect(item)}
-                    aria-label="Seleccionar"
-                    className="rounded-lg p-2 text-brand-500 transition group-hover:translate-x-0.5"
-                  >
+                  <span className="rounded-lg p-2 text-brand-500 transition group-hover:translate-x-0.5">
                     <MdArrowForward className="h-5 w-5" />
-                  </button>
+                  </span>
                 </div>
               </div>
             ))}

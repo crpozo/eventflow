@@ -133,7 +133,7 @@ const DevelopmentTable = (props) => {
                       <td
                         {...cell.getCellProps()}
                         key={index}
-                        className="pb-3 pt-[14px] text-sm"
+                        className="py-4 text-base"
                       >
                         {data}
                       </td>

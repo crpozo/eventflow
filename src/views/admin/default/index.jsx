@@ -139,7 +139,7 @@ const Dashboard = () => {
               className="xl:col-span-2 !p-4"
             >
               {upcoming.length === 0 ? (
-                <p className="text-[15px] text-gray-400">
+                <p className="text-base text-gray-400">
                   No hay eventos próximos en el calendario.
                 </p>
               ) : (
@@ -149,10 +149,10 @@ const Dashboard = () => {
                       key={e.id}
                       type="button"
                       onClick={() => navigate(`/admin/eventos/${e.id}/detalle/`)}
-                      className="flex items-center justify-between gap-3 border-b border-gray-100 py-2.5 text-left transition last:border-0 hover:bg-gray-50 dark:border-white/5 dark:hover:bg-navy-700"
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-xl border-b border-gray-100 px-3 py-3 text-left transition last:border-0 hover:bg-gray-50 dark:border-white/5 dark:hover:bg-navy-700"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-[15px] font-semibold text-navy-700 dark:text-white">
+                        <p className="truncate text-base font-semibold text-navy-700 dark:text-white">
                           {e.title}
                         </p>
                         <p className="mt-0.5 text-sm text-gray-500">
@@ -183,7 +183,7 @@ const Dashboard = () => {
                       {title}
                     </h3>
                     <p className="mt-0.5 line-clamp-1 text-sm text-gray-500">{desc}</p>
-                    <span className="mt-1 flex items-center gap-1 text-[15px] font-medium text-brand-500">
+                    <span className="mt-1 flex items-center gap-1 text-base font-medium text-brand-500">
                       Ver más
                       <MdChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                     </span>
@@ -196,7 +196,7 @@ const Dashboard = () => {
         </div>
       ) : (
         <Card>
-          <p className="flex items-center gap-2 text-[15px] text-navy-700 dark:text-white">
+          <p className="flex items-center gap-2 text-base text-navy-700 dark:text-white">
             <AiOutlineWarning /> No existen eventos en la base de datos...
           </p>
         </Card>

@@ -12,25 +12,24 @@ import { MdCheck, MdContentCopy } from "react-icons/md";
  * Inter for body/span, Outfit for h1–h6.
  *
  *  Página     · título h1: text-3xl font-bold text-navy-700
- *             · subtítulo: text-[15px] text-gray-500 · breadcrumb: text-sm
- *  Tarjeta    · título h3: text-lg font-bold  · subtítulo: text-[15px] gray-500
- *  Campos     · label: text-[15px] font-semibold navy-700 · control: text-[15px]
+ *             · subtítulo: text-base text-gray-500 · breadcrumb: text-sm
+ *  Tarjeta    · título h3: text-lg font-bold  · subtítulo: text-base gray-500
+ *  Campos     · label: text-base font-semibold navy-700 · control: text-base
  *             · hint/counter: text-xs gray-400
- *  Botones    · text-[15px] font-semibold (primario y secundario por igual)
+ *  Botones    · text-base font-semibold (primario y secundario por igual)
  *  Micro      · chips y botones mini: text-xs font-medium
  *  Métricas   · valor: TYPE.metricValue · etiqueta: TYPE.metricLabel
- *  Tablas     · encabezado: TYPE.th · celda: TYPE.td (15px)
- * The ONLY sanctioned arbitrary size is text-[15px] ("body"): 14px reads too
- * small in the admin, 16px too chunky for controls. Any new admin page must
- * use these tokens/components — no other ad-hoc sizes.
+ *  Tablas     · encabezado: TYPE.th · celda: TYPE.td (text-base)
+ * Body text is text-base (16px) — 14/15px read too small in the admin. No
+ * ad-hoc arbitrary sizes: any new admin page must use these tokens/components.
  */
 
 // Reusable class tokens for patterns that aren't full components.
 export const TYPE = {
   metricValue: "text-4xl font-bold text-navy-700 dark:text-white",
-  metricLabel: "text-[15px] font-medium text-gray-500",
+  metricLabel: "text-base font-medium text-gray-500",
   th: "text-xs font-bold uppercase tracking-wide text-gray-500",
-  td: "text-[15px] text-navy-700 dark:text-gray-100",
+  td: "text-base text-navy-700 dark:text-gray-100",
 };
 
 /* ── Page header: breadcrumb + title + right-side actions ─────────────── */
@@ -65,7 +64,7 @@ export function PageHeader({ crumbs = [], title, subtitle, actions }) {
           <h1 className="text-3xl font-bold text-navy-700 dark:text-white">
             {title}
           </h1>
-          {subtitle && <p className="mt-1 text-[15px] text-gray-500">{subtitle}</p>}
+          {subtitle && <p className="mt-1 text-base text-gray-500">{subtitle}</p>}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
@@ -88,7 +87,7 @@ export function Card({ title, subtitle, headerRight, children, className = "" })
               </h3>
             )}
             {subtitle && (
-              <p className="mt-0.5 text-[15px] text-gray-500">{subtitle}</p>
+              <p className="mt-0.5 text-base text-gray-500">{subtitle}</p>
             )}
           </div>
           {headerRight}
@@ -105,7 +104,7 @@ export function Field({ label, required, counter, hint, children }) {
   return (
     <div className="mb-4 last:mb-0">
       <div className="mb-1.5 flex items-baseline justify-between">
-        <label className="text-[15px] font-semibold text-navy-700 dark:text-white">
+        <label className="text-base font-semibold text-navy-700 dark:text-white">
           {label} {required && <span className="text-brand-500">*</span>}
         </label>
         {counter && (
@@ -123,7 +122,7 @@ export function Field({ label, required, counter, hint, children }) {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3 text-[15px] text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white";
+  "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3 text-base text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white";
 
 export function TextInput(props) {
   return <input {...props} className={`${inputCls} ${props.className || ""}`} />;
@@ -166,7 +165,7 @@ export function CopyField({ value }) {
   const [copied, setCopied] = React.useState(false);
   return (
     <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-1.5 pl-3.5 pr-1.5 dark:border-white/10 dark:bg-navy-900">
-      <span className="min-w-0 flex-1 truncate text-[15px] text-gray-600 dark:text-gray-300">
+      <span className="min-w-0 flex-1 truncate text-base text-gray-600 dark:text-gray-300">
         {value}
       </span>
       <button
@@ -190,7 +189,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`rounded-xl bg-brand-500 px-4 py-2.5 text-[15px] font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`rounded-xl bg-brand-500 px-4 py-2.5 text-base font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </button>
@@ -201,7 +200,7 @@ export function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-[15px] font-semibold text-navy-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700 ${className}`}
+      className={`flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-base font-semibold text-navy-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700 ${className}`}
     >
       {children}
     </button>
