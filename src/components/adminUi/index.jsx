@@ -37,7 +37,9 @@ export const TYPE = {
 export function PageHeader({ crumbs = [], title, subtitle, actions }) {
   return (
     <div className="mb-5">
-      {crumbs.length > 0 && (
+      {/* A single crumb just duplicates the title (e.g. "Dashboard / Dashboard")
+          — breadcrumbs only render when there's actual hierarchy. */}
+      {crumbs.length > 1 && (
         <nav className="mb-2 flex flex-wrap items-center gap-1 text-sm text-gray-500">
           {crumbs.map((c, i) => (
             <React.Fragment key={i}>
