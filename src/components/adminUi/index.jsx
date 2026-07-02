@@ -74,9 +74,10 @@ export function PageHeader({ crumbs = [], title, subtitle, actions }) {
 }
 
 /* ── Card: titled white section ───────────────────────────────────────── */
-export function Card({ title, subtitle, headerRight, children, className = "" }) {
+export function Card({ title, subtitle, headerRight, children, className = "", ...rest }) {
   return (
     <section
+      {...rest}
       className={`rounded-2xl bg-white p-4 shadow-card dark:!bg-navy-800 dark:text-white ${className}`}
     >
       {(title || headerRight) && (

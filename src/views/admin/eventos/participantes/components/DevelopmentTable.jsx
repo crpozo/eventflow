@@ -56,7 +56,7 @@ const DevelopmentTable = (props) => {
     <Card className="w-full h-full">
       <div className="relative flex items-center ">
         <div className="w-full flex flex-row justify-between">
-          <h3 className="text-base font-bold text-navy-700 dark:text-white">
+          <h3 className="text-lg font-bold text-navy-700 dark:text-white">
             Tabla de participantes
           </h3>
           <div className="flex gap-2">

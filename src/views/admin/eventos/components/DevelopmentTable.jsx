@@ -85,7 +85,7 @@ const DevelopmentTable = (props) => {
   return (
     <Card extra={"w-full h-full p-4"}>
       <div className="relative flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-navy-700 dark:text-white">
+        <h3 className="text-lg font-bold text-navy-700 dark:text-white">
           Tabla de Eventos
         </h3>
         <div className="flex flex-wrap items-center gap-3">
@@ -168,13 +168,13 @@ const DevelopmentTable = (props) => {
                     let data = "";
                     if (cell.column.Header === "TITULO") {
                       data = (
-                        <p className="text-base text-navy-700 dark:text-white">
+                        <p className="text-sm text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
                     } else if (cell.column.Header === "FECHA DEL EVENTO") {
                       data = (
-                        <p className="text-base text-navy-700 dark:text-white">
+                        <p className="text-sm text-navy-700 dark:text-white">
                           {cell.value}
                         </p>
                       );
@@ -188,7 +188,7 @@ const DevelopmentTable = (props) => {
                               JSON.stringify(cell.row.original.model)
                             );
                           }}
-                          className="flex items-center gap-2 text-base cursor-pointer hover:text-brand-500"
+                          className="flex items-center gap-2 text-sm cursor-pointer hover:text-brand-500"
                         >
                           Ingresar <IoEnterOutline className="text-brand-500 hover:text-black transition" />
                         </span>
@@ -204,7 +204,7 @@ const DevelopmentTable = (props) => {
                             }
                           }}
                           disabled={isDuplicating}
-                          className={`flex items-center gap-2 text-base focus:outline-none px-3 py-2 rounded-lg transition ${
+                          className={`flex items-center gap-2 text-sm focus:outline-none px-3 py-2 rounded-lg transition ${
                             isDuplicating
                               ? 'text-gray-500 cursor-not-allowed'
                               : 'text-black hover:text-blue-500 cursor-pointer'
@@ -224,7 +224,7 @@ const DevelopmentTable = (props) => {
                       <td
                         {...cell.getCellProps()}
                         key={index}
-                        className="px-2 py-4 text-base"
+                        className="px-2 py-4 text-sm"
                       >
                         {data}
                       </td>

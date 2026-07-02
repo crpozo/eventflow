@@ -5,7 +5,14 @@ import { Event, EventAttendee, Landing } from "models";
 import { MdAdd, MdChevronRight } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
-import { PageHeader, Card, Chip, PrimaryButton, TYPE } from "components/adminUi";
+import {
+  PageHeader,
+  Card,
+  Chip,
+  PrimaryButton,
+  SecondaryButton,
+  TYPE,
+} from "components/adminUi";
 
 const DAY_MS = 864e5;
 
@@ -393,7 +400,18 @@ const Dashboard = () => {
 
           {/* Metrics */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="!p-4">
+            <Card
+              className="!p-4 cursor-pointer transition hover:shadow-xl"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate("/admin/eventos")}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  navigate("/admin/eventos");
+                }
+              }}
+            >
               <p className={TYPE.metricLabel}>Total eventos</p>
               <div className="mt-1 flex items-end justify-between gap-2">
                 <p className={`${TYPE.metricValue} leading-tight`}>{events.length}</p>
@@ -605,33 +623,26 @@ const Dashboard = () => {
                 </div>
               </Card>
 
-              {/* Dark report card for the featured upcoming event */}
+              {/* Report card for the featured upcoming event — white like the
+                  rest (the navy version stole too much attention). */}
               {featured && (
-                <div className="rounded-2xl bg-navy-800 p-4 text-white shadow-card">
-                  <h3 className="line-clamp-1 text-lg font-bold">
+                <Card className="!p-4">
+                  <h3 className="line-clamp-1 text-lg font-bold text-navy-700 dark:text-white">
                     Reporte del {featured.title}
                   </h3>
-                  <p className="mt-1 text-sm text-white/70">
+                  <p className="mt-1 text-sm text-gray-500">
                     {countByEvent.get(featured.id) || 0} inscritos hasta hoy. Exporta
                     la lista para logística y check-in.
                   </p>
                   <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => navigate("/admin/reportes")}
-                      className="rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-navy-700 transition hover:bg-gray-100"
-                    >
+                    <PrimaryButton onClick={() => navigate("/admin/reportes")}>
                       Ver reporte
-                    </button>
-                    <button
-                      type="button"
-                      onClick={exportCsv}
-                      className="rounded-xl bg-white/10 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-                    >
+                    </PrimaryButton>
+                    <SecondaryButton onClick={exportCsv}>
                       Exportar CSV
-                    </button>
+                    </SecondaryButton>
                   </div>
-                </div>
+                </Card>
               )}
             </div>
           </div>
