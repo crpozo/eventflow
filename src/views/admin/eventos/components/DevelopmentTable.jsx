@@ -204,7 +204,7 @@ const DevelopmentTable = (props) => {
                             }
                           }}
                           disabled={isDuplicating}
-                          className={`flex items-center gap-2 text-sm focus:outline-none px-3 py-2 rounded-lg transition ${
+                          className={`flex items-center gap-2 text-sm focus:outline-none px-3 py-1 rounded-lg transition ${
                             isDuplicating
                               ? 'text-gray-500 cursor-not-allowed'
                               : 'text-black hover:text-blue-500 cursor-pointer'
@@ -224,7 +224,7 @@ const DevelopmentTable = (props) => {
                       <td
                         {...cell.getCellProps()}
                         key={index}
-                        className="px-2 py-4 text-sm"
+                        className="px-2 py-2 text-sm"
                       >
                         {data}
                       </td>
