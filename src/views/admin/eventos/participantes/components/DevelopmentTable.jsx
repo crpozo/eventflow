@@ -178,13 +178,13 @@ const DevelopmentTable = (props) => {
             {'>>'}
           </button>
         </div>
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-navy-700 dark:text-gray-200">
           Página{' '}
           <strong>
             {pageIndex + 1} de {pageOptions.length}
           </strong>{' '}
         </span>
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-navy-700 dark:text-gray-200">
           | Mostrando {page.length} de {data.length} participantes
         </span>
         <select

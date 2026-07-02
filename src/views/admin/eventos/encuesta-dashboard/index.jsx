@@ -326,7 +326,7 @@ const Dashboard = () => {
                   <p className="mb-1 text-sm font-semibold text-green-700">
                     Fortalezas
                   </p>
-                  <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-200">
+                  <ul className="list-disc pl-5 text-sm text-navy-700 dark:text-gray-200">
                     {insights.strengths.map((s, i) => (
                       <li key={i}>{s}</li>
                     ))}
@@ -339,7 +339,7 @@ const Dashboard = () => {
                   <p className="mb-1 text-sm font-semibold text-red-700">
                     Preocupaciones
                   </p>
-                  <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-200">
+                  <ul className="list-disc pl-5 text-sm text-navy-700 dark:text-gray-200">
                     {insights.concerns.map((s, i) => (
                       <li key={i}>{s}</li>
                     ))}
@@ -354,7 +354,7 @@ const Dashboard = () => {
                 <p className="mb-1 text-sm font-semibold text-navy-700 dark:text-white">
                   Recomendaciones accionables
                 </p>
-                <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-200">
+                <ul className="list-disc pl-5 text-sm text-navy-700 dark:text-gray-200">
                   {insights.recommendations.map((s, i) => (
                     <li key={i}>{s}</li>
                   ))}

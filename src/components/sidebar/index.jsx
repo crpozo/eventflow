@@ -22,6 +22,7 @@ import {
   LiaExternalLinkAltSolid,
 } from "react-icons/lia";
 import { usePermissions } from "../../providers/PermissionsProvider";
+import logoDragon from "assets/img/usfq/logo-dragon-icon.png";
 
 // Icon-only primary rail (mock: black bar, "ef" logo on top, avatar at bottom).
 const RAIL_ITEMS = [
@@ -133,18 +134,18 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
       }`}
     >
       <span
-        className={`absolute ${activePath != '' ? 'top-5 -right-[300px] text-black z-[60]' : 'top-5 -right-8 text-black'} block cursor-pointer xl:hidden`}
+        className={`absolute ${activePath != '' ? 'top-5 -right-[336px] text-black z-[60]' : 'top-5 -right-8 text-black'} block cursor-pointer xl:hidden`}
         onClick={onClose}
       >
         <HiX />
       </span>
 
-      {/* ef logo */}
+      {/* USFQ logo (dragon icon) on a white tile for contrast on the black rail */}
       <Link
         to="/admin/dashboard"
-        className="mb-6 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-base font-bold lowercase text-white hover:no-underline"
+        className="mb-6 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 hover:no-underline"
       >
-        ef
+        <img src={logoDragon} alt="USFQ" className="h-full w-full object-contain" />
       </Link>
 
       {/* Nav icons */}
@@ -199,7 +200,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
     {/* ── Secondary panel: event management ── */}
     { activePath != '' &&
       <div
-        className={`fixed top-0 left-0 !z-40 h-full min-h-screen w-[284px] overflow-y-auto border-r border-gray-100 bg-white pb-10 shadow-sm transition-all dark:border-white/10 dark:!bg-navy-800 dark:text-white md:!z-40 xl:!z-0 ${
+        className={`fixed top-0 left-0 !z-40 h-full min-h-screen w-[320px] overflow-y-auto border-r border-gray-100 bg-white pb-10 shadow-sm transition-all dark:border-white/10 dark:!bg-navy-800 dark:text-white md:!z-40 xl:!z-0 ${
           open ? 'translate-x-[72px]' : '-translate-x-96 xl:translate-x-[72px]'
         }`}
       >
@@ -261,7 +262,9 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                   className={`mx-3 my-[2px] flex items-center justify-between rounded-xl px-4 py-2.5 text-sm transition hover:no-underline ${
                     active
                       ? "bg-red-50 font-semibold text-brand-500 hover:text-brand-500"
-                      : "font-medium text-gray-700 hover:bg-gray-50 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
+                      // navy-700, NOT gray-700: this theme's gray-700 is
+                      // #DEDEDE (nearly white) and unreadable on white.
+                      : "font-medium text-navy-700 hover:bg-gray-50 hover:text-black dark:text-gray-200 dark:hover:bg-navy-700 dark:hover:text-white"
                   }`}
                   to={ `eventos/${event?.id}/${path}/`}>
                   {label}

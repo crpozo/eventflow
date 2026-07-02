@@ -105,7 +105,7 @@ export default function Admin(props) {
         {/* Main Content */}
         <main
           className={`flex mx-[12px] transition-all md:pr-2
-          ${ activePath !== '' ? "xl:ml-[372px]" : "xl:ml-[88px]"} `}
+          ${ activePath !== '' ? "xl:ml-[408px]" : "xl:ml-[88px]"} `}
         >
           {/* Routes */}
           <div className="h-full flex flex-col min-h-screen w-full px-2">
