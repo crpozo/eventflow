@@ -472,7 +472,7 @@ export default function SignIn() {
                   </div>
                 </div>
 
-                <div className="flex gap-6 LG:ml-5 lg:ml-[-25px]">
+                <div className="flex gap-6 lg:ml-[40px]">
                     <IoTicketOutline className="h-10 w-10 min-w-[31px] hidden lg:block" />
                   <div className="flex-grow">
                     <h3 className="text-lg font-bold mb-2 hidden lg:block">
