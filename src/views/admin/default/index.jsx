@@ -421,15 +421,13 @@ const Dashboard = () => {
       />
 
       {events.length !== 0 ? (
-        // Compact by design: the whole dashboard must fit ONE viewport.
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
 
-          {/* Metrics — four separate cards, each with a tenuous icon top-right
-              and an enriched footer (stacked bars / comparison / progress). */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {/* 1 — Total eventos: split progress bar finalizados/próximos */}
+          {/* Metrics — simple: value + one light supporting line (no bars). */}
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {/* 1 — Total eventos */}
             <Card
-              className="!p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-navy-700"
+              className="!p-5 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-navy-700"
               role="button"
               tabIndex={0}
               onClick={() => navigate("/admin/eventos")}
@@ -448,34 +446,13 @@ const Dashboard = () => {
                 {events.length}
                 <span className="text-sm font-normal text-gray-400"> eventos</span>
               </p>
-              <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
-                <div
-                  className="bg-teal-500"
-                  style={{
-                    width: `${events.length ? (finished.length / events.length) * 100 : 0}%`,
-                  }}
-                />
-                <div
-                  className="bg-brand-500"
-                  style={{
-                    width: `${events.length ? (upcoming.length / events.length) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-              <div className="mt-1.5 flex justify-between text-xs">
-                <span className="text-gray-500">
-                  <span className="font-semibold text-teal-600">{finished.length}</span>{" "}
-                  finalizados
-                </span>
-                <span className="text-gray-500">
-                  <span className="font-semibold text-brand-500">{upcoming.length}</span>{" "}
-                  próximos
-                </span>
-              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                {finished.length} finalizados · {upcoming.length} próximos
+              </p>
             </Card>
 
-            {/* 2 — Próximos: el más próximo + pill "En N días" */}
-            <Card className="!p-4">
+            {/* 2 — Próximos */}
+            <Card className="!p-5">
               <div className="flex items-start justify-between">
                 <p className={TYPE.metricLabel}>Próximos</p>
                 <MdOutlineSchedule className="h-5 w-5 text-gray-300" />
@@ -485,37 +462,20 @@ const Dashboard = () => {
                 <span className="text-sm font-normal text-gray-400"> eventos</span>
               </p>
               {upcoming.length > 0 ? (
-                (() => {
-                  const next = upcoming[0];
-                  // "lun 06/07/26" → "06/07" (dd/MM).
-                  const ddmm = dateParts(eventStart(next), next.timezone)
-                    .date.replace(/^\D+/, "")
-                    .slice(0, 5);
-                  return (
-                    <div className="mt-3">
-                      <p className="text-xs text-gray-400">El más próximo</p>
-                      <div className="mt-1 flex items-center justify-between gap-2">
-                        <p className="line-clamp-1 min-w-0 text-sm font-semibold text-navy-700 dark:text-white">
-                          {next.title}
-                          <span className="font-normal text-gray-500">
-                            {" · "}
-                            {ddmm}
-                          </span>
-                        </p>
-                        <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-brand-500">
-                          {relativeWhen(eventStart(next), next.timezone)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()
+                <p className="mt-2 line-clamp-1 text-sm text-gray-500">
+                  {upcoming[0].title}
+                  <span className="font-medium text-brand-500">
+                    {" · "}
+                    {relativeWhen(eventStart(upcoming[0]), upcoming[0].timezone)}
+                  </span>
+                </p>
               ) : (
-                <p className="mt-3 text-sm text-gray-400">Sin eventos próximos</p>
+                <p className="mt-2 text-sm text-gray-400">Sin eventos próximos</p>
               )}
             </Card>
 
-            {/* 3 — Registros · ventana: mini-barras comparativas */}
-            <Card className="!p-4">
+            {/* 3 — Registros · ventana */}
+            <Card className="!p-5">
               <div className="flex items-start justify-between">
                 <p className={TYPE.metricLabel}>{P.metricLabel}</p>
                 <MdShowChart className="h-5 w-5 text-gray-300" />
@@ -524,52 +484,18 @@ const Dashboard = () => {
                 <p className={`${TYPE.metricValue} leading-tight`}>{regStats.cur}</p>
                 {regStats.delta !== null && <Delta pct={regStats.delta} />}
               </div>
-              {(() => {
-                const labels =
-                  period === "30d"
-                    ? ["Este mes", "Mes ant."]
-                    : period === "6m"
-                    ? ["Este sem.", "Sem. ant."]
-                    : ["Este año", "Año ant."];
-                const max = Math.max(regStats.cur, regStats.prev, 1);
-                const w = (v) => (v > 0 ? Math.max(4, (v / max) * 100) : 0);
-                return (
-                  <div className="mt-3 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-16 shrink-0 text-xs text-gray-500">
-                        {labels[0]}
-                      </span>
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
-                        <div
-                          className="h-full rounded-full bg-teal-500"
-                          style={{ width: `${w(regStats.cur)}%` }}
-                        />
-                      </div>
-                      <span className="w-10 shrink-0 text-right text-xs font-semibold text-navy-700 dark:text-white">
-                        {regStats.cur}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-16 shrink-0 text-xs text-gray-500">
-                        {labels[1]}
-                      </span>
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
-                        <div
-                          className="h-full rounded-full bg-gray-300 dark:bg-navy-600"
-                          style={{ width: `${w(regStats.prev)}%` }}
-                        />
-                      </div>
-                      <span className="w-10 shrink-0 text-right text-xs font-semibold text-navy-700 dark:text-white">
-                        {regStats.prev}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()}
+              <p className="mt-2 text-sm text-gray-500">
+                {regStats.prev}{" "}
+                {period === "30d"
+                  ? "el mes anterior"
+                  : period === "6m"
+                  ? "el semestre anterior"
+                  : "el año anterior"}
+              </p>
             </Card>
 
-            {/* 4 — Finalizados: barra de progreso del total */}
-            <Card className="!p-4">
+            {/* 4 — Finalizados */}
+            <Card className="!p-5">
               <div className="flex items-start justify-between">
                 <p className={TYPE.metricLabel}>Finalizados</p>
                 <MdCheckCircleOutline className="h-5 w-5 text-gray-300" />
@@ -581,29 +507,16 @@ const Dashboard = () => {
                   de {events.length}
                 </span>
               </p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
-                <div
-                  className="h-full rounded-full bg-teal-500"
-                  style={{
-                    width: `${events.length ? (finished.length / events.length) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-              <div className="mt-1.5 flex justify-between text-xs">
-                <span className="text-gray-500">
-                  {events.length
-                    ? Math.round((finished.length / events.length) * 100)
-                    : 0}
-                  % del total
-                </span>
-                <span className="font-semibold text-navy-700 dark:text-white">
-                  {finished.length}/{events.length}
-                </span>
-              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                {events.length
+                  ? Math.round((finished.length / events.length) * 100)
+                  : 0}
+                % del total
+              </p>
             </Card>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-3">
+          <div className="grid gap-5 xl:grid-cols-3">
             {/* Upcoming events table */}
             <Card
               title="Próximos eventos"
