@@ -109,6 +109,9 @@ const Registro = (props) => {
   const [formBuilderLoading, setFormBuilderLoading] = React.useState(true);
   const [formBuilderError, setFormBuilderError] = React.useState(null); 
   const [userConsentChecked, setUserConsentChecked] = React.useState(false);
+  // Consent is long: collapsed by default with a "Leer más" toggle so users see
+  // it's a consent without the full wall of text.
+  const [consentExpanded, setConsentExpanded] = React.useState(false);
   // Consent text actually shown (ES original, or translated copy on lang change).
   const [consentHtml, setConsentHtml] = React.useState(
     props.landing?.userConsentCheck
@@ -944,11 +947,37 @@ const Registro = (props) => {
                       onChange={(e) => setUserConsentChecked(e.target.checked)}
                       className="h-5 w-5 accent-red-600 cursor-pointer scale-[1.7] mt-1 mr-1"
                     />
-                    <span
-                      className="text-sm text-justify leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: consentHtml }}
-                    />
+                    <span className="relative block min-w-0 flex-1">
+                      <span
+                        className={`block overflow-hidden text-sm text-justify leading-relaxed transition-[max-height] duration-300 ${
+                          consentExpanded ? "max-h-[1200px]" : "max-h-[4.5rem]"
+                        }`}
+                        dangerouslySetInnerHTML={{ __html: consentHtml }}
+                      />
+                      {/* Fade cue that there's more text when collapsed. */}
+                      {!consentExpanded && (
+                        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />
+                      )}
+                    </span>
                   </label>
+                  {/* Outside the label so it never toggles the checkbox. */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setConsentExpanded((v) => !v);
+                    }}
+                    className="mt-1 pl-9 text-sm font-semibold text-red-500 hover:underline"
+                  >
+                    {consentExpanded
+                      ? (lang || "ES").toUpperCase() === "EN"
+                        ? "Read less"
+                        : "Leer menos"
+                      : (lang || "ES").toUpperCase() === "EN"
+                      ? "Read more"
+                      : "Leer más"}
+                  </button>
                 </div>
               )}
 
