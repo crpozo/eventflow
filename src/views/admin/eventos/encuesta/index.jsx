@@ -96,8 +96,9 @@ const Dashboard = () => {
     setFields(updater);
   }, []);
 
-  // Config (invite) fields — mirrored from the Survey row.
-  const [active, setActive] = React.useState(false);
+  // Config (invite) fields — mirrored from the Survey row. Auto-send is ON by
+  // default for a NEW survey; an existing row's saved value wins on hydration.
+  const [active, setActive] = React.useState(true);
   const [emailSubject, setEmailSubject] = React.useState("");
   const [emailIntro, setEmailIntro] = React.useState("");
   const [sendAt, setSendAt] = React.useState("");
@@ -187,6 +188,9 @@ const Dashboard = () => {
       const created = new Survey({
         surveyEventId: eventId,
         questions: [],
+        // Persist the default-ON toggle even when the first save is of
+        // questions (patch has no `active`); an explicit patch still wins.
+        active,
         ...patch,
       });
       hydratedForId.current = created.id;
