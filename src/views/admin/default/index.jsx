@@ -402,6 +402,14 @@ const Dashboard = () => {
                 </button>
               ))}
             </div>
+            <SecondaryButton
+              onClick={() => navigate("/admin/eventos")}
+              className="whitespace-nowrap"
+            >
+              <MdCalendarToday className="h-4 w-4" />
+              <span className="hidden sm:inline">Ver todos los eventos</span>
+              <span className="sm:hidden">Eventos</span>
+            </SecondaryButton>
             <PrimaryButton
               onClick={() => navigate("/admin/eventos/crear")}
               className="flex items-center gap-1"
