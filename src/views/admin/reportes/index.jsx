@@ -1344,7 +1344,21 @@ const Reportes = () => {
 
       {/* Collapsible filter panel: the original selects + date inputs. */}
       {showFilters && (
-        <Card title="Filtros" className="mb-4">
+        <Card
+          title="Filtros"
+          className="mb-4"
+          headerRight={
+            <button
+              type="button"
+              onClick={() => setShowFilters(false)}
+              aria-label="Cerrar filtros"
+              title="Cerrar filtros"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-navy-700 dark:hover:bg-navy-700 dark:hover:text-white"
+            >
+              <MdClose className="h-5 w-5" />
+            </button>
+          }
+        >
           <div className="relative mb-3 flex flex-col gap-2 sm:flex-row sm:gap-4">
             <div className="flex min-w-0 flex-col sm:flex-initial">
               <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
