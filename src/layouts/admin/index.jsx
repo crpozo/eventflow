@@ -119,8 +119,9 @@ export default function Admin(props) {
             {/* max-w keeps content dense on wide monitors instead of
                 stretching cards across the full viewport */}
             {/* No footer: admin pages (dashboard especially) must fit one
-                viewport without scrolling. */}
-            <div className="flex-grow mx-auto w-full max-w-[1480px] pt-4 pb-4 md:pr-2">
+                viewport without scrolling. Full-bleed width — no max-w cap —
+                so the dashboard fills the whole page (mock). */}
+            <div className="flex-grow w-full pt-4 pb-4 md:pr-2">
               <Routes>
                 {getRoutes(routes)}
                 <Route
