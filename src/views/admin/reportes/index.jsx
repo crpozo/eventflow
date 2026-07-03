@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { graphic } from "echarts";
 import { useNavigate } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
@@ -10,12 +10,19 @@ import {
   Attendee,
   EventAttendee,
   Form,
+  Landing,
 } from "models";
 import * as XLSX from "xlsx";
 import {
   MdFileDownload,
   MdPeople,
   MdCheckCircleOutline,
+  MdSearch,
+  MdFilterList,
+  MdClose,
+  MdLocationOn,
+  MdOutlineCalendarMonth,
+  MdSearchOff,
 } from "react-icons/md";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
 import { usePermissions } from "../../../providers/PermissionsProvider"
@@ -25,8 +32,58 @@ import {
   TextInput,
   PrimaryButton,
   SecondaryButton,
+  Chip,
   TYPE,
 } from "components/adminUi";
+
+
+/* ── Donut: pure-SVG progress ring (no chart lib) ─────────────────────────
+   value 0..100 → progress arc in brand-500 over a gray track. The % renders
+   centered. Used both in the aggregate "Tasa de check-in" metric (~64px) and
+   on each event card (~44px). */
+function Donut({ value = 0, size = 44, stroke = 5, className = "" }) {
+  const pct = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - pct / 100);
+  const center = size / 2;
+  return (
+    <div
+      className={`relative inline-flex shrink-0 items-center justify-center ${className}`}
+      style={{ width: size, height: size }}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle
+          cx={center}
+          cy={center}
+          r={r}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={r}
+          fill="none"
+          stroke="#e41b23"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          transform={`rotate(-90 ${center} ${center})`}
+        />
+      </svg>
+      <span
+        className={`absolute font-bold text-navy-700 dark:text-white ${
+          size >= 56 ? "text-sm" : "text-xs"
+        }`}
+      >
+        {pct}%
+      </span>
+    </div>
+  );
+}
 
 
 const Reportes = () => {
@@ -52,6 +109,19 @@ const Reportes = () => {
   const [attendees, setAttendees] = useState(null);
   const [eventAttendes, setEventAttendes] = useState(null);
   const [chartsData, setChartsData] = useState([]);
+
+  // --- ADD: grid data (all visible events + aggregated counts + landings + name maps)
+  const [allEvents, setAllEvents] = useState([]);
+  const [countByEventMap, setCountByEventMap] = useState(new Map()); // id -> {registros, checkIn}
+  const [landingByEvent, setLandingByEvent] = useState(new Map()); // landingEventId -> landing
+  const [careerById, setCareerById] = useState(new Map()); // id -> {title, areaID}
+  const [areaById, setAreaById] = useState(new Map()); // id -> {title, campusID}
+  const [campusById, setCampusById] = useState(new Map()); // id -> title
+
+  // --- ADD: UI state (search + collapsible filter panel)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+
   const {
     isAdmin,
     isReportesOnly,
@@ -99,8 +169,10 @@ const Reportes = () => {
   const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
 
   const navigate = useNavigate();
-  const [totalCheckIn, setTotalCheckIn] = React.useState(0);
-  const [totalRegistros, setTotalRegistros] = React.useState(0);
+  // Legacy per-event totals: el rediseño muestra métricas agregadas (aggregate),
+  // pero conservamos los setters porque los efectos de carga aún los escriben.
+  const [, setTotalCheckIn] = React.useState(0);
+  const [, setTotalRegistros] = React.useState(0);
 
   const [, setOptionTipo] = React.useState({
     xAxis: {
@@ -281,10 +353,11 @@ const Reportes = () => {
         return;
       }
 
-      // If no date filters, keep original behavior
+      // If no date filters, just publish the list. Do NOT auto-select an area:
+      // the grid must show ALL campus events by default and the Área/Subárea
+      // filters (and their chips) only apply when the user actively picks one.
       if (!startDate && !endDate) {
         setAreaList(areas);
-        setAreaSelectID(areas[0].id);
         return;
       }
 
@@ -294,16 +367,16 @@ const Reportes = () => {
       if (!alive) return;
 
       const careers = allCareers.filter((c) => areaIDs.has(c.areaID));
-      const careerById = new Map(careers.map((c) => [c.id, c]));
+      const careerByIdLocal = new Map(careers.map((c) => [c.id, c]));
       const careerIDs = new Set(careers.map((c) => c.id));
 
-      const allEvents = await DataStore.query(Event);
+      const allEventsLocal = await DataStore.query(Event);
       if (!alive) return;
 
       const startISO = toStartISO(startDate);
       const endISO = toEndISO(endDate);
 
-      const inRange = allEvents.filter((ev) => {
+      const inRange = allEventsLocal.filter((ev) => {
         if (!careerIDs.has(ev.careerID)) return false;
         const iso = getEventDateISO(ev);
         if (!iso) return false;
@@ -314,7 +387,7 @@ const Reportes = () => {
 
       const areasWithEvents = new Set(
         inRange
-          .map((ev) => careerById.get(ev.careerID)?.areaID)
+          .map((ev) => careerByIdLocal.get(ev.careerID)?.areaID)
           .filter(Boolean)
       );
 
@@ -322,8 +395,10 @@ const Reportes = () => {
 
       if (filteredAreas.length) {
         setAreaList(filteredAreas);
+        // Keep the user's area selection only if it's still valid; never
+        // auto-select one (default = no Área filter → all campus events).
         setAreaSelectID((prev) =>
-          filteredAreas.some((a) => a.id === prev) ? prev : filteredAreas[0].id
+          filteredAreas.some((a) => a.id === prev) ? prev : ""
         );
       } else {
         setAreaList([{ id: "empty-area", title: "Vacío" }]); setAreaSelectID("");
@@ -354,18 +429,21 @@ const Reportes = () => {
 
       if (!startDate && !endDate) {
         setCareerList(careers);
-        setCareerSelectID((prev) => (careers.some((c) => c.id === prev) ? prev : careers[0].id));
+        // Do NOT auto-select a subárea: picking an Área narrows the grid to that
+        // area's events, and the Subárea filter only applies when the user picks
+        // one explicitly. Keep a still-valid prior selection, else clear it.
+        setCareerSelectID((prev) => (careers.some((c) => c.id === prev) ? prev : ""));
         return;
       }
 
       const careerIDs = new Set(careers.map((c) => c.id));
-      const allEvents = await DataStore.query(Event);
+      const allEventsLocal = await DataStore.query(Event);
       if (!alive) return;
 
       const startISO = toStartISO(startDate);
       const endISO = toEndISO(endDate);
 
-      const inRange = allEvents.filter((ev) => {
+      const inRange = allEventsLocal.filter((ev) => {
         if (!careerIDs.has(ev.careerID)) return false;
         const iso = getEventDateISO(ev);
         if (!iso) return false;
@@ -379,8 +457,9 @@ const Reportes = () => {
 
       if (filteredCareers.length) {
         setCareerList(filteredCareers);
+        // Keep a still-valid prior subárea selection; never auto-select one.
         setCareerSelectID((prev) =>
-          filteredCareers.some((c) => c.id === prev) ? prev : filteredCareers[0].id
+          filteredCareers.some((c) => c.id === prev) ? prev : ""
         );
       } else {
         setCareerList([{ id: "empty-career", title: "Vacío" }]); setCareerSelectID("");
@@ -432,7 +511,99 @@ const Reportes = () => {
   }, [careerSelectID, startDate, endDate]);
 
 
+  /*******************************************/
+  /*********** GRID DATA (all events) ********/
+  /*******************************************/
 
+  // Load small tables (Campus/Area/Career) once permissions are ready and build
+  // name maps, respecting canSeeCampus/canSeeArea (a non-admin only sees theirs).
+  useEffect(() => {
+    if (permLoading) return;
+    let alive = true;
+
+    (async () => {
+      const [campuses, areas, careers] = await Promise.all([
+        DataStore.query(Campus),
+        DataStore.query(Area),
+        DataStore.query(Career),
+      ]);
+      if (!alive) return;
+
+      const campusMap = new Map();
+      campuses.forEach((c) => {
+        if (canSeeCampus(c.id)) campusMap.set(c.id, c.title);
+      });
+
+      const areaMap = new Map();
+      areas.forEach((a) => {
+        if (canSeeArea(a.id)) areaMap.set(a.id, { title: a.title, campusID: a.campusID });
+      });
+
+      const careerMap = new Map();
+      careers.forEach((c) => {
+        careerMap.set(c.id, { title: c.title, areaID: c.areaID });
+      });
+
+      setCampusById(campusMap);
+      setAreaById(areaMap);
+      setCareerById(careerMap);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permLoading]);
+
+  // Load ALL visible events + aggregated attendee counts + landings for the grid.
+  // Mirrors the visibility rules of exportAllEventsToExcel: if !isAdmin and
+  // eventIDsAllowed is an array -> only those; else if subAreaId -> careerID===subAreaId.
+  useEffect(() => {
+    if (permLoading) return;
+    let alive = true;
+
+    (async () => {
+      // 1) Events, scoped to what the user may see
+      let events = await DataStore.query(Event);
+      if (!alive) return;
+      events = scopeEvents(events);
+      if (!isAdmin) {
+        if (Array.isArray(eventIDsAllowed)) {
+          const allow = new Set(eventIDsAllowed);
+          events = events.filter((ev) => allow.has(ev.id));
+        } else if (!isReportesOnly && subAreaId) {
+          events = events.filter((ev) => ev.careerID === subAreaId);
+        }
+      }
+      setAllEvents(events);
+
+      // 2) All EventAttendee once, grouped by eventID -> {registros, checkIn}
+      const allEA = await DataStore.query(EventAttendee);
+      if (!alive) return;
+      const counts = new Map();
+      allEA.forEach((rec) => {
+        const prev = counts.get(rec.eventID) || { registros: 0, checkIn: 0 };
+        prev.registros += 1;
+        if (rec.checkIn === true) prev.checkIn += 1;
+        counts.set(rec.eventID, prev);
+      });
+      setCountByEventMap(counts);
+
+      // 3) Landings mapped by landingEventId (NEVER event.Landing — resolves null)
+      const landings = await DataStore.query(Landing);
+      if (!alive) return;
+      const lm = new Map();
+      landings.forEach((l) => {
+        if (l.landingEventId) lm.set(l.landingEventId, l);
+      });
+      setLandingByEvent(lm);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permLoading, isAdmin, isReportesOnly]);
 
 
   // Get EventAttendee data on loading or selecting an event
@@ -587,7 +758,7 @@ const Reportes = () => {
     return flattenedData;
   }
 
-  // Generate excel using library XLSX 
+  // Generate excel using library XLSX
   function exportToExcel(data, eventAttendees) {
     if (!data || data.length === 0) {
       alert("No hay datos para exportar en este evento.");
@@ -614,10 +785,18 @@ const Reportes = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
 
-    const eventName = eventList.find((item) => item.id === eventSelectID).title;
+    // Grid cards can select events outside the career-scoped `eventList`, so
+    // resolve the filename from `allEvents` (the fully-scoped superset the grid
+    // draws from) first, then fall back to `eventList`, then a safe default —
+    // never dereference an undefined match.
+    const eventName =
+      allEvents.find((e) => e.id === eventSelectID)?.title ||
+      (eventList &&
+        eventList.find((item) => item.id === eventSelectID)?.title) ||
+      "evento";
     XLSX.writeFile(workbook, `${eventName}.xlsx`);
   }
-  
+
   async function exportAllEventsToExcel() {
     try {
       // 1) Traer todos los eventos
@@ -795,7 +974,7 @@ const Reportes = () => {
 
             // If no chart is selected dont push a chart.
             if(type !== "no-chart"){
-               
+
               // Check if an entry with the same label already exists in groupedData
               if (!groupedData[label]) {
                 // If it doesn't exist, create a new entry with options and userData
@@ -878,6 +1057,139 @@ const Reportes = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attendees]);
 
+
+  /*******************************************/
+  /************ GRID DERIVATIONS *************/
+  /*******************************************/
+
+  // Short "18 mar 2026" (es-EC): day 2-digit + month short + year numeric.
+  const fmtShortDate = (ev) => {
+    const iso = getEventDateISO(ev);
+    if (!iso) return "Sin fecha";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "Sin fecha";
+    return d.toLocaleDateString("es-EC", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // Status derivation (reuses Dashboard concept):
+  //  Pasado (gray): event date < today (by day)
+  //  Activo (green): landing exists and active === true
+  //  Próximo (amber): future / not published
+  const statusFor = (ev) => {
+    const iso = getEventDateISO(ev);
+    if (iso) {
+      const d = new Date(iso);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const eventDay = new Date(d);
+      eventDay.setHours(0, 0, 0, 0);
+      if (eventDay.getTime() < today.getTime()) {
+        return { color: "gray", label: "Pasado" };
+      }
+    }
+    const landing = landingByEvent.get(ev.id);
+    if (landing?.active === true) return { color: "green", label: "Activo" };
+    return { color: "amber", label: "Próximo" };
+  };
+
+  // Breadcrumb "{Campus} · {Área} · {Subárea}" from the name maps (omit missing).
+  const eventBreadcrumb = (ev) => {
+    const career = careerById.get(ev.careerID); // {title, areaID}
+    const area = career ? areaById.get(career.areaID) : undefined; // {title, campusID}
+    const campusTitle = area ? campusById.get(area.campusID) : undefined;
+    return [campusTitle, area?.title, career?.title].filter(Boolean).join(" · ");
+  };
+
+  const countsFor = (ev) =>
+    countByEventMap.get(ev.id) || { registros: 0, checkIn: 0 };
+
+  // Date-range predicate reused for the grid (same criterion as eventList).
+  const inDateRange = (ev) => {
+    const startISO = toStartISO(startDate);
+    const endISO = toEndISO(endDate);
+    if (!startISO && !endISO) return true;
+    const iso = getEventDateISO(ev);
+    if (!iso) return false;
+    const afterStart = startISO ? iso >= startISO : true;
+    const beforeEnd = endISO ? iso <= endISO : true;
+    return afterStart && beforeEnd;
+  };
+
+  // Events shown in the grid: allEvents narrowed by the active filters
+  // (campus/area/subárea/date-range) and the search term.
+  const shownEvents = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return allEvents
+      .filter((ev) => {
+        // Campus filter (always active: default = first visible campus).
+        if (campusSelectID) {
+          const career = careerById.get(ev.careerID);
+          const area = career ? areaById.get(career.areaID) : undefined;
+          if (!area || area.campusID !== campusSelectID) return false;
+        }
+        // Área filter (only when a real area is selected).
+        if (areaSelectID && areaSelectID !== "empty-area") {
+          const career = careerById.get(ev.careerID);
+          if (!career || career.areaID !== areaSelectID) return false;
+        }
+        // Subárea filter (only when a real career is selected).
+        if (careerSelectID && careerSelectID !== "empty-career") {
+          if (ev.careerID !== careerSelectID) return false;
+        }
+        // Date range.
+        if (!inDateRange(ev)) return false;
+        // Search by title.
+        if (term && !(ev.title || "").toLowerCase().includes(term)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const ia = getEventDateISO(a) || "";
+        const ib = getEventDateISO(b) || "";
+        return ib.localeCompare(ia); // most recent first
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    allEvents,
+    campusSelectID,
+    areaSelectID,
+    careerSelectID,
+    startDate,
+    endDate,
+    searchTerm,
+    careerById,
+    areaById,
+  ]);
+
+  // Aggregated metrics over the shown grid.
+  const aggregate = useMemo(() => {
+    let registros = 0;
+    let checkIn = 0;
+    shownEvents.forEach((ev) => {
+      const c = countsFor(ev);
+      registros += c.registros;
+      checkIn += c.checkIn;
+    });
+    const rate = registros > 0 ? Math.round((checkIn / registros) * 100) : 0;
+    return { registros, checkIn, rate };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownEvents, countByEventMap]);
+
+  const campusFilterName = campusById.get(campusSelectID) || "todos";
+
+  // Active filter chips (Campus principal + Área / Subárea / fechas cuando aplican).
+  const activeAreaName =
+    areaSelectID && areaSelectID !== "empty-area"
+      ? areaById.get(areaSelectID)?.title
+      : undefined;
+  const activeCareerName =
+    careerSelectID && careerSelectID !== "empty-career"
+      ? careerById.get(careerSelectID)?.title
+      : undefined;
+
   return (
     <div className="report-page mt-3 px-2 sm:px-0">
       <PageHeader
@@ -907,118 +1219,210 @@ const Reportes = () => {
         }
       />
 
-      <Card title="Filtros" className="mb-4">
-        <div className="relative mb-3 flex flex-col gap-2 sm:flex-row sm:gap-4">
-          <div className="flex min-w-0 flex-col sm:flex-initial">
-            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
-              Fecha inicio
-            </label>
-            <TextInput
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
+      {/* 1) Search bar + Filtros toggle */}
+      <div className="mb-3 flex gap-3">
+        <div className="flex flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 dark:border-white/10 dark:bg-navy-800">
+          <MdSearch className="h-5 w-5 shrink-0 text-gray-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar evento por nombre…"
+            className="w-full border-none bg-[transparent] text-base text-navy-700 outline-none placeholder:text-gray-400 dark:text-white"
+          />
+        </div>
+        <SecondaryButton
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="whitespace-nowrap"
+          aria-expanded={showFilters}
+        >
+          <MdFilterList className="h-4 w-4" />
+          <span className="hidden sm:inline">Filtros</span>
+        </SecondaryButton>
+      </div>
 
-          <div className="flex min-w-0 flex-col sm:flex-initial">
-            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
-              Fecha fin
-            </label>
-            <TextInput
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
+      {/* 2) Active filter chips */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-sm text-gray-500">Filtros:</span>
 
-          {/* Reset button */}
-          <div className="flex items-end">
-            <SecondaryButton
+        {/* Campus is the primary filter (always shown). */}
+        {campusById.get(campusSelectID) && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-navy-700 dark:border-white/10 dark:bg-navy-800 dark:text-white">
+            <MdLocationOn className="h-4 w-4 text-gray-400" />
+            {campusById.get(campusSelectID)}
+          </span>
+        )}
+
+        {activeAreaName && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-navy-700 dark:border-white/10 dark:bg-navy-800 dark:text-white">
+            {activeAreaName}
+            <button
+              type="button"
+              onClick={() => { setAreaSelectID(""); setCareerSelectID(""); }}
+              aria-label="Quitar filtro de área"
+              className="text-gray-400 transition hover:text-brand-500"
+            >
+              <MdClose className="h-4 w-4" />
+            </button>
+          </span>
+        )}
+
+        {activeCareerName && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-navy-700 dark:border-white/10 dark:bg-navy-800 dark:text-white">
+            {activeCareerName}
+            <button
+              type="button"
+              onClick={() => setCareerSelectID("")}
+              aria-label="Quitar filtro de subárea"
+              className="text-gray-400 transition hover:text-brand-500"
+            >
+              <MdClose className="h-4 w-4" />
+            </button>
+          </span>
+        )}
+
+        {(startDate || endDate) && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-navy-700 dark:border-white/10 dark:bg-navy-800 dark:text-white">
+            <MdOutlineCalendarMonth className="h-4 w-4 text-gray-400" />
+            {startDate || "…"} – {endDate || "…"}
+            <button
               type="button"
               onClick={() => { setStartDate(""); setEndDate(""); }}
-              className="w-full justify-center whitespace-nowrap sm:w-auto"
-              aria-label="Resetear fechas"
+              aria-label="Quitar filtro de fechas"
+              className="text-gray-400 transition hover:text-brand-500"
             >
-              Restablecer
-            </SecondaryButton>
+              <MdClose className="h-4 w-4" />
+            </button>
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowFilters(true)}
+          className="rounded-full border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 transition hover:border-brand-500 hover:text-brand-500 dark:border-white/20"
+        >
+          ＋ Añadir filtro
+        </button>
+      </div>
+
+      {/* Collapsible filter panel: the original selects + date inputs. */}
+      {showFilters && (
+        <Card title="Filtros" className="mb-4">
+          <div className="relative mb-3 flex flex-col gap-2 sm:flex-row sm:gap-4">
+            <div className="flex min-w-0 flex-col sm:flex-initial">
+              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
+                Fecha inicio
+              </label>
+              <TextInput
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+
+            <div className="flex min-w-0 flex-col sm:flex-initial">
+              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
+                Fecha fin
+              </label>
+              <TextInput
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+
+            {/* Reset button */}
+            <div className="flex items-end">
+              <SecondaryButton
+                type="button"
+                onClick={() => { setStartDate(""); setEndDate(""); }}
+                className="w-full justify-center whitespace-nowrap sm:w-auto"
+                aria-label="Resetear fechas"
+              >
+                Restablecer
+              </SecondaryButton>
+            </div>
           </div>
-        </div>
 
 
-        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
 
-          <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Campus</label>
-            <select
-              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
-              onChange={(e) => setCampusSelectID(e.target.value)}
-              value={campusSelectID}
-            >
-              {campusList &&
-                campusList.map((result) => (
-                  <option key={result.id} value={result.id}>
-                    {result.title}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Área</label>
-            <select
-              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
-              onChange={(e) => setAreaSelectID(e.target.value)}
-            >
-              {areaList &&
-                areaList.map((result) => {
-                  return (
+            <div className="flex w-full flex-col min-w-0">
+              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Campus</label>
+              <select
+                className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
+                onChange={(e) => setCampusSelectID(e.target.value)}
+                value={campusSelectID}
+              >
+                {campusList &&
+                  campusList.map((result) => (
                     <option key={result.id} value={result.id}>
                       {result.title}
                     </option>
-                  );
-              })}
-            </select>
+                  ))}
+              </select>
+            </div>
+
+            <div className="flex w-full flex-col min-w-0">
+              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Área</label>
+              <select
+                className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
+                onChange={(e) => setAreaSelectID(e.target.value)}
+                value={areaSelectID || ""}
+              >
+                {areaList &&
+                  areaList.map((result) => {
+                    return (
+                      <option key={result.id} value={result.id}>
+                        {result.title}
+                      </option>
+                    );
+                })}
+              </select>
+            </div>
+
+            <div className="flex w-full flex-col min-w-0">
+              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Subárea</label>
+              <select
+                className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
+                onChange={(e) => setCareerSelectID(e.target.value)}
+                value={careerSelectID || ""}
+              >
+                {careerList &&
+                  careerList.map((result) => (
+                    <option key={result.id} value={result.id}>
+                      {result.title}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="flex w-full flex-col min-w-0">
+              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Eventos</label>
+              <select
+                className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
+                onChange={(e) => setEventSelectID(e.target.value)}
+                value={eventSelectID || ""}
+              >
+                {/* <option value="0">
+                    Todos los eventos
+                  </option> */}
+                {eventList &&
+                  eventList.map((result) => (
+                    <option key={result.id} value={result.id}>
+                      {result.title}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
           </div>
+        </Card>
+      )}
 
-          <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Subárea</label>
-            <select
-              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
-              onChange={(e) => setCareerSelectID(e.target.value)}
-            >
-              {careerList &&
-                careerList.map((result) => (
-                  <option key={result.id} value={result.id}>
-                    {result.title}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div className="flex w-full flex-col min-w-0">
-            <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Eventos</label>
-            <select
-              className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
-              onChange={(e) => setEventSelectID(e.target.value)}
-            >
-              {/* <option value="0">
-                  Todos los eventos
-                </option> */}
-              {eventList &&
-                eventList.map((result) => (
-                  <option key={result.id} value={result.id}>
-                    {result.title}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-        </div>
-      </Card>
-
-      {/* Metrics */}
-
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* 3) Aggregated metric cards (over the shown grid) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
@@ -1027,14 +1431,12 @@ const Reportes = () => {
             <div>
               <p className={TYPE.metricLabel}>Total Registros</p>
               <p className={`${TYPE.metricValue} leading-tight`}>
-                {totalRegistros}{" "}
-                <span className="text-xs font-normal text-gray-400">
-                  participante/s
-                </span>
+                {aggregate.registros}
               </p>
             </div>
           </div>
         </Card>
+
         <Card>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
@@ -1043,29 +1445,133 @@ const Reportes = () => {
             <div>
               <p className={TYPE.metricLabel}>Total Check-in</p>
               <p className={`${TYPE.metricValue} leading-tight`}>
-                {totalCheckIn}{" "}
-                <span className="text-xs font-normal text-gray-400">
-                  participante/s
-                </span>
+                {aggregate.checkIn}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center gap-3">
+            <Donut value={aggregate.rate} size={64} stroke={7} />
+            <div>
+              <p className={TYPE.metricLabel}>Tasa de check-in</p>
+              <p className={`${TYPE.metricValue} leading-tight`}>
+                {aggregate.rate}%
               </p>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Tables & Charts */}
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {chartsData &&
-          chartsData?.map((chart, index) => (
-            <PieChartApache key={index} option={chart.options} height="450px" />
-          ))}
+      {/* 4) Section header */}
+      <div className="mb-3 mt-6 flex items-baseline gap-2">
+        <h2 className="text-lg font-bold text-navy-700 dark:text-white">Eventos</h2>
+        <span className="text-sm text-gray-500">
+          · {shownEvents.length} en {campusFilterName}
+        </span>
       </div>
-{/* 
-      {chartsData.length == 0 && (
-        <div className="!z-5 relative flex items-center	gap-2 rounded-[20px] bg-white bg-clip-border p-3 dark:!bg-navy-800 dark:text-white dark:shadow-none">
-          <AiOutlineWarning /> No existen gráficos para el evento actual
+
+      {/* 5) Event card grid */}
+      {shownEvents.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {shownEvents.map((ev) => {
+            const selected = ev.id === eventSelectID;
+            const status = statusFor(ev);
+            const c = countsFor(ev);
+            const rate =
+              c.registros > 0 ? Math.round((c.checkIn / c.registros) * 100) : 0;
+            const crumb = eventBreadcrumb(ev);
+            return (
+              <Card
+                key={ev.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setEventSelectID(ev.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setEventSelectID(ev.id);
+                  }
+                }}
+                className={`!p-4 cursor-pointer transition ${
+                  selected
+                    ? "border-2 border-brand-500 bg-red-50"
+                    : "border-2 border-[transparent] hover:border-gray-200 dark:hover:border-white/10"
+                }`}
+              >
+                {/* Top row: date + status chip */}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-sm text-gray-500">
+                    <MdOutlineCalendarMonth className="h-4 w-4" />
+                    {fmtShortDate(ev)}
+                  </span>
+                  <Chip color={status.color}>{status.label}</Chip>
+                </div>
+
+                {/* Title */}
+                <h3
+                  className={`line-clamp-2 text-base font-bold ${
+                    selected ? "text-brand-500" : "text-navy-700 dark:text-white"
+                  }`}
+                >
+                  {ev.title}
+                </h3>
+
+                {/* Breadcrumb */}
+                {crumb && (
+                  <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
+                    <MdLocationOn className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{crumb}</span>
+                  </p>
+                )}
+
+                {/* Bottom row: mini-stats + donut */}
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="flex gap-6">
+                    <div>
+                      <p className="text-2xl font-bold text-navy-700 dark:text-white">
+                        {c.registros}
+                      </p>
+                      <p className="text-xs text-gray-400">registros</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-navy-700 dark:text-white">
+                        {c.checkIn}
+                      </p>
+                      <p className="text-xs text-gray-400">check-in</p>
+                    </div>
+                  </div>
+                  <Donut value={rate} size={44} stroke={5} />
+                </div>
+              </Card>
+            );
+          })}
         </div>
-      )} */}
+      ) : (
+        <Card>
+          <div className="flex items-center gap-3 text-gray-500">
+            <MdSearchOff className="h-6 w-6 shrink-0" />
+            <span className="text-base">
+              No hay eventos para los filtros actuales.
+            </span>
+          </div>
+        </Card>
+      )}
+
+      {/* 7) Per-question charts for the SELECTED event (echarts, unchanged) */}
+      {chartsData && chartsData.length > 0 && (
+        <div className="mt-6">
+          <h2 className="mb-3 text-lg font-bold text-navy-700 dark:text-white">
+            Gráficos del evento
+          </h2>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {chartsData.map((chart, index) => (
+              <PieChartApache key={index} option={chart.options} height="450px" />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
