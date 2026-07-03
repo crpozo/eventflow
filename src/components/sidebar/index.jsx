@@ -242,12 +242,13 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
                 <option value="hidden">Oculto</option>
               </select>
             </div>
-            <h2 className="text-base font-semibold leading-snug text-navy-700 dark:text-white">
+            <h2 className="text-left text-lg font-bold leading-snug text-navy-700 dark:text-white">
               {event?.title}
             </h2>
             <p className="mt-2.5 flex items-center gap-1.5 text-xs text-gray-500">
               <MdOutlineCalendarMonth className="h-4 w-4 shrink-0" />
-              {compactDate(event?.date, event?.timezone)} ({tzLabel(event?.timezone)})
+              {/* startDate: los formularios escriben startDate (date queda null). */}
+              {compactDate(event?.startDate || event?.date, event?.timezone)} ({tzLabel(event?.timezone)})
             </p>
             <Link
               className="mt-3.5 flex w-fit items-center gap-1 text-sm font-medium text-brand-500 hover:text-navy-700 hover:no-underline"
