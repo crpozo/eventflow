@@ -945,7 +945,7 @@ const Registro = (props) => {
                       required
                       checked={userConsentChecked}
                       onChange={(e) => setUserConsentChecked(e.target.checked)}
-                      className="h-5 w-5 accent-red-600 cursor-pointer scale-[1.7] mt-1 mr-1"
+                      className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-red-600"
                     />
                     <span className="relative block min-w-0 flex-1">
                       <span
