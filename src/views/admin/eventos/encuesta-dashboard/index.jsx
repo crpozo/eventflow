@@ -43,15 +43,185 @@ const SENT_CHIP = {
 // instead of the DataStore record.
 const INSIGHTS_QUERY = /* GraphQL */ `
   query SurveyInsightsByEvent($filter: ModelSurveyFilterInput) {
-    listSurveys(filter: $filter) {
+    listSurveys(filter: $filter, limit: 1000) {
       items {
         id
         insights
         insightsAt
+        questions
       }
     }
   }
 `;
+
+// Human labels for formBuilder field types (chips in "Resultados por pregunta").
+const FIELD_TYPE_LABELS = {
+  "radio-group": "Opción única",
+  select: "Lista desplegable",
+  "checkbox-group": "Selección múltiple",
+  text: "Texto corto",
+  textarea: "Texto largo",
+  number: "Número",
+  date: "Fecha",
+};
+
+// Survey.questions is AWSJSON: GraphQL returns a (possibly double-encoded)
+// string, DataStore an already-parsed array — and elements can themselves be
+// JSON strings. Normalize to an array of question objects, or null.
+const parseQuestions = (raw) => {
+  let val = raw;
+  try {
+    for (let i = 0; i < 3 && typeof val === "string"; i++) {
+      val = JSON.parse(val);
+    }
+    if (!Array.isArray(val)) return null;
+    return val
+      .map((q) => (typeof q === "string" ? JSON.parse(q) : q))
+      .filter((q) => q && typeof q === "object");
+  } catch {
+    return null;
+  }
+};
+
+const clip = (s, n = 120) =>
+  s.length > n ? `${s.slice(0, n).trimEnd()}…` : s;
+
+/* Horizontal div-bars for option questions (and date distributions). Bar width
+   scales against the most-voted option; the % reads against total answers. */
+function OptionBars({ rows, total }) {
+  const max = Math.max(1, ...rows.map((r) => r.count));
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      {rows.map((r, i) => {
+        const pct = total > 0 ? Math.round((r.count / total) * 100) : 0;
+        return (
+          <div key={i} className="flex items-center gap-3">
+            <span
+              title={r.label}
+              className="line-clamp-2 w-36 shrink-0 break-words text-sm text-navy-700 dark:text-gray-100 sm:w-52"
+            >
+              {r.label}
+            </span>
+            <div className="h-2.5 w-full min-w-0 flex-1 rounded-full bg-gray-100 dark:bg-navy-700">
+              <div
+                className="h-2.5 rounded-full bg-teal-500"
+                style={{
+                  width: `${
+                    r.count > 0 ? Math.max(2, (r.count / max) * 100) : 0
+                  }%`,
+                }}
+              />
+            </div>
+            <span className="w-20 shrink-0 text-right text-sm font-semibold text-navy-700 dark:text-white">
+              {r.count} · {pct}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Type-specific body of a question card. perResponse = one userData array per
+   response that actually answered this question (already trimmed/non-empty). */
+function QuestionBody({ q, perResponse, total }) {
+  const type = q.type;
+
+  if (
+    type === "radio-group" ||
+    type === "select" ||
+    type === "checkbox-group" ||
+    type === "date"
+  ) {
+    // Count each option once per response (checkbox-group userData can carry
+    // several values; a duplicated value still counts as one respondent).
+    const counts = new Map();
+    perResponse.forEach((ud) => {
+      new Set(ud).forEach((v) => counts.set(v, (counts.get(v) || 0) + 1));
+    });
+    let rows;
+    if (type === "date") {
+      rows = [...counts.keys()]
+        .sort()
+        .map((v) => ({ label: v, count: counts.get(v) }));
+    } else {
+      // userData stores the option VALUE (e.g. "option-1") — map it back to
+      // its label via question.values; unknown values render raw, appended.
+      const defined = Array.isArray(q.values) ? q.values : [];
+      rows = defined.map((o) => ({
+        label: stripHtml(o.label) || String(o.value),
+        count: counts.get(String(o.value)) || 0,
+      }));
+      const known = new Set(defined.map((o) => String(o.value)));
+      [...counts.keys()]
+        .filter((v) => !known.has(v))
+        .forEach((v) => rows.push({ label: v, count: counts.get(v) }));
+    }
+    if (rows.length === 0) {
+      return (
+        <p className="mt-3 text-sm text-gray-500">Sin respuestas todavía.</p>
+      );
+    }
+    return <OptionBars rows={rows} total={total} />;
+  }
+
+  if (type === "number") {
+    const nums = perResponse
+      .flat()
+      .map(Number)
+      .filter((n) => Number.isFinite(n));
+    if (nums.length === 0) {
+      return (
+        <p className="mt-3 text-sm text-gray-500">
+          Sin valores numéricos todavía.
+        </p>
+      );
+    }
+    const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+    const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+    const stats = [
+      ["Promedio", fmt(avg)],
+      ["Mín", fmt(Math.min(...nums))],
+      ["Máx", fmt(Math.max(...nums))],
+    ];
+    return (
+      <div className="mt-3 flex gap-8">
+        {stats.map(([label, value]) => (
+          <div key={label}>
+            <p className="text-xs text-gray-400">{label}</p>
+            <p className="text-2xl font-bold text-navy-700 dark:text-white">
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // text / textarea (and any unknown type): up to 3 sample answers + total.
+  const texts = perResponse.map((ud) => ud.join(", ")).filter(Boolean);
+  if (texts.length === 0) {
+    return (
+      <p className="mt-3 text-sm text-gray-500">Sin respuestas todavía.</p>
+    );
+  }
+  return (
+    <div className="mt-3">
+      <ul className="flex flex-col gap-1.5">
+        {texts.slice(0, 3).map((t, i) => (
+          <li key={i} className="truncate text-sm italic text-gray-500">
+            “{clip(t)}”
+          </li>
+        ))}
+      </ul>
+      {texts.length > 3 && (
+        <p className="mt-1.5 text-xs text-gray-400">
+          y {texts.length - 3} respuesta(s) más
+        </p>
+      )}
+    </div>
+  );
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -67,6 +237,9 @@ const Dashboard = () => {
   // Insights fetched OUTSIDE DataStore (see INSIGHTS_QUERY note) + the ones
   // returned inline by the analyze endpoint. Preferred over survey.insights.
   const [apiInsights, setApiInsights] = React.useState(null);
+  // Canonical question definitions from the same GraphQL read (raw AWSJSON);
+  // preferred over the DataStore copy, which can lag behind direct writes.
+  const [apiQuestions, setApiQuestions] = React.useState(null);
 
   const gqlClient = React.useMemo(() => generateClient(), []);
 
@@ -80,6 +253,9 @@ const Dashboard = () => {
       const item = res?.data?.listSurveys?.items?.[0];
       if (item?.insights) {
         setApiInsights({ insights: item.insights, insightsAt: item.insightsAt });
+      }
+      if (item?.questions) {
+        setApiQuestions(item.questions);
       }
     } catch (e) {
       console.error("insights fetch:", e);
@@ -137,13 +313,71 @@ const Dashboard = () => {
 
   const insightsAt = apiInsights?.insightsAt ?? survey?.insightsAt;
 
-  // Columns for the detail table, from the survey definition (stable order).
-  const columns = React.useMemo(() => {
-    const qs = Array.isArray(survey?.questions) ? survey.questions : [];
-    return qs
-      .filter((q) => q.type !== "header" && q.type !== "paragraph")
-      .map((q) => ({ name: q.name, label: stripHtml(q.label) || q.name }));
-  }, [survey]);
+  // Per-question AI insights (new "perQuestion" key). Old analyses don't have
+  // it — the section then shows a one-line "re-analiza" hint instead.
+  const perQuestion = React.useMemo(
+    () => (Array.isArray(insights?.perQuestion) ? insights.perQuestion : []),
+    [insights]
+  );
+  const pqByName = React.useMemo(() => {
+    const m = {};
+    perQuestion.forEach((p) => {
+      if (p?.name) m[p.name] = p;
+    });
+    return m;
+  }, [perQuestion]);
+
+  // Canonical question list (order, types, option values): GraphQL copy first,
+  // DataStore second; if neither parses, derive the union of answered names
+  // from the responses themselves (label/type as stored in each answer).
+  const questions = React.useMemo(() => {
+    const canonical =
+      parseQuestions(apiQuestions) ?? parseQuestions(survey?.questions);
+    if (canonical && canonical.length > 0) return canonical;
+    const seen = new Map();
+    responses.forEach((r) => {
+      (Array.isArray(r.answers) ? r.answers : []).forEach((f) => {
+        if (f?.name && !seen.has(f.name)) {
+          seen.set(f.name, { name: f.name, label: f.label, type: f.type });
+        }
+      });
+    });
+    return [...seen.values()];
+  }, [apiQuestions, survey, responses]);
+
+  // One entry per real question with the userData of every response that
+  // answered it (blank/whitespace-only answers don't count).
+  const questionStats = React.useMemo(
+    () =>
+      questions
+        .filter((q) => q.type !== "header" && q.type !== "paragraph" && q.name)
+        .map((q) => {
+          const perResponse = [];
+          responses.forEach((r) => {
+            const f = (Array.isArray(r.answers) ? r.answers : []).find(
+              (a) => a?.name === q.name
+            );
+            const ud = Array.isArray(f?.userData)
+              ? f.userData.map((v) => String(v ?? "").trim()).filter(Boolean)
+              : [];
+            if (ud.length > 0) perResponse.push(ud);
+          });
+          return { q, perResponse, total: perResponse.length };
+        }),
+    [questions, responses]
+  );
+
+  // Columns for the detail table (stable order). Derived from the same
+  // normalized `questions` memo as the per-question cards, so the table and
+  // the Excel export survive a cold/lagging DataStore copy (GraphQL fallback)
+  // and legacy string-encoded question shapes.
+  const columns = React.useMemo(
+    () =>
+      questions
+        .filter((q) => q.type !== "header" && q.type !== "paragraph" && q.name)
+        .map((q) => ({ name: q.name, label: stripHtml(q.label) || q.name })),
+    [questions]
+  );
 
   const rows = React.useMemo(
     () =>
@@ -427,6 +661,59 @@ const Dashboard = () => {
             {responses.length} respuesta(s).
           </p>
         </Card>
+      )}
+
+      {/* Per-question results: one compact card per real question, with a
+          type-appropriate mini-viz and (when available) its AI insight. */}
+      {questionStats.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-navy-700 dark:text-white">
+              Resultados por pregunta
+            </h3>
+            {insights && perQuestion.length === 0 && (
+              <p className="mt-1 text-sm text-gray-500">
+                Re-analiza con IA para obtener el resumen por pregunta (si ya
+                lo hiciste, aún no hay suficiente feedback sustantivo por
+                pregunta).
+              </p>
+            )}
+          </div>
+          {questionStats.map(({ q, perResponse, total }, i) => {
+            const ai = pqByName[q.name];
+            return (
+              <Card key={q.name || i} className="!p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="min-w-0 text-base font-semibold text-navy-700 dark:text-white">
+                    {i + 1}. {stripHtml(q.label) || q.name}
+                  </p>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Chip color="gray" dot={false}>
+                      {FIELD_TYPE_LABELS[q.type] || q.type}
+                    </Chip>
+                    <span className="text-xs text-gray-400">
+                      {total} respuesta{total === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                </div>
+                <QuestionBody q={q} perResponse={perResponse} total={total} />
+                {ai && (
+                  <div className="mt-3 flex items-start gap-2 rounded-xl bg-teal-50 p-3 dark:bg-teal-900/20">
+                    <MdAutoAwesome className="mt-0.5 shrink-0 text-teal-600" />
+                    <p className="min-w-0 flex-1 text-sm text-teal-900 dark:text-teal-200">
+                      {ai.insight}
+                    </p>
+                    {ai.sentiment && (
+                      <Chip color={SENT_CHIP[ai.sentiment] || "gray"}>
+                        {ai.sentiment}
+                      </Chip>
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {/* Detail table */}

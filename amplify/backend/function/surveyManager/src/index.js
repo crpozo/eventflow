@@ -13,8 +13,11 @@
  *   • Scheduled (EventBridge, hourly): for every active Survey whose event has
  *     ended and that hasn't been sent, email the survey link to every CHECKED-IN
  *     attendee, then stamp sentAt.
- *   • POST /survey-test  { eventId, email }   → send ONE invite to `email`.
- *   • POST /survey-analyze { eventId }         → analyze responses, store insights.
+ *   • POST /survey-test  { eventId, email }         → send ONE invite to `email`.
+ *   • POST /survey-test  { eventId, sendAll: true } → manual send-now: invite every
+ *     checked-in attendee and stamp sentAt (re-sends even if sentAt exists).
+ *   • POST /survey-analyze { eventId }              → analyze responses, store
+ *     insights (incl. per-question insights in `perQuestion`).
  *
  * Env vars:
  *   API_EVENTFLOW_EVENTTABLE_NAME / _EVENTATTENDEETABLE_NAME /
@@ -27,7 +30,8 @@
  *   -- Anthropic backend:
  *   ANTHROPIC_API_KEY  plain value OR Amplify-secret SSM path (starts with "/")
  *   ANALYSIS_MODEL     model id, default "claude-opus-4-8"
- * rev 2026-07-02b (insights se guarda como Map nativo, no string — evita doble encoding AWSJSON)
+ * rev 2026-07-02d (envíos en lotes Promise.allSettled, {eligible,sent} para distinguir
+ * "sin check-ins" de "SES falló", y normalizeQuestions para elementos string legacy)
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -182,7 +186,8 @@ const SHAPE = `{
   "themes": [ { "title": "tema", "sentiment": "positivo|neutral|negativo", "mentions": entero, "summary": "1-2 frases", "sampleQuotes": ["cita textual corta"] } ],
   "strengths": ["fortaleza"],
   "concerns": ["preocupación"],
-  "recommendations": ["recomendación accionable"]
+  "recommendations": ["recomendación accionable"],
+  "perQuestion": [ { "name": "name exacto del campo", "question": "label de la pregunta", "insight": "1-2 frases sobre las respuestas de ESTA pregunta", "sentiment": "positivo|neutral|negativo" } ]
 }`;
 
 const SYSTEM =
@@ -199,8 +204,31 @@ const SYSTEM =
   "y themes, strengths, concerns y recommendations deben quedar VACÍOS ([]) o " +
   "casi vacíos. Es mejor un análisis corto y honesto que uno largo e inventado.";
 
-const userPrompt = (eventTitle, responses) =>
+// Survey.questions can arrive double-encoded AND with elements that are
+// themselves JSON strings (legacy rows) — same defense as the dashboard's
+// parseQuestions. Always returns an array of plain question objects.
+const normalizeQuestions = (raw) => {
+  const arr = parseJson(raw, []);
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((q) => (typeof q === "string" ? parseJson(q, null) : q))
+    .filter((q) => q && typeof q === "object");
+};
+
+// One line per real question (never header/paragraph): the exact `name` is the
+// matching key the dashboard uses against formBuilder fields.
+const questionsDigest = (questions) =>
+  normalizeQuestions(questions)
+    .filter((q) => q.type !== "header" && q.type !== "paragraph")
+    .map((q) => {
+      const label = String(q.label || q.name || "").replace(/<[^>]*>/g, "").trim();
+      return `  - name: ${q.name} | tipo: ${q.type} | pregunta: ${label}`;
+    })
+    .join("\n");
+
+const userPrompt = (eventTitle, responses, questions) =>
   `Evento: ${eventTitle}\nTotal de respuestas: ${responses.length}\n\n` +
+  `Preguntas de la encuesta (name | tipo | pregunta):\n${questionsDigest(questions)}\n\n` +
   `Respuestas de la encuesta:\n\n${buildDigest(responses)}\n\n` +
   "Analiza este feedback (resumen ejecutivo, sentimiento general, temas " +
   "principales con cuántas respuestas los mencionan y citas de ejemplo, " +
@@ -208,14 +236,20 @@ const userPrompt = (eventTitle, responses) =>
   "evento). Básate SOLO en lo que las respuestas realmente dicen: no rellenes " +
   "ni especules. Si el material no da para una sección, devuélvela vacía. Solo " +
   "cita textualmente frases escritas por asistentes (nunca valores mecánicos " +
-  `como 'option-1').\n\nDevuelve SOLO este JSON:\n${SHAPE}`;
+  "como 'option-1'). Además, en perQuestion devuelve un insight por pregunta " +
+  "SOLO para las preguntas listadas arriba que recibieron al menos una " +
+  "respuesta sustantiva: usa el name EXACTO tal como aparece en la lista (no " +
+  "lo traduzcas ni lo modifiques) y omite por completo las preguntas sin " +
+  "respuestas o cuyas respuestas sean solo texto de prueba — la regla de " +
+  "proporcionalidad aplica también pregunta por pregunta." +
+  `\n\nDevuelve SOLO este JSON:\n${SHAPE}`;
 
 // Bedrock backend via the model-agnostic Converse API: works with ANY chat
 // model in the catalog (Gemma, Nova, Claude…) — switching models is just the
 // BEDROCK_MODEL_ID env var, no code change. Auth is the Lambda's IAM role.
 // The system instructions ride inside the user message because some open
 // models (e.g. Gemma) reject Converse's dedicated `system` field.
-const analyzeBedrock = async (eventTitle, responses) => {
+const analyzeBedrock = async (eventTitle, responses, questions) => {
   const {
     BedrockRuntimeClient,
     ConverseCommand,
@@ -230,7 +264,7 @@ const analyzeBedrock = async (eventTitle, responses) => {
         {
           role: "user",
           content: [
-            { text: `${SYSTEM}\n\n${userPrompt(eventTitle, responses)}` },
+            { text: `${SYSTEM}\n\n${userPrompt(eventTitle, responses, questions)}` },
           ],
         },
       ],
@@ -263,24 +297,24 @@ const getApiKey = async () => {
 };
 
 // Anthropic first-party backend.
-const analyzeAnthropic = async (eventTitle, responses) => {
+const analyzeAnthropic = async (eventTitle, responses, questions) => {
   const Anthropic = require("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey: await getApiKey() });
   const msg = await client.messages.create({
     model: ANALYSIS_MODEL,
     max_tokens: 4000,
     system: SYSTEM,
-    messages: [{ role: "user", content: userPrompt(eventTitle, responses) }],
+    messages: [{ role: "user", content: userPrompt(eventTitle, responses, questions) }],
   });
   const textBlock = (msg.content || []).find((b) => b.type === "text");
   if (!textBlock) throw new Error("La IA no devolvió contenido");
   return extractJson(textBlock.text);
 };
 
-const analyze = (eventTitle, responses) =>
+const analyze = (eventTitle, responses, questions) =>
   BEDROCK_MODEL_ID
-    ? analyzeBedrock(eventTitle, responses)
-    : analyzeAnthropic(eventTitle, responses);
+    ? analyzeBedrock(eventTitle, responses, questions)
+    : analyzeAnthropic(eventTitle, responses, questions);
 
 /* ─────────────────────────── REST ─────────────────────────── */
 
@@ -316,6 +350,39 @@ const handleTest = async (body) => {
   return json(200, { ok: true, sentTo: email });
 };
 
+// Manual "send now" (POST /survey-test with { eventId, sendAll: true }): the
+// admin explicitly re-sends even if sentAt already exists — the UI confirms
+// first. Only stamps sentAt when at least one invite went out.
+const handleSendNow = async (body) => {
+  const eventId = body.eventId;
+  if (!eventId) return json(400, { error: "eventId es requerido" });
+  const [ev, survey] = await Promise.all([
+    getEvent(eventId),
+    getSurveyByEvent(eventId),
+  ]);
+  if (!ev) return json(404, { error: "Evento no encontrado" });
+  if (!survey) return json(400, { error: "Guarda la encuesta antes de enviar" });
+  const questions = normalizeQuestions(survey.questions);
+  if (questions.length === 0)
+    return json(400, { error: "La encuesta no tiene preguntas" });
+
+  const { eligible, sent } = await sendInvitesForSurvey(survey, ev);
+  if (eligible === 0)
+    return json(400, {
+      error: "No hay asistentes con check-in para enviar la encuesta",
+    });
+  // Eligible attendees existed but every SES send failed (per-recipient errors
+  // are logged in sendInvitesForSurvey): that's a server problem, not "no
+  // check-ins" — don't stamp sentAt, so a retry is still possible.
+  if (sent === 0)
+    return json(500, {
+      error: `No se pudo enviar ningún correo (${eligible} asistente(s) con check-in). Revisa la configuración de SES.`,
+    });
+  const sentAt = new Date().toISOString();
+  await stampSentAt(survey.id, sentAt);
+  return json(200, { ok: true, sent, sentAt });
+};
+
 const handleAnalyze = async (body) => {
   const eventId = body.eventId;
   if (!eventId) return json(400, { error: "eventId es requerido" });
@@ -328,7 +395,11 @@ const handleAnalyze = async (body) => {
   if (responses.length === 0)
     return json(400, { error: "Aún no hay respuestas para analizar" });
 
-  const insights = await analyze(ev?.title || "Evento", responses);
+  const insights = await analyze(
+    ev?.title || "Evento",
+    responses,
+    parseJson(survey.questions, [])
+  );
   const nowIso = new Date().toISOString();
   await ddb.send(
     new UpdateCommand({
@@ -344,6 +415,69 @@ const handleAnalyze = async (body) => {
 };
 
 /* ─────────────────────────── scheduled ─────────────────────────── */
+
+// Email the survey link to every CHECKED-IN attendee of the survey's event
+// (paginated query, de-duped by email). Sends in parallel batches — a serial
+// per-recipient await blows the 25s Lambda / 29s API Gateway timeout past
+// ~200 attendees. Returns { eligible, sent } so callers can tell "no
+// check-ins" apart from "all sends failed". Does NOT stamp sentAt.
+const SEND_BATCH = 20;
+const sendInvitesForSurvey = async (survey, ev) => {
+  const eventId = survey.surveyEventId;
+  const seen = new Set();
+  const recipients = [];
+  let lastKey;
+  do {
+    const page = await ddb.send(
+      new QueryCommand({
+        TableName: EVENTATTENDEE_TABLE,
+        IndexName: BYEVENT_ATT_INDEX,
+        KeyConditionExpression: "eventID = :e",
+        ExpressionAttributeValues: { ":e": eventId },
+        ExclusiveStartKey: lastKey,
+      })
+    );
+    for (const att of page.Items || []) {
+      if (!att.email || att.checkIn !== true) continue;
+      if (seen.has(att.email)) continue;
+      seen.add(att.email);
+      recipients.push(att);
+    }
+    lastKey = page.LastEvaluatedKey;
+  } while (lastKey);
+
+  let sent = 0;
+  for (let i = 0; i < recipients.length; i += SEND_BATCH) {
+    const batch = recipients.slice(i, i + SEND_BATCH);
+    const results = await Promise.allSettled(
+      batch.map((att) =>
+        sendInvite(
+          att.email,
+          ev.title || "Evento",
+          survey.emailSubject,
+          survey.emailIntro,
+          surveyLink(eventId, att.id)
+        )
+      )
+    );
+    results.forEach((r, j) => {
+      if (r.status === "fulfilled") sent += 1;
+      else console.error(`survey invite failed for ${batch[j].email}`, r.reason);
+    });
+  }
+  return { eligible: recipients.length, sent };
+};
+
+const stampSentAt = async (surveyId, iso) => {
+  await ddb.send(
+    new UpdateCommand({
+      TableName: SURVEY_TABLE,
+      Key: { id: surveyId },
+      UpdateExpression: "SET sentAt = :now",
+      ExpressionAttributeValues: { ":now": iso },
+    })
+  );
+};
 
 const runScheduled = async () => {
   const now = Date.now();
@@ -363,48 +497,10 @@ const runScheduled = async () => {
 
     const triggerIso = survey.sendAt || ev.endDate || ev.date;
     if (!triggerIso || new Date(triggerIso).getTime() > now) continue;
-    const questions = parseJson(survey.questions, []);
-    if (!Array.isArray(questions) || questions.length === 0) continue;
+    if (normalizeQuestions(survey.questions).length === 0) continue;
 
-    const sentTo = new Set();
-    let lastKey;
-    do {
-      const page = await ddb.send(
-        new QueryCommand({
-          TableName: EVENTATTENDEE_TABLE,
-          IndexName: BYEVENT_ATT_INDEX,
-          KeyConditionExpression: "eventID = :e",
-          ExpressionAttributeValues: { ":e": eventId },
-          ExclusiveStartKey: lastKey,
-        })
-      );
-      for (const att of page.Items || []) {
-        if (!att.email || att.checkIn !== true) continue;
-        if (sentTo.has(att.email)) continue;
-        sentTo.add(att.email);
-        try {
-          await sendInvite(
-            att.email,
-            ev.title || "Evento",
-            survey.emailSubject,
-            survey.emailIntro,
-            surveyLink(eventId, att.id)
-          );
-        } catch (e) {
-          console.error(`survey invite failed for ${att.email}`, e);
-        }
-      }
-      lastKey = page.LastEvaluatedKey;
-    } while (lastKey);
-
-    await ddb.send(
-      new UpdateCommand({
-        TableName: SURVEY_TABLE,
-        Key: { id: survey.id },
-        UpdateExpression: "SET sentAt = :now",
-        ExpressionAttributeValues: { ":now": new Date().toISOString() },
-      })
-    );
+    await sendInvitesForSurvey(survey, ev);
+    await stampSentAt(survey.id, new Date().toISOString());
   }
   return { ok: true };
 };
@@ -425,7 +521,10 @@ exports.handler = async (event) => {
     const path = event.path || event.rawPath || event.resource || "";
     try {
       if (/survey-analyze/.test(path)) return await handleAnalyze(body);
-      if (/survey-test/.test(path)) return await handleTest(body);
+      if (/survey-test/.test(path))
+        return body.sendAll === true
+          ? await handleSendNow(body)
+          : await handleTest(body);
       return json(404, { error: `Ruta no encontrada: ${path}` });
     } catch (e) {
       console.error("survey REST failed:", e);

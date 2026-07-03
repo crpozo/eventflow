@@ -3,7 +3,7 @@ import logo from "assets/img/usfq/logo_2025.png";
 import bgPlaceholder from "assets/img/usfq/bg-placeholder.webp";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Registro from "./registro/index";
-import { formatDateHour, formatHour, tzLabel } from 'scripts/utils';
+import { formatDateHour, formatHour, tzCityLabel } from 'scripts/utils';
 import { useAwsTranslation} from 'scripts/useAwsTranslation';
 import { getLandingUI } from 'scripts/landingTranslations';
 import LandingExtras from './components/LandingExtras';
@@ -68,7 +68,7 @@ export default function SignIn() {
   // the EVENT's timezone so every viewer sees the venue's wall clock (with a
   // "(GMT-6)" label). The LANGUAGE/FORMAT follows the page's ES/EN toggle.
   const eventTz = event?.timezone || "America/Guayaquil";
-  const eventTzLabel = tzLabel(eventTz);
+  const eventTzLabel = tzCityLabel(eventTz);
   const { eventDate, eventDateEnd } = useMemo(() => {
     // Multi-day: prefer startDate/endDate range, fall back to legacy single date.
     const startIso = event?.startDate || event?.date;
@@ -456,8 +456,8 @@ export default function SignIn() {
                               eventDate
                             )}
                           </p>
-                          <span className="text-xs text-gray-400">
-                            ({eventTzLabel})
+                          <span className="mt-1 inline-flex items-center whitespace-nowrap rounded-full bg-navy-700/10 px-2.5 py-0.5 align-middle text-xs font-semibold text-navy-700">
+                            {eventTzLabel}
                           </span>
                         </>
                       )}

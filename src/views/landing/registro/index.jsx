@@ -7,7 +7,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { DataStore } from "aws-amplify/datastore";
 import { Form } from "models";
 import { Attendee, EventAttendee } from "models";
-import { validateForm, formatSpanishDate, tzLabel } from "scripts/utils";
+import { validateForm, formatSpanishDate, tzCityLabel } from "scripts/utils";
 import { getLandingUI } from "scripts/landingTranslations";
 import { translateFormData, restoreOriginalLabels, translateString } from "scripts/translateFormData";
 import { uploadData, getUrl } from "aws-amplify/storage";
@@ -1032,7 +1032,7 @@ const Registro = (props) => {
                   </div>
                   <div className="ticket-success-info-item">
                     <span className="ticket-success-info-icon">📅</span>
-                    <span>{formatSpanishDate(props.event.date, lang, props.event?.timezone)}{" "}({tzLabel(props.event?.timezone)})</span>
+                    <span>{formatSpanishDate(props.event.date, lang, props.event?.timezone)}<span className="ml-2 inline-flex items-center whitespace-nowrap rounded-full bg-navy-700/10 px-2.5 py-0.5 align-middle text-xs font-semibold text-navy-700">{tzCityLabel(props.event?.timezone)}</span></span>
                   </div>
                   {props.event.location && (
                     <div className="ticket-success-info-item">
@@ -1111,7 +1111,7 @@ const Registro = (props) => {
                               {props.event.location}
                             </p>
                             <p className="ticket-date-badge">
-                              {formatSpanishDate(props.event.date, lang, props.event?.timezone)}{" "}({tzLabel(props.event?.timezone)})
+                              {formatSpanishDate(props.event.date, lang, props.event?.timezone)}<span className="ml-2 inline-flex items-center whitespace-nowrap rounded-full bg-white/20 px-2.5 py-0.5 align-middle text-xs font-semibold text-white">{tzCityLabel(props.event?.timezone)}</span>
                             </p>
                           </div>
                         </div>

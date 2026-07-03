@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { DataStore } from "aws-amplify/datastore";
-import { post } from "aws-amplify/api";
+import { post, generateClient } from "aws-amplify/api";
 import { Survey } from "models";
 import { readStoredEvent } from "scripts/utils";
 import { EditableSection, useCanEditSection } from "components/sectionEdit";
@@ -16,6 +16,7 @@ import {
   PrimaryButton,
   SecondaryButton,
   SavedAgo,
+  Chip,
 } from "components/adminUi";
 import { MdSend, MdOutlineRemoveRedEye } from "react-icons/md";
 import {
@@ -32,6 +33,20 @@ import {
 // for the data-compat rules). Invite config (subject/intro/schedule/active)
 // lives on the same Survey row, edited in the "Envío e invitación" tab.
 const USER_API = "userApi";
+
+// The send Lambda stamps sentAt straight in DynamoDB (no AppSync mutation),
+// so DataStore's local cache never sees it — same situation as the insights
+// on the results dashboard. Plain GraphQL reads DynamoDB directly.
+const SENT_AT_QUERY = /* GraphQL */ `
+  query SurveySentAtByEvent($filter: ModelSurveyFilterInput) {
+    listSurveys(filter: $filter, limit: 1000) {
+      items {
+        id
+        sentAt
+      }
+    }
+  }
+`;
 
 const TABS = [
   { id: "preguntas", label: "Preguntas" },
@@ -91,6 +106,11 @@ const Dashboard = () => {
   const [testEmail, setTestEmail] = React.useState("");
   const [testing, setTesting] = React.useState(false);
 
+  // Manual send — sentAt is fetched outside DataStore (see SENT_AT_QUERY).
+  const [sentAtInfo, setSentAtInfo] = React.useState(null);
+  const [sending, setSending] = React.useState(false);
+  const gqlClient = React.useMemo(() => generateClient(), []);
+
   const publicLink = `${window.location.origin}/landing/${eventId}/encuesta`;
 
   React.useEffect(() => {
@@ -123,6 +143,22 @@ const Dashboard = () => {
     });
     return () => sub.unsubscribe();
   }, [eventId, navigate]);
+
+  React.useEffect(() => {
+    if (!eventId) return;
+    (async () => {
+      try {
+        const res = await gqlClient.graphql({
+          query: SENT_AT_QUERY,
+          variables: { filter: { surveyEventId: { eq: eventId } } },
+        });
+        const item = res?.data?.listSurveys?.items?.[0];
+        if (item?.sentAt) setSentAtInfo(item.sentAt);
+      } catch (e) {
+        console.error("sentAt fetch:", e);
+      }
+    })();
+  }, [eventId, gqlClient]);
 
   // Upsert helper: create the Survey if it doesn't exist yet, else patch it.
   async function persistSurvey(patch) {
@@ -223,6 +259,56 @@ const Dashboard = () => {
       );
     } finally {
       setTesting(false);
+    }
+  }
+
+  // Manual send to every checked-in attendee. Same /survey-test route as the
+  // individual test — the Lambda branches on `sendAll`. Resending is allowed
+  // even with sentAt already stamped (the admin decides; we confirm first).
+  async function sendNow() {
+    if (!canEdit || sending) return;
+    // The Lambda reads the Survey row from DynamoDB: unsaved subject/intro
+    // edits (dirtyRef) would NOT go out in this send — warn before confirming.
+    const unsaved = dirtyRef.current
+      ? "\n\nTienes cambios sin guardar (asunto/mensaje o preguntas): el correo saldrá con la última versión GUARDADA."
+      : "";
+    const msg = sentAtInfo
+      ? `La encuesta ya se envió el ${new Date(sentAtInfo).toLocaleString(
+          "es-EC"
+        )}. ¿Reenviar a todos los asistentes con check-in?${unsaved}`
+      : `Se enviará la encuesta por correo a todos los asistentes con check-in. ¿Continuar?${
+          active
+            ? // Manual send stamps sentAt, and the scheduled sender skips any
+              // survey with sentAt — the pending auto-send won't run anymore.
+              "\n\nNota: el envío automático programado ya no se ejecutará después de este envío manual; los asistentes que hagan check-in más tarde no recibirán la encuesta salvo que la reenvíes."
+            : "\n(El envío automático está desactivado; este envío es manual y único.)"
+        }${unsaved}`;
+    if (!window.confirm(msg)) return;
+    setSending(true);
+    try {
+      const op = post({
+        apiName: USER_API,
+        path: "/survey-test",
+        options: { body: { eventId, sendAll: true } },
+      });
+      const { body } = await op.response;
+      const data = await body.json().catch(() => ({}));
+      if (data?.sentAt) setSentAtInfo(data.sentAt);
+      alert(`Encuesta enviada a ${data?.sent ?? 0} asistente(s)`);
+    } catch (e) {
+      console.error("sendNow:", e);
+      const status = e?.response?.statusCode;
+      let detail = "";
+      try {
+        detail = JSON.parse(e?.response?.body || "{}").error || "";
+      } catch (_) {}
+      alert(
+        `No se pudo enviar la encuesta${status ? ` (HTTP ${status})` : ""}${
+          detail ? `: ${detail}` : ""
+        }`
+      );
+    } finally {
+      setSending(false);
     }
   }
 
@@ -360,6 +446,35 @@ const Dashboard = () => {
             <PrimaryButton onClick={saveConfig} disabled={savingCfg || !canEdit}>
               {savingCfg ? "Guardando..." : "Guardar configuración"}
             </PrimaryButton>
+          </div>
+
+          <div className="mt-4 border-t border-gray-100 pt-4 dark:border-white/10">
+            <h4 className="text-base font-semibold text-navy-700 dark:text-white">
+              Envío manual
+            </h4>
+            <p className="mt-0.5 text-sm text-gray-500">
+              Envía la encuesta ahora a todos los asistentes con check-in —
+              útil si el envío automático quedó para después.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <PrimaryButton
+                onClick={sendNow}
+                disabled={sending || !canEdit}
+                className="flex shrink-0 items-center gap-1.5"
+              >
+                <MdSend className="h-4 w-4" />
+                {sending
+                  ? "Enviando…"
+                  : sentAtInfo
+                  ? "Reenviar encuesta"
+                  : "Enviar encuesta ahora"}
+              </PrimaryButton>
+              {sentAtInfo && (
+                <Chip color="green">
+                  Enviada el {new Date(sentAtInfo).toLocaleString("es-EC")}
+                </Chip>
+              )}
+            </div>
           </div>
         </Card>
       )}

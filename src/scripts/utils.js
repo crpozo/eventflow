@@ -31,6 +31,11 @@ export const readStoredEvent = () => {
 export const tzLabel = (tz) =>
   tz === "Pacific/Galapagos" ? "GMT-6" : "GMT-5";
 
+// City + GMT tag for the public landing pill ("Galápagos · GMT-6").
+// Proper nouns: same label in ES/EN, no i18n needed.
+export const tzCityLabel = (tz) =>
+  tz === "Pacific/Galapagos" ? "Galápagos · GMT-6" : "Quito · GMT-5";
+
 // Fixed UTC offset per Ecuador zone (no DST).
 const tzOffset = (tz) => (tz === "Pacific/Galapagos" ? "-06:00" : "-05:00");
 
