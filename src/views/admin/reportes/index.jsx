@@ -608,6 +608,13 @@ const Reportes = () => {
 
   // Get EventAttendee data on loading or selecting an event
   React.useEffect(() => {
+    // Deselected (back to the aggregate overview): clear the event detail.
+    if (eventSelectID == null || eventSelectID === "") {
+      setChartsData([]);
+      setAttendees(null);
+      setEventAttendes(null);
+      return;
+    }
     if (eventSelectID === 0) {
       const eventListID = eventList.map((event) => event.id);
 
@@ -1180,6 +1187,35 @@ const Reportes = () => {
 
   const campusFilterName = campusById.get(campusSelectID) || "todos";
 
+  // Selected event (for the drill-in detail): may be outside the current grid
+  // filter, so fall back to allEvents.
+  const selectedEvent = eventSelectID
+    ? shownEvents.find((e) => e.id === eventSelectID) ||
+      allEvents.find((e) => e.id === eventSelectID) ||
+      null
+    : null;
+
+  // Top metrics: the SELECTED event's own numbers when one is picked, else the
+  // aggregate over the shown grid.
+  const detail = React.useMemo(() => {
+    if (!selectedEvent) return aggregate;
+    const c = countByEventMap.get(selectedEvent.id) || {
+      registros: 0,
+      checkIn: 0,
+    };
+    const rate =
+      c.registros > 0 ? Math.round((c.checkIn / c.registros) * 100) : 0;
+    return { registros: c.registros, checkIn: c.checkIn, rate };
+  }, [selectedEvent, aggregate, countByEventMap]);
+
+  // Bring the event report into view when a card is picked.
+  const detailRef = React.useRef(null);
+  React.useEffect(() => {
+    if (eventSelectID && detailRef.current) {
+      detailRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [eventSelectID]);
+
   // Active filter chips (Campus principal + Área / Subárea / fechas cuando aplican).
   const activeAreaName =
     areaSelectID && areaSelectID !== "empty-area"
@@ -1421,47 +1457,69 @@ const Reportes = () => {
         </Card>
       )}
 
-      {/* 3) Aggregated metric cards (over the shown grid) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
-              <MdPeople className="h-5 w-5" />
-            </div>
-            <div>
-              <p className={TYPE.metricLabel}>Total Registros</p>
-              <p className={`${TYPE.metricValue} leading-tight`}>
-                {aggregate.registros}
+      {/* 3) Metrics — the selected event's own data, or the grid aggregate */}
+      <div ref={detailRef} className="scroll-mt-4">
+        {selectedEvent && (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                Reporte del evento
               </p>
+              <h2 className="truncate text-lg font-bold text-navy-700 dark:text-white">
+                {selectedEvent.title}
+              </h2>
             </div>
+            <SecondaryButton onClick={() => setEventSelectID(null)}>
+              Ver resumen de todos
+            </SecondaryButton>
           </div>
-        </Card>
+        )}
 
-        <Card>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
-              <MdCheckCircleOutline className="h-5 w-5" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+                <MdPeople className="h-5 w-5" />
+              </div>
+              <div>
+                <p className={TYPE.metricLabel}>
+                  {selectedEvent ? "Registros" : "Total Registros"}
+                </p>
+                <p className={`${TYPE.metricValue} leading-tight`}>
+                  {detail.registros}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className={TYPE.metricLabel}>Total Check-in</p>
-              <p className={`${TYPE.metricValue} leading-tight`}>
-                {aggregate.checkIn}
-              </p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card>
-          <div className="flex items-center gap-3">
-            <Donut value={aggregate.rate} size={64} stroke={7} />
-            <div>
-              <p className={TYPE.metricLabel}>Tasa de check-in</p>
-              <p className={`${TYPE.metricValue} leading-tight`}>
-                {aggregate.rate}%
-              </p>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+                <MdCheckCircleOutline className="h-5 w-5" />
+              </div>
+              <div>
+                <p className={TYPE.metricLabel}>
+                  {selectedEvent ? "Check-in" : "Total Check-in"}
+                </p>
+                <p className={`${TYPE.metricValue} leading-tight`}>
+                  {detail.checkIn}
+                </p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+
+          <Card>
+            <div className="flex items-center gap-3">
+              <Donut value={detail.rate} size={64} stroke={7} />
+              <div>
+                <p className={TYPE.metricLabel}>Tasa de check-in</p>
+                <p className={`${TYPE.metricValue} leading-tight`}>
+                  {detail.rate}%
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
 
       {/* 4) Section header */}
@@ -1559,11 +1617,11 @@ const Reportes = () => {
         </Card>
       )}
 
-      {/* 7) Per-question charts for the SELECTED event (echarts, unchanged) */}
-      {chartsData && chartsData.length > 0 && (
+      {/* 7) Per-question charts for the SELECTED event (echarts) */}
+      {selectedEvent && chartsData && chartsData.length > 0 && (
         <div className="mt-6">
           <h2 className="mb-3 text-lg font-bold text-navy-700 dark:text-white">
-            Gráficos del evento
+            Gráficos de {selectedEvent.title}
           </h2>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {chartsData.map((chart, index) => (
