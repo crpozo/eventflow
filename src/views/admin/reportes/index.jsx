@@ -23,6 +23,8 @@ import {
   MdLocationOn,
   MdOutlineCalendarMonth,
   MdSearchOff,
+  MdArrowBack,
+  MdInsertChartOutlined,
 } from "react-icons/md";
 import PieChartApache from "views/admin/reportes/components/PieChartApache";
 import { usePermissions } from "../../../providers/PermissionsProvider"
@@ -85,6 +87,52 @@ function Donut({ value = 0, size = 44, stroke = 5, className = "" }) {
   );
 }
 
+
+/* ── OptionBars: horizontal div-bars for option questions ─────────────────
+   Adapted from views/admin/eventos/encuesta-dashboard (OptionBars). Bar width
+   scales against the most-voted option; the % reads against total answers. No
+   chart lib — plain divs (track gray-100, fill teal-500). */
+function OptionBars({ rows, total }) {
+  const max = Math.max(1, ...rows.map((r) => r.count));
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      {rows.map((r, i) => {
+        const pct = total > 0 ? Math.round((r.count / total) * 100) : 0;
+        return (
+          <div key={i} className="flex items-center gap-3">
+            <span
+              title={r.label}
+              className="line-clamp-2 w-36 shrink-0 break-words text-sm text-navy-700 dark:text-gray-100 sm:w-52"
+            >
+              {r.label}
+            </span>
+            <div className="h-2.5 w-full min-w-0 flex-1 rounded-full bg-gray-100 dark:bg-navy-700">
+              <div
+                className="h-2.5 rounded-full bg-teal-500"
+                style={{
+                  width: `${
+                    r.count > 0 ? Math.max(2, (r.count / max) * 100) : 0
+                  }%`,
+                }}
+              />
+            </div>
+            <span className="w-20 shrink-0 text-right text-sm font-semibold text-navy-700 dark:text-white">
+              {r.count} · {pct}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Human labels for formBuilder field types (chips in "Resultados del evento").
+const FIELD_TYPE_LABELS = {
+  "radio-group": "Opción única",
+  select: "Lista desplegable",
+  "checkbox-group": "Selección múltiple",
+  number: "Número",
+};
 
 const Reportes = () => {
 
@@ -497,7 +545,16 @@ const Reportes = () => {
 
       if (filtered.length > 0) {
         setEventList(filtered);
-        setEventSelectID(filtered[0].id);
+        // Do NOT auto-open an event here: with the resumen/detalle split,
+        // setting eventSelectID to a real id makes selectedEvent truthy and
+        // hijacks the view into MODO DETALLE of an arbitrary event. Picking a
+        // Subárea must only narrow the grid (shownEvents already filters by
+        // careerSelectID). Keep a still-valid prior selection, else stay in
+        // resumen (''). Detail is entered only by clicking a card or the
+        // Eventos <select>.
+        setEventSelectID((prev) =>
+          filtered.some((ev) => ev.id === prev) ? prev : ""
+        );
       } else {
         setEventSelectID("");
         setEventList([{ id: "empty-event", title: "Vacío" }]);
@@ -1208,6 +1265,124 @@ const Reportes = () => {
     return { registros: c.registros, checkIn: c.checkIn, rate };
   }, [selectedEvent, aggregate, countByEventMap]);
 
+  /*******************************************/
+  /********* DERIVED DISTRIBUTIONS ***********/
+  /*******************************************/
+
+  // Labels of questions already rendered as echarts (chartsData), so we don't
+  // duplicate them as derived bars. chartsData entries carry `title` (stripped
+  // label) from groupEventData; compare against the stripped question label.
+  const chartedLabels = React.useMemo(() => {
+    const s = new Set();
+    (chartsData || []).forEach((c) => {
+      const t = stripHtml(c?.title);
+      if (t) s.add(t);
+    });
+    return s;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartsData]);
+
+  // Derive per-question distributions from `attendees` (each element is ONE
+  // attendee's formAnswers array of fields {name,type,label,userData,values?}).
+  // Unlike chartsData (which only exists when the Form set pie-/bar-chart
+  // classNames), this ALWAYS produces bars for option questions in the data.
+  //
+  // Shape: [{ name, label, type, rows:[{label,count}], total, nums? }]
+  //  - option types (radio-group/select/checkbox-group): rows + total
+  //  - number: nums (finite values) for Promedio/Mín/Máx
+  const questionStats = React.useMemo(() => {
+    if (!Array.isArray(attendees) || attendees.length === 0) return [];
+
+    const CHART_TYPES = new Set([
+      "radio-group",
+      "select",
+      "checkbox-group",
+      "number",
+    ]);
+
+    // 1) Canonical question list = union of graphable fields across attendees,
+    //    keyed by name (fallback label). First field seen wins its meta
+    //    (type/label/values), matching how the Form defined the question.
+    const order = [];
+    const byKey = new Map();
+    attendees.forEach((ans) => {
+      (Array.isArray(ans) ? ans : []).forEach((f) => {
+        if (!f || f.type === "header" || f.type === "paragraph") return;
+        if (!CHART_TYPES.has(f.type)) return;
+        const key = f.name || f.label;
+        if (!key) return;
+        if (!byKey.has(key)) {
+          byKey.set(key, {
+            name: f.name || key,
+            label: f.label,
+            type: f.type,
+            values: Array.isArray(f.values) ? f.values : null,
+            perResponse: [],
+          });
+          order.push(key);
+        }
+      });
+    });
+
+    if (order.length === 0) return [];
+
+    // 2) Collect userData per attendee for each question (blank answers skip).
+    attendees.forEach((ans) => {
+      (Array.isArray(ans) ? ans : []).forEach((f) => {
+        if (!f) return;
+        const key = f.name || f.label;
+        const entry = byKey.get(key);
+        if (!entry) return;
+        const ud = Array.isArray(f.userData)
+          ? f.userData.map((v) => String(v ?? "").trim()).filter(Boolean)
+          : [];
+        if (ud.length > 0) entry.perResponse.push(ud);
+      });
+    });
+
+    // 3) Build the render-ready stats, skipping questions already shown as
+    //    echarts (dedupe by stripped label) to avoid duplicate graphs.
+    return order
+      .map((key) => byKey.get(key))
+      .filter((e) => !chartedLabels.has(stripHtml(e.label)))
+      .map((e) => {
+        const total = e.perResponse.length;
+        if (e.type === "number") {
+          const nums = e.perResponse
+            .flat()
+            .map(Number)
+            .filter((n) => Number.isFinite(n));
+          return { ...e, total: nums.length, nums };
+        }
+        // Option types: count each option once per response (checkbox-group
+        // userData can carry several values; duplicates still count once).
+        const counts = new Map();
+        e.perResponse.forEach((ud) => {
+          new Set(ud).forEach((v) => counts.set(v, (counts.get(v) || 0) + 1));
+        });
+        // Map stored VALUE → its label via the field's `values`; unknown values
+        // render raw and are appended after the defined options.
+        const defined = Array.isArray(e.values) ? e.values : [];
+        const rows = defined.map((o) => ({
+          label: stripHtml(o.label) || String(o.value),
+          count: counts.get(String(o.value)) || 0,
+        }));
+        const known = new Set(defined.map((o) => String(o.value)));
+        [...counts.keys()]
+          .filter((v) => !known.has(v))
+          .forEach((v) => rows.push({ label: v, count: counts.get(v) }));
+        return { ...e, rows, total };
+      })
+      .filter((e) => (e.type === "number" ? true : e.rows.length > 0));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendees, chartedLabels]);
+
+  // Whether the detail view has anything graphable (echarts or derived bars).
+  const hasCharts =
+    (chartsData && chartsData.length > 0) || questionStats.length > 0;
+  // Attendees still loading for the selected event (null = not yet fetched).
+  const detailLoading = selectedEvent != null && attendees == null;
+
   // Bring the event report into view when a card is picked.
   const detailRef = React.useRef(null);
   React.useEffect(() => {
@@ -1234,15 +1409,22 @@ const Reportes = () => {
         subtitle="Métricas y exportación de datos de tus eventos."
         actions={
           <>
-            {/* Short labels below sm so both buttons fit a phone viewport */}
-            <PrimaryButton
-              onClick={() => exportToExcel(attendees, eventAttendes)}
-              className="flex items-center gap-1.5 whitespace-nowrap"
-            >
-              <MdFileDownload className="h-4 w-4" />
-              <span className="hidden sm:inline">Exportar evento actual</span>
-              <span className="sm:hidden">Evento actual</span>
-            </PrimaryButton>
+            {/* Short labels below sm so both buttons fit a phone viewport.
+                "Exportar evento actual" solo se muestra con un evento abierto:
+                en modo resumen attendees es null y el botón siempre caería en el
+                alert "No hay datos…" (guarda de exportToExcel). El modo detalle
+                ya ofrece "Exportar este evento"; "Exportar base completa" queda
+                siempre disponible. */}
+            {selectedEvent && (
+              <PrimaryButton
+                onClick={() => exportToExcel(attendees, eventAttendes)}
+                className="flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <MdFileDownload className="h-4 w-4" />
+                <span className="hidden sm:inline">Exportar evento actual</span>
+                <span className="sm:hidden">Evento actual</span>
+              </PrimaryButton>
+            )}
             <SecondaryButton
               onClick={exportAllEventsToExcel}
               className="whitespace-nowrap"
@@ -1255,6 +1437,10 @@ const Reportes = () => {
         }
       />
 
+      {/* ── MODO RESUMEN (selectedEvent == null): búsqueda + filtros +
+          métricas agregadas + grilla de tarjetas ─────────────────────── */}
+      {!selectedEvent && (
+        <>
       {/* 1) Search bar + Filtros toggle */}
       <div className="mb-3 flex gap-3">
         <div className="flex flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 dark:border-white/10 dark:bg-navy-800">
@@ -1471,69 +1657,47 @@ const Reportes = () => {
         </Card>
       )}
 
-      {/* 3) Metrics — the selected event's own data, or the grid aggregate */}
-      <div ref={detailRef} className="scroll-mt-4">
-        {selectedEvent && (
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                Reporte del evento
+      {/* 3) Aggregated metrics over the shown grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+              <MdPeople className="h-5 w-5" />
+            </div>
+            <div>
+              <p className={TYPE.metricLabel}>Total Registros</p>
+              <p className={`${TYPE.metricValue} leading-tight`}>
+                {detail.registros}
               </p>
-              <h2 className="truncate text-lg font-bold text-navy-700 dark:text-white">
-                {selectedEvent.title}
-              </h2>
             </div>
-            <SecondaryButton onClick={() => setEventSelectID(null)}>
-              Ver resumen de todos
-            </SecondaryButton>
           </div>
-        )}
+        </Card>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
-                <MdPeople className="h-5 w-5" />
-              </div>
-              <div>
-                <p className={TYPE.metricLabel}>
-                  {selectedEvent ? "Registros" : "Total Registros"}
-                </p>
-                <p className={`${TYPE.metricValue} leading-tight`}>
-                  {detail.registros}
-                </p>
-              </div>
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+              <MdCheckCircleOutline className="h-5 w-5" />
             </div>
-          </Card>
+            <div>
+              <p className={TYPE.metricLabel}>Total Check-in</p>
+              <p className={`${TYPE.metricValue} leading-tight`}>
+                {detail.checkIn}
+              </p>
+            </div>
+          </div>
+        </Card>
 
-          <Card>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
-                <MdCheckCircleOutline className="h-5 w-5" />
-              </div>
-              <div>
-                <p className={TYPE.metricLabel}>
-                  {selectedEvent ? "Check-in" : "Total Check-in"}
-                </p>
-                <p className={`${TYPE.metricValue} leading-tight`}>
-                  {detail.checkIn}
-                </p>
-              </div>
+        <Card>
+          <div className="flex items-center gap-3">
+            <Donut value={detail.rate} size={64} stroke={7} />
+            <div>
+              <p className={TYPE.metricLabel}>Tasa de check-in</p>
+              <p className={`${TYPE.metricValue} leading-tight`}>
+                {detail.rate}%
+              </p>
             </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-3">
-              <Donut value={detail.rate} size={64} stroke={7} />
-              <div>
-                <p className={TYPE.metricLabel}>Tasa de check-in</p>
-                <p className={`${TYPE.metricValue} leading-tight`}>
-                  {detail.rate}%
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
       </div>
 
       {/* 4) Section header */}
@@ -1630,17 +1794,191 @@ const Reportes = () => {
           </div>
         </Card>
       )}
+        </>
+      )}
 
-      {/* 7) Per-question charts for the SELECTED event (echarts) */}
-      {selectedEvent && chartsData && chartsData.length > 0 && (
-        <div className="mt-6">
-          <h2 className="mb-3 text-lg font-bold text-navy-700 dark:text-white">
-            Gráficos de {selectedEvent.title}
-          </h2>
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {chartsData.map((chart, index) => (
-              <PieChartApache key={index} option={chart.options} height="450px" />
-            ))}
+      {/* ── MODO DETALLE (selectedEvent != null): vista individual del
+          evento — barra de acciones, header, métricas propias y gráficos/
+          distribuciones derivadas de sus preguntas ──────────────────────── */}
+      {selectedEvent && (
+        <div ref={detailRef} className="scroll-mt-4">
+          {/* 1) Barra superior: volver + exportar este evento */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <SecondaryButton onClick={() => setEventSelectID(null)}>
+              <MdArrowBack className="h-4 w-4" />
+              Volver a eventos
+            </SecondaryButton>
+            <PrimaryButton
+              onClick={() => exportToExcel(attendees, eventAttendes)}
+              className="flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <MdFileDownload className="h-4 w-4" />
+              Exportar este evento
+            </PrimaryButton>
+          </div>
+
+          {/* 2) Header del evento */}
+          <Card className="mb-4 !p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              Reporte del evento
+            </p>
+            <h2 className="mt-1 text-2xl font-bold text-navy-700 dark:text-white">
+              {selectedEvent.title}
+            </h2>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
+              <span className="flex items-center gap-1.5">
+                <MdOutlineCalendarMonth className="h-4 w-4" />
+                {fmtShortDate(selectedEvent)}
+              </span>
+              <Chip color={statusFor(selectedEvent).color}>
+                {statusFor(selectedEvent).label}
+              </Chip>
+              {eventBreadcrumb(selectedEvent) && (
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <MdLocationOn className="h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {eventBreadcrumb(selectedEvent)}
+                  </span>
+                </span>
+              )}
+            </div>
+          </Card>
+
+          {/* 3) Métricas del evento */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+                  <MdPeople className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className={TYPE.metricLabel}>Registros</p>
+                  <p className={`${TYPE.metricValue} leading-tight`}>
+                    {detail.registros}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-brand-500">
+                  <MdCheckCircleOutline className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className={TYPE.metricLabel}>Check-in</p>
+                  <p className={`${TYPE.metricValue} leading-tight`}>
+                    {detail.checkIn}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <Donut value={detail.rate} size={64} stroke={7} />
+                <div>
+                  <p className={TYPE.metricLabel}>Tasa de check-in</p>
+                  <p className={`${TYPE.metricValue} leading-tight`}>
+                    {detail.rate}%
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* 4) Resultados del evento: gráficos + distribuciones */}
+          <div className="mt-6">
+            <h2 className="mb-3 text-lg font-bold text-navy-700 dark:text-white">
+              Resultados del evento
+            </h2>
+
+            {detailLoading ? (
+              <Card>
+                <p className="text-base text-gray-500">
+                  Cargando datos del evento…
+                </p>
+              </Card>
+            ) : hasCharts ? (
+              <div className="flex flex-col gap-4">
+                {/* echarts configured via Form className (pie-/bar-chart) */}
+                {chartsData && chartsData.length > 0 && (
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    {chartsData.map((chart, index) => (
+                      <PieChartApache
+                        key={index}
+                        option={chart.options}
+                        height="450px"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* distribuciones derivadas de attendees (opción múltiple /
+                    número) que NO estén ya cubiertas por los echarts */}
+                {questionStats.map((s, i) => (
+                  <Card key={s.name || i} className="!p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="min-w-0 text-base font-semibold text-navy-700 dark:text-white">
+                        {stripHtml(s.label) || s.name}
+                      </p>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Chip color="gray" dot={false}>
+                          {FIELD_TYPE_LABELS[s.type] || s.type}
+                        </Chip>
+                        <span className="text-xs text-gray-400">
+                          {s.total} respuesta{s.total === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {s.type === "number" ? (
+                      s.nums.length === 0 ? (
+                        <p className="mt-3 text-sm text-gray-500">
+                          Sin valores numéricos.
+                        </p>
+                      ) : (
+                        <div className="mt-3 flex gap-8">
+                          {[
+                            [
+                              "Promedio",
+                              (
+                                s.nums.reduce((a, b) => a + b, 0) /
+                                s.nums.length
+                              ),
+                            ],
+                            ["Mín", Math.min(...s.nums)],
+                            ["Máx", Math.max(...s.nums)],
+                          ].map(([label, value]) => (
+                            <div key={label}>
+                              <p className="text-xs text-gray-400">{label}</p>
+                              <p className="text-2xl font-bold text-navy-700 dark:text-white">
+                                {Number.isInteger(value)
+                                  ? String(value)
+                                  : value.toFixed(1)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    ) : (
+                      <OptionBars rows={s.rows} total={s.total} />
+                    )}
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <div className="flex items-center gap-3 text-gray-500">
+                  <MdInsertChartOutlined className="h-6 w-6 shrink-0" />
+                  <span className="text-base">
+                    Este evento no tiene preguntas de opción múltiple para
+                    graficar. Usa “Exportar este evento” para ver todas las
+                    respuestas.
+                  </span>
+                </div>
+              </Card>
+            )}
           </div>
         </div>
       )}
