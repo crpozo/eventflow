@@ -2,7 +2,14 @@ import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event, EventAttendee, Landing } from "models";
-import { MdAdd, MdChevronRight } from "react-icons/md";
+import {
+  MdAdd,
+  MdChevronRight,
+  MdCalendarToday,
+  MdOutlineSchedule,
+  MdShowChart,
+  MdCheckCircleOutline,
+} from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
 import {
@@ -100,6 +107,44 @@ const relativeWhen = (iso, tz) => {
 
 const monthShort = (d) =>
   new Intl.DateTimeFormat("es-EC", { month: "short" }).format(d).replace(/\./g, "");
+
+// Split the shared "lun 06/07/26 · 09:00" into { date, time } so the table
+// can stack them on two lines without changing the displayed values.
+const dateParts = (iso, tz) => {
+  const s = compactDate(iso, tz);
+  if (!s) return { date: "", time: "" };
+  const [date, time = ""] = s.split(" · ");
+  return { date, time };
+};
+
+// Two significant initials of an event title: skip numeric tokens and the
+// common Spanish stopwords, uppercase. One word → its first two letters.
+const STOPWORDS = new Set(["de", "y", "la", "el", "en", "del"]);
+const initialsOf = (title) => {
+  const words = (title || "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w && !/^\d/.test(w) && !STOPWORDS.has(w.toLowerCase()));
+  if (words.length === 0) return "EV";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+};
+
+// Soft, stable avatar palette keyed by a cheap hash of the event id. All
+// classes verified present in tailwind.config (teal/gray/red/amber/blue).
+const AVATAR_COLORS = [
+  "bg-teal-50 text-teal-600",
+  "bg-gray-100 text-gray-500",
+  "bg-red-50 text-brand-500",
+  "bg-amber-50 text-amber-600",
+  "bg-blue-50 text-blue-600",
+];
+const avatarColor = (id) => {
+  const s = String(id || "");
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+};
 
 const slugify = (s) =>
   (s || "")
@@ -371,61 +416,184 @@ const Dashboard = () => {
         // Compact by design: the whole dashboard must fit ONE viewport.
         <div className="flex flex-col gap-4">
 
-          {/* Metrics — ONE card with four cells split by hairlines (mock);
-              secondary info sits inline next to the value, no sparkline. */}
-          <Card className="!p-0">
-            <div className="grid grid-cols-2 divide-gray-100 dark:divide-white/10 xl:grid-cols-4 xl:divide-x">
-              <div
-                className="cursor-pointer rounded-l-2xl px-5 py-4 transition hover:bg-gray-50 dark:hover:bg-navy-700"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate("/admin/eventos")}
-                onKeyDown={(ev) => {
-                  if (ev.key === "Enter" || ev.key === " ") {
-                    ev.preventDefault();
-                    navigate("/admin/eventos");
-                  }
-                }}
-              >
+          {/* Metrics — four separate cards, each with a tenuous icon top-right
+              and an enriched footer (stacked bars / comparison / progress). */}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {/* 1 — Total eventos: split progress bar finalizados/próximos */}
+            <Card
+              className="!p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-navy-700"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate("/admin/eventos")}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  navigate("/admin/eventos");
+                }
+              }}
+            >
+              <div className="flex items-start justify-between">
                 <p className={TYPE.metricLabel}>Total eventos</p>
-                <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
-                  {events.length}
-                </p>
+                <MdCalendarToday className="h-5 w-5 text-gray-300" />
               </div>
+              <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
+                {events.length}
+                <span className="text-sm font-normal text-gray-400"> eventos</span>
+              </p>
+              <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
+                <div
+                  className="bg-teal-500"
+                  style={{
+                    width: `${events.length ? (finished.length / events.length) * 100 : 0}%`,
+                  }}
+                />
+                <div
+                  className="bg-brand-500"
+                  style={{
+                    width: `${events.length ? (upcoming.length / events.length) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+              <div className="mt-1.5 flex justify-between text-xs">
+                <span className="text-gray-500">
+                  <span className="font-semibold text-teal-600">{finished.length}</span>{" "}
+                  finalizados
+                </span>
+                <span className="text-gray-500">
+                  <span className="font-semibold text-brand-500">{upcoming.length}</span>{" "}
+                  próximos
+                </span>
+              </div>
+            </Card>
 
-              <div className="px-5 py-4">
+            {/* 2 — Próximos: el más próximo + pill "En N días" */}
+            <Card className="!p-4">
+              <div className="flex items-start justify-between">
                 <p className={TYPE.metricLabel}>Próximos</p>
-                <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
-                  {upcoming.length}
-                </p>
+                <MdOutlineSchedule className="h-5 w-5 text-gray-300" />
               </div>
+              <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
+                {upcoming.length}
+                <span className="text-sm font-normal text-gray-400"> eventos</span>
+              </p>
+              {upcoming.length > 0 ? (
+                (() => {
+                  const next = upcoming[0];
+                  // "lun 06/07/26" → "06/07" (dd/MM).
+                  const ddmm = dateParts(eventStart(next), next.timezone)
+                    .date.replace(/^\D+/, "")
+                    .slice(0, 5);
+                  return (
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-400">El más próximo</p>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="line-clamp-1 min-w-0 text-sm font-semibold text-navy-700 dark:text-white">
+                          {next.title}
+                          <span className="font-normal text-gray-500">
+                            {" · "}
+                            {ddmm}
+                          </span>
+                        </p>
+                        <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-brand-500">
+                          {relativeWhen(eventStart(next), next.timezone)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <p className="mt-3 text-sm text-gray-400">Sin eventos próximos</p>
+              )}
+            </Card>
 
-              <div className="px-5 py-4">
+            {/* 3 — Registros · ventana: mini-barras comparativas */}
+            <Card className="!p-4">
+              <div className="flex items-start justify-between">
                 <p className={TYPE.metricLabel}>{P.metricLabel}</p>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                  <p className={`${TYPE.metricValue} leading-tight`}>
-                    {regStats.cur}
-                  </p>
-                  {regStats.delta !== null && <Delta pct={regStats.delta} />}
-                </div>
+                <MdShowChart className="h-5 w-5 text-gray-300" />
               </div>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                <p className={`${TYPE.metricValue} leading-tight`}>{regStats.cur}</p>
+                {regStats.delta !== null && <Delta pct={regStats.delta} />}
+              </div>
+              {(() => {
+                const labels =
+                  period === "30d"
+                    ? ["Este mes", "Mes ant."]
+                    : period === "6m"
+                    ? ["Este sem.", "Sem. ant."]
+                    : ["Este año", "Año ant."];
+                const max = Math.max(regStats.cur, regStats.prev, 1);
+                const w = (v) => (v > 0 ? Math.max(4, (v / max) * 100) : 0);
+                return (
+                  <div className="mt-3 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-xs text-gray-500">
+                        {labels[0]}
+                      </span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
+                        <div
+                          className="h-full rounded-full bg-teal-500"
+                          style={{ width: `${w(regStats.cur)}%` }}
+                        />
+                      </div>
+                      <span className="w-10 shrink-0 text-right text-xs font-semibold text-navy-700 dark:text-white">
+                        {regStats.cur}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-xs text-gray-500">
+                        {labels[1]}
+                      </span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
+                        <div
+                          className="h-full rounded-full bg-gray-300 dark:bg-navy-600"
+                          style={{ width: `${w(regStats.prev)}%` }}
+                        />
+                      </div>
+                      <span className="w-10 shrink-0 text-right text-xs font-semibold text-navy-700 dark:text-white">
+                        {regStats.prev}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </Card>
 
-              <div className="px-5 py-4">
+            {/* 4 — Finalizados: barra de progreso del total */}
+            <Card className="!p-4">
+              <div className="flex items-start justify-between">
                 <p className={TYPE.metricLabel}>Finalizados</p>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                  <p className={`${TYPE.metricValue} leading-tight`}>
-                    {finished.length}
-                  </p>
-                  {events.length > 0 && (
-                    <p className="whitespace-nowrap text-sm text-gray-500">
-                      {Math.round((finished.length / events.length) * 100)}% del
-                      total
-                    </p>
-                  )}
-                </div>
+                <MdCheckCircleOutline className="h-5 w-5 text-gray-300" />
               </div>
-            </div>
-          </Card>
+              <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
+                {finished.length}
+                <span className="text-sm font-normal text-gray-400">
+                  {" "}
+                  de {events.length}
+                </span>
+              </p>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-navy-700">
+                <div
+                  className="h-full rounded-full bg-teal-500"
+                  style={{
+                    width: `${events.length ? (finished.length / events.length) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+              <div className="mt-1.5 flex justify-between text-xs">
+                <span className="text-gray-500">
+                  {events.length
+                    ? Math.round((finished.length / events.length) * 100)
+                    : 0}
+                  % del total
+                </span>
+                <span className="font-semibold text-navy-700 dark:text-white">
+                  {finished.length}/{events.length}
+                </span>
+              </div>
+            </Card>
+          </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
             {/* Upcoming events table */}
@@ -483,21 +651,47 @@ const Dashboard = () => {
                                 isToday ? "rounded-l-xl pl-3" : "pl-3"
                               }`}
                             >
-                              <p className="truncate text-base font-bold text-navy-700 dark:text-white">
-                                {e.title}
-                              </p>
-                              {isToday ? (
-                                <span className="mt-1 inline-block rounded-lg bg-red-50 px-2 py-0.5 text-xs font-semibold text-brand-500">
-                                  Hoy
-                                </span>
-                              ) : (
-                                <p className="mt-0.5 text-sm text-gray-500">
-                                  {when}
-                                </p>
-                              )}
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${avatarColor(
+                                    e.id
+                                  )}`}
+                                >
+                                  {initialsOf(e.title)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate text-base font-bold text-navy-700 dark:text-white">
+                                    {e.title}
+                                  </p>
+                                  {isToday ? (
+                                    <span className="mt-1 inline-block rounded-lg bg-red-50 px-2 py-0.5 text-xs font-semibold text-brand-500">
+                                      Hoy
+                                    </span>
+                                  ) : (
+                                    <p className="mt-0.5 text-sm text-gray-500">
+                                      {when}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className={`${TYPE.td} whitespace-nowrap py-3 pr-4`}>
-                              {compactDate(eventStart(e), e.timezone)}
+                              {(() => {
+                                const { date, time } = dateParts(
+                                  eventStart(e),
+                                  e.timezone
+                                );
+                                return (
+                                  <>
+                                    <span className="block">{date}</span>
+                                    {time && (
+                                      <span className="block text-sm text-gray-500">
+                                        {time}
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </td>
                             <td className="py-3 pr-4">{chipFor(e.id)}</td>
                             <td
