@@ -213,27 +213,6 @@ const Dashboard = () => {
     return { upcoming: up, finished: fin };
   }, [events]);
 
-  // Mini sparkline: events CREATED per calendar month, last 6 months.
-  const sparkline = React.useMemo(() => {
-    const now = new Date();
-    const buckets = [];
-    const byMonth = new Map();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const b = { value: 0 };
-      byMonth.set(`${d.getFullYear()}-${d.getMonth()}`, b);
-      buckets.push(b);
-    }
-    events.forEach((e) => {
-      if (!e.createdAt) return;
-      const d = new Date(e.createdAt);
-      if (isNaN(d.getTime())) return;
-      const b = byMonth.get(`${d.getFullYear()}-${d.getMonth()}`);
-      if (b) b.value += 1;
-    });
-    return buckets.map((b) => b.value);
-  }, [events]);
-
   // Registrations inside the selected window vs. the previous one.
   const regStats = React.useMemo(() => {
     const nowMs = Date.now();
@@ -318,7 +297,6 @@ const Dashboard = () => {
 
   const P = PERIODS[period];
   const rows = upcoming.slice(0, 4);
-  const sparkMax = Math.max(...sparkline, 0);
   const chartMax = Math.max(...chart.buckets.map((b) => b.value), 0);
 
   const exportCsv = () => {
@@ -398,73 +376,72 @@ const Dashboard = () => {
         // Compact by design: the whole dashboard must fit ONE viewport.
         <div className="flex flex-col gap-4">
 
-          {/* Metrics */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Card
-              className="!p-4 cursor-pointer transition hover:shadow-xl"
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate("/admin/eventos")}
-              onKeyDown={(ev) => {
-                if (ev.key === "Enter" || ev.key === " ") {
-                  ev.preventDefault();
-                  navigate("/admin/eventos");
-                }
-              }}
-            >
-              <p className={TYPE.metricLabel}>Total eventos</p>
-              <div className="mt-1 flex items-end justify-between gap-2">
-                <p className={`${TYPE.metricValue} leading-tight`}>{events.length}</p>
-                <div className="flex h-10 items-end gap-1">
-                  {sparkline.map((v, i) => (
-                    <div
-                      key={i}
-                      className={`w-1.5 rounded-sm ${
-                        i === sparkline.length - 1
-                          ? "bg-brand-500"
-                          : "bg-gray-200 dark:bg-navy-700"
-                      }`}
-                      style={{
-                        height: `${sparkMax > 0 ? Math.max(4, Math.round((v / sparkMax) * 40)) : 4}px`,
-                      }}
-                    />
-                  ))}
+          {/* Metrics — ONE card with four cells split by hairlines (mock);
+              secondary info sits inline next to the value, no sparkline. */}
+          <Card className="!p-0">
+            <div className="grid grid-cols-2 divide-gray-100 dark:divide-white/10 xl:grid-cols-4 xl:divide-x">
+              <div
+                className="cursor-pointer rounded-l-2xl px-5 py-4 transition hover:bg-gray-50 dark:hover:bg-navy-700"
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate("/admin/eventos")}
+                onKeyDown={(ev) => {
+                  if (ev.key === "Enter" || ev.key === " ") {
+                    ev.preventDefault();
+                    navigate("/admin/eventos");
+                  }
+                }}
+              >
+                <p className={TYPE.metricLabel}>Total eventos</p>
+                <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
+                  {events.length}
+                </p>
+              </div>
+
+              <div className="px-5 py-4">
+                <p className={TYPE.metricLabel}>Próximos</p>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                  <p className={`${TYPE.metricValue} leading-tight`}>
+                    {upcoming.length}
+                  </p>
+                  {upcoming.length > 0 && (
+                    <p className="whitespace-nowrap text-sm text-gray-500">
+                      sig.{" "}
+                      {shortDayMonth(
+                        eventStart(upcoming[0]),
+                        upcoming[0].timezone
+                      ).replace(/\s+/g, "-")}
+                    </p>
+                  )}
                 </div>
               </div>
-            </Card>
 
-            <Card className="!p-4">
-              <p className={TYPE.metricLabel}>Próximos</p>
-              <div className="mt-1 flex items-end justify-between gap-2">
-                <p className={`${TYPE.metricValue} leading-tight`}>{upcoming.length}</p>
-                {upcoming.length > 0 && (
-                  <p className="text-sm text-gray-500">
-                    sig. {shortDayMonth(eventStart(upcoming[0]), upcoming[0].timezone)}
+              <div className="px-5 py-4">
+                <p className={TYPE.metricLabel}>{P.metricLabel}</p>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                  <p className={`${TYPE.metricValue} leading-tight`}>
+                    {regStats.cur}
                   </p>
-                )}
+                  {regStats.delta !== null && <Delta pct={regStats.delta} />}
+                </div>
               </div>
-            </Card>
 
-            <Card className="!p-4">
-              <p className={TYPE.metricLabel}>{P.metricLabel}</p>
-              <div className="mt-1 flex items-end justify-between gap-2">
-                <p className={`${TYPE.metricValue} leading-tight`}>{regStats.cur}</p>
-                {regStats.delta !== null && <Delta pct={regStats.delta} />}
-              </div>
-            </Card>
-
-            <Card className="!p-4">
-              <p className={TYPE.metricLabel}>Finalizados</p>
-              <div className="mt-1 flex items-end justify-between gap-2">
-                <p className={`${TYPE.metricValue} leading-tight`}>{finished.length}</p>
-                {events.length > 0 && (
-                  <p className="text-sm text-gray-500">
-                    {Math.round((finished.length / events.length) * 100)}% del total
+              <div className="px-5 py-4">
+                <p className={TYPE.metricLabel}>Finalizados</p>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                  <p className={`${TYPE.metricValue} leading-tight`}>
+                    {finished.length}
                   </p>
-                )}
+                  {events.length > 0 && (
+                    <p className="whitespace-nowrap text-sm text-gray-500">
+                      {Math.round((finished.length / events.length) * 100)}% del
+                      total
+                    </p>
+                  )}
+                </div>
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
 
           <div className="grid gap-4 xl:grid-cols-3">
             {/* Upcoming events table */}
@@ -499,29 +476,50 @@ const Dashboard = () => {
                     <tbody>
                       {rows.map((e, i) => {
                         const count = countByEvent.get(e.id) || 0;
+                        const when = relativeWhen(eventStart(e), e.timezone);
+                        // Today's event gets a tinted row + red "Hoy" pill (mock).
+                        const isToday = when === "Hoy";
                         return (
                           <tr
                             key={e.id}
                             onClick={() => navigate(`/admin/eventos/${e.id}/detalle/`)}
-                            className={`cursor-pointer transition hover:bg-gray-50 dark:hover:bg-navy-700 ${
+                            className={`cursor-pointer transition ${
+                              isToday
+                                ? "bg-gray-50 hover:bg-gray-100 dark:bg-navy-700/60 dark:hover:bg-navy-700"
+                                : "hover:bg-gray-50 dark:hover:bg-navy-700"
+                            } ${
                               i < rows.length - 1
                                 ? "border-b border-gray-100 dark:border-white/10"
                                 : ""
                             }`}
                           >
-                            <td className="w-full max-w-0 py-2.5 pr-4">
+                            <td
+                              className={`w-full max-w-0 py-2.5 pr-4 ${
+                                isToday ? "rounded-l-xl" : ""
+                              }`}
+                            >
                               <p className="truncate text-base font-bold text-navy-700 dark:text-white">
                                 {e.title}
                               </p>
-                              <p className="mt-0.5 text-sm text-gray-500">
-                                {relativeWhen(eventStart(e), e.timezone)}
-                              </p>
+                              {isToday ? (
+                                <span className="mt-1 inline-block rounded-lg bg-red-50 px-2 py-0.5 text-xs font-semibold text-brand-500">
+                                  Hoy
+                                </span>
+                              ) : (
+                                <p className="mt-0.5 text-sm text-gray-500">
+                                  {when}
+                                </p>
+                              )}
                             </td>
                             <td className={`${TYPE.td} whitespace-nowrap py-2.5 pr-4`}>
                               {compactDate(eventStart(e), e.timezone)}
                             </td>
                             <td className="py-2.5 pr-4">{chipFor(e.id)}</td>
-                            <td className="whitespace-nowrap py-2.5 text-right">
+                            <td
+                              className={`whitespace-nowrap py-2.5 text-right ${
+                                isToday ? "rounded-r-xl" : ""
+                              }`}
+                            >
                               <span className="inline-flex items-center gap-1">
                                 {count > 0 ? (
                                   <span className="text-base font-bold text-navy-700 dark:text-white">
@@ -627,8 +625,15 @@ const Dashboard = () => {
                   rest (the navy version stole too much attention). */}
               {featured && (
                 <Card className="!p-4">
-                  <h3 className="line-clamp-1 text-lg font-bold text-navy-700 dark:text-white">
-                    Reporte del {featured.title}
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                    Reporte ·{" "}
+                    {relativeWhen(eventStart(featured), featured.timezone) ===
+                    "Hoy"
+                      ? "Evento de hoy"
+                      : "Próximo evento"}
+                  </p>
+                  <h3 className="mt-1.5 line-clamp-1 text-lg font-bold text-navy-700 dark:text-white">
+                    {featured.title}
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
                     {countByEvent.get(featured.id) || 0} inscritos hasta hoy. Exporta
