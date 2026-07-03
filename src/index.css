@@ -1036,9 +1036,21 @@ p.amplify-field__description{
   float: none !important;
   margin-right: 0 !important;
 }
+/* Bold only the question label (direct child of .form-group). Answer option
+   labels (radios/checkboxes) are nested deeper, so they stay normal weight. */
 .survey-form .rendered-form label {
-  font-weight: 600;
+  font-weight: 400;
   margin-bottom: 6px;
+}
+.survey-form .rendered-form .form-group > label {
+  font-weight: 700;
+}
+/* Defensive: force option labels to normal weight regardless of nesting. */
+.survey-form .rendered-form .radio label,
+.survey-form .rendered-form .checkbox label,
+.survey-form .rendered-form .formbuilder-radio label,
+.survey-form .rendered-form .formbuilder-checkbox label {
+  font-weight: 400;
 }
 .survey-form .rendered-form .radio,
 .survey-form .rendered-form .checkbox {
