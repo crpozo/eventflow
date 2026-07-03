@@ -98,21 +98,6 @@ const relativeWhen = (iso, tz) => {
   }
 };
 
-// "06 jul" (event tz, for the same reason as above)
-const shortDayMonth = (iso, tz) => {
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return "";
-    return new Intl.DateTimeFormat("es-EC", {
-      day: "2-digit", month: "short", timeZone: tz || "America/Guayaquil",
-    })
-      .format(d)
-      .replace(/\./g, "");
-  } catch (e) {
-    return "";
-  }
-};
-
 const monthShort = (d) =>
   new Intl.DateTimeFormat("es-EC", { month: "short" }).format(d).replace(/\./g, "");
 
@@ -400,20 +385,9 @@ const Dashboard = () => {
 
               <div className="px-5 py-4">
                 <p className={TYPE.metricLabel}>Próximos</p>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                  <p className={`${TYPE.metricValue} leading-tight`}>
-                    {upcoming.length}
-                  </p>
-                  {upcoming.length > 0 && (
-                    <p className="whitespace-nowrap text-sm text-gray-500">
-                      sig.{" "}
-                      {shortDayMonth(
-                        eventStart(upcoming[0]),
-                        upcoming[0].timezone
-                      ).replace(/\s+/g, "-")}
-                    </p>
-                  )}
-                </div>
+                <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
+                  {upcoming.length}
+                </p>
               </div>
 
               <div className="px-5 py-4">
@@ -477,23 +451,26 @@ const Dashboard = () => {
                       {rows.map((e, i) => {
                         const count = countByEvent.get(e.id) || 0;
                         const when = relativeWhen(eventStart(e), e.timezone);
-                        // Red "Hoy" pill for today's event; row backgrounds
-                        // alternate (zebra, mock) instead of border separators.
+                        // ONLY today's event gets the tinted row + red "Hoy"
+                        // pill — highlighting every other row read as selection.
                         const isToday = when === "Hoy";
-                        const zebra = i % 2 === 0;
                         return (
                           <tr
                             key={e.id}
                             onClick={() => navigate(`/admin/eventos/${e.id}/detalle/`)}
                             className={`cursor-pointer transition ${
-                              zebra
+                              isToday
                                 ? "bg-gray-50 hover:bg-gray-100 dark:bg-navy-700/60 dark:hover:bg-navy-700"
                                 : "hover:bg-gray-50 dark:hover:bg-navy-700"
+                            } ${
+                              !isToday && i < rows.length - 1
+                                ? "border-b border-gray-100 dark:border-white/10"
+                                : ""
                             }`}
                           >
                             <td
                               className={`w-full max-w-0 py-3 pr-4 ${
-                                zebra ? "rounded-l-xl pl-3" : "pl-3"
+                                isToday ? "rounded-l-xl pl-3" : "pl-3"
                               }`}
                             >
                               <p className="truncate text-base font-bold text-navy-700 dark:text-white">
@@ -515,7 +492,7 @@ const Dashboard = () => {
                             <td className="py-3 pr-4">{chipFor(e.id)}</td>
                             <td
                               className={`whitespace-nowrap py-3 pr-3 text-right ${
-                                zebra ? "rounded-r-xl" : ""
+                                isToday ? "rounded-r-xl" : ""
                               }`}
                             >
                               <span className="inline-flex items-center gap-1">
