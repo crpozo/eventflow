@@ -599,7 +599,9 @@ const Dashboard = () => {
               {/* Report card for the featured upcoming event — white like the
                   rest (the navy version stole too much attention). */}
               {featured && (
-                <Card className="!p-4">
+                // flex-1: stretches so its bottom edge lines up with the
+                // bottom of the events card (the grid stretches the column).
+                <Card className="flex flex-1 flex-col !p-4">
                   <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
                     Reporte ·{" "}
                     {relativeWhen(eventStart(featured), featured.timezone) ===
@@ -614,7 +616,7 @@ const Dashboard = () => {
                     {countByEvent.get(featured.id) || 0} inscritos hasta hoy. Exporta
                     la lista para logística y check-in.
                   </p>
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-auto flex gap-2 pt-3">
                     <PrimaryButton onClick={() => navigate("/admin/reportes")}>
                       Ver reporte
                     </PrimaryButton>
