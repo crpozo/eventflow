@@ -30,8 +30,9 @@
  *   -- Anthropic backend:
  *   ANTHROPIC_API_KEY  plain value OR Amplify-secret SSM path (starts with "/")
  *   ANALYSIS_MODEL     model id, default "claude-opus-4-8"
- * rev 2026-07-02d (envíos en lotes Promise.allSettled, {eligible,sent} para distinguir
- * "sin check-ins" de "SES falló", y normalizeQuestions para elementos string legacy)
+ * rev 2026-07-03 (envío automático 1h DESPUÉS del fin del evento cuando no hay
+ * sendAt explícito; envíos en lotes Promise.allSettled, {eligible,sent} para
+ * distinguir "sin check-ins" de "SES falló", normalizeQuestions legacy)
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -495,8 +496,17 @@ const runScheduled = async () => {
     const ev = await getEvent(eventId);
     if (!ev) continue;
 
-    const triggerIso = survey.sendAt || ev.endDate || ev.date;
-    if (!triggerIso || new Date(triggerIso).getTime() > now) continue;
+    // Con sendAt explícito → a esa hora exacta. Sin sendAt (checkbox "enviar
+    // al finalizar") → 1 HORA DESPUÉS del fin del evento, para no interrumpir
+    // mientras aún está en curso / cerrando.
+    let triggerMs;
+    if (survey.sendAt) {
+      triggerMs = new Date(survey.sendAt).getTime();
+    } else {
+      const endIso = ev.endDate || ev.date || ev.startDate;
+      triggerMs = endIso ? new Date(endIso).getTime() + 60 * 60 * 1000 : NaN;
+    }
+    if (!Number.isFinite(triggerMs) || triggerMs > now) continue;
     if (normalizeQuestions(survey.questions).length === 0) continue;
 
     await sendInvitesForSurvey(survey, ev);

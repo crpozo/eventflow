@@ -402,8 +402,8 @@ const Dashboard = () => {
               }}
             />
             <span className="text-sm text-navy-700 dark:text-white">
-              Activar envío automático al finalizar el evento (solo a quienes
-              hicieron check-in)
+              Activar envío automático 1 hora después de finalizar el evento
+              (solo a quienes hicieron check-in)
             </span>
           </label>
 
@@ -418,7 +418,10 @@ const Dashboard = () => {
                 }}
               />
             </Field>
-            <Field label="Enviar el" hint="Opcional — por defecto, al finalizar.">
+            <Field
+              label="Enviar el"
+              hint="Opcional — por defecto, 1 hora después de finalizar."
+            >
               <TextInput
                 type="datetime-local"
                 value={sendAt}
