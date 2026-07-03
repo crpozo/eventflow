@@ -133,21 +133,31 @@ const Dashboard = () => {
   const [attendees, setAttendees] = React.useState([]);
   const [landings, setLandings] = React.useState([]);
   const [period, setPeriod] = React.useState("30d");
+  // Keep the loader up until DataStore's first synced snapshot: an empty local
+  // cache emits [] before the cloud sync lands, which showed a false "no hay
+  // eventos" for a few seconds on load.
+  const [synced, setSynced] = React.useState(false);
   const navigate = useNavigate();
   const { loading, isAdmin } = usePermissions();
 
   React.useEffect(() => {
     if (loading) return;
+    // Show events as soon as any arrive (local cache); only keep waiting on the
+    // spinner while we have zero AND DataStore hasn't confirmed the sync yet.
+    const onResults = ({ items, isSynced }) => {
+      setEvents(items);
+      if (isSynced || items.length) setSynced(true);
+    };
     let sub;
     if (isAdmin) {
-      sub = DataStore.observeQuery(Event).subscribe((results) => setEvents(results.items));
+      sub = DataStore.observeQuery(Event).subscribe(onResults);
     } else {
       const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
       if (!subAreaId) {
         navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos" } });
         return;
       }
-      sub = DataStore.observeQuery(Event, (e) => e.careerID.eq(subAreaId)).subscribe((results) => setEvents(results.items));
+      sub = DataStore.observeQuery(Event, (e) => e.careerID.eq(subAreaId)).subscribe(onResults);
     }
     return () => sub && sub.unsubscribe();
   }, [loading, isAdmin, navigate]);
@@ -271,7 +281,7 @@ const Dashboard = () => {
     [upcoming, countByEvent]
   );
 
-  if (loading) {
+  if (loading || !synced) {
     return (
       <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
         <span className="loader"></span>
