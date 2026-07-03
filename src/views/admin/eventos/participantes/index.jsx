@@ -3,7 +3,7 @@ import { DataStore } from 'aws-amplify/datastore';
 import { EventAttendee, Event } from "models"
 import { useNavigate, useParams } from "react-router-dom";
 import DevelopmentTable from "./components/DevelopmentTable";
-import { PageHeader } from "components/adminUi";
+import { PageHeader, PageLoader } from "components/adminUi";
 import { formatDate, readStoredEvent } from 'scripts/utils'
 import { regenMissingTickets } from "services/regenMissingTickets";
 import { useCanEditSection } from "components/sectionEdit";
@@ -86,7 +86,7 @@ const Marketplace = () => {
   }, [id]);
 
   if(!rows){
-    return <p>Loading...</p>
+    return <PageLoader />
   }
 
   return (

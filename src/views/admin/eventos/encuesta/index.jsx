@@ -17,6 +17,7 @@ import {
   SecondaryButton,
   SavedAgo,
   Chip,
+  PageLoader,
 } from "components/adminUi";
 import { MdSend, MdOutlineRemoveRedEye } from "react-icons/md";
 import {
@@ -317,12 +318,9 @@ const Dashboard = () => {
   }
 
   if (!ready) {
-    return (
-      <div className="bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
-        <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">Cargando...</h2>
-      </div>
-    );
+    // PageLoader (columna de contenido): el overlay full-screen viejo tapaba
+    // el sidebar dentro del admin.
+    return <PageLoader />;
   }
 
   return (

@@ -18,6 +18,7 @@ import {
   SecondaryButton,
   Chip,
   SavedAgo,
+  PageLoader,
 } from "components/adminUi";
 import { formatDateHour, tzLabel, readStoredEvent } from "scripts/utils";
 import {
@@ -209,12 +210,7 @@ const Dashboard = () => {
     });
 
   if (!loaded) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const startIso = event?.startDate || event?.date;

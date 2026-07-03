@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DataStore } from "aws-amplify/datastore";
 import { Campus, Area, Career } from "models";
 import { usePermissions } from "../../providers/PermissionsProvider";
-import { PageHeader, Card, PrimaryButton } from "components/adminUi";
+import { PageHeader, Card, PrimaryButton, PageLoader } from "components/adminUi";
 import { MdAdd, MdEdit, MdChevronRight, MdArrowForward } from "react-icons/md";
 
 /**
@@ -98,12 +98,7 @@ export default function Navegar() {
     level === "campus" ? selectCampus(item) : level === "area" ? selectArea(item) : selectCareer(item);
 
   if (loading || permLoading) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

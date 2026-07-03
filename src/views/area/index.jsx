@@ -4,7 +4,7 @@ import NftCard from "components/card/NftCard";
 import { DataStore } from 'aws-amplify/datastore';
 import { Area } from "models";
 import { usePermissions } from "../../providers/PermissionsProvider";
-import { PageHeader, Card, PrimaryButton } from "components/adminUi";
+import { PageHeader, Card, PrimaryButton, PageLoader } from "components/adminUi";
 import { MdAdd } from "react-icons/md";
 
 const Dashboard = () => {
@@ -41,12 +41,7 @@ const Dashboard = () => {
   }, [campusID, navigate, permLoading, isAdmin, areaIDsAllowed]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

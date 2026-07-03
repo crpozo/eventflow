@@ -5,7 +5,7 @@ import { DataStore } from "aws-amplify/datastore";
 import { Campus } from "models";
 import { MdAdd } from "react-icons/md";
 import { usePermissions } from "../../providers/PermissionsProvider";
-import { PageHeader, Card, PrimaryButton } from "components/adminUi";
+import { PageHeader, Card, PrimaryButton, PageLoader } from "components/adminUi";
 
 /**
  * Campus list with realtime updates from DataStore.
@@ -58,12 +58,7 @@ const CampusComponent = () => {
   }, [items, isAdmin, campusIDsAllowed]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

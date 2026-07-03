@@ -12,6 +12,7 @@ import {
   PrimaryButton,
   SecondaryButton,
   TYPE,
+  PageLoader,
 } from "components/adminUi";
 import { MdAutoAwesome, MdFileDownload, MdRefresh } from "react-icons/md";
 
@@ -462,12 +463,7 @@ const Dashboard = () => {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

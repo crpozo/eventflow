@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { DataStore } from "aws-amplify/datastore";
 import { Campus } from "models";
 import { CampusUpdateForm } from "ui-components";
-import { PageHeader, Card } from "components/adminUi";
+import { PageHeader, Card, PageLoader } from "components/adminUi";
 import { MdDeleteOutline } from "react-icons/md";
 
 const Dashboard = () => {
@@ -29,12 +29,7 @@ const Dashboard = () => {
   };
 
   if (!campus) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

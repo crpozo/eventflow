@@ -21,6 +21,8 @@ import { MdCheck, MdContentCopy } from "react-icons/md";
  *  Micro      · chips y botones mini: text-xs font-medium
  *  Métricas   · valor: TYPE.metricValue · etiqueta: TYPE.metricLabel
  *  Tablas     · encabezado: TYPE.th · celda: TYPE.td (text-base)
+ *  Loading    · PageLoader dentro del admin (70vh, columna de contenido);
+ *               FullScreenLoader solo fuera del layout
  * Body text is text-base (16px) — 14/15px read too small in the admin. No
  * ad-hoc arbitrary sizes: any new admin page must use these tokens/components.
  */
@@ -235,6 +237,37 @@ export function Chip({ color = "gray", dot = true, children }) {
       {dot && <span className="h-1.5 w-1.5 rounded-full bg-[currentColor]" />}
       {children}
     </span>
+  );
+}
+
+/* ── Loaders ──────────────────────────────────────────────────────────────
+   Dos posiciones canónicas, nada más:
+   · PageLoader: DENTRO del layout admin (cambios de sección, gates de
+     permisos/datos). Centrado en la columna de contenido (min-h-[70vh]),
+     hereda el fondo del layout y nunca tapa el sidebar.
+   · FullScreenLoader: FUERA del layout (primer load, rutas públicas).
+     Overlay fijo centrado en el viewport.
+   El anillo .loader (index.css) ya trae margin-bottom: 25px — no añadir
+   márgenes extra al texto. */
+export function PageLoader({ label = "Cargando…" }) {
+  return (
+    <div className="flex min-h-[70vh] w-full flex-col items-center justify-center">
+      <span className="loader" />
+      {/* gray-600 (#4c4c4c): este config remapea gray-500 a #adb5bd, que sobre
+          el fondo blanco del admin queda a ~2.3:1 — ilegible como label. */}
+      <p className="text-base text-gray-600 dark:text-gray-300">{label}</p>
+    </div>
+  );
+}
+
+export function FullScreenLoader({ label = "Cargando…" }) {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-lightPrimary p-3 dark:bg-navy-900">
+      <span className="loader" />
+      {/* dark:text-gray-300 obligatorio: gray-600 (#4c4c4c) sobre navy-900 da
+          ~2.1:1 y el label desaparece en modo oscuro (espejo de PageLoader). */}
+      <p className="text-base text-gray-600 dark:text-gray-300">{label}</p>
+    </div>
   );
 }
 

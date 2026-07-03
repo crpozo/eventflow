@@ -4,6 +4,9 @@ import logo from "assets/img/usfq/logo_usfq.svg";
 import campus from "assets/img/usfq/USFQ_campus.webp";
 import Hotjar from '@hotjar/browser';
 import { PermissionsProvider, usePermissions } from "./providers/PermissionsProvider";
+// Kit ligero (React + react-router + react-icons, sin deps pesadas ni ciclos):
+// FullScreenLoader es el loader canónico centrado en viewport fuera del layout.
+import { FullScreenLoader } from "components/adminUi";
 import { I18n, Hub } from 'aws-amplify/utils';
 import { Authenticator, translations } from '@aws-amplify/ui-react'
 import { useAuthenticator } from '@aws-amplify/ui-react';
@@ -28,12 +31,7 @@ Amplify.configure(config);
 
 // Shared loading fallback for Suspense boundaries
 function LoadingFallback() {
-  return (
-    <div className="fixed inset-0 z-50 flex min-h-screen w-full flex-col items-center justify-center bg-lightPrimary p-3">
-      <span className="loader"></span>
-      <h2 className="mb-2 text-center text-xl text-black">Cargando...</h2>
-    </div>
-  );
+  return <FullScreenLoader />;
 }
 
 // Component to handle routes based on user role
@@ -130,14 +128,7 @@ function App() {
   
   // Loading state
   if(!route || (authStatus === 'configuring' && 'Loading...') || (authStatus !== 'unauthenticated' && !isReady)){
-    return(
-      <div className="bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
-        <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
-          Cargando...
-        </h2>
-      </div>
-    );
+    return <FullScreenLoader />;
   }
 
   // For anonymous users - render routes directly without PermissionsProvider

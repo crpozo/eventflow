@@ -9,7 +9,7 @@ import {
 } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
-import { PageHeader, Card, PrimaryButton } from "components/adminUi";
+import { PageHeader, Card, PrimaryButton, PageLoader } from "components/adminUi";
 
 
 const Marketplace = () => {
@@ -207,12 +207,7 @@ const Marketplace = () => {
   }, [events, selectedArea, careerToArea]);
 
   if(loading){
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    )
+    return <PageLoader />;
   }
 
   return (

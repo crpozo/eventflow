@@ -19,6 +19,7 @@ import {
   PrimaryButton,
   SecondaryButton,
   TYPE,
+  PageLoader,
 } from "components/adminUi";
 
 const DAY_MS = 864e5;
@@ -327,12 +328,7 @@ const Dashboard = () => {
   );
 
   if (loading || !synced) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const P = PERIODS[period];
@@ -446,9 +442,6 @@ const Dashboard = () => {
                 {events.length}
                 <span className="text-sm font-normal text-gray-400"> eventos</span>
               </p>
-              <p className="mt-2 text-sm text-gray-500">
-                {finished.length} finalizados · {upcoming.length} próximos
-              </p>
             </Card>
 
             {/* 2 — Próximos */}
@@ -461,17 +454,6 @@ const Dashboard = () => {
                 {upcoming.length}
                 <span className="text-sm font-normal text-gray-400"> eventos</span>
               </p>
-              {upcoming.length > 0 ? (
-                <p className="mt-2 line-clamp-1 text-sm text-gray-500">
-                  {upcoming[0].title}
-                  <span className="font-medium text-brand-500">
-                    {" · "}
-                    {relativeWhen(eventStart(upcoming[0]), upcoming[0].timezone)}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-2 text-sm text-gray-400">Sin eventos próximos</p>
-              )}
             </Card>
 
             {/* 3 — Registros · ventana */}
@@ -484,14 +466,6 @@ const Dashboard = () => {
                 <p className={`${TYPE.metricValue} leading-tight`}>{regStats.cur}</p>
                 {regStats.delta !== null && <Delta pct={regStats.delta} />}
               </div>
-              <p className="mt-2 text-sm text-gray-500">
-                {regStats.prev}{" "}
-                {period === "30d"
-                  ? "el mes anterior"
-                  : period === "6m"
-                  ? "el semestre anterior"
-                  : "el año anterior"}
-              </p>
             </Card>
 
             {/* 4 — Finalizados */}
@@ -506,12 +480,6 @@ const Dashboard = () => {
                   {" "}
                   de {events.length}
                 </span>
-              </p>
-              <p className="mt-2 text-sm text-gray-500">
-                {events.length
-                  ? Math.round((finished.length / events.length) * 100)
-                  : 0}
-                % del total
               </p>
             </Card>
           </div>

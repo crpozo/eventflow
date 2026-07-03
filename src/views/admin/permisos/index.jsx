@@ -5,7 +5,7 @@ import { DataStore } from "aws-amplify/datastore";
 import { User } from "models";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { MdAdd, MdEdit, MdDelete, MdSearch, MdOutlineMail } from "react-icons/md";
-import { PageHeader, Card, PrimaryButton, TYPE } from "components/adminUi";
+import { PageHeader, Card, PrimaryButton, TYPE, PageLoader } from "components/adminUi";
 import UserFormModal from "./components/UserFormModal";
 import EventPermissionsManager from "./components/EventPermissionsManager";
 
@@ -349,14 +349,7 @@ const AdminUserManager = () => {
   }, [users, search]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">
-          Cargando permisos…
-        </h2>
-      </div>
-    );
+    return <PageLoader label="Cargando permisos…" />;
   }
 
   if (!currentUser || currentUser.role?.name !== "Admin") {

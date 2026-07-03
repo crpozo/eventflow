@@ -12,6 +12,7 @@ import { getLandingUI } from "scripts/landingTranslations";
 import { translateFormData, restoreOriginalLabels, translateString } from "scripts/translateFormData";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { validateBannerCode } from "../../../services/nomina/validateBannerCode";
+import { FullScreenLoader } from "components/adminUi";
 
 // Lazy-load jQuery + FormBuilder (only needed when form is rendered)
 let $ = null;
@@ -760,7 +761,7 @@ const Registro = (props) => {
   };
 
   if (!formData) {
-    return <p>Loading...</p>;
+    return <FullScreenLoader label={ui.loading} />;
   }
 
   return (
@@ -790,9 +791,12 @@ const Registro = (props) => {
             >
               
             {formBuilderLoading ? (
-              <div className="flex flex-col justify-center items-center">
+              /* Loader inline de sección: carga del formBuilder dentro del
+                 landing ya renderizado — no debe tapar banner/título con un
+                 overlay full-screen (FullScreenLoader es solo FUERA del layout). */
+              <div className="flex flex-col items-center justify-center py-16">
                 <span className="loader" />
-                <p className="text-center mt-4">{ui.loadingForm}</p>
+                <p className="text-base text-gray-600">{ui.loadingForm}</p>
               </div>
             ) : formBuilderError ? (
               <p className="text-red-500 text-center">
@@ -966,12 +970,7 @@ const Registro = (props) => {
 
         {
           isProcessing && (
-            <div className="fixed bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
-              <span className="loader"></span>
-              <h2 className="mb-2 text-center text-xl text-black">
-                {ui.processingDoNotClose}
-              </h2>
-            </div>
+            <FullScreenLoader label={ui.processingDoNotClose} />
           )
         }
 
@@ -992,7 +991,9 @@ const Registro = (props) => {
 
         {!authorized && formRegister && !searchParams.get('EventAttendee') && props.landing.cost != 'Gratuito' && 
           <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
-            <div className="loader mb-4 h-16 w-16 rounded-full border-4 border-t-4 border-gray-200 ease-linear"></div>
+            {/* Anillo canónico .loader (index.css) sin overrides; el overlay
+                conserva su título/texto propios (redirectingTitle/Text). */}
+            <span className="loader"></span>
             <h2 className="mb-2 text-center text-2xl font-semibold text-black">
               {ui.redirectingTitle}
             </h2>

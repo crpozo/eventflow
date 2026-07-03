@@ -7,6 +7,7 @@ import { formatDateHour, formatHour, tzCityLabel } from 'scripts/utils';
 import { useAwsTranslation} from 'scripts/useAwsTranslation';
 import { getLandingUI } from 'scripts/landingTranslations';
 import LandingExtras from './components/LandingExtras';
+import { FullScreenLoader } from "components/adminUi";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { FiExternalLink } from "react-icons/fi";
 import { LuCalendarClock, LuMapPin } from "react-icons/lu";
@@ -269,14 +270,7 @@ export default function SignIn() {
   // Landing doesnt have any results on query + EventAttendee query parameter is not valid
   if ((loading && landing && landing.length === 0) || (searchParams.get('EventAttendee') && !eventAttendee && eventAttendee !== false)) {
 
-    return (
-      <div className="fixed inset-0 z-50 flex top-[-10px] min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
-        <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
-          {ui.loading}
-        </h2>
-      </div>
-    );
+    return <FullScreenLoader label={ui.loading} />;
   }
 
   // Landing is deactivated

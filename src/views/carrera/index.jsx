@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import NftCard from "components/card/NftCard";
 import { DataStore } from 'aws-amplify/datastore';
 import { Career } from "models";
-import { PageHeader, Card, PrimaryButton } from "components/adminUi";
+import { PageHeader, Card, PrimaryButton, PageLoader } from "components/adminUi";
 import { MdAdd } from "react-icons/md";
 
 const Dashboard = () => {
@@ -25,12 +25,7 @@ const Dashboard = () => {
   }, [areaID]);
 
   if(!subArea){
-    return (
-      <div className="flex min-h-[60vh] w-full flex-col items-center justify-center">
-        <span className="loader"></span>
-        <h2 className="mt-2 text-xl text-black dark:text-white">Cargando…</h2>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if(!areaID){

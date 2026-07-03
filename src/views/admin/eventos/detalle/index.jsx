@@ -4,7 +4,7 @@ import { DataStore } from "aws-amplify/datastore";
 import { Event } from "models";
 import { EventUpdateForm } from "ui-components";
 import { EditableSection, useCanEditSection } from "components/sectionEdit";
-import { PageHeader, Card } from "components/adminUi";
+import { PageHeader, Card, PageLoader } from "components/adminUi";
 import { MdDeleteOutline } from "react-icons/md";
 
 const Dashboard = () => {
@@ -38,7 +38,7 @@ const Dashboard = () => {
   };
 
   if (!event) {
-    return <p>Loading...</p>;
+    return <PageLoader />;
   }
 
   return (

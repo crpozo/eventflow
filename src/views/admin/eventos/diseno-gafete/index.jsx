@@ -8,6 +8,7 @@ import { createBadge, updateBadge, updateEvent } from 'graphql/mutations';
 import { getBadge } from 'graphql/queries';
 import { Event, Badge } from "models";
 import { EditableSection, useCanEditSection } from "components/sectionEdit";
+import { PageLoader } from "components/adminUi";
 import { BsFiletypePdf } from "react-icons/bs";
 import { MdClose } from "react-icons/md";
 
@@ -330,7 +331,7 @@ const Dashboard = () => {
   };
 
   if (!event) {
-    return <p>Loading...</p>;
+    return <PageLoader />;
   }
 
   return (
@@ -343,12 +344,7 @@ const Dashboard = () => {
         <div className="!z-5 relative flex flex-col bg-white bg-clip-border shadow-card px-[14px] py-[20px] rounded-3xl sm:px-[14px] dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5 overflow-hidden">
 
           {isLoadingBadge ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <span className="loader"></span>
-              <h2 className="mb-2 text-center text-xl text-black dark:text-white">
-                Cargando...
-              </h2>
-            </div>
+            <PageLoader />
           ) : (
             <EditableSection section="gafete">
             <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>

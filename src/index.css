@@ -264,6 +264,12 @@ textarea:focus-visible {
   border-left: 4px solid transparent;
   box-sizing: border-box;
 }
+/* Modo oscuro (FixedPlugin añade .dark a body): el arco superior #212529
+   queda invisible (~1.1:1) sobre navy-900, así que se aclara a gray-300.
+   El arco rojo (#df1923) sí se ve en dark y no se toca. */
+.dark .loader {
+  border-top-color: #cbd5e0;
+}
 
 @keyframes rotation {
   0% {

@@ -4,6 +4,7 @@ import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
 import routes from "routes.js";
 import { usePermissions } from "../../providers/PermissionsProvider";
+import { PageLoader } from "components/adminUi";
 
 export default function Admin(props) {
   const { reportesOnly, ...rest } = props;
@@ -46,14 +47,13 @@ export default function Admin(props) {
   };
   const getRoutes = React.useCallback((routes) => {
     return routes.map((prop, key) => {
-      if (prop.layout === "/admin") { 
+      if (prop.layout === "/admin") {
+        // Fallback = PageLoader (70vh) y no una caja chica: debe ocupar la
+        // misma geometría que los loaders de las páginas para que el spinner
+        // no salte de posición durante la carga.
         return (
           <Route path={`/${prop.path}`} element={
-            <React.Suspense fallback={
-              <div className="flex min-h-[200px] w-full items-center justify-center">
-                <span className="loader"></span>
-              </div>
-            }>
+            <React.Suspense fallback={<PageLoader />}>
               {prop.component}
             </React.Suspense>
           } key={key} />

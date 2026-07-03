@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Hub } from 'aws-amplify/utils';
 import { DataStore } from 'aws-amplify/datastore';
 import { Attendee, EventAttendee } from "models"
+import { PageLoader } from "components/adminUi";
 
 const Profile = () => {
 
@@ -50,23 +51,20 @@ const Profile = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 top-[-10px] z-50 flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
-        <span className="loader"></span>
-        <h2 className="mb-2 text-center text-xl text-black">
-          Cargando...
-        </h2>
-      </div>
-    );
+    // PageLoader (columna de contenido): el overlay full-screen viejo tapaba
+    // el sidebar dentro del admin.
+    return <PageLoader />;
   }
 
   if (attendee == null && loading == false) {
+    // Bloque en la columna de contenido (misma geometría que PageLoader):
+    // el overlay fixed viejo tapaba sidebar y navbar dentro del admin.
     return (
-      <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary opacity-[100%] p-3">
-        <h2 className="mb-2 text-center text-xl font-semibold text-black">
-          No existe un participante con ID: 
+      <div className="flex min-h-[70vh] w-full flex-col items-center justify-center p-3">
+        <h2 className="mb-2 text-center text-xl font-semibold text-navy-700 dark:text-white">
+          No existe un participante con ID:
         </h2>
-        <p className="max-w-[500px] text-center text-black">
+        <p className="max-w-[500px] text-center text-gray-600 dark:text-gray-300">
           {id}
         </p>
       </div>
