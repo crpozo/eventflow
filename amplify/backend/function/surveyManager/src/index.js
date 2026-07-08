@@ -30,9 +30,12 @@
  *   -- Anthropic backend:
  *   ANTHROPIC_API_KEY  plain value OR Amplify-secret SSM path (starts with "/")
  *   ANALYSIS_MODEL     model id, default "claude-opus-4-8"
- * rev 2026-07-03 (envío automático 1h DESPUÉS del fin del evento cuando no hay
- * sendAt explícito; envíos en lotes Promise.allSettled, {eligible,sent} para
- * distinguir "sin check-ins" de "SES falló", normalizeQuestions legacy)
+ * rev 2026-07-08 (FIX triple envío: el scheduled ahora CLAIMS sentAt de forma
+ * atómica ANTES de enviar — un timeout de Lambda tras enviar pero antes de
+ * estampar hacía que los reintentos async re-enviaran todo el lote (3 copias a
+ * cada check-in) y que cada corrida horaria lo repitiera; Timeout CFN 25→300s.
+ * Previo 2026-07-03: envío automático 1h después del fin; lotes allSettled;
+ * {eligible,sent}; normalizeQuestions legacy)
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -480,6 +483,31 @@ const stampSentAt = async (surveyId, iso) => {
   );
 };
 
+// Claim-first guard for the SCHEDULED sender (fix 2026-07-08): stamps sentAt
+// only if it isn't stamped yet, atomically. Sending to hundreds of check-ins
+// can outlive the Lambda timeout; when the function timed out AFTER sending
+// but BEFORE stamping, Lambda's async retries re-ran the whole batch (every
+// attendee got 3 copies) and the next hourly run would repeat it. Claiming
+// BEFORE sending makes retries/concurrent runs no-ops. If a rare crash aborts
+// mid-send after the claim, the admin can re-send from Encuesta → Envío manual.
+const claimSentAt = async (surveyId, iso) => {
+  try {
+    await ddb.send(
+      new UpdateCommand({
+        TableName: SURVEY_TABLE,
+        Key: { id: surveyId },
+        UpdateExpression: "SET sentAt = :now",
+        ConditionExpression: "attribute_not_exists(sentAt)",
+        ExpressionAttributeValues: { ":now": iso },
+      })
+    );
+    return true;
+  } catch (e) {
+    if (e?.name === "ConditionalCheckFailedException") return false;
+    throw e;
+  }
+};
+
 const runScheduled = async () => {
   const now = Date.now();
   const surveys = await ddb.send(
@@ -509,8 +537,9 @@ const runScheduled = async () => {
     if (!Number.isFinite(triggerMs) || triggerMs > now) continue;
     if (normalizeQuestions(survey.questions).length === 0) continue;
 
+    // Claim BEFORE sending — see claimSentAt. Never send without the claim.
+    if (!(await claimSentAt(survey.id, new Date().toISOString()))) continue;
     await sendInvitesForSurvey(survey, ev);
-    await stampSentAt(survey.id, new Date().toISOString());
   }
   return { ok: true };
 };
