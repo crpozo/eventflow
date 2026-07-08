@@ -2,7 +2,7 @@
 import React from "react";
 import { HiX } from "react-icons/hi";
 import { Link, useLocation } from "react-router-dom";
-import { Landing } from "models"
+import { Event, Landing } from "models"
 import { tzLabel } from 'scripts/utils'
 import { DataStore } from 'aws-amplify/datastore';
 import Dropdown from "components/dropdown";
@@ -97,12 +97,36 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
     .toUpperCase();
 
   React.useEffect(() => {
-    const event = localStorage.getItem('EVENTFLOW.event');
-    if(event && event !== null && event !== undefined && event!= 'undefined'){
-      setEvent(JSON.parse(event));
+    let alive = true;
+    const stored = localStorage.getItem("EVENTFLOW.event");
+    let parsed = null;
+    if (stored && stored !== "undefined") {
+      try {
+        parsed = JSON.parse(stored);
+      } catch (e) {
+        parsed = null;
+      }
     }
-
-  }, [activePath]);
+    // Trust the URL over the cache: entry points that navigate straight to
+    // /admin/eventos/:id/* without rewriting EVENTFLOW.event (deep links,
+    // refreshes, older code paths) would otherwise show the PREVIOUS event's
+    // title in this panel. On mismatch, fetch the real event and heal the
+    // stored copy; meanwhile the panel stays blank instead of showing the
+    // wrong event.
+    const routeId = location.pathname.match(/\/eventos\/([^/]+)\//)?.[1];
+    if (routeId && routeId !== "crear" && parsed?.id !== routeId) {
+      DataStore.query(Event, routeId).then((ev) => {
+        if (!alive || !ev) return;
+        localStorage.setItem("EVENTFLOW.event", JSON.stringify(ev));
+        setEvent(ev);
+      });
+    } else if (parsed) {
+      setEvent(parsed);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [activePath, location.pathname]);
 
   React.useEffect( () => {
 

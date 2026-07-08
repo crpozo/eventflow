@@ -524,7 +524,15 @@ const Dashboard = () => {
                         return (
                           <tr
                             key={e.id}
-                            onClick={() => navigate(`/admin/eventos/${e.id}/detalle/`)}
+                            onClick={() => {
+                              // Keep the sidebar in sync: it reads the event
+                              // from this key (same as the eventos table).
+                              localStorage.setItem(
+                                "EVENTFLOW.event",
+                                JSON.stringify(e)
+                              );
+                              navigate(`/admin/eventos/${e.id}/detalle/`);
+                            }}
                             className={`cursor-pointer transition ${
                               isToday
                                 ? "bg-gray-50 hover:bg-gray-100 dark:bg-navy-700/60 dark:hover:bg-navy-700"
