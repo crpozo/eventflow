@@ -52,6 +52,11 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
+// rev 2026-07-10: CLAIM de certificatesSentAt ANTES de enviar (condicional,
+// mismo fix anti-duplicados que surveyManager: un timeout tras enviar pero
+// antes de estampar hacía que los reintentos async duplicaran certificados);
+// envío en lotes concurrentes de 10 (antes serial: cientos de PDFs no cabían
+// en ningún timeout); Timeout CFN 25→900s.
 // rev 2026-06-24: on-demand test-mode handler (POST /certificate-test) + CORS.
 // Batch send now honors an optional certificatePosition.sendAt (scheduled time).
 // Test accepts certificateKey/position overrides (probe before saving). Whole
@@ -346,7 +351,31 @@ exports.handler = async (event) => {
     const templateBytes = await streamToBuffer(obj.Body);
     const contentType = obj.ContentType || "image/png";
 
-    // All attendees of this event.
+    // CLAIM FIRST (fix 2026-07-10, mismo bug que surveyManager): estampar
+    // certificatesSentAt de forma atómica ANTES de enviar. Si la función se
+    // queda sin tiempo a mitad del lote, los reintentos async de Lambda y las
+    // corridas horarias siguientes quedan en no-op en vez de duplicar los
+    // certificados de todos. El claim va DESPUÉS de validar que la plantilla
+    // carga, para no bloquear eventos que aún no pueden enviar.
+    try {
+      await ddb.send(
+        new UpdateCommand({
+          TableName: EVENT_TABLE,
+          Key: { id: event.id },
+          UpdateExpression: "SET certificatesSentAt = :now",
+          ConditionExpression: "attribute_not_exists(certificatesSentAt)",
+          ExpressionAttributeValues: { ":now": new Date().toISOString() },
+        })
+      );
+    } catch (e) {
+      if (e?.name === "ConditionalCheckFailedException") continue; // ya reclamado
+      throw e;
+    }
+
+    // All attendees of this event (collected first, then sent in concurrent
+    // batches — serial PDF+email for hundreds of attendees outlives any
+    // timeout).
+    const recipients = [];
     let lastKey;
     do {
       const page = await ddb.send(
@@ -362,27 +391,31 @@ exports.handler = async (event) => {
         if (!att.email) continue;
         // Honor the "¿Desea recibir certificado de participación?" answer.
         if (!wantsCertificate(att)) continue;
-        const name = extractName(att) || "Participante";
-        try {
-          const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
-          await sendEmail(att.email, event.title, pdf);
-        } catch (e) {
-          console.error(`certificate failed for ${att.email}`, e);
-        }
+        recipients.push(att);
       }
       lastKey = page.LastEvaluatedKey;
     } while (lastKey);
 
-    // Mark as sent so we never re-send.
-    await ddb.send(
-      new UpdateCommand({
-        TableName: EVENT_TABLE,
-        Key: { id: event.id },
-        UpdateExpression: "SET certificatesSentAt = :now",
-        ExpressionAttributeValues: { ":now": new Date().toISOString() },
-      })
+    const CERT_BATCH = 10;
+    let sentCount = 0;
+    for (let i = 0; i < recipients.length; i += CERT_BATCH) {
+      const batch = recipients.slice(i, i + CERT_BATCH);
+      const results = await Promise.allSettled(
+        batch.map(async (att) => {
+          const name = extractName(att) || "Participante";
+          const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
+          await sendEmail(att.email, event.title, pdf);
+        })
+      );
+      results.forEach((r, j) => {
+        if (r.status === "fulfilled") sentCount += 1;
+        else console.error(`certificate failed for ${batch[j].email}`, r.reason);
+      });
+    }
+
+    console.log(
+      `Certificates sent for event ${event.id} (${event.title}): ${sentCount}/${recipients.length}`
     );
-    console.log(`Certificates sent for event ${event.id} (${event.title})`);
   }
 
   return { statusCode: 200 };
