@@ -393,7 +393,13 @@ export default function EventCreateForm(props) {
       sendAt: "",
     };
     try {
-      const v = JSON.parse(certificatePosition || "{}");
+      // AWSJSON: DataStore hydrates this field as a parsed OBJECT, while our
+      // own edits store a JSON string — tolerate both. (JSON.parse of an
+      // object throws, which silently reset the panel to defaults.)
+      const v =
+        typeof certificatePosition === "string"
+          ? JSON.parse(certificatePosition || "{}")
+          : certificatePosition || {};
       if (typeof v === "string" && v) {
         const p = CERT_PRESETS[v] || CERT_PRESETS.centro;
         return { ...defaults, xPct: p.xPct, yPct: p.yPct };
