@@ -52,6 +52,9 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
+// rev 2026-07-13c: "Probar certificado" usa el NOMBRE REAL del registro cuando
+// el email de destino está inscrito en el evento (mismo extractName del envío
+// masivo) — la prueba valida el pipeline completo; responde {name, nameSource}.
 // rev 2026-07-13b: formAnswers AWSJSON tolerante (llega como array NATIVO del
 // DocumentClient; JSON.parse lanzaba y todos los certificados salían como
 // "Participante" e ignorando la pregunta de certificado). extractName detecta
@@ -336,9 +339,43 @@ const handleTest = async (apiEvent, method) => {
   }
   const eventId = body.eventId;
   const email = String(body.email || "").trim();
-  const name = String(body.name || "Nombre de Prueba").trim();
   if (!eventId || !email)
     return json(400, { error: "eventId y email son requeridos" });
+
+  // If the destination email is REGISTERED in the event, use the real name
+  // extraction (same code path as the batch send) so the test proves the
+  // name pipeline end-to-end; otherwise fall back to body.name / sample.
+  let name = String(body.name || "").trim();
+  let nameSource = name ? "param" : "sample";
+  try {
+    let lastKey;
+    do {
+      const page = await ddb.send(
+        new QueryCommand({
+          TableName: EVENTATTENDEE_TABLE,
+          IndexName: BYEVENT_INDEX,
+          KeyConditionExpression: "eventID = :e",
+          ExpressionAttributeValues: { ":e": eventId },
+          ExclusiveStartKey: lastKey,
+        })
+      );
+      const match = (page.Items || []).find(
+        (a) => String(a.email || "").toLowerCase() === email.toLowerCase()
+      );
+      if (match) {
+        const extracted = extractName(match);
+        if (extracted) {
+          name = extracted;
+          nameSource = "registro";
+        }
+        break;
+      }
+      lastKey = page.LastEvaluatedKey;
+    } while (lastKey);
+  } catch (e) {
+    console.error("test: attendee name lookup failed", e);
+  }
+  if (!name) name = "Nombre de Prueba";
 
   // Everything below is wrapped so ANY failure (DynamoDB, S3, PDF render, SES)
   // returns a clean 500 WITH CORS headers instead of an uncaught crash that
@@ -370,7 +407,7 @@ const handleTest = async (apiEvent, method) => {
     const pos = resolvePosition(positionRaw);
     const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
     await sendEmail(email, ev.title || "Evento", pdf);
-    return json(200, { ok: true, sentTo: email });
+    return json(200, { ok: true, sentTo: email, name, nameSource });
   } catch (e) {
     console.error("test certificate failed:", e);
     return json(500, { error: e?.message || String(e) });
