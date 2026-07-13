@@ -1,12 +1,74 @@
 import React, { Component, createRef } from "react";
 import logo from "assets/img/usfq/logo_2025.png";
 import { useParams, useSearchParams } from "react-router-dom";
-import { DataStore } from "aws-amplify/datastore";
-import { Survey, SurveyResponse, Event } from "models";
+import { generateClient } from "aws-amplify/api";
 import {
   translateFormData,
   restoreOriginalLabels,
 } from "scripts/translateFormData";
+
+// Plain GraphQL, NOT DataStore: anonymous first-time visitors (everyone who
+// clicks the email link) have an EMPTY local DataStore cache, and
+// DataStore.query returns those empty local results immediately — the page
+// showed "Encuesta no disponible" even though the survey exists. GraphQL hits
+// AppSync directly (API key auth, same pattern as the public landing). The
+// generated src/graphql files predate the Survey models, so the operations
+// are defined inline (same as INSIGHTS_QUERY in encuesta-dashboard).
+const SURVEY_QUERY = /* GraphQL */ `
+  query PublicSurveyByEvent($filter: ModelSurveyFilterInput) {
+    listSurveys(filter: $filter, limit: 1000) {
+      items {
+        id
+        questions
+      }
+    }
+  }
+`;
+
+const EVENT_TITLE_QUERY = /* GraphQL */ `
+  query PublicEventTitle($id: ID!) {
+    getEvent(id: $id) {
+      id
+      title
+    }
+  }
+`;
+
+const PREV_RESPONSE_QUERY = /* GraphQL */ `
+  query PublicPrevResponse($filter: ModelSurveyResponseFilterInput) {
+    listSurveyResponses(filter: $filter, limit: 1000) {
+      items {
+        id
+      }
+    }
+  }
+`;
+
+const CREATE_RESPONSE_MUTATION = /* GraphQL */ `
+  mutation PublicCreateSurveyResponse($input: CreateSurveyResponseInput!) {
+    createSurveyResponse(input: $input) {
+      id
+    }
+  }
+`;
+
+// Survey.questions is AWSJSON: over GraphQL it arrives as a (possibly
+// double-encoded) JSON string, and elements can themselves be strings.
+// Same tolerant normalization the results dashboard uses.
+const normalizeQuestions = (raw) => {
+  let val = raw;
+  try {
+    for (let i = 0; i < 3 && typeof val === "string"; i++) {
+      val = JSON.parse(val);
+    }
+    if (!Array.isArray(val)) return null;
+    return val
+      .map((q) => (typeof q === "string" ? JSON.parse(q) : q))
+      .filter((q) => q && typeof q === "object");
+  } catch (e) {
+    return null;
+  }
+};
 
 // Public, anonymous survey page. Attendees who checked in receive a link like
 //   /landing/<eventId>/encuesta?a=<attendeeId>
@@ -133,41 +195,47 @@ const SurveyPublic = () => {
   // Definition actually rendered: ES original, or a translated copy on EN.
   const [renderData, setRenderData] = React.useState(null);
 
+  const gql = React.useMemo(() => generateClient(), []);
+
   React.useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const surveys = await DataStore.query(Survey, (s) =>
-          s.surveyEventId.eq(id)
-        );
+        const res = await gql.graphql({
+          query: SURVEY_QUERY,
+          variables: { filter: { surveyEventId: { eq: id } } },
+        });
         if (!alive) return;
-        const s = surveys[0];
-        // `questions` is AWSJSON: DataStore normally hydrates it to an array,
-        // but tolerate a JSON string too (parity with translateFormData /
-        // restoreOriginalLabels and the registration/dashboard paths). Store the
-        // normalized array so every downstream consumer gets a consistent shape.
-        let qs = s ? s.questions : null;
-        if (typeof qs === "string") {
-          try {
-            qs = JSON.parse(qs);
-          } catch (e) {
-            qs = null;
-          }
-        }
+        const s = res?.data?.listSurveys?.items?.[0];
+        const qs = s ? normalizeQuestions(s.questions) : null;
         if (!s || !Array.isArray(qs) || qs.length === 0) {
           setState("none");
           return;
         }
-        setSurvey(qs === s.questions ? s : { ...s, questions: qs });
+        setSurvey({ ...s, questions: qs });
 
-        const ev = await DataStore.query(Event, (e) => e.id.eq(id));
-        if (alive && ev[0]) setEventTitle(ev[0].title || "");
+        // Event title (top-level getEvent is fine — only NESTED relations
+        // resolve null in this project).
+        try {
+          const evRes = await gql.graphql({
+            query: EVENT_TITLE_QUERY,
+            variables: { id },
+          });
+          if (alive) setEventTitle(evRes?.data?.getEvent?.title || "");
+        } catch (e) {
+          // Title is cosmetic — never block the survey on it.
+          console.error("survey event title:", e);
+        }
 
         // Already answered with this token?
         if (token) {
-          const prev = await DataStore.query(SurveyResponse, (r) =>
-            r.and((r) => [r.surveyID.eq(s.id), r.token.eq(token)])
-          );
+          const prevRes = await gql.graphql({
+            query: PREV_RESPONSE_QUERY,
+            variables: {
+              filter: { surveyID: { eq: s.id }, token: { eq: token } },
+            },
+          });
+          const prev = prevRes?.data?.listSurveyResponses?.items || [];
           if (alive && prev.length > 0) {
             setState("already");
             return;
@@ -182,7 +250,7 @@ const SurveyPublic = () => {
     return () => {
       alive = false;
     };
-  }, [id, token]);
+  }, [id, token, gql]);
 
   // Choose what SurveyRender paints. On ES use the original questions as-is; on
   // EN show the original immediately, then upgrade to the translated copy once
@@ -230,14 +298,22 @@ const SurveyPublic = () => {
       if ((lang || "ES").toLowerCase() !== "es") {
         userData = restoreOriginalLabels(userData, survey.questions);
       }
-      await DataStore.save(
-        new SurveyResponse({
-          surveyID: survey.id,
-          eventID: id,
-          token,
-          answers: userData,
-        })
-      );
+      // GraphQL mutation, not DataStore.save: on a cold anonymous store a
+      // DataStore save only queues locally and syncs in background — closing
+      // the tab right after the "thanks" screen could lose the response. The
+      // mutation confirms the write reached AppSync before showing "done".
+      // AWSJSON input must be a JSON string.
+      await gql.graphql({
+        query: CREATE_RESPONSE_MUTATION,
+        variables: {
+          input: {
+            surveyID: survey.id,
+            eventID: id,
+            token,
+            answers: JSON.stringify(userData),
+          },
+        },
+      });
       setState("done");
     } catch (e) {
       console.error("survey submit:", e);
