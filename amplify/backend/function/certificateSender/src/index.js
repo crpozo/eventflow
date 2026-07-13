@@ -294,12 +294,12 @@ const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
   return Buffer.from(await pdf.save());
 };
 
-const sendEmail = async (to, eventTitle, pdfBuffer) => {
+const sendEmail = async (to, eventTitle, pdfBuffer, subject) => {
   const transport = nodemailer.createTransport({ streamTransport: true, buffer: true });
   const message = await transport.sendMail({
     from: SES_FROM,
     to,
-    subject: "Certificado Evento USFQ",
+    subject: subject || "Certificado Evento USFQ",
     text: `Gracias por participar en ${eventTitle}. Adjunto encontrarás tu certificado.`,
     html: `<p>Gracias por participar en <strong>${eventTitle}</strong>.</p><p>Aquí tienes tu certificado.</p>`,
     attachments: [
@@ -326,19 +326,10 @@ const json = (statusCode, data) => ({
 // On-demand test: generate ONE certificate from the event's template and email
 // it to `email` (with a sample/given name). Does NOT touch attendees or mark the
 // event as sent — it only proves the template/position/SES work.
-const handleTest = async (apiEvent, method) => {
-  if (method === "OPTIONS") return json(200, { ok: true });
-  if (method !== "POST")
-    return json(405, { error: `Method ${method} not allowed` });
-
-  let body;
-  try {
-    body = JSON.parse(apiEvent.body || "{}");
-  } catch (e) {
-    return json(400, { error: "Cuerpo inválido" });
-  }
+const handleTest = async (body) => {
   const eventId = body.eventId;
   const email = String(body.email || "").trim();
+  const subjectOverride = body.subject ? String(body.subject).trim() : undefined;
   if (!eventId || !email)
     return json(400, { error: "eventId y email son requeridos" });
 
@@ -406,7 +397,7 @@ const handleTest = async (apiEvent, method) => {
     const contentType = obj.ContentType || "image/png";
     const pos = resolvePosition(positionRaw);
     const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
-    await sendEmail(email, ev.title || "Evento", pdf);
+    await sendEmail(email, ev.title || "Evento", pdf, subjectOverride);
     return json(200, { ok: true, sentTo: email, name, nameSource });
   } catch (e) {
     console.error("test certificate failed:", e);
@@ -414,10 +405,118 @@ const handleTest = async (apiEvent, method) => {
   }
 };
 
+// Manual corrected re-send (POST /certificate-test { eventId, sendAll: true,
+// subject? }): sends to EVERY registered attendee that asked for a certificate,
+// with real names, RE-SENDING even if certificatesSentAt exists — the admin
+// decides (used to correct a bad batch). Stamps certificatesSentAt at the end.
+const handleSendAll = async (body) => {
+  const eventId = body.eventId;
+  const subject = body.subject ? String(body.subject).trim() : undefined;
+  if (!eventId) return json(400, { error: "eventId es requerido" });
+  try {
+    const res = await ddb.send(
+      new GetCommand({ TableName: EVENT_TABLE, Key: { id: eventId } })
+    );
+    const ev = res.Item;
+    if (!ev) return json(404, { error: "Evento no encontrado" });
+    if (!ev.certificate)
+      return json(400, { error: "El evento no tiene plantilla de certificado" });
+
+    const obj = await s3.send(
+      new GetObjectCommand({
+        Bucket: STORAGE_BUCKET,
+        Key: s3KeyFor(ev.certificate),
+      })
+    );
+    const templateBytes = await streamToBuffer(obj.Body);
+    const contentType = obj.ContentType || "image/png";
+    const pos = resolvePosition(ev.certificatePosition);
+
+    const recipients = [];
+    let lastKey;
+    do {
+      const page = await ddb.send(
+        new QueryCommand({
+          TableName: EVENTATTENDEE_TABLE,
+          IndexName: BYEVENT_INDEX,
+          KeyConditionExpression: "eventID = :e",
+          ExpressionAttributeValues: { ":e": eventId },
+          ExclusiveStartKey: lastKey,
+        })
+      );
+      for (const att of page.Items || []) {
+        if (!att.email) continue;
+        if (!wantsCertificate(att)) continue;
+        recipients.push(att);
+      }
+      lastKey = page.LastEvaluatedKey;
+    } while (lastKey);
+
+    if (recipients.length === 0)
+      return json(400, {
+        error: "No hay inscritos que hayan pedido certificado",
+      });
+
+    const CERT_BATCH = 10;
+    let sent = 0;
+    for (let i = 0; i < recipients.length; i += CERT_BATCH) {
+      const batch = recipients.slice(i, i + CERT_BATCH);
+      const results = await Promise.allSettled(
+        batch.map(async (att) => {
+          const name = extractName(att) || "Participante";
+          const pdf = await buildCertificatePdf(
+            templateBytes,
+            contentType,
+            name,
+            pos
+          );
+          await sendEmail(att.email, ev.title || "Evento", pdf, subject);
+        })
+      );
+      results.forEach((r, j) => {
+        if (r.status === "fulfilled") sent += 1;
+        else
+          console.error(
+            `manual certificate failed for ${batch[j].email}`,
+            r.reason
+          );
+      });
+    }
+
+    await ddb.send(
+      new UpdateCommand({
+        TableName: EVENT_TABLE,
+        Key: { id: eventId },
+        UpdateExpression: "SET certificatesSentAt = :now",
+        ExpressionAttributeValues: { ":now": new Date().toISOString() },
+      })
+    );
+    console.log(
+      `Manual certificates sent for event ${eventId} (${ev.title}): ${sent}/${recipients.length}`
+    );
+    return json(200, { ok: true, sent, eligible: recipients.length });
+  } catch (e) {
+    console.error("manual certificate send failed:", e);
+    return json(500, { error: e?.message || String(e) });
+  }
+};
+
 exports.handler = async (event) => {
-  // On-demand test send via API Gateway (POST { eventId, email, name? }).
+  // On-demand REST via API Gateway: single test send { eventId, email, name?,
+  // subject? } or manual batch { eventId, sendAll: true, subject? }.
   const method = event?.httpMethod || event?.requestContext?.http?.method;
-  if (method) return handleTest(event, method);
+  if (method) {
+    if (method === "OPTIONS") return json(200, { ok: true });
+    if (method !== "POST")
+      return json(405, { error: `Method ${method} not allowed` });
+    let body;
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch (e) {
+      return json(400, { error: "Cuerpo inválido" });
+    }
+    return body.sendAll === true ? handleSendAll(body) : handleTest(body);
+  }
 
   const now = Date.now();
 
