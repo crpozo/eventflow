@@ -444,8 +444,21 @@ export default function EventUpdateForm(props) {
       console.error("auto-save certificate:", e);
     }
   };
+  // Commit-time persistence must NEVER read the render closure: during a
+  // slider/preview drag the change events outpace React's commits, so the
+  // mouseup closure can hold an INTERMEDIATE value (it saved 67% while the UI
+  // already showed 73.5%). This ref is written synchronously on every change,
+  // so the commit handlers always persist the freshest value.
+  const certPosRef = React.useRef(certificatePosition);
+  // Keep the ref in step with committed state (hydration/reset paths); the
+  // synchronous write in updateCertSettings covers the burst window between
+  // an input event and its React commit.
+  React.useEffect(() => {
+    certPosRef.current = certificatePosition;
+  }, [certificatePosition]);
   const updateCertSettings = (patch, { persist = true } = {}) => {
     const next = JSON.stringify({ ...certSettings, ...patch });
+    certPosRef.current = next;
     setCertificatePosition(next);
     if (persist) persistCert(certificate, next);
   };
@@ -731,8 +744,8 @@ export default function EventUpdateForm(props) {
                     { persist: false }
                   )
                 }
-                onMouseUp={() => persistCert(certificate, certificatePosition)}
-                onTouchEnd={() => persistCert(certificate, certificatePosition)}
+                onMouseUp={() => persistCert(certificate, certPosRef.current)}
+                onTouchEnd={() => persistCert(certificate, certPosRef.current)}
                 style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
@@ -757,8 +770,8 @@ export default function EventUpdateForm(props) {
                     { persist: false }
                   )
                 }
-                onMouseUp={() => persistCert(certificate, certificatePosition)}
-                onTouchEnd={() => persistCert(certificate, certificatePosition)}
+                onMouseUp={() => persistCert(certificate, certPosRef.current)}
+                onTouchEnd={() => persistCert(certificate, certPosRef.current)}
                 style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
@@ -812,7 +825,7 @@ export default function EventUpdateForm(props) {
                 onChange={(e) =>
                   updateCertSettings({ color: e.target.value }, { persist: false })
                 }
-                onBlur={() => persistCert(certificate, certificatePosition)}
+                onBlur={() => persistCert(certificate, certPosRef.current)}
                 style={{
                   width: 34,
                   height: 26,
@@ -869,7 +882,7 @@ export default function EventUpdateForm(props) {
               updateCertSettings({ xPct: x, yPct: y }, { persist: false })
             }
             onPositionCommit={() =>
-              persistCert(certificate, certificatePosition)
+              persistCert(certificate, certPosRef.current)
             }
           />
           <TestCertificate
