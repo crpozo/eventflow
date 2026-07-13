@@ -52,6 +52,11 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
+// rev 2026-07-13b: formAnswers AWSJSON tolerante (llega como array NATIVO del
+// DocumentClient; JSON.parse lanzaba y todos los certificados salían como
+// "Participante" e ignorando la pregunta de certificado). extractName detecta
+// campo combinado O Nombre+Apellido(s) separados y concatena; isAffirmative
+// reconoce valores de opción tipo "Siquiero"/"Noquiero" por prefijo.
 // rev 2026-07-10: CLAIM de certificatesSentAt ANTES de enviar (condicional,
 // mismo fix anti-duplicados que surveyManager: un timeout tras enviar pero
 // antes de estampar hacía que los reintentos async duplicaran certificados);
@@ -77,52 +82,117 @@ const streamToBuffer = async (stream) => {
 };
 
 // Best-effort: pull the attendee name out of the stored form answers.
-const extractName = (eventAttendee) => {
+// AWSJSON tolerante (fix 2026-07-13): el DocumentClient devuelve formAnswers
+// como ARRAY NATIVO (AppSync guarda AWSJSON nativo en DynamoDB); JSON.parse de
+// un array lanza y el catch silencioso hacía que TODOS los certificados
+// salieran como "Participante" y que el filtro de la pregunta de certificado
+// nunca aplicara (se enviaba también a quienes respondieron que no).
+const parseAnswers = (raw) => {
+  if (raw == null) return [];
+  if (typeof raw !== "string") return Array.isArray(raw) ? raw : [];
   try {
-    const answers = JSON.parse(eventAttendee.formAnswers || "[]");
-    const field = answers.find((a) =>
-      /nombre|name/i.test(a?.name || a?.label || "")
-    );
-    const val = field && (Array.isArray(field.userData) ? field.userData[0] : field.userData);
-    if (val) return String(val).trim();
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v : [];
   } catch (e) {
-    /* ignore */
+    return [];
   }
+};
+
+const normTxt = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const answerValue = (f) => {
+  const v = Array.isArray(f?.userData) ? f.userData[0] : f?.userData;
+  return v == null ? "" : String(v).trim();
+};
+
+// Nombre a incrustar en el certificado. Los formularios varían: algunos usan
+// UN campo combinado ("Nombre y apellido" / "Nombre completo"), otros campos
+// SEPARADOS "Nombre" + "Apellido(s)" — se detectan ambos y se concatenan.
+const extractName = (eventAttendee) => {
+  const answers = parseAnswers(eventAttendee.formAnswers).filter(
+    (a) => a && a.type !== "header" && a.type !== "paragraph"
+  );
+  const labelOf = (a) => normTxt(a.label) || normTxt(a.name);
+
+  // 1) Campo combinado.
+  const combined = answers.find((a) => {
+    const l = labelOf(a);
+    return (
+      (l.includes("nombre") && l.includes("apellido")) ||
+      l.includes("nombre completo") ||
+      l.includes("full name")
+    );
+  });
+  if (combined && answerValue(combined)) return answerValue(combined);
+
+  // 2) Campos separados Nombre + Apellido(s) → concatenar.
+  const first = answers.find((a) => {
+    const l = labelOf(a);
+    return (
+      (l.includes("nombre") || l.includes("first name")) &&
+      !l.includes("apellido") &&
+      !l.includes("usuario") &&
+      !l.includes("empresa")
+    );
+  });
+  const last = answers.find((a) => {
+    const l = labelOf(a);
+    return (
+      l.includes("apellido") || l.includes("last name") || l.includes("surname")
+    );
+  });
+  const full = [first && answerValue(first), last && answerValue(last)]
+    .filter(Boolean)
+    .join(" ");
+  if (full) return full;
+
+  // 3) Último recurso: cualquier campo que mencione nombre/name.
+  const any = answers.find((a) =>
+    /nombre|name/i.test(`${a?.label || ""} ${a?.name || ""}`)
+  );
+  if (any && answerValue(any)) return answerValue(any);
+
   return eventAttendee.name || "";
 };
 
-// Matches the "¿Desea recibir certificado de participación?" question (answers
-// are stored in Spanish; English kept just in case).
-const CERT_QUESTION =
-  /certificado de participaci[oó]n|certificate of participation/i;
-const isAffirmative = (v) => /^(s[ií]|yes|true|1)$/i.test(String(v ?? "").trim());
+// Matches the certificate question by label OR field name (real forms use
+// name="certificado" with label "Desea recibir certificado de participación").
+const CERT_QUESTION = /certificad|certificate/i;
+// Option VALUES arrive squashed ("Siquiero"/"Noquiero") or as labels
+// ("Sí quiero") — decide by normalized prefix, negatives win.
+const isAffirmative = (v) => {
+  const n = normTxt(v).replace(/[^a-z0-9]/g, "");
+  if (!n || n.startsWith("no")) return false;
+  return /^(si|yes|true|1)/.test(n);
+};
 
 // Whether this attendee should receive a certificate:
-//   - the form HAS the certificate question -> only if they answered "Sí"
+//   - the form HAS the certificate question -> only if they answered "Sí…"
 //   - the form does NOT have it             -> send to everyone
 const wantsCertificate = (eventAttendee) => {
-  let answers;
-  try {
-    answers = JSON.parse(eventAttendee.formAnswers || "[]");
-  } catch (e) {
-    return true; // unreadable answers -> don't block the send
-  }
-  if (!Array.isArray(answers)) return true;
+  const answers = parseAnswers(eventAttendee.formAnswers);
+  if (answers.length === 0) return true; // unreadable/absent -> don't block
   const field = answers.find((a) =>
-    CERT_QUESTION.test(a?.label || a?.name || "")
+    CERT_QUESTION.test(`${a?.label || ""} ${a?.name || ""}`)
   );
   if (!field) return true; // question not in the form -> send to everyone
-  const selected = Array.isArray(field.userData)
-    ? field.userData[0]
-    : field.userData;
+  const selected = answerValue(field);
   // The answer may be stored as the option value or its label; resolve a label.
-  let answer = String(selected ?? "");
+  let answer = selected;
   if (Array.isArray(field.values)) {
     const opt = field.values.find((v) => String(v?.value) === String(selected));
     if (opt && opt.label) answer = String(opt.label);
   }
   return isAffirmative(answer);
 };
+
+// Exposed only for offline verification of the pure helpers (no side effects).
+exports._test = { parseAnswers, extractName, wantsCertificate, isAffirmative };
 
 // certificatePosition is stored from the admin form as a JSON string holding a
 // preset key (e.g. '"centro"'). Map each preset to drawing coordinates
