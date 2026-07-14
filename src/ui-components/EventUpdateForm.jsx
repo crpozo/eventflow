@@ -472,6 +472,16 @@ export default function EventUpdateForm(props) {
     }, {});
     return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
   };
+  // El revisor de certificados corre cada 5 minutos en punto (:00, :05, :10…).
+  // La hora configurada se respeta como "no antes de"; este helper calcula el
+  // ciclo real en que saldrá el envío para mostrárselo al admin junto al campo.
+  const SEND_CYCLE_MS = 5 * 60000;
+  const sendSlotLabel = (iso) => {
+    const t = new Date(iso).getTime();
+    if (Number.isNaN(t)) return "";
+    const slot = new Date(Math.ceil(t / SEND_CYCLE_MS) * SEND_CYCLE_MS);
+    return convertToLocal(slot).replace("T", ", ");
+  };
   // Certificate name styling/placement lives in certificatePosition as JSON:
   // { xPct, yPct, fontPct, color, sendAt }. Backward compatible with the old
   // preset string / { preset } object (mapped to xPct/yPct here).
@@ -1112,6 +1122,7 @@ export default function EventUpdateForm(props) {
             </Text>
             <input
               type="datetime-local"
+              step={300}
               value={
                 certSettings.sendAt
                   ? convertToLocal(new Date(certSettings.sendAt))
@@ -1136,10 +1147,19 @@ export default function EventUpdateForm(props) {
                 fontSize: "0.95rem",
               }}
             />
-            <Text fontSize="0.8125rem" color="#6b7280">
-              Si lo dejas vacío, se envían automáticamente cuando termina el
-              evento. Solo a quienes pidieron certificado en el formulario.
-            </Text>
+            {certSettings.sendAt && sendSlotLabel(certSettings.sendAt) ? (
+              <Text fontSize="0.8125rem" color="#304050">
+                Se enviará el {sendSlotLabel(certSettings.sendAt)} (hora del
+                evento) — los envíos salen cada 5 minutos, en punto de :00,
+                :05, :10…
+              </Text>
+            ) : (
+              <Text fontSize="0.8125rem" color="#6b7280">
+                Si lo dejas vacío, se envían automáticamente cuando termina el
+                evento (en el siguiente ciclo de 5 minutos). Solo a quienes
+                pidieron certificado en el formulario.
+              </Text>
+            )}
           </Flex>
           <CertificatePreview
             certificate={certificate}
