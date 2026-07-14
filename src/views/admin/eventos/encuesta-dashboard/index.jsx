@@ -441,6 +441,32 @@ const Dashboard = () => {
     }
   }
 
+  const [pdfBusy, setPdfBusy] = React.useState(false);
+  // El PDF del análisis se genera en el cliente; @react-pdf/renderer se carga
+  // bajo demanda (igual que pdf-lib en los gafetes) para no engordar el bundle.
+  async function downloadAnalysisPdfClick() {
+    if (!insights) return;
+    setPdfBusy(true);
+    try {
+      const { downloadAnalysisPdf } = await import("./AnalysisPdf");
+      await downloadAnalysisPdf({
+        eventTitle,
+        insights,
+        insightsAt,
+        metrics: {
+          responses: responses.length,
+          checkedIn,
+          responseRate,
+        },
+      });
+    } catch (e) {
+      console.error("PDF análisis IA:", e);
+      alert("No se pudo generar el PDF del análisis.");
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   function exportExcel() {
     if (rows.length === 0) {
       alert("No hay respuestas para exportar.");
@@ -525,11 +551,21 @@ const Dashboard = () => {
         <Card
           title="Análisis con IA"
           headerRight={
-            insightsAt ? (
-              <span className="text-xs text-gray-400">
-                {new Date(insightsAt).toLocaleString("es-EC")}
-              </span>
-            ) : null
+            <div className="flex items-center gap-3">
+              {insightsAt ? (
+                <span className="text-xs text-gray-400">
+                  {new Date(insightsAt).toLocaleString("es-EC")}
+                </span>
+              ) : null}
+              <SecondaryButton
+                onClick={downloadAnalysisPdfClick}
+                disabled={pdfBusy}
+                title="Descargar el análisis como PDF"
+              >
+                <MdFileDownload />
+                {pdfBusy ? "Generando…" : "Descargar PDF"}
+              </SecondaryButton>
+            </div>
           }
         >
           {insights.executiveSummary && (
