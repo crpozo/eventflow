@@ -24,6 +24,7 @@ export default function CertificatePreview({
 }) {
   const wrapRef = React.useRef(null);
   const draggingRef = React.useRef(false);
+  const measureCanvasRef = React.useRef(null);
   const [width, setWidth] = React.useState(0);
   const [pdfUrl, setPdfUrl] = React.useState(null); // rendered PDF page (data URL)
   const [pdfState, setPdfState] = React.useState("idle"); // idle|loading|error|done
@@ -133,7 +134,30 @@ export default function CertificatePreview({
   const bgUrl = isPdf ? pdfUrl : url;
   const px = Number.isFinite(Number(xPct)) ? Number(xPct) : 50;
   const py = Number.isFinite(Number(yPct)) ? Number(yPct) : 50;
-  const fontPx = (width * (Number(fontPct) || 6)) / 100;
+
+  // Auto-ajuste (igual que el Lambda): un nombre con 2 nombres + 2 apellidos se
+  // sale de la caja al tamaño elegido, así que reducimos la fuente hasta que
+  // entre en el ancho disponible. El texto va centrado en px (translate -50%),
+  // por lo que el ancho utilizable es 2×(distancia al borde más cercano) − margen.
+  // Función normal (no hook): se define tras el `return null` anterior.
+  const measureTextWidth = (text, fpx) => {
+    const canvas =
+      measureCanvasRef.current ||
+      (measureCanvasRef.current = document.createElement("canvas"));
+    const ctx = canvas.getContext("2d");
+    ctx.font = `700 ${fpx}px Helvetica, Arial, sans-serif`;
+    return ctx.measureText(text || "").width;
+  };
+
+  let fontPx = (width * (Number(fontPct) || 6)) / 100;
+  if (width > 0 && fontPx > 0 && sampleName) {
+    const cx = (width * px) / 100;
+    const margin = width * 0.06; // mismo margen (6%) que availableTextWidth del Lambda
+    const box = 2 * Math.min(cx, width - cx) - 2 * margin;
+    const maxWidth = box > 0 ? box : Math.max(1, width - 2 * margin);
+    const tw = measureTextWidth(sampleName, fontPx);
+    if (tw > maxWidth && tw > 0) fontPx = (fontPx * maxWidth) / tw;
+  }
 
   return (
     <div style={{ marginTop: 4 }}>

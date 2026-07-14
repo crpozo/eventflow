@@ -215,8 +215,24 @@ const wantsCertificate = (eventAttendee) => {
   return isAffirmative(answer);
 };
 
+// Regla ÚNICA de elegibilidad, aplicada EN TODOS LOS CASOS (envío automático,
+// reenvío masivo Y la prueba individual): el admin de monitoreo siempre recibe;
+// cualquier otro SOLO si hizo check-in (asistencia REAL) Y pidió el certificado.
+// Un certificado de participación exige haber asistido: sin check-in no se envía,
+// aunque la persona haya pedido el certificado en el formulario. (Bug corregido:
+// un inscrito sin check-in recibía el certificado por la ruta de prueba, que no
+// aplicaba este filtro; ahora es el único criterio y se usa en las tres rutas.)
+const isEligibleRecipient = (att) =>
+  isCertAdmin(att) || (att?.checkIn === true && wantsCertificate(att));
+
 // Exposed only for offline verification of the pure helpers (no side effects).
-exports._test = { parseAnswers, extractName, wantsCertificate, isAffirmative };
+exports._test = {
+  parseAnswers,
+  extractName,
+  wantsCertificate,
+  isAffirmative,
+  isEligibleRecipient,
+};
 
 // certificatePosition is stored from the admin form as a JSON string holding a
 // preset key (e.g. '"centro"'). Map each preset to drawing coordinates
@@ -268,6 +284,37 @@ const hexToRgb = (hex) => {
   );
 };
 
+// Ancho horizontal disponible ("caja") para el nombre. El texto se dibuja
+// CENTRADO en cx (align por defecto), así que el ancho utilizable es el doble de
+// la distancia al borde MÁS CERCANO menos un margen; para align left/right es el
+// espacio hasta el borde correspondiente. Así un nombre largo (2 nombres +
+// 2 apellidos) se reduce hasta caber y nunca se sale del certificado, esté el
+// texto centrado o pegado a un lado.
+const availableTextWidth = (pageWidth, cx, align, marginPct) => {
+  const margin = (pageWidth * (marginPct ?? 6)) / 100;
+  let box;
+  if (align === "right") box = cx - margin;
+  else if (align === "left") box = pageWidth - cx - margin;
+  else box = 2 * Math.min(cx, pageWidth - cx) - 2 * margin; // center
+  // Degenerado (cx fuera de rango o margen enorme): usa el ancho de página
+  // menos márgenes en lugar de un valor no positivo.
+  return box > 0 ? box : Math.max(1, pageWidth - 2 * margin);
+};
+
+// Reduce fontSize hasta que el texto quepa en maxWidth. `measure(size)` devuelve
+// el ancho del nombre a ese tamaño; como widthOfTextAtSize es lineal en el
+// tamaño, un solo paso basta. Pura e inyectable para poder probarla sin pdf-lib.
+const fitFontSize = (fontSize, maxWidth, measure) => {
+  if (!(maxWidth > 0) || !(fontSize > 0)) return fontSize;
+  const w = measure(fontSize);
+  if (w > maxWidth && w > 0) return (fontSize * maxWidth) / w;
+  return fontSize;
+};
+
+// Expose the width/fit helpers too (declared after the first _test assignment).
+exports._test.availableTextWidth = availableTextWidth;
+exports._test.fitFontSize = fitFontSize;
+
 // Build a one-page PDF with the attendee name drawn on top of the template.
 // The template can be an image (PNG/JPG) or an existing PDF.
 const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
@@ -293,16 +340,25 @@ const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
   }
 
   const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fontSize = (pageWidth * (pos.fontPct || 6)) / 100;
-  const textWidth = font.widthOfTextAtSize(name, fontSize);
 
   // certificatePosition uses top-left % ; pdf-lib origin is bottom-left.
   const cx = (pageWidth * (pos.xPct ?? 50)) / 100;
   const cy = pageHeight - (pageHeight * (pos.yPct ?? 50)) / 100;
+  const align = pos.align || "center";
+
+  // Tamaño elegido en el admin (Pequeño/Mediano/Grande = % del ancho). Con 2
+  // nombres + 2 apellidos ese tamaño fijo se salía de la caja; auto-ajustamos
+  // la fuente hacia abajo hasta que el nombre entre en el ancho disponible.
+  const baseFontSize = (pageWidth * (pos.fontPct || 6)) / 100;
+  const maxWidth = availableTextWidth(pageWidth, cx, align, pos.marginPct);
+  const fontSize = fitFontSize(baseFontSize, maxWidth, (s) =>
+    font.widthOfTextAtSize(name, s)
+  );
+  const textWidth = font.widthOfTextAtSize(name, fontSize);
 
   let x = cx;
-  if ((pos.align || "center") === "center") x = cx - textWidth / 2;
-  else if (pos.align === "right") x = cx - textWidth;
+  if (align === "center") x = cx - textWidth / 2;
+  else if (align === "right") x = cx - textWidth;
 
   page.drawText(name, {
     x,
@@ -314,6 +370,9 @@ const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
 
   return Buffer.from(await pdf.save());
 };
+
+// Exposed for offline verification (pure: builds a PDF buffer, no network/DB).
+exports._test.buildCertificatePdf = buildCertificatePdf;
 
 const sendEmail = async (to, eventTitle, pdfBuffer, subject) => {
   const transport = nodemailer.createTransport({ streamTransport: true, buffer: true });
@@ -375,6 +434,18 @@ const handleTest = async (body) => {
         (a) => String(a.email || "").toLowerCase() === email.toLowerCase()
       );
       if (match) {
+        // Check-in obligatorio EN TODOS LOS CASOS: si el correo destino ES un
+        // inscrito real que NO hizo check-in (o no pidió certificado) y no es
+        // admin, NO se le entrega el certificado. La "prueba" no debe ser un
+        // atajo que filtre un certificado a alguien que no asistió — ese era el
+        // bug (un inscrito sin check-in lo recibió por esta ruta). El admin y los
+        // correos NO inscritos (vista previa con nombre de muestra) sí pasan.
+        if (!isEligibleRecipient(match)) {
+          return json(403, {
+            error:
+              "Ese correo está inscrito pero no hizo check-in (o no pidió el certificado). El check-in es obligatorio para recibirlo, así que no se envía.",
+          });
+        }
         const extracted = extractName(match);
         if (extracted) {
           name = extracted;
@@ -467,10 +538,9 @@ const handleSendAll = async (body) => {
       );
       for (const att of page.Items || []) {
         if (!att.email) continue;
-        const admin = isCertAdmin(att); // admin: exento de filtros, recibe todo
-        // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
-        if (!admin && att.checkIn !== true) continue;
-        if (!admin && !wantsCertificate(att)) continue;
+        // Solo check-in + pidió certificado (o admin). Única regla, misma que el
+        // envío automático y la prueba individual.
+        if (!isEligibleRecipient(att)) continue;
         recipients.push(att);
       }
       lastKey = page.LastEvaluatedKey;
@@ -625,12 +695,10 @@ exports.handler = async (event) => {
       );
       for (const att of page.Items || []) {
         if (!att.email) continue;
-        const admin = isCertAdmin(att); // admin: exento de filtros, recibe todo
-        // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
-        // checkIn puede venir false/ausente para los inscritos que no llegaron.
-        if (!admin && att.checkIn !== true) continue;
-        // Honor the "¿Desea recibir certificado de participación?" answer.
-        if (!admin && !wantsCertificate(att)) continue;
+        // Certificado de PARTICIPACIÓN: solo a quienes hicieron check-in Y
+        // pidieron el certificado (o admin). checkIn puede venir false/ausente
+        // para los inscritos que no llegaron. Única regla en las tres rutas.
+        if (!isEligibleRecipient(att)) continue;
         recipients.push(att);
       }
       lastKey = page.LastEvaluatedKey;
