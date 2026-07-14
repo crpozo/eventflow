@@ -34,8 +34,38 @@ import {
   validateField,
 } from "./utils";
 import { DataStore } from "aws-amplify/datastore";
+import { generateClient } from "aws-amplify/api";
 import TestCertificate from "components/TestCertificate";
 import CertificatePreview from "components/CertificatePreview";
+// Query mínima (sin relaciones anidadas): en este proyecto Landing/Form
+// resuelven raro vía getEvent generado, y aquí solo se necesitan los campos
+// planos del formulario.
+const GET_EVENT_FOR_FORM = /* GraphQL */ `
+  query GetEventForForm($id: ID!) {
+    getEvent(id: $id) {
+      id
+      title
+      description
+      date
+      startDate
+      endDate
+      timezone
+      sendCertificates
+      certificate
+      certificatePosition
+      termsCondition
+      maxRegs
+      totalScannedTicket
+      contactTemplate
+      usuarioUSFQ
+      eventIdUSFQ
+      periodoUSFQ
+      _version
+      _deleted
+      _lastChangedAt
+    }
+  }
+`;
 function ArrayField({
   items = [],
   onChange,
@@ -263,7 +293,7 @@ export default function EventUpdateForm(props) {
   const [errors, setErrors] = React.useState({});
   const resetStateValues = () => {
     const cleanValues = eventRecord
-      ? { ...initialValues, ...eventRecord, Badge }
+      ? { ...initialValues, ...eventRecord, ...(cloudOverrides || {}), Badge }
       : initialValues;
     setTitle(cleanValues.title);
     setDescription(cleanValues.description);
@@ -272,8 +302,25 @@ export default function EventUpdateForm(props) {
     setEndDate(cleanValues.endDate);
     setTimezone(cleanValues.timezone);
     setSendCertificates(cleanValues.sendCertificates);
-    setCertificate(cleanValues.certificate);
-    setCertificatePosition(cleanValues.certificatePosition);
+    // No pisar lo que el admin ya tocó en ESTA sesión: los resets también
+    // llegan tarde (hidratación de nube, cambio de Badge) y antes revertían el
+    // panel del certificado en plena edición — el "se resetea" reportado. Las
+    // claves NO tocadas sí adoptan el valor entrante (p. ej. otra pestaña
+    // cambió el color).
+    if (!certKeyTouchedRef.current) {
+      setCertificate(cleanValues.certificate);
+    }
+    let nextCertPos = cleanValues.certificatePosition;
+    if (dirtyCertKeysRef.current.size > 0) {
+      const incoming = normalizeCertCfg(nextCertPos);
+      const local = normalizeCertCfg(certPosRef.current);
+      dirtyCertKeysRef.current.forEach((k) => {
+        if (local[k] !== undefined) incoming[k] = local[k];
+      });
+      nextCertPos = JSON.stringify(incoming);
+      certPosRef.current = nextCertPos;
+    }
+    setCertificatePosition(nextCertPos);
     setTermsCondition(cleanValues.termsCondition);
     setMaxRegs(cleanValues.maxRegs);
     setTotalScannedTicket(cleanValues.totalScannedTicket);
@@ -287,18 +334,67 @@ export default function EventUpdateForm(props) {
     setErrors({});
   };
   const [eventRecord, setEventRecord] = React.useState(eventModelProp);
+  // La copia local de DataStore (IndexedDB / estado de una pestaña vieja) puede
+  // quedar DETRÁS de la nube aunque los guardados sí lleguen. Si el formulario
+  // se hidrata de esa copia vieja, el siguiente ajuste del certificado
+  // re-escribe el JSON completo con valores viejos y "resetea" lo ya guardado.
+  // Por eso el estado del formulario se hidrata desde getEvent (nube), con la
+  // copia local solo como respaldo sin red. Mismo patrón que la encuesta
+  // pública (GraphQL directo en vez de DataStore). OJO: los valores de nube
+  // van a estado React (cloudOverrides), NUNCA a un Event.copyOf — un copyOf
+  // de hidratación registra patches que DataStore fusiona en cada guardado
+  // posterior y re-enviaría a la nube todos esos campos con valores del
+  // momento del montaje.
+  const gqlClient = React.useMemo(() => generateClient(), []);
+  const CLOUD_HYDRATED_FIELDS = [
+    "title",
+    "description",
+    "date",
+    "startDate",
+    "endDate",
+    "timezone",
+    "sendCertificates",
+    "certificate",
+    "certificatePosition",
+    "termsCondition",
+    "maxRegs",
+    "totalScannedTicket",
+    "contactTemplate",
+    "usuarioUSFQ",
+    "eventIdUSFQ",
+    "periodoUSFQ",
+  ];
+  const [cloudOverrides, setCloudOverrides] = React.useState(null);
+  // true desde la primera interacción del admin: si la respuesta de getEvent
+  // llega DESPUÉS de que empezó a editar, no se aplica (borraría su tecleo /
+  // ajustes en curso una vuelta de red después de montar).
+  const userEditedRef = React.useRef(false);
   React.useEffect(() => {
     const queryData = async () => {
       const record = idProp
         ? await DataStore.query(Event, idProp)
         : eventModelProp;
       setEventRecord(record);
+      // Badge PRIMERO (resuelve del store local en ms): su setBadge dispara un
+      // reset, y si quedara detrás del fetch de red ese reset llegaría
+      // segundos tarde y borraría lo que el admin ya empezó a teclear.
       const BadgeRecord = record ? await record.Badge : undefined;
       setBadge(BadgeRecord);
+      if (record?.id) {
+        const cloud = await fetchCloudEvent(record.id);
+        if (cloud && !cloud._deleted && !userEditedRef.current) {
+          const overrides = {};
+          CLOUD_HYDRATED_FIELDS.forEach((f) => {
+            if (cloud[f] !== undefined) overrides[f] = cloud[f];
+          });
+          setCloudOverrides(overrides);
+        }
+      }
     };
     queryData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idProp, eventModelProp]);
-  React.useEffect(resetStateValues, [eventRecord, Badge]);
+  React.useEffect(resetStateValues, [eventRecord, Badge, cloudOverrides]);
   const [currentBadgeDisplayValue, setCurrentBadgeDisplayValue] =
     React.useState("");
   const [currentBadgeValue, setCurrentBadgeValue] = React.useState(undefined);
@@ -399,6 +495,14 @@ export default function EventUpdateForm(props) {
       // own edits store a JSON string — tolerate both. (JSON.parse of an
       // object throws, which silently reset the panel to defaults on every
       // load and made saved settings look like they never persisted.)
+      // Preset crudo sin comillas ("centro"): tampoco es JSON válido.
+      if (
+        typeof certificatePosition === "string" &&
+        CERT_PRESETS[certificatePosition.trim()]
+      ) {
+        const p = CERT_PRESETS[certificatePosition.trim()];
+        return { ...defaults, xPct: p.xPct, yPct: p.yPct };
+      }
       const v =
         typeof certificatePosition === "string"
           ? JSON.parse(certificatePosition || "{}")
@@ -428,21 +532,154 @@ export default function EventUpdateForm(props) {
     }
     return defaults;
   })();
+  // Claves del JSON del certificado que el admin tocó en ESTA sesión. Al
+  // persistir se mezclan SOLO esas claves sobre la config más fresca de la
+  // nube: así una pestaña/carga con datos viejos nunca pisa las claves que no
+  // tocó (el "puse tamaño pequeño y se reseteó").
+  const dirtyCertKeysRef = React.useRef(new Set());
+  // true si en esta sesión se subió/quitó la plantilla (protege la clave del
+  // archivo de los resets tardíos, igual que dirtyCertKeysRef al JSON).
+  const certKeyTouchedRef = React.useRef(false);
+  // Config del certificado a objeto plano con xPct/yPct SIEMPRE explícitos:
+  // los eventos viejos guardan un preset ("centro", '"inferior-derecha"' o
+  // {preset}), y si el merge partiera de {} les destruiría la posición.
+  const normalizeCertCfg = (v) => {
+    let parsed;
+    if (typeof v === "string") {
+      const s = v.trim();
+      // Preset crudo sin comillas JSON ("centro") — registros muy viejos:
+      // JSON.parse lo rechazaría y se perdería la posición.
+      if (CERT_PRESETS[s]) {
+        const p = CERT_PRESETS[s];
+        return { xPct: p.xPct, yPct: p.yPct };
+      }
+      try {
+        parsed = JSON.parse(s || "{}");
+      } catch (e) {
+        return {};
+      }
+    } else {
+      parsed = v || {};
+    }
+    if (typeof parsed === "string" && parsed) {
+      const p = CERT_PRESETS[parsed] || CERT_PRESETS.centro;
+      return { xPct: p.xPct, yPct: p.yPct };
+    }
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      if ((parsed.xPct == null || parsed.yPct == null) && parsed.preset) {
+        const p = CERT_PRESETS[parsed.preset] || CERT_PRESETS.centro;
+        const { preset, ...rest } = parsed;
+        return { ...rest, xPct: p.xPct, yPct: p.yPct };
+      }
+      // Copia SIEMPRE: puede ser el objeto CONGELADO del modelo DataStore
+      // (immer autoFreeze) y los llamadores lo mutan (overlay del reset).
+      return { ...parsed };
+    }
+    return {};
+  };
+  // Lectura fresca del evento con timeout (una conexión colgada no debe
+  // retrasar el guardado local) y rescate de data parcial: el cliente v6
+  // RECHAZA la promesa ante cualquier error GraphQL aunque data venga poblada.
+  const fetchCloudEvent = async (id) => {
+    const op = gqlClient.graphql({
+      query: GET_EVENT_FOR_FORM,
+      variables: { id },
+    });
+    const timer = setTimeout(() => {
+      try {
+        gqlClient.cancel(op, "timeout getEvent");
+      } catch (e) {
+        /* cancel best-effort */
+      }
+    }, 4000);
+    try {
+      const { data } = await op;
+      return data?.getEvent ?? null;
+    } catch (e) {
+      const partial = e?.data?.getEvent;
+      if (partial) {
+        console.warn(
+          "EventUpdateForm: getEvent con errores parciales; usando data parcial:",
+          e?.errors
+        );
+        return partial;
+      }
+      console.warn(
+        "EventUpdateForm: getEvent falló (red / API key / throttling); usando copia local:",
+        e?.errors ?? e
+      );
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  // _version más reciente visto en la nube: viaja en el save para que
+  // AUTOMERGE no arbitre (y descarte) el merge que acabamos de calcular.
+  const cloudVersionRef = React.useRef(null);
+  const mergeCertWithCloud = async (posJson) => {
+    const cloud = eventRecord?.id ? await fetchCloudEvent(eventRecord.id) : null;
+    if (cloud?._version != null) cloudVersionRef.current = cloud._version;
+    if (cloud && !cloud._deleted && cloud.certificatePosition != null) {
+      const merged = { ...normalizeCertCfg(cloud.certificatePosition) };
+      const localCfg = normalizeCertCfg(posJson);
+      dirtyCertKeysRef.current.forEach((k) => {
+        if (localCfg[k] !== undefined) merged[k] = localCfg[k];
+      });
+      return JSON.stringify(merged);
+    }
+    // Sin nube (offline/primera config): valor local tal cual, sin inventar
+    // "{}" donde antes iba "" o null.
+    if (typeof posJson === "string" || posJson == null) return posJson;
+    return JSON.stringify(normalizeCertCfg(posJson));
+  };
   // Auto-save just the certificate fields so uploading/adjusting persists
   // WITHOUT clicking Update (you can test right away).
-  const persistCert = async (cert, posJson) => {
+  const persistCertNow = async (cert) => {
     if (!eventRecord) return;
     try {
+      // Valor más nuevo AL EJECUTAR (la cola puede retrasar esta llamada
+      // respecto al commit que la disparó): así el último commit siempre gana.
+      const localJson = certPosRef.current;
+      const next = await mergeCertWithCloud(localJson);
+      // Base recién consultada: nunca guardar sobre una instancia vieja ni
+      // sobre una con patches de hidratación (re-enviaría campos del montaje).
+      const base =
+        (await DataStore.query(Event, eventRecord.id)) || eventRecord;
       await DataStore.save(
-        Event.copyOf(eventRecord, (u) => {
+        Event.copyOf(base, (u) => {
           u.certificate = cert;
-          u.certificatePosition = posJson;
+          u.certificatePosition = next;
           u.sendCertificates = true;
+          if (
+            cloudVersionRef.current != null &&
+            cloudVersionRef.current > (base._version ?? 0)
+          ) {
+            u._version = cloudVersionRef.current;
+          }
         })
       );
+      // Reflejar en la UI el resultado del merge (p. ej. otra pestaña cambió
+      // el color) — solo si nadie editó mientras el guardado estaba en vuelo.
+      if (
+        typeof next === "string" &&
+        next !== localJson &&
+        certPosRef.current === localJson
+      ) {
+        certPosRef.current = next;
+        setCertificatePosition(next);
+      }
     } catch (e) {
       console.error("auto-save certificate:", e);
     }
+  };
+  // Cola: los persist se ejecutan EN ORDEN de commit. Sin ella, dos commits
+  // rápidos con fetches de latencia distinta pueden guardarse invertidos y el
+  // valor viejo queda último en la nube.
+  const persistQueueRef = React.useRef(Promise.resolve());
+  const persistCert = (cert) => {
+    const run = persistQueueRef.current.then(() => persistCertNow(cert));
+    persistQueueRef.current = run.catch(() => {});
+    return run;
   };
   // Commit-time persistence must NEVER read the render closure: during a
   // slider/preview drag the change events outpace React's commits, so the
@@ -457,10 +694,12 @@ export default function EventUpdateForm(props) {
     certPosRef.current = certificatePosition;
   }, [certificatePosition]);
   const updateCertSettings = (patch, { persist = true } = {}) => {
+    userEditedRef.current = true;
+    Object.keys(patch).forEach((k) => dirtyCertKeysRef.current.add(k));
     const next = JSON.stringify({ ...certSettings, ...patch });
     certPosRef.current = next;
     setCertificatePosition(next);
-    if (persist) persistCert(certificate, next);
+    if (persist) persistCert(certificate);
   };
   return (
     <Grid
@@ -468,6 +707,9 @@ export default function EventUpdateForm(props) {
       rowGap="15px"
       columnGap="15px"
       padding="20px"
+      onChangeCapture={() => {
+        userEditedRef.current = true;
+      }}
       onSubmit={async (event) => {
         event.preventDefault();
         let modelFields = {
@@ -525,11 +767,32 @@ export default function EventUpdateForm(props) {
               modelFields[key] = null;
             }
           });
+          // El submit también escribe certificatePosition completo: sin este
+          // merge, una pestaña con estado viejo pisaría en la nube lo que otra
+          // guardó (mismo bug que persistCert). Y la base del copyOf se
+          // consulta fresca para no arrastrar valores del montaje al store.
+          try {
+            modelFields.certificatePosition = await mergeCertWithCloud(
+              certPosRef.current || modelFields.certificatePosition
+            );
+          } catch (e) {
+            /* sin red: se envía el valor local */
+          }
+          const base =
+            (await DataStore.query(Event, eventRecord.id)) || eventRecord;
           await DataStore.save(
-            Event.copyOf(eventRecord, (updated) => {
+            Event.copyOf(base, (updated) => {
               Object.assign(updated, modelFields);
               if (!modelFields.Badge) {
                 updated.eventBadgeId = undefined;
+              }
+              // Igual que persistCertNow: con la versión fresca de la nube
+              // AUTOMERGE no arbitra (y no descarta) el merge recién calculado.
+              if (
+                cloudVersionRef.current != null &&
+                cloudVersionRef.current > (base._version ?? 0)
+              ) {
+                updated._version = cloudVersionRef.current;
               }
             })
           );
@@ -702,12 +965,14 @@ export default function EventUpdateForm(props) {
               <StorageManager
                 defaultFiles={certificate ? [{ key: certificate }] : []}
                 onUploadSuccess={({ key }) => {
+                  certKeyTouchedRef.current = true;
                   setCertificate(key);
-                  persistCert(key, certificatePosition);
+                  persistCert(key);
                 }}
                 onFileRemove={() => {
+                  certKeyTouchedRef.current = true;
                   setCertificate(initialValues?.certificate);
-                  persistCert(initialValues?.certificate, certificatePosition);
+                  persistCert(initialValues?.certificate);
                 }}
                 processFile={processFile}
                 accessLevel={"public"}
@@ -744,8 +1009,8 @@ export default function EventUpdateForm(props) {
                     { persist: false }
                   )
                 }
-                onMouseUp={() => persistCert(certificate, certPosRef.current)}
-                onTouchEnd={() => persistCert(certificate, certPosRef.current)}
+                onMouseUp={() => persistCert(certificate)}
+                onTouchEnd={() => persistCert(certificate)}
                 style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
@@ -770,8 +1035,8 @@ export default function EventUpdateForm(props) {
                     { persist: false }
                   )
                 }
-                onMouseUp={() => persistCert(certificate, certPosRef.current)}
-                onTouchEnd={() => persistCert(certificate, certPosRef.current)}
+                onMouseUp={() => persistCert(certificate)}
+                onTouchEnd={() => persistCert(certificate)}
                 style={{ width: "100%", accentColor: "#e41b23" }}
               />
             </Flex>
@@ -825,7 +1090,7 @@ export default function EventUpdateForm(props) {
                 onChange={(e) =>
                   updateCertSettings({ color: e.target.value }, { persist: false })
                 }
-                onBlur={() => persistCert(certificate, certPosRef.current)}
+                onBlur={() => persistCert(certificate)}
                 style={{
                   width: 34,
                   height: 26,
@@ -854,8 +1119,12 @@ export default function EventUpdateForm(props) {
               }
               onChange={(e) =>
                 updateCertSettings({
+                  // Igual que startDate/endDate: interpretar la hora tecleada
+                  // en la zona del EVENTO, no en la del navegador.
                   sendAt: e.target.value
-                    ? new Date(e.target.value).toISOString()
+                    ? new Date(
+                        `${e.target.value.slice(0, 16)}:00${eventTzOffset}`
+                      ).toISOString()
                     : "",
                 })
               }
@@ -882,7 +1151,7 @@ export default function EventUpdateForm(props) {
               updateCertSettings({ xPct: x, yPct: y }, { persist: false })
             }
             onPositionCommit={() =>
-              persistCert(certificate, certPosRef.current)
+              persistCert(certificate)
             }
           />
           <TestCertificate
