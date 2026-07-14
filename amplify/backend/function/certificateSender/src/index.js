@@ -52,6 +52,9 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
+// rev 2026-07-13d: sendAt programado tolerante a AWSJSON como objeto nativo
+// del DocumentClient (JSON.parse lanzaba y el horario programado se ignoraba:
+// los certificados solo salían al terminar el evento, nunca a la hora fijada).
 // rev 2026-07-13c: "Probar certificado" usa el NOMBRE REAL del registro cuando
 // el email de destino está inscrito en el evento (mismo extractName del envío
 // masivo) — la prueba valida el pipeline completo; responde {name, nameSource}.
@@ -536,7 +539,13 @@ exports.handler = async (event) => {
     // they go out once the event has ended (legacy behavior).
     let scheduledAt;
     try {
-      const cfg = JSON.parse(event.certificatePosition || "null");
+      // AWSJSON llega como OBJETO nativo del DocumentClient (mismo caso que
+      // formAnswers, rev 2026-07-13b): JSON.parse(objeto) lanza y el sendAt
+      // programado se perdía en silencio — el envío nunca disparaba a la hora.
+      const cfg =
+        typeof event.certificatePosition === "string"
+          ? JSON.parse(event.certificatePosition || "null")
+          : event.certificatePosition;
       if (cfg && typeof cfg === "object" && cfg.sendAt) scheduledAt = cfg.sendAt;
     } catch (e) {
       /* not JSON / no schedule */
