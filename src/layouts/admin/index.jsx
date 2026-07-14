@@ -2,7 +2,6 @@ import React from "react";
 import { Routes, Route, Navigate, useRoutes } from "react-router-dom";
 import Navbar from "components/navbar";
 import Sidebar from "components/sidebar";
-import UpdateBanner from "components/UpdateBanner";
 import routes from "routes.js";
 import { usePermissions } from "../../providers/PermissionsProvider";
 import { PageLoader } from "components/adminUi";
@@ -71,7 +70,6 @@ export default function Admin(props) {
   if (isReportesOnly || reportesOnly) {
     return (
       <div className="flex h-full w-full bg-lightPrimary dark:!bg-navy-900">
-        <UpdateBanner />
         <main className="flex w-full">
           <div className="h-full flex flex-col min-h-screen w-full px-4">
             {/* Simple navbar with just logo and user icon */}
@@ -97,7 +95,6 @@ export default function Admin(props) {
   // Normal layout for other users
   return (
     <div className="flex h-full w-full ">
-      <UpdateBanner />
       <Sidebar open={open} onClose={() => setOpen(false)} activePath={activePath} />
       {/* Navbar & Main Content */}
       <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
