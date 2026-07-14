@@ -728,7 +728,7 @@ export default function EventUpdateForm(props) {
     const ok = window.confirm(
       `Los certificados ya se enviaron${
         whenTxt ? ` el ${whenTxt}` : ""
-      }.\n\n¿Volver a habilitarlos? Se reenviarán a TODOS los inscritos que pidieron certificado, en el próximo ciclo (cada 5 minutos), según la fecha programada.`
+      }.\n\n¿Volver a habilitarlos? Se reenviarán a todos los que hicieron check-in y pidieron certificado, en el próximo ciclo (cada 5 minutos), según la fecha programada.`
     );
     if (!ok) return;
     setResendingCert(true);
@@ -1017,7 +1017,7 @@ export default function EventUpdateForm(props) {
       </SelectField>
       <SwitchField
         label="Certificados"
-        descriptiveText="Al finalizar el evento se envía automáticamente un certificado por correo a cada participante, con su nombre incrustado en la plantilla."
+        descriptiveText="Se envía automáticamente un certificado por correo a cada participante que hizo check-in en el evento, con su nombre incrustado en la plantilla."
         defaultChecked={false}
         isDisabled={false}
         isChecked={!!sendCertificates}
@@ -1268,7 +1268,7 @@ export default function EventUpdateForm(props) {
               <Text fontSize="0.8125rem" color="#6b7280">
                 Si lo dejas vacío, se envían automáticamente cuando termina el
                 evento (en el siguiente ciclo de 5 minutos). Solo a quienes
-                pidieron certificado en el formulario.
+                hicieron check-in y pidieron certificado en el formulario.
               </Text>
             )}
           </Flex>

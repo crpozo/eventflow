@@ -52,6 +52,10 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
+// rev 2026-07-14: certificado SOLO a quienes hicieron check-in (att.checkIn ===
+// true) — antes iba a todo inscrito con email; un certificado de participación
+// exige asistencia. Aplica en ambas rutas (automática y reenvío sendAll); la
+// prueba individual /certificate-test no se filtra (es preview manual).
 // rev 2026-07-13d: sendAt programado tolerante a AWSJSON como objeto nativo
 // del DocumentClient (JSON.parse lanzaba y el horario programado se ignoraba:
 // los certificados solo salían al terminar el evento, nunca a la hora fijada).
@@ -449,6 +453,8 @@ const handleSendAll = async (body) => {
       );
       for (const att of page.Items || []) {
         if (!att.email) continue;
+        // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
+        if (att.checkIn !== true) continue;
         if (!wantsCertificate(att)) continue;
         recipients.push(att);
       }
@@ -604,6 +610,9 @@ exports.handler = async (event) => {
       );
       for (const att of page.Items || []) {
         if (!att.email) continue;
+        // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
+        // checkIn puede venir false/ausente para los inscritos que no llegaron.
+        if (att.checkIn !== true) continue;
         // Honor the "¿Desea recibir certificado de participación?" answer.
         if (!wantsCertificate(att)) continue;
         recipients.push(att);
