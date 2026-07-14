@@ -53,6 +53,7 @@ const GET_EVENT_FOR_FORM = /* GraphQL */ `
       sendCertificates
       certificate
       certificatePosition
+      certificatesSentAt
       termsCondition
       maxRegs
       totalScannedTicket
@@ -63,6 +64,19 @@ const GET_EVENT_FOR_FORM = /* GraphQL */ `
       _version
       _deleted
       _lastChangedAt
+    }
+  }
+`;
+// Limpia la marca de "certificados enviados" para habilitar un reenvío. El
+// `null` de GraphQL BORRA el atributo en DynamoDB (verificado), de modo que el
+// filtro `attribute_not_exists(certificatesSentAt)` del Lambda vuelve a tomar
+// el evento en el siguiente ciclo. _version es obligatorio (conflict handling).
+const CLEAR_CERT_SENT = /* GraphQL */ `
+  mutation ClearCertSent($input: UpdateEventInput!) {
+    updateEvent(input: $input) {
+      id
+      certificatesSentAt
+      _version
     }
   }
 `;
@@ -365,6 +379,11 @@ export default function EventUpdateForm(props) {
     "periodoUSFQ",
   ];
   const [cloudOverrides, setCloudOverrides] = React.useState(null);
+  // Marca "certificados enviados el…" — el Lambda la escribe DIRECTO en
+  // DynamoDB sin _version, así que DataStore no la ve; se lee de la nube.
+  // Solo para mostrar el aviso + botón "Volver a enviar" (no es campo del form).
+  const [certSentAt, setCertSentAt] = React.useState(null);
+  const [resendingCert, setResendingCert] = React.useState(false);
   // true desde la primera interacción del admin: si la respuesta de getEvent
   // llega DESPUÉS de que empezó a editar, no se aplica (borraría su tecleo /
   // ajustes en curso una vuelta de red después de montar).
@@ -382,12 +401,17 @@ export default function EventUpdateForm(props) {
       setBadge(BadgeRecord);
       if (record?.id) {
         const cloud = await fetchCloudEvent(record.id);
-        if (cloud && !cloud._deleted && !userEditedRef.current) {
-          const overrides = {};
-          CLOUD_HYDRATED_FIELDS.forEach((f) => {
-            if (cloud[f] !== undefined) overrides[f] = cloud[f];
-          });
-          setCloudOverrides(overrides);
+        if (cloud && !cloud._deleted) {
+          // Aviso de envío realizado: lectura de solo-display, sin conflicto
+          // con lo que el admin esté editando.
+          setCertSentAt(cloud.certificatesSentAt || null);
+          if (!userEditedRef.current) {
+            const overrides = {};
+            CLOUD_HYDRATED_FIELDS.forEach((f) => {
+              if (cloud[f] !== undefined) overrides[f] = cloud[f];
+            });
+            setCloudOverrides(overrides);
+          }
         }
       }
     };
@@ -690,6 +714,47 @@ export default function EventUpdateForm(props) {
     const run = persistQueueRef.current.then(() => persistCertNow(cert));
     persistQueueRef.current = run.catch(() => {});
     return run;
+  };
+  // "Volver a enviar": limpia la marca certificatesSentAt en la nube para que
+  // el revisor reenvíe en el próximo ciclo. _version fresco (obligatorio para
+  // el conflict handling de AppSync) desde la lectura previa.
+  const fmtSentAt = (v) => {
+    const d = v ? new Date(v) : null;
+    return d && !isNaN(d) ? d.toLocaleString("es-EC") : "";
+  };
+  const resendCertificates = async () => {
+    if (!eventRecord?.id || resendingCert) return;
+    const whenTxt = fmtSentAt(certSentAt);
+    const ok = window.confirm(
+      `Los certificados ya se enviaron${
+        whenTxt ? ` el ${whenTxt}` : ""
+      }.\n\n¿Volver a habilitarlos? Se reenviarán a TODOS los inscritos que pidieron certificado, en el próximo ciclo (cada 5 minutos), según la fecha programada.`
+    );
+    if (!ok) return;
+    setResendingCert(true);
+    try {
+      const cloud = await fetchCloudEvent(eventRecord.id);
+      const version = cloud?._version;
+      if (version == null) {
+        alert("No se pudo leer el evento. Revisa tu conexión e intenta de nuevo.");
+        return;
+      }
+      await gqlClient.graphql({
+        query: CLEAR_CERT_SENT,
+        variables: {
+          input: { id: eventRecord.id, certificatesSentAt: null, _version: version },
+        },
+      });
+      setCertSentAt(null);
+      alert(
+        "Listo. Los certificados se reenviarán en el próximo ciclo (cada 5 minutos)."
+      );
+    } catch (e) {
+      console.error("reenvío certificados:", e);
+      alert("No se pudo habilitar el reenvío. Intenta de nuevo.");
+    } finally {
+      setResendingCert(false);
+    }
   };
   // Commit-time persistence must NEVER read the render closure: during a
   // slider/preview drag the change events outpace React's commits, so the
@@ -994,6 +1059,52 @@ export default function EventUpdateForm(props) {
               ></StorageManager>
             )}
           </Field>
+          {certSentAt && (
+            <Flex
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              wrap="wrap"
+              gap="10px"
+              style={{
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                borderRadius: 10,
+                padding: "10px 14px",
+              }}
+            >
+              <Flex direction="column" gap="2px">
+                <Text fontSize="0.9rem" color="#065f46" fontWeight={600}>
+                  ✓ Certificados enviados
+                </Text>
+                <Text fontSize="0.8125rem" color="#047857">
+                  {fmtSentAt(certSentAt)
+                    ? `El ${fmtSentAt(certSentAt)} · `
+                    : ""}
+                  no se reenvían solos mientras esta marca exista.
+                </Text>
+              </Flex>
+              <button
+                type="button"
+                onClick={resendCertificates}
+                disabled={resendingCert}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #e41b23",
+                  color: "#e41b23",
+                  borderRadius: 8,
+                  padding: "8px 14px",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  cursor: resendingCert ? "default" : "pointer",
+                  opacity: resendingCert ? 0.6 : 1,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {resendingCert ? "Habilitando…" : "Volver a enviar"}
+              </button>
+            </Flex>
+          )}
           <Flex direction="column" gap="10px">
             <Text fontSize="1rem" color="#304050">
               Posición del nombre
