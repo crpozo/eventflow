@@ -52,6 +52,20 @@ const STORAGE_BUCKET =
   process.env.STORAGE_S3EVENTFLOWSTORAGEA71837FD_BUCKETNAME;
 const BYEVENT_INDEX = process.env.BYEVENT_INDEX || "byEvent";
 const SES_FROM = process.env.SES_FROM;
+// Correos admin que reciben SIEMPRE su certificado (para monitorear el envío),
+// exentos del check-in y de la pregunta de certificado. Deben seguir estando
+// inscritos como asistentes del evento. Configurable por env (coma-separado).
+const CERT_ADMIN_ALWAYS = new Set(
+  (process.env.CERT_ADMIN_ALWAYS || "carlos@mindfultech.ec")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+);
+const isCertAdmin = (att) =>
+  CERT_ADMIN_ALWAYS.has(String(att?.email || "").toLowerCase());
+// rev 2026-07-14b: excepción admin (CERT_ADMIN_ALWAYS, def carlos@mindfultech.ec):
+// recibe SIEMPRE, exento de check-in y de la pregunta de certificado (monitoreo).
+// Debe seguir inscrito como asistente del evento.
 // rev 2026-07-14: certificado SOLO a quienes hicieron check-in (att.checkIn ===
 // true) — antes iba a todo inscrito con email; un certificado de participación
 // exige asistencia. Aplica en ambas rutas (automática y reenvío sendAll); la
@@ -453,9 +467,10 @@ const handleSendAll = async (body) => {
       );
       for (const att of page.Items || []) {
         if (!att.email) continue;
+        const admin = isCertAdmin(att); // admin: exento de filtros, recibe todo
         // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
-        if (att.checkIn !== true) continue;
-        if (!wantsCertificate(att)) continue;
+        if (!admin && att.checkIn !== true) continue;
+        if (!admin && !wantsCertificate(att)) continue;
         recipients.push(att);
       }
       lastKey = page.LastEvaluatedKey;
@@ -610,11 +625,12 @@ exports.handler = async (event) => {
       );
       for (const att of page.Items || []) {
         if (!att.email) continue;
+        const admin = isCertAdmin(att); // admin: exento de filtros, recibe todo
         // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
         // checkIn puede venir false/ausente para los inscritos que no llegaron.
-        if (att.checkIn !== true) continue;
+        if (!admin && att.checkIn !== true) continue;
         // Honor the "¿Desea recibir certificado de participación?" answer.
-        if (!wantsCertificate(att)) continue;
+        if (!admin && !wantsCertificate(att)) continue;
         recipients.push(att);
       }
       lastKey = page.LastEvaluatedKey;
