@@ -418,6 +418,17 @@ const handleTest = async (body) => {
   // name pipeline end-to-end; otherwise fall back to body.name / sample.
   let name = String(body.name || "").trim();
   let nameSource = name ? "param" : "sample";
+
+  // El admin de monitoreo se identifica por correo (sin DB ni check-in), así que
+  // su prueba funciona aunque la consulta al roster falle.
+  const destIsAdmin = CERT_ADMIN_ALWAYS.has(email.toLowerCase());
+
+  // Buscar al inscrito. Distinguimos "no está inscrito" de "no se pudo consultar":
+  // el check-in es obligatorio EN TODOS LOS CASOS, así que si NO es admin y no
+  // pudimos verificar el registro (error transitorio del GSI, etc.) fallamos
+  // CERRADO — no enviar — en vez de colarnos por el catch (bug fail-open).
+  let match = null;
+  let lookupOk = false;
   try {
     let lastKey;
     do {
@@ -430,33 +441,45 @@ const handleTest = async (body) => {
           ExclusiveStartKey: lastKey,
         })
       );
-      const match = (page.Items || []).find(
+      const found = (page.Items || []).find(
         (a) => String(a.email || "").toLowerCase() === email.toLowerCase()
       );
-      if (match) {
-        // Check-in obligatorio EN TODOS LOS CASOS: si el correo destino ES un
-        // inscrito real que NO hizo check-in (o no pidió certificado) y no es
-        // admin, NO se le entrega el certificado. La "prueba" no debe ser un
-        // atajo que filtre un certificado a alguien que no asistió — ese era el
-        // bug (un inscrito sin check-in lo recibió por esta ruta). El admin y los
-        // correos NO inscritos (vista previa con nombre de muestra) sí pasan.
-        if (!isEligibleRecipient(match)) {
-          return json(403, {
-            error:
-              "Ese correo está inscrito pero no hizo check-in (o no pidió el certificado). El check-in es obligatorio para recibirlo, así que no se envía.",
-          });
-        }
-        const extracted = extractName(match);
-        if (extracted) {
-          name = extracted;
-          nameSource = "registro";
-        }
+      if (found) {
+        match = found;
         break;
       }
       lastKey = page.LastEvaluatedKey;
     } while (lastKey);
+    lookupOk = true;
   } catch (e) {
     console.error("test: attendee name lookup failed", e);
+    lookupOk = false;
+  }
+
+  if (!destIsAdmin) {
+    // No se pudo verificar el registro/check-in: fail-closed.
+    if (!lookupOk)
+      return json(503, {
+        error:
+          "No se pudo verificar el registro/check-in en este momento. Intenta de nuevo en unos segundos.",
+      });
+    // Inscrito real que no hizo check-in (o no pidió certificado): no se le
+    // entrega el certificado por la ruta de prueba — ese era el bug.
+    if (match && !isEligibleRecipient(match))
+      return json(403, {
+        error:
+          "Ese correo está inscrito pero no hizo check-in (o no pidió el certificado). El check-in es obligatorio para recibirlo, así que no se envía.",
+      });
+  }
+
+  // Elegible (o admin, o correo no inscrito = vista previa): usar el nombre real
+  // del registro si lo hay.
+  if (match) {
+    const extracted = extractName(match);
+    if (extracted) {
+      name = extracted;
+      nameSource = "registro";
+    }
   }
   if (!name) name = "Nombre de Prueba";
 

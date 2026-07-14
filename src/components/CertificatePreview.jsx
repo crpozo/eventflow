@@ -18,7 +18,10 @@ export default function CertificatePreview({
   yPct = 50,
   fontPct = 6,
   color = "#1a1a1a",
-  sampleName = "Nombre del Participante",
+  // Nombre de muestra LARGO (2 nombres + 2 apellidos) a propósito: así la vista
+  // previa ejerce el auto-ajuste igual que el PDF final para el caso real de
+  // nombres largos. Con un nombre corto no se vería nunca la reducción de fuente.
+  sampleName = "María Fernanda González Rodríguez",
   onPositionChange,
   onPositionCommit,
 }) {
