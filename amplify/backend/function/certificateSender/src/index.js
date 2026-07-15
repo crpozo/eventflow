@@ -63,6 +63,10 @@ const CERT_ADMIN_ALWAYS = new Set(
 );
 const isCertAdmin = (att) =>
   CERT_ADMIN_ALWAYS.has(String(att?.email || "").toLowerCase());
+// rev 2026-07-14c: auto-shrink del nombre — el fontPct es un máximo; si el
+// nombre no cabe en la caja segura (simétrica a la posición) se reduce la
+// fuente hasta que entra (piso 40%). Evita que nombres de 2 nombres + 2
+// apellidos se salgan de la plantilla.
 // rev 2026-07-14b: excepción admin (CERT_ADMIN_ALWAYS, def carlos@mindfultech.ec):
 // recibe SIEMPRE, exento de check-in y de la pregunta de certificado (monitoreo).
 // Debe seguir inscrito como asistente del evento.
@@ -293,12 +297,22 @@ const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
   }
 
   const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const fontSize = (pageWidth * (pos.fontPct || 6)) / 100;
-  const textWidth = font.widthOfTextAtSize(name, fontSize);
 
   // certificatePosition uses top-left % ; pdf-lib origin is bottom-left.
   const cx = (pageWidth * (pos.xPct ?? 50)) / 100;
   const cy = pageHeight - (pageHeight * (pos.yPct ?? 50)) / 100;
+
+  // El tamaño elegido (fontPct) es un MÁXIMO: si el nombre no cabe en la caja
+  // segura —simétrica alrededor de la posición, para que nunca se salga de la
+  // plantilla por ningún lado— se reduce la fuente hasta que entra. Piso 40%
+  // para no quedar ilegible con nombres extremos (2 nombres + 2 apellidos).
+  let fontSize = (pageWidth * (pos.fontPct || 6)) / 100;
+  const maxWidth = 2 * Math.min(cx, pageWidth - cx) * 0.9;
+  let textWidth = font.widthOfTextAtSize(name, fontSize);
+  if (maxWidth > 0 && textWidth > maxWidth) {
+    fontSize = Math.max(fontSize * (maxWidth / textWidth), fontSize * 0.4);
+    textWidth = font.widthOfTextAtSize(name, fontSize);
+  }
 
   let x = cx;
   if ((pos.align || "center") === "center") x = cx - textWidth / 2;
