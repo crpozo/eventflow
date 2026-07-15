@@ -1017,7 +1017,7 @@ export default function EventUpdateForm(props) {
       </SelectField>
       <SwitchField
         label="Certificados"
-        descriptiveText="Se envía automáticamente un certificado por correo a cada participante que hizo check-in en el evento, con su nombre incrustado en la plantilla."
+        descriptiveText="Se envía automáticamente un certificado por correo a cada participante que hizo check-in y pidió recibirlo, con su nombre incrustado en la plantilla. Al activarlo, el formulario de registro incluye automáticamente el campo 'Nombre para el certificado' (máx. 40 caracteres) y la pregunta de si desea recibirlo."
         defaultChecked={false}
         isDisabled={false}
         isChecked={!!sendCertificates}

@@ -150,16 +150,34 @@ export default function SignIn() {
       // the Landing side (landingEventId), so Event.Landing does not resolve and
       // it must be looked up via listLandings. Running both in parallel saves one
       // cross-region round-trip vs the previous sequential awaits.
-      const [resultEvent, resultLanding] = await Promise.all([
+      // GET_EVENT_CERT_FLAG: el getEvent GENERADO es anterior a los campos de
+      // certificado del schema y no selecciona sendCertificates — sin este
+      // flag, el registro no sabe si inyectar los campos de certificado.
+      const GET_EVENT_CERT_FLAG = /* GraphQL */ `
+        query GetEventCertFlag($id: ID!) {
+          getEvent(id: $id) {
+            id
+            sendCertificates
+          }
+        }
+      `;
+      const [resultEvent, resultLanding, resultCertFlag] = await Promise.all([
         client.graphql({ query: getEvent, variables: { id: id } }),
         client.graphql({
           query: listLandings,
           variables: { filter: { landingEventId: { eq: id } } },
         }),
+        client
+          .graphql({ query: GET_EVENT_CERT_FLAG, variables: { id: id } })
+          .catch(() => null),
       ]);
 
       if (resultEvent.data.getEvent) {
-        const ev = resultEvent.data.getEvent;
+        const ev = {
+          ...resultEvent.data.getEvent,
+          sendCertificates:
+            resultCertFlag?.data?.getEvent?.sendCertificates ?? false,
+        };
         setEvent(ev);
 
         const landingItem = resultLanding?.data?.listLandings?.items?.[0];

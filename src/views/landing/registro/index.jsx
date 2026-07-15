@@ -86,6 +86,56 @@ const subeventosIds = [
   "b1b9897e-6e45-4d08-8d41-9080fb6b9b44"
 ];
 
+// Campos de certificado que se inyectan AUTOMÁTICAMENTE en el formulario de
+// registro cuando el evento tiene certificados activados (sendCertificates):
+// el nombre a imprimir (con límite de caracteres; el PDF además auto-encoge) y
+// la pregunta Sí/No de envío. Son virtuales: no se guardan en la definición del
+// Form (el builder del admin no los ve) y las respuestas fluyen a formAnswers
+// como cualquier campo — el Lambda ya los reconoce (cert_nombre manda en
+// extractName; cert_enviar/valores Siquiero-Noquiero via wantsCertificate).
+// Si el admin ya agregó un campo equivalente a mano, no se duplica.
+const CERT_NAME_RE = /cert_nombre|nombre[\s\S]{0,30}certificad|certificad[\s\S]{0,30}nombre/i;
+const CERT_ASK_RE = /certificad|certificate/i;
+export const CERT_NAME_MAXLEN = 40;
+const withCertFields = (questions, sendCertificates) => {
+  if (!sendCertificates || !Array.isArray(questions) || questions.length === 0)
+    return questions;
+  const txt = (q) => `${q?.label || ""} ${q?.name || ""}`;
+  const hasName = questions.some((q) => CERT_NAME_RE.test(txt(q)));
+  const hasAsk = questions.some(
+    (q) => CERT_ASK_RE.test(txt(q)) && !CERT_NAME_RE.test(txt(q))
+  );
+  const extra = [];
+  if (!hasAsk)
+    extra.push({
+      type: "select",
+      name: "cert_enviar",
+      label: "¿Deseas recibir tu certificado de participación?",
+      className: "form-control",
+      multiple: false,
+      access: false,
+      // Mismas convenciones de valores que la pregunta manual histórica:
+      // isAffirmative del Lambda ya resuelve "Siquiero"/"Noquiero" por prefijo.
+      values: [
+        { label: "Si", value: "Siquiero", selected: true },
+        { label: "No", value: "Noquiero", selected: false },
+      ],
+    });
+  if (!hasName)
+    extra.push({
+      type: "text",
+      subtype: "text",
+      name: "cert_nombre",
+      label: `Nombre para el certificado (máx. ${CERT_NAME_MAXLEN} caracteres)`,
+      placeholder: "Como aparecerá en tu certificado",
+      className: "form-control",
+      required: false,
+      maxlength: CERT_NAME_MAXLEN,
+      access: false,
+    });
+  return extra.length ? [...questions, ...extra] : questions;
+};
+
 const Registro = (props) => {
 
   const navigate = useNavigate();
@@ -125,26 +175,34 @@ const Registro = (props) => {
   const ticketsRef = useRef(null);
   const formRef = useRef(null);
 
+  // Definición completa a renderizar: preguntas del Form + campos de
+  // certificado inyectados si el evento los tiene activados. Todo lo de
+  // aguas abajo (traducción, restauración de labels, submit) usa ESTA.
+  const formDataFull = React.useMemo(
+    () => withCertFields(formData, event?.sendCertificates === true),
+    [formData, event?.sendCertificates]
+  );
+
   // Translate the form definition on the fly when the language changes.
   // Shows the original (ES) immediately, then upgrades to the translated copy
   // once Amazon Translate responds (mirrors the rest of the landing).
   React.useEffect(() => {
-    if (!formData || formData.length === 0) return;
+    if (!formDataFull || formDataFull.length === 0) return;
     const target = (lang || "ES").toLowerCase();
 
-    setRenderData(formData);
+    setRenderData(formDataFull);
 
     if (target === "es") return;
 
     let active = true;
     (async () => {
-      const translated = await translateFormData(formData, target);
+      const translated = await translateFormData(formDataFull, target);
       if (active) setRenderData(translated);
     })();
     return () => {
       active = false;
     };
-  }, [formData, lang]);
+  }, [formDataFull, lang]);
 
   // The consent block is plain HTML (not part of the FormBuilder definition),
   // so it needs its own translation pass when the language changes.
@@ -291,7 +349,7 @@ const Registro = (props) => {
         // If the form is being shown translated, restore the original Spanish
         // labels so stored answers stay consistent regardless of display language.
         if ((lang || "ES").toLowerCase() !== "es") {
-          userData = restoreOriginalLabels(userData, formData);
+          userData = restoreOriginalLabels(userData, formDataFull);
         }
 
         if (changeBilling) {

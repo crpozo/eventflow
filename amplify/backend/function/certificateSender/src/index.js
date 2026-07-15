@@ -63,6 +63,10 @@ const CERT_ADMIN_ALWAYS = new Set(
 );
 const isCertAdmin = (att) =>
   CERT_ADMIN_ALWAYS.has(String(att?.email || "").toLowerCase());
+// rev 2026-07-14d: soporte de los campos automáticos del registro —
+// "cert_nombre" (Nombre para el certificado) manda sobre nombres/apellidos en
+// extractName (clamp 60); wantsCertificate EXCLUYE ese campo al buscar la
+// pregunta Sí/No (su label matchea /certificad/ y rompería el filtro).
 // rev 2026-07-14c: auto-shrink del nombre — el fontPct es un máximo; si el
 // nombre no cabe en la caja segura (simétrica a la posición) se reduce la
 // fuente hasta que entra (piso 40%). Evita que nombres de 2 nombres + 2
@@ -147,6 +151,14 @@ const extractName = (eventAttendee) => {
   );
   const labelOf = (a) => normTxt(a.label) || normTxt(a.name);
 
+  // 0) Campo explícito "Nombre para el certificado": el participante decide
+  // cómo aparecer en el documento — manda sobre nombres/apellidos del registro.
+  const certName = answers.find((a) =>
+    CERT_NAME_FIELD.test(`${a?.label || ""} ${a?.name || ""}`)
+  );
+  if (certName && answerValue(certName))
+    return answerValue(certName).trim().slice(0, CERT_NAME_MAX);
+
   // 1) Campo combinado.
   const combined = answers.find((a) => {
     const l = labelOf(a);
@@ -191,6 +203,14 @@ const extractName = (eventAttendee) => {
 // Matches the certificate question by label OR field name (real forms use
 // name="certificado" with label "Desea recibir certificado de participación").
 const CERT_QUESTION = /certificad|certificate/i;
+// Campo "Nombre para el certificado" (inyectado automáticamente en el registro
+// cuando el evento tiene certificados activados). Su label también matchea
+// CERT_QUESTION, así que hay que EXCLUIRLO al buscar la pregunta Sí/No — de lo
+// contrario isAffirmative(nombre de la persona) daría false y la excluiría.
+const CERT_NAME_FIELD = /cert_nombre|nombre[\s\S]{0,30}certificad|certificad[\s\S]{0,30}nombre/i;
+// Límite duro del nombre impreso (el formulario ya limita a 40; esto es el
+// cinturón por si llega por otra vía). El auto-shrink cubre el resto.
+const CERT_NAME_MAX = 60;
 // Option VALUES arrive squashed ("Siquiero"/"Noquiero") or as labels
 // ("Sí quiero") — decide by normalized prefix, negatives win.
 const isAffirmative = (v) => {
@@ -205,9 +225,11 @@ const isAffirmative = (v) => {
 const wantsCertificate = (eventAttendee) => {
   const answers = parseAnswers(eventAttendee.formAnswers);
   if (answers.length === 0) return true; // unreadable/absent -> don't block
-  const field = answers.find((a) =>
-    CERT_QUESTION.test(`${a?.label || ""} ${a?.name || ""}`)
-  );
+  const field = answers.find((a) => {
+    const t = `${a?.label || ""} ${a?.name || ""}`;
+    // Saltar el campo de NOMBRE para el certificado: no es la pregunta Sí/No.
+    return CERT_QUESTION.test(t) && !CERT_NAME_FIELD.test(t);
+  });
   if (!field) return true; // question not in the form -> send to everyone
   const selected = answerValue(field);
   // The answer may be stored as the option value or its label; resolve a label.
