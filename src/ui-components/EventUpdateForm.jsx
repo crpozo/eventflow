@@ -1060,20 +1060,22 @@ export default function EventUpdateForm(props) {
             )}
           </Field>
           {certSentAt && (
-            <Flex
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              wrap="wrap"
-              gap="10px"
+            <div
               style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
+                alignItems: "center",
+                gap: "10px",
                 background: "#ecfdf5",
                 border: "1px solid #a7f3d0",
                 borderRadius: 10,
                 padding: "10px 14px",
               }}
             >
-              <Flex direction="column" gap="2px">
+              {/* spacer izquierdo (1fr) balancea la columna del botón (1fr)
+                  para que el texto quede centrado en la caja */}
+              <span />
+              <div style={{ textAlign: "center" }}>
                 <Text fontSize="0.9rem" color="#065f46" fontWeight={600}>
                   ✓ Certificados enviados
                 </Text>
@@ -1083,12 +1085,13 @@ export default function EventUpdateForm(props) {
                     : ""}
                   no se reenvían solos mientras esta marca exista.
                 </Text>
-              </Flex>
+              </div>
               <button
                 type="button"
                 onClick={resendCertificates}
                 disabled={resendingCert}
                 style={{
+                  justifySelf: "end",
                   background: "#fff",
                   border: "1px solid #e41b23",
                   color: "#e41b23",
@@ -1103,7 +1106,7 @@ export default function EventUpdateForm(props) {
               >
                 {resendingCert ? "Habilitando…" : "Volver a enviar"}
               </button>
-            </Flex>
+            </div>
           )}
           <Flex direction="column" gap="10px">
             <Text fontSize="1rem" color="#304050">
