@@ -153,14 +153,20 @@ const extractName = (eventAttendee) => {
 
   // 0) Campo explícito "Nombre para el certificado": el participante decide
   // cómo aparecer en el documento — manda sobre nombres/apellidos del registro.
-  const certName = answers.find((a) =>
-    CERT_NAME_FIELD.test(`${a?.label || ""} ${a?.name || ""}`)
-  );
+  // isCertNameField exige name exacto o campo de TEXTO: un select cuyo label
+  // acerque 'nombre' a 'certificado' es una pregunta y su respuesta
+  // ("Noquiero") NO debe imprimirse como nombre.
+  const certName = answers.find(isCertNameField);
   if (certName && answerValue(certName))
     return answerValue(certName).trim().slice(0, CERT_NAME_MAX);
 
+  // Un select/radio nunca es fuente de nombre: su respuesta es una OPCIÓN
+  // ("Noquiero"), aunque su label mencione 'nombre'. Los pasos 1-3 buscan
+  // solo en campos de texto.
+  const textAnswers = answers.filter((a) => !isChoiceField(a));
+
   // 1) Campo combinado.
-  const combined = answers.find((a) => {
+  const combined = textAnswers.find((a) => {
     const l = labelOf(a);
     return (
       (l.includes("nombre") && l.includes("apellido")) ||
@@ -171,7 +177,7 @@ const extractName = (eventAttendee) => {
   if (combined && answerValue(combined)) return answerValue(combined);
 
   // 2) Campos separados Nombre + Apellido(s) → concatenar.
-  const first = answers.find((a) => {
+  const first = textAnswers.find((a) => {
     const l = labelOf(a);
     return (
       (l.includes("nombre") || l.includes("first name")) &&
@@ -180,7 +186,7 @@ const extractName = (eventAttendee) => {
       !l.includes("empresa")
     );
   });
-  const last = answers.find((a) => {
+  const last = textAnswers.find((a) => {
     const l = labelOf(a);
     return (
       l.includes("apellido") || l.includes("last name") || l.includes("surname")
@@ -191,8 +197,8 @@ const extractName = (eventAttendee) => {
     .join(" ");
   if (full) return full;
 
-  // 3) Último recurso: cualquier campo que mencione nombre/name.
-  const any = answers.find((a) =>
+  // 3) Último recurso: cualquier campo de texto que mencione nombre/name.
+  const any = textAnswers.find((a) =>
     /nombre|name/i.test(`${a?.label || ""} ${a?.name || ""}`)
   );
   if (any && answerValue(any)) return answerValue(any);
@@ -219,17 +225,45 @@ const isAffirmative = (v) => {
   return /^(si|yes|true|1)/.test(n);
 };
 
+// La detección de campos NO puede ir solo por regex de label: los textos
+// decorativos (header/paragraph) y campos ajenos ("certificado de votación")
+// también mencionan 'certificado'. Discriminar por FORMA del campo:
+//  - respondible: no es header/paragraph
+//  - de opciones: tiene values[] (select/radio) — así luce una pregunta Sí/No
+//  - la respuesta parece Sí/No: prefijo si/yes/no SOLO con letras (una cédula
+//    "1710…" no debe leerse como afirmativa)
+const isAnswerable = (a) =>
+  a && a.type !== "header" && a.type !== "paragraph";
+const isChoiceField = (a) => Array.isArray(a?.values) && a.values.length > 0;
+const fieldTxt = (a) => `${a?.label || ""} ${a?.name || ""}`;
+const yesNoAnswer = (a) => {
+  const n = normTxt(answerValue(a)).replace(/[^a-z]/g, "");
+  return /^(si|yes|no)/.test(n);
+};
+// Campo de NOMBRE para el certificado: por name explícito (cert_nombre, el
+// inyectado), o por label SOLO si es un campo de texto — un select/radio cuyo
+// label acerque 'nombre' a 'certificado' es una PREGUNTA, no un nombre.
+const isCertNameField = (a) =>
+  a?.name === "cert_nombre" ||
+  (!isChoiceField(a) && CERT_NAME_FIELD.test(fieldTxt(a)));
+
 // Whether this attendee should receive a certificate:
 //   - the form HAS the certificate question -> only if they answered "Sí…"
 //   - the form does NOT have it             -> send to everyone
 const wantsCertificate = (eventAttendee) => {
-  const answers = parseAnswers(eventAttendee.formAnswers);
+  const answers = parseAnswers(eventAttendee.formAnswers).filter(isAnswerable);
   if (answers.length === 0) return true; // unreadable/absent -> don't block
-  const field = answers.find((a) => {
-    const t = `${a?.label || ""} ${a?.name || ""}`;
-    // Saltar el campo de NOMBRE para el certificado: no es la pregunta Sí/No.
-    return CERT_QUESTION.test(t) && !CERT_NAME_FIELD.test(t);
-  });
+  // Prioridad: el campo inyectado por name explícito; luego una pregunta que
+  // LUZCA como pregunta (opciones Sí/No o respuesta Sí/No), nunca el campo de
+  // nombre ni texto libre con respuestas arbitrarias.
+  const field =
+    answers.find((a) => a?.name === "cert_enviar") ||
+    answers.find(
+      (a) =>
+        CERT_QUESTION.test(fieldTxt(a)) &&
+        !isCertNameField(a) &&
+        (isChoiceField(a) || yesNoAnswer(a))
+    );
   if (!field) return true; // question not in the form -> send to everyone
   const selected = answerValue(field);
   // The answer may be stored as the option value or its label; resolve a label.
@@ -294,9 +328,30 @@ const hexToRgb = (hex) => {
   );
 };
 
+// Helvetica estándar usa encoding WinAnsi (cp1252): un solo carácter fuera de
+// Latin-1 + puntuación común (emoji, İ turca, etc.) hace LANZAR a pdf-lib y ese
+// asistente se queda sin certificado en silencio. Sanitizar conservando
+// acentos/ñ y colapsando espacios; si no queda nada, fallback.
+const WINANSI_SAFE =
+  /[\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2026\u20AC]/;
+const toWinAnsiSafe = (s) => {
+  const cleaned = Array.from(String(s || ""))
+    .map((ch) => {
+      if (WINANSI_SAFE.test(ch)) return ch;
+      // Transliterar por descomposición: İ→I, Ş→S, ő→o… antes de descartar.
+      const base = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return WINANSI_SAFE.test(base) ? base : "";
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || "Participante";
+};
+
 // Build a one-page PDF with the attendee name drawn on top of the template.
 // The template can be an image (PNG/JPG) or an existing PDF.
 const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
+  name = toWinAnsiSafe(name);
   let pdf;
   let page;
   let pageWidth;

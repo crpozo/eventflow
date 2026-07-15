@@ -1036,8 +1036,12 @@ const Reportes = () => {
               };
             }
 
-            // If no chart is selected dont push a chart.
-            if(type !== "no-chart"){
+            // Solo graficar tipos con options resuelto (pie/bar). Cubre
+            // "no-chart" y también selects sin mapeo de chart — p. ej. el
+            // cert_enviar inyectado (className form-control → "default-chart"),
+            // que antes llegaba aquí con options undefined y reventaba en
+            // options.series[0] tumbando TODOS los gráficos del evento.
+            if(options){
 
               // Check if an entry with the same label already exists in groupedData
               if (!groupedData[label]) {

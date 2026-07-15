@@ -96,14 +96,47 @@ const subeventosIds = [
 // Si el admin ya agregó un campo equivalente a mano, no se duplica.
 const CERT_NAME_RE = /cert_nombre|nombre[\s\S]{0,30}certificad|certificad[\s\S]{0,30}nombre/i;
 const CERT_ASK_RE = /certificad|certificate/i;
-export const CERT_NAME_MAXLEN = 40;
+const CERT_NAME_MAXLEN = 40;
 const withCertFields = (questions, sendCertificates) => {
-  if (!sendCertificates || !Array.isArray(questions) || questions.length === 0)
+  // Form.questions es AWSJSON: puede llegar como array, como string JSON, o
+  // con elementos que son strings JSON — normalizar para DETECTAR (los
+  // originales se renderizan tal cual, formRender ya los tolera).
+  let list = questions;
+  if (typeof list === "string") {
+    try {
+      list = JSON.parse(list);
+    } catch (e) {
+      return questions;
+    }
+  }
+  if (!sendCertificates || !Array.isArray(list) || list.length === 0)
     return questions;
+  const parsed = list.map((q) => {
+    if (typeof q !== "string") return q;
+    try {
+      return JSON.parse(q);
+    } catch (e) {
+      return null;
+    }
+  });
+  // Misma discriminación por FORMA que el Lambda: los textos decorativos
+  // (header/paragraph) y campos ajenos ("certificado de votación") también
+  // mencionan 'certificado'; una pregunta Sí/No REAL es un select/radio con
+  // values[], y un campo de NOMBRE real es de texto (o name exacto).
   const txt = (q) => `${q?.label || ""} ${q?.name || ""}`;
-  const hasName = questions.some((q) => CERT_NAME_RE.test(txt(q)));
-  const hasAsk = questions.some(
-    (q) => CERT_ASK_RE.test(txt(q)) && !CERT_NAME_RE.test(txt(q))
+  const answerable = (q) =>
+    q && q.type !== "header" && q.type !== "paragraph";
+  const isChoice = (q) => Array.isArray(q?.values) && q.values.length > 0;
+  const hasName = parsed.some(
+    (q) =>
+      answerable(q) &&
+      (q?.name === "cert_nombre" ||
+        (!isChoice(q) && CERT_NAME_RE.test(txt(q))))
+  );
+  const hasAsk = parsed.some(
+    (q) =>
+      answerable(q) &&
+      (q?.name === "cert_enviar" || (isChoice(q) && CERT_ASK_RE.test(txt(q))))
   );
   const extra = [];
   if (!hasAsk)
@@ -114,11 +147,12 @@ const withCertFields = (questions, sendCertificates) => {
       className: "form-control",
       multiple: false,
       access: false,
-      // Mismas convenciones de valores que la pregunta manual histórica:
-      // isAffirmative del Lambda ya resuelve "Siquiero"/"Noquiero" por prefijo.
+      // Values legibles ("Si"/"No"): las vistas de perfil imprimen userData[0]
+      // crudo y "Siquiero" se veía como token aplastado. isAffirmative del
+      // Lambda resuelve ambos estilos por prefijo.
       values: [
-        { label: "Si", value: "Siquiero", selected: true },
-        { label: "No", value: "Noquiero", selected: false },
+        { label: "Sí", value: "Si", selected: true },
+        { label: "No", value: "No", selected: false },
       ],
     });
   if (!hasName)
@@ -133,7 +167,7 @@ const withCertFields = (questions, sendCertificates) => {
       maxlength: CERT_NAME_MAXLEN,
       access: false,
     });
-  return extra.length ? [...questions, ...extra] : questions;
+  return extra.length ? [...list, ...extra] : questions;
 };
 
 const Registro = (props) => {
@@ -265,6 +299,7 @@ const Registro = (props) => {
   }, [showRegister]);
 
   // Observer query form data
+  const prevQuestionsRef = useRef(null);
   React.useEffect(() => {
     setFormBuilderLoading(true);
     setFormBuilderError(null);
@@ -279,7 +314,15 @@ const Registro = (props) => {
       } else if (results.items.length > 0) {
         const questions = results.items[0].questions;
         if (questions && questions.length > 0) {
-          setFormData(questions);
+          // observeQuery emite varias veces (pre-sync, synced, cada sync de la
+          // tabla) con una identidad de array NUEVA aunque el contenido no
+          // cambie; sin este guard, cada emit re-dispara la traducción (red)
+          // y resetea el form al español con un flash visible.
+          const key = JSON.stringify(questions);
+          if (prevQuestionsRef.current !== key) {
+            prevQuestionsRef.current = key;
+            setFormData(questions);
+          }
           setFormBuilderLoading(false);
         } else {
           setFormBuilderError("El formulario no contiene preguntas para mostrar.");
@@ -287,7 +330,7 @@ const Registro = (props) => {
         }
       }
     });
-  
+
     return () => subQuestions.unsubscribe();
   }, [id]);
 

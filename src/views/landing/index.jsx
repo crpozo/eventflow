@@ -143,40 +143,51 @@ export default function SignIn() {
     }
 
     getLandingEventGraphql();
-   
-    async function getLandingEventGraphql() {
+
+    // Reintento acotado: sin él, un error transitorio de AppSync (throttling,
+    // red) rechaza el Promise.all sin handler y la landing pública se queda en
+    // el loader infinito.
+    async function getLandingEventGraphql(attempt = 0) {
+      try {
+        await loadLandingEvent();
+      } catch (e) {
+        console.error("landing: fallo cargando evento/landing", e);
+        if (attempt < 2) {
+          setTimeout(() => getLandingEventGraphql(attempt + 1), 2500);
+        }
+      }
+    }
+
+    async function loadLandingEvent() {
 
       // Fetch the event and its landing concurrently. The landing FK lives on
       // the Landing side (landingEventId), so Event.Landing does not resolve and
       // it must be looked up via listLandings. Running both in parallel saves one
       // cross-region round-trip vs the previous sequential awaits.
-      // GET_EVENT_CERT_FLAG: el getEvent GENERADO es anterior a los campos de
-      // certificado del schema y no selecciona sendCertificates — sin este
-      // flag, el registro no sabe si inyectar los campos de certificado.
-      const GET_EVENT_CERT_FLAG = /* GraphQL */ `
-        query GetEventCertFlag($id: ID!) {
-          getEvent(id: $id) {
-            id
-            sendCertificates
-          }
-        }
-      `;
-      const [resultEvent, resultLanding, resultCertFlag] = await Promise.all([
-        client.graphql({ query: getEvent, variables: { id: id } }),
+      // El getEvent GENERADO (queries.js) es anterior a los campos de
+      // certificado y no selecciona sendCertificates. En vez de un segundo
+      // round-trip, se inyecta el campo en la MISMA query (tras la llave de
+      // apertura, independiente de la lista de campos); si el texto generado
+      // cambiara de forma, cae al original y el flag queda false.
+      const getEventWithCertFlag = getEvent.includes("sendCertificates")
+        ? getEvent
+        : getEvent.replace(
+            /getEvent\(id: \$id\) \{/,
+            "getEvent(id: $id) {\n      sendCertificates"
+          );
+      const [resultEvent, resultLanding] = await Promise.all([
+        client.graphql({ query: getEventWithCertFlag, variables: { id: id } }),
         client.graphql({
           query: listLandings,
           variables: { filter: { landingEventId: { eq: id } } },
         }),
-        client
-          .graphql({ query: GET_EVENT_CERT_FLAG, variables: { id: id } })
-          .catch(() => null),
       ]);
 
       if (resultEvent.data.getEvent) {
         const ev = {
           ...resultEvent.data.getEvent,
           sendCertificates:
-            resultCertFlag?.data?.getEvent?.sendCertificates ?? false,
+            resultEvent.data.getEvent.sendCertificates ?? false,
         };
         setEvent(ev);
 
