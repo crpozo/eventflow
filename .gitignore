@@ -53,3 +53,8 @@ amplifytools.xcconfig
 **.sample
 #amplify-do-not-edit-end
 .claude/settings.local.json
+
+# Artefactos de análisis local
+.scannerwork/
+__pycache__/
+*.pyc
