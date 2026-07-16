@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 18
           cache: npm
-      - run: npm ci --ignore-scripts
+      - run: npm ci # sin --ignore-scripts: canvas (dep nativa) necesita su postinstall para instalar el binario; sin él la suite no corre
       # Los tests del certificateSender importan el módulo REAL del Lambda,
       # que resuelve @aws-sdk/pdf-lib/nodemailer desde su propio node_modules
       # (no está en git) — instalarlo también en CI.
