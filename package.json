@@ -61,7 +61,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test:ci": "react-scripts test --watchAll=false",
+    "test:coverage": "react-scripts test --coverage --watchAll=false"
   },
   "eslintConfig": {
     "extends": [
@@ -72,7 +74,22 @@
   "jest": {
     "moduleNameMapper": {
       "@aws-amplify/ui-react/styles.css": "<rootDir>/src/setupTests.js"
-    }
+    },
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "amplify/backend/function/certificateSender/src/index.js",
+      "!src/graphql/**",
+      "!src/models/**",
+      "!src/ui-components/utils.js",
+      "!src/**/*.test.{js,jsx}",
+      "!src/index.js",
+      "!src/reportWebVitals.js",
+      "!src/setupTests.js"
+    ],
+    "coverageReporters": [
+      "lcov",
+      "text-summary"
+    ]
   },
   "browserslist": {
     "production": [

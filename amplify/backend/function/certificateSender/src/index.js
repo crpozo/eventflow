@@ -276,7 +276,13 @@ const wantsCertificate = (eventAttendee) => {
 };
 
 // Exposed only for offline verification of the pure helpers (no side effects).
-exports._test = { parseAnswers, extractName, wantsCertificate, isAffirmative };
+exports._test = {
+  parseAnswers,
+  extractName,
+  wantsCertificate,
+  isAffirmative,
+  isCertAdmin,
+};
 
 // certificatePosition is stored from the admin form as a JSON string holding a
 // preset key (e.g. '"centro"'). Map each preset to drawing coordinates
@@ -347,6 +353,9 @@ const toWinAnsiSafe = (s) => {
     .trim();
   return cleaned || "Participante";
 };
+// (asignación tardía: declarar toWinAnsiSafe arriba del exports._test inicial
+// sería TDZ en la carga del módulo)
+exports._test.toWinAnsiSafe = toWinAnsiSafe;
 
 // Build a one-page PDF with the attendee name drawn on top of the template.
 // The template can be an image (PNG/JPG) or an existing PDF.
