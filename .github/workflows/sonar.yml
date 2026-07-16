@@ -20,6 +20,10 @@ jobs:
           node-version: 18
           cache: npm
       - run: npm ci
+      # Los tests del certificateSender importan el módulo REAL del Lambda,
+      # que resuelve @aws-sdk/pdf-lib/nodemailer desde su propio node_modules
+      # (no está en git) — instalarlo también en CI.
+      - run: npm ci --prefix amplify/backend/function/certificateSender/src
       - run: npm run test:coverage
         env:
           CI: "true"
