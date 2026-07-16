@@ -1,0 +1,28 @@
+# Análisis SonarCloud en cada push a main y en PRs: corre la suite con
+# cobertura (lcov) y sube el reporte. El token vive en el secret SONAR_TOKEN
+# del repo — nunca en el código. La config del proyecto está en
+# sonar-project.properties.
+name: SonarCloud
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  sonar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historia completa: Sonar la usa para blame/new code
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+        env:
+          CI: "true"
+      - uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
