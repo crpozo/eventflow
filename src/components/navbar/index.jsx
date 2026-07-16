@@ -79,6 +79,14 @@ const Navbar = ({ signOut: showSignOutProp, onOpenSidenav }) => {
               <span
                 className="flex cursor-pointer text-xl text-gray-600 dark:text-white xl:hidden"
                 onClick={onOpenSidenav}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenSidenav();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
                 aria-label="Open sidenav"
               >
                 <FiAlignJustify className="h-5 w-5" />

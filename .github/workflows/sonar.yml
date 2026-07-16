@@ -19,14 +19,14 @@ jobs:
         with:
           node-version: 18
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       # Los tests del certificateSender importan el módulo REAL del Lambda,
       # que resuelve @aws-sdk/pdf-lib/nodemailer desde su propio node_modules
       # (no está en git) — instalarlo también en CI.
-      - run: npm ci --prefix amplify/backend/function/certificateSender/src
+      - run: npm ci --ignore-scripts --prefix amplify/backend/function/certificateSender/src
       - run: npm run test:coverage
         env:
           CI: "true"
-      - uses: SonarSource/sonarqube-scan-action@v4
+      - uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

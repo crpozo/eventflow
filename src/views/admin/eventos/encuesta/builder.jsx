@@ -289,7 +289,16 @@ function QuestionCard({
   return (
     <div
       ref={cardRef}
+      role="button"
+      tabIndex={0}
       onClick={() => canEdit && onSelect(q.uid)}
+      // e.target === e.currentTarget: no robar Enter/Espacio de los inputs y botones internos
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          canEdit && onSelect(q.uid);
+        }
+      }}
       onDragOver={onCardDragOver}
       onDrop={(e) => onCardDrop(e, index)}
       // border-[transparent]: the tailwind config replaces the whole palette
@@ -431,6 +440,7 @@ function QuestionCard({
               <label
                 className="flex cursor-pointer items-center gap-2"
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               >
                 <span className="text-sm text-navy-700 dark:text-white">Obligatoria</span>
                 <Toggle
@@ -480,12 +490,20 @@ function PaletteItem({ type, hint, canEdit, onAdd }) {
   const Icon = meta.icon;
   return (
     <div
+      role="button"
+      tabIndex={0}
       draggable={canEdit}
       onDragStart={(e) => {
         e.dataTransfer.setData("eventflow/palette", type);
         e.dataTransfer.effectAllowed = "copy";
       }}
       onClick={() => onAdd(type)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onAdd(type);
+        }
+      }}
       className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-100 px-3.5 py-2.5 transition hover:border-brand-500 hover:bg-red-50 dark:border-white/10"
     >
       <div className="flex items-center gap-3">
@@ -812,10 +830,19 @@ export function PreviewModal({ fields, onClose }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="button"
+      tabIndex={0}
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClose();
+        }
+      }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
         className="relative max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:!bg-navy-800"
       >
         <button

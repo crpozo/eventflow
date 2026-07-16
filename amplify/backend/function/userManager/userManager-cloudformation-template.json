@@ -252,7 +252,7 @@
                 "cognito-idp:AdminSetUserPassword"
               ],
               "Resource": [
-                "*"
+                "arn:aws:cognito-idp:sa-east-1:531978016318:userpool/sa-east-1_qUM5Ly0TF"
               ],
               "Effect": "Allow"
             },
@@ -262,7 +262,8 @@
                 "ses:SendRawEmail"
               ],
               "Resource": [
-                "*"
+                "arn:aws:ses:sa-east-1:531978016318:identity/eventflow.ec",
+                "arn:aws:ses:sa-east-1:531978016318:identity/tickets@eventflow.ec"
               ],
               "Effect": "Allow"
             }

@@ -14,6 +14,16 @@ const Navbar = (props) => {
   const { onOpenSidenav, brandText } = props;
   const [darkmode, setDarkmode] = React.useState(false);
 
+  const toggleDarkmode = () => {
+    if (darkmode) {
+      document.body.classList.remove("dark");
+      setDarkmode(false);
+    } else {
+      document.body.classList.add("dark");
+      setDarkmode(true);
+    }
+  };
+
   return (
     <nav className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-xl bg-white/10 p-2 backdrop-blur-xl dark:bg-[#0b14374d]">
       <div className="ms-[6px]">
@@ -58,7 +68,15 @@ const Navbar = (props) => {
         </div>
         <span
           className="flex cursor-pointer text-xl text-gray-600 dark:text-white xl:hidden"
+          role="button"
+          tabIndex={0}
           onClick={onOpenSidenav}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpenSidenav();
+            }
+          }}
         >
           <FiAlignJustify className="h-5 w-5" />
         </span>
@@ -152,13 +170,13 @@ const Navbar = (props) => {
         />
         <div
           className="cursor-pointer text-gray-600"
-          onClick={() => {
-            if (darkmode) {
-              document.body.classList.remove("dark");
-              setDarkmode(false);
-            } else {
-              document.body.classList.add("dark");
-              setDarkmode(true);
+          role="button"
+          tabIndex={0}
+          onClick={toggleDarkmode}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleDarkmode();
             }
           }}
         >

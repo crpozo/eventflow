@@ -142,15 +142,15 @@ class SurveyRender extends Component {
   fb = createRef();
   renderToken = 0;
 
-  async componentDidMount() {
-    await this.renderForm();
+  componentDidMount() {
+    void this.renderForm();
   }
 
-  async componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps) {
     if (
       JSON.stringify(prevProps.formData) !== JSON.stringify(this.props.formData)
     ) {
-      await this.renderForm();
+      void this.renderForm();
     }
   }
 

@@ -179,14 +179,23 @@ const DevelopmentTable = (props) => {
                         </p>
                       );
                     } else if (cell.column.Header === "EDITAR") {
+                      const irADetalle = () => {
+                        navigate(`${cell.value}/detalle/`);
+                        localStorage.setItem(
+                          `EVENTFLOW.event`,
+                          JSON.stringify(cell.row.original.model)
+                        );
+                      };
                       data = (
                         <span
-                          onClick={() => {
-                            navigate(`${cell.value}/detalle/`);
-                            localStorage.setItem(
-                              `EVENTFLOW.event`,
-                              JSON.stringify(cell.row.original.model)
-                            );
+                          role="button"
+                          tabIndex={0}
+                          onClick={irADetalle}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              irADetalle();
+                            }
                           }}
                           className="flex items-center gap-2 text-[15px] cursor-pointer hover:text-brand-500"
                         >

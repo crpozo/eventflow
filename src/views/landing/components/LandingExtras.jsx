@@ -51,7 +51,15 @@ export default function LandingExtras({ landing, ui }) {
                 src={url}
                 alt={`${ui.gallery} ${i + 1}`}
                 loading="lazy"
+                role="button"
+                tabIndex={0}
                 onClick={() => setLightbox(url)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setLightbox(url);
+                  }
+                }}
                 className="h-40 w-full cursor-zoom-in rounded-xl object-cover transition duration-200 hover:opacity-90 md:h-48"
               />
             ))}
@@ -74,7 +82,15 @@ export default function LandingExtras({ landing, ui }) {
                   src={url}
                   alt="partner logo"
                   loading="lazy"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setLightbox(url)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setLightbox(url);
+                    }
+                  }}
                   className="h-16 w-auto max-w-[160px] cursor-zoom-in object-contain md:h-20"
                 />
               ))}
@@ -87,6 +103,13 @@ export default function LandingExtras({ landing, ui }) {
       {lightbox && (
         <div
           onClick={() => setLightbox(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setLightbox(null);
+            }
+          }}
+          tabIndex={0}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4"
           role="dialog"
           aria-modal="true"
@@ -102,7 +125,15 @@ export default function LandingExtras({ landing, ui }) {
           <img
             src={lightbox}
             alt=""
+            role="button"
+            tabIndex={0}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
           />
         </div>

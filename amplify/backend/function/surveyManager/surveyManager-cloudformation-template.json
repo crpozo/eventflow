@@ -605,7 +605,8 @@
                 "ses:SendEmail"
               ],
               "Resource": [
-                "*"
+                "arn:aws:ses:sa-east-1:531978016318:identity/eventflow.ec",
+                "arn:aws:ses:sa-east-1:531978016318:identity/tickets@eventflow.ec"
               ],
               "Effect": "Allow"
             },

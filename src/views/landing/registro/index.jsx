@@ -36,16 +36,16 @@ const loadJQueryAndFormBuilder = async () => {
 class FormBuilder extends Component {
   fb = createRef();
 
-  async componentDidMount() {
-    await this.renderForm();
+  componentDidMount() {
+    void this.renderForm();
   }
 
-  async componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps) {
     if (
       JSON.stringify(prevProps.formData) !==
       JSON.stringify(this.props.formData)
     ) {
-      await this.renderForm();
+      void this.renderForm();
     }
   }
 
@@ -831,9 +831,17 @@ const Registro = (props) => {
 
               {props.landing.cost != 'Gratuito' && 
                 <div className="mb-1 py-3">
-                  <label 
+                  <label
                     className="font-medium flex items-center cursor-pointer"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleBillingCheckboxChange(!showBillingFields)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleBillingCheckboxChange(!showBillingFields);
+                      }
+                    }}
                   >
                     <div 
                       className={`w-5 h-5 mr-2 border border-gray-400 rounded flex items-center justify-center ${showBillingFields ? 'bg-blue-500' : 'bg-white'}`}
@@ -1118,7 +1126,6 @@ const Registro = (props) => {
                       <div className="ticket-card">
                         <div
                           style={{
-                            background: "rgb(255,255,255)",
                             background:
                               "linear-gradient(0deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 80%, #faf3e9f7 80%)",
                           }}

@@ -502,8 +502,7 @@ export default function SignIn() {
                       {isSubeventLanding ? ui.selectActivity : ui.confirmAttendance}
                     </h3>
 
-                    <div className={`mx-auto flex w-full min-w-full flex-col justify-center rounded-md
-                      ${landing.cost !== 'Gratuito' && !isSubeventLanding ? '' : ''}`}>
+                    <div className="mx-auto flex w-full min-w-full flex-col justify-center rounded-md">
 
                       {/* Solo muestra selector de precio y cantidad si no es subevento */}
                       {!isSubeventLanding && landing.cost !== 'Gratuito' && (

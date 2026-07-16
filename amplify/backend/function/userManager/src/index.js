@@ -17,6 +17,8 @@
 // rev 2026-06-24b: SES invite + resend (POST /users {resend}); resend now CREATES
 // the Cognito account if it doesn't exist (stranded users). Bump this string to
 // bust the deploy hash when Amplify wrongly reports "No Change".
+// rev 2026-07-16: genTempPassword usa crypto.randomInt (S2245) en vez de Math.random.
+const crypto = require("crypto");
 const {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
@@ -46,11 +48,11 @@ const genTempPassword = () => {
   const digit = "23456789";
   const sym = "!@#$%*?-";
   const all = lower + upper + digit + sym;
-  const pick = (s) => s[Math.floor(Math.random() * s.length)];
+  const pick = (s) => s[crypto.randomInt(s.length)];
   const chars = [pick(lower), pick(upper), pick(digit), pick(sym)];
   for (let i = 0; i < 8; i++) chars.push(pick(all));
   for (let i = chars.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = crypto.randomInt(i + 1);
     [chars[i], chars[j]] = [chars[j], chars[i]];
   }
   return chars.join("");

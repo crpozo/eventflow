@@ -1,4 +1,5 @@
 import boto3
+from botocore.config import Config
 import requests
 import os
 import datetime
@@ -19,7 +20,12 @@ import json
 
 # AWS
 REGION = "sa-east-1"
-lambda_client = boto3.client("lambda", region_name=REGION)
+# Timeouts explícitos: una invoke colgada agotaría el timeout de la función
+lambda_client = boto3.client(
+    "lambda",
+    region_name=REGION,
+    config=Config(connect_timeout=5, read_timeout=30, retries={"max_attempts": 2}),
+)
 GRAPHQL_ENDPOINT = os.environ["API_EVENTFLOW_GRAPHQLAPIENDPOINTOUTPUT"]
 GRAPHQL_API_KEY = os.environ["API_EVENTFLOW_GRAPHQLAPIKEYOUTPUT"]
 

@@ -143,7 +143,7 @@ function QuestionBody({ q, perResponse, total }) {
     let rows;
     if (type === "date") {
       rows = [...counts.keys()]
-        .sort()
+        .sort((a, b) => String(a).localeCompare(String(b)))
         .map((v) => ({ label: v, count: counts.get(v) }));
     } else {
       // userData stores the option VALUE (e.g. "option-1") — map it back to

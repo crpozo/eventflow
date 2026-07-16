@@ -15,9 +15,6 @@
 abbr[title] {
 	border-bottom: none;
 	-webkit-text-decoration: unset;
-	text-decoration: unset;
-	-webkit-text-decoration: unset;
-	-webkit-text-decoration: unset;
 	text-decoration: unset !important;
 }
 .react-calendar__navigation__prev-button {
