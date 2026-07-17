@@ -84,11 +84,15 @@
       "!src/**/*.test.{js,jsx}",
       "!src/index.js",
       "!src/reportWebVitals.js",
-      "!src/setupTests.js"
+      "!src/setupTests.js",
+      "!src/testUtils/**",
+      "amplify/backend/function/surveyManager/src/index.js",
+      "amplify/backend/function/userManager/src/index.js"
     ],
     "coverageReporters": [
       "lcov",
-      "text-summary"
+      "text-summary",
+      "json-summary"
     ]
   },
   "browserslist": {

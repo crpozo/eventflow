@@ -24,6 +24,10 @@ jobs:
       # que resuelve @aws-sdk/pdf-lib/nodemailer desde su propio node_modules
       # (no está en git) — instalarlo también en CI.
       - run: npm ci --ignore-scripts --prefix amplify/backend/function/certificateSender/src
+      # Configs gitignoradas que algunas vistas importan (mismo stub que ci.yml)
+      - run: |
+          [ -f src/amplifyconfiguration.json ] || echo '{}' > src/amplifyconfiguration.json
+          [ -f src/aws-exports.js ] || printf 'const awsmobile = {};\nexport default awsmobile;\n' > src/aws-exports.js
       - run: npm run test:coverage
         env:
           CI: "true"

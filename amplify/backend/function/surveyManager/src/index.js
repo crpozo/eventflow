@@ -253,6 +253,11 @@ const userPrompt = (eventTitle, responses, questions) =>
 // BEDROCK_MODEL_ID env var, no code change. Auth is the Lambda's IAM role.
 // The system instructions ride inside the user message because some open
 // models (e.g. Gemma) reject Converse's dedicated `system` field.
+// Expuestos solo para tests offline de los helpers puros (sin side effects).
+// OJO: va DESPUÉS de las consts que referencia — antes sería TDZ y el módulo
+// entero reventaría al cargar (Lambda caído).
+exports._test = { parseJson, surveyLink, inviteHtml, extractJson, buildDigest, normalizeQuestions, questionsDigest, userPrompt };
+
 const analyzeBedrock = async (eventTitle, responses, questions) => {
   const {
     BedrockRuntimeClient,

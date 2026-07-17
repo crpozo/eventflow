@@ -119,6 +119,9 @@ const buildReminderEmail = (email, name) => {
   });
 };
 
+// Expuestos solo para tests offline de los helpers puros (sin side effects).
+exports._test = { genTempPassword, buildInviteEmail, buildReminderEmail };
+
 const json = (statusCode, data) => ({
   statusCode,
   headers: {

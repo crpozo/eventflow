@@ -323,6 +323,9 @@ const resolvePosition = (stored) => {
   }
   return PRESET_POSITIONS["centro"];
 };
+// (asignación tardía, mismo patrón que toWinAnsiSafe: agregarla al bloque
+// exports._test inicial sería TDZ en la carga del módulo)
+exports._test.resolvePosition = resolvePosition;
 
 const hexToRgb = (hex) => {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "#1a1a1a");
@@ -333,6 +336,8 @@ const hexToRgb = (hex) => {
     parseInt(m[3], 16) / 255
   );
 };
+// (asignación tardía: ver nota de resolvePosition)
+exports._test.hexToRgb = hexToRgb;
 
 // Helvetica estándar usa encoding WinAnsi (cp1252): un solo carácter fuera de
 // Latin-1 + puntuación común (emoji, İ turca, etc.) hace LANZAR a pdf-lib y ese
@@ -414,6 +419,8 @@ const buildCertificatePdf = async (templateBytes, contentType, name, pos) => {
 
   return Buffer.from(await pdf.save());
 };
+// (asignación tardía: ver nota de resolvePosition)
+exports._test.buildCertificatePdf = buildCertificatePdf;
 
 const sendEmail = async (to, eventTitle, pdfBuffer, subject) => {
   const transport = nodemailer.createTransport({ streamTransport: true, buffer: true });
