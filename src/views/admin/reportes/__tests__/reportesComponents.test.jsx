@@ -1,8 +1,6 @@
 /* Tests de los componentes de src/views/admin/reportes/components/.
  * Librerías de charts mockeadas en la frontera (react-apexcharts /
  * echarts-for-react); se afirma el contenido y props que cada card renderiza.
- * NOTA: DailyTraffic.jsx se omite a propósito — referencia `props.option`
- * sin declarar props y revienta al montarse (bug del template).
  */
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
