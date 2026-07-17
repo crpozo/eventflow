@@ -164,12 +164,14 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
         open ? "translate-x-0" : "-translate-x-96"
       }`}
     >
-      <span
+      <button
+        type="button"
+        aria-label="Cerrar menú"
         className={`absolute ${activePath != '' ? 'top-5 -right-[336px] text-black z-[60]' : 'top-5 -right-8 text-black'} block cursor-pointer xl:hidden`}
         onClick={onClose}
       >
         <HiX />
-      </span>
+      </button>
 
       {/* USFQ logo (dragon icon) on a white tile for contrast on the black rail */}
       <Link
