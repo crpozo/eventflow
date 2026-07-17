@@ -3,7 +3,7 @@
  * Mismo esquema de mocks de frontera que otherForms.test.jsx.
  */
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 
 // ---- @aws-amplify/ui-react: componentes ligeros equivalentes en semántica ----
 jest.mock("@aws-amplify/ui-react", () => {
@@ -243,6 +243,14 @@ describe("AreaUpdateForm", () => {
     expect(screen.getByDisplayValue("Área deportiva")).toBeInTheDocument();
     // el badge del campus resuelve el título desde los registros de Campus
     expect(await screen.findByText("USFQ - c1")).toBeInTheDocument();
+
+    // Segunda ola de hidratación (linked records lazy → nuevo reset): bajo
+    // carga de la suite completa puede aterrizar después del tecleo y
+    // pisarlo. Drenar promesas/timers pendientes antes de escribir.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
+    });
 
     fireEvent.change(
       screen.getByLabelText("Indica a los usuarios que área organiza los eventos"),

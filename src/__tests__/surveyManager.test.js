@@ -24,11 +24,73 @@ if (typeof global.TextDecoder === "undefined") global.TextDecoder = util.TextDec
 
 // Con slash final a propósito: surveyLink debe recortarlo (replace /\/$/).
 process.env.APP_URL = "https://test.eventflow.ec/";
+// Tablas/remitente/backend de IA: el módulo los lee al cargarse.
+process.env.API_EVENTFLOW_EVENTTABLE_NAME = "Event-test";
+process.env.API_EVENTFLOW_EVENTATTENDEETABLE_NAME = "EventAttendee-test";
+process.env.API_EVENTFLOW_SURVEYTABLE_NAME = "Survey-test";
+process.env.API_EVENTFLOW_SURVEYRESPONSETABLE_NAME = "SurveyResponse-test";
+process.env.SES_FROM = "encuestas@test.ec";
+process.env.BEDROCK_MODEL_ID = "us.test.claude-v9"; // con esto gana Bedrock
 
 const LAMBDA = path.resolve(
   __dirname,
   "../../amplify/backend/function/surveyManager/src/index.js"
 );
+
+/* ── Mocks de frontera para el HANDLER ───────────────────────────────────────
+ * El lambda trae sus PROPIOS node_modules: jest mockea por módulo RESUELTO,
+ * así que cada paquete se registra por la ruta absoluta que resuelve el
+ * require DEL LAMBDA. Los jest.fn compartidos se reconfiguran por test
+ * (resetMocks:true de CRA los limpia antes de cada uno). */
+const fromLambda = (id) =>
+  require.resolve(id, { paths: [path.dirname(LAMBDA)] });
+
+const ddbSend = jest.fn();
+const sesSend = jest.fn();
+const sendMail = jest.fn();
+const bedrockSend = jest.fn();
+
+// Clase fake CON NOMBRE real: guarda el input y marca el tipo de comando.
+const cmdClass = (type) =>
+  ({
+    [type]: class {
+      constructor(input) {
+        this.input = input;
+        this.__type = type;
+      }
+    },
+  }[type]);
+
+jest.doMock(fromLambda("@aws-sdk/client-dynamodb"), () => ({
+  DynamoDBClient: class {},
+}));
+jest.doMock(fromLambda("@aws-sdk/lib-dynamodb"), () => ({
+  DynamoDBDocumentClient: { from: () => ({ send: (cmd) => ddbSend(cmd) }) },
+  ScanCommand: cmdClass("ScanCommand"),
+  QueryCommand: cmdClass("QueryCommand"),
+  GetCommand: cmdClass("GetCommand"),
+  UpdateCommand: cmdClass("UpdateCommand"),
+}));
+jest.doMock(fromLambda("@aws-sdk/client-ses"), () => ({
+  SESClient: class {
+    send(cmd) {
+      return sesSend(cmd);
+    }
+  },
+  SendRawEmailCommand: cmdClass("SendRawEmailCommand"),
+}));
+jest.doMock(fromLambda("nodemailer"), () => ({
+  createTransport: () => ({ sendMail: (opts) => sendMail(opts) }),
+}));
+// analyzeBedrock lo requiere de forma perezosa dentro de la función.
+jest.doMock(fromLambda("@aws-sdk/client-bedrock-runtime"), () => ({
+  BedrockRuntimeClient: class {
+    send(cmd) {
+      return bedrockSend(cmd);
+    }
+  },
+  ConverseCommand: cmdClass("ConverseCommand"),
+}));
 
 const loadTestExports = () => {
   try {
@@ -77,6 +139,22 @@ const {
   questionsDigest,
   userPrompt,
 } = loadTestExports();
+
+// El handler sale del MISMO módulo (ya cacheado con los mocks aplicados).
+// eslint-disable-next-line import/no-dynamic-require, global-require
+const { handler } = require(LAMBDA);
+
+// resetMocks:true limpia implementaciones antes de CADA test — reinstalar.
+beforeEach(() => {
+  ddbSend.mockImplementation(async () => ({}));
+  sesSend.mockImplementation(async () => ({}));
+  sendMail.mockImplementation(async () => ({
+    message: Buffer.from("RAW-MIME"),
+  }));
+  bedrockSend.mockImplementation(async () => ({
+    output: { message: { content: [{ text: '{"executiveSummary":"ok"}' }] } },
+  }));
+});
 
 /* ─────────────────────────── parseJson ─────────────────────────── */
 
@@ -376,5 +454,483 @@ describe("userPrompt — prompt completo para la IA", () => {
     expect(p).toContain("Total de respuestas: 0");
     expect(p).toContain("Preguntas de la encuesta (name | tipo | pregunta):\n\n");
     expect(p).toContain("no rellenes");
+  });
+});
+
+/* ═══════════════ exports.handler — REST + scheduled ═══════════════ */
+
+const post = (urlPath, body) => ({
+  httpMethod: "POST",
+  path: urlPath,
+  body: JSON.stringify(body),
+});
+const bodyOf = (res) => JSON.parse(res.body);
+
+// Enruta ddb.send por "Tipo:Tabla" (o solo tipo): valor fijo o función.
+const ddbRoute = (routes) => {
+  ddbSend.mockImplementation(async (cmd) => {
+    const key = `${cmd.__type}:${cmd.input.TableName || ""}`;
+    const r = routes[key] !== undefined ? routes[key] : routes[cmd.__type];
+    if (r === undefined) throw new Error(`ddb inesperado: ${key}`);
+    return typeof r === "function" ? r(cmd) : r;
+  });
+};
+
+const EVENTO = { id: "ev1", title: "Hackathon USFQ" };
+const ENCUESTA = {
+  id: "sv1",
+  surveyEventId: "ev1",
+  active: true,
+  emailSubject: "¿Qué tal el evento?",
+  emailIntro: "Cuéntanos en 2 minutos",
+  questions: JSON.stringify([
+    { type: "text", name: "q1", label: "Comentarios" },
+  ]),
+};
+
+describe("handler — dispatch HTTP", () => {
+  it("OPTIONS responde 200 con CORS completo", async () => {
+    const res = await handler({ httpMethod: "OPTIONS" });
+    expect(res.statusCode).toBe(200);
+    expect(bodyOf(res)).toEqual({ ok: true });
+    expect(res.headers).toMatchObject({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "OPTIONS,POST",
+    });
+  });
+
+  it("métodos distintos de POST → 405 (lee requestContext.http.method)", async () => {
+    const res = await handler({ requestContext: { http: { method: "PUT" } } });
+    expect(res.statusCode).toBe(405);
+    expect(bodyOf(res).error).toBe("Method PUT not allowed");
+  });
+
+  it("body que no es JSON → 400 'Cuerpo inválido'", async () => {
+    const res = await handler({ httpMethod: "POST", body: "{roto" });
+    expect(res.statusCode).toBe(400);
+    expect(bodyOf(res).error).toBe("Cuerpo inválido");
+  });
+
+  it("ruta desconocida → 404 con el path en el error", async () => {
+    const res = await handler(post("/otra-cosa", { eventId: "x" }));
+    expect(res.statusCode).toBe(404);
+    expect(bodyOf(res).error).toContain("/otra-cosa");
+  });
+
+  it("una excepción del backend en REST → 500 con mensaje y CORS", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": () => {
+        throw new Error("dynamo caído");
+      },
+      "ScanCommand:Survey-test": { Items: [] },
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", email: "x@y.z" }));
+    expect(res.statusCode).toBe(500);
+    expect(bodyOf(res).error).toBe("dynamo caído");
+    expect(res.headers["Access-Control-Allow-Origin"]).toBe("*");
+  });
+});
+
+describe("handler /survey-test — invitación de prueba", () => {
+  it("sin eventId o sin email → 400 antes de tocar DynamoDB", async () => {
+    expect(
+      (await handler(post("/survey-test", { email: "x@y.z" }))).statusCode
+    ).toBe(400);
+    expect(
+      (await handler(post("/survey-test", { eventId: "ev1" }))).statusCode
+    ).toBe(400);
+    expect(ddbSend).not.toHaveBeenCalled();
+  });
+
+  it("evento inexistente → 404", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: undefined },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", email: "a@b.c" }));
+    expect(res.statusCode).toBe(404);
+    expect(bodyOf(res).error).toBe("Evento no encontrado");
+  });
+
+  it("sin encuesta guardada → 400", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [] },
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", email: "a@b.c" }));
+    expect(res.statusCode).toBe(400);
+    expect(bodyOf(res).error).toBe("Guarda la encuesta antes de probar");
+  });
+
+  it("envía UNA invitación con el link SIN token y responde sentTo", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", email: "ana@x.com" }));
+    expect(res.statusCode).toBe(200);
+    expect(bodyOf(res)).toEqual({ ok: true, sentTo: "ana@x.com" });
+    // la encuesta se busca por surveyEventId
+    const scan = ddbSend.mock.calls.find(([c]) => c.__type === "ScanCommand")[0];
+    expect(scan.input).toMatchObject({
+      TableName: "Survey-test",
+      FilterExpression: "surveyEventId = :e",
+      ExpressionAttributeValues: { ":e": "ev1" },
+    });
+    // correo con asunto/intro de la encuesta y el link público (sin ?a=)
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const mail = sendMail.mock.calls[0][0];
+    expect(mail.from).toBe("encuestas@test.ec");
+    expect(mail.to).toBe("ana@x.com");
+    expect(mail.subject).toBe("¿Qué tal el evento?");
+    expect(mail.html).toContain("Hackathon USFQ");
+    expect(mail.html).toContain("Cuéntanos en 2 minutos");
+    expect(mail.html).toContain("https://test.eventflow.ec/landing/ev1/encuesta");
+    expect(mail.html).not.toContain("?a=");
+    // el MIME crudo sale por SES
+    expect(sesSend).toHaveBeenCalledTimes(1);
+    expect(sesSend.mock.calls[0][0].__type).toBe("SendRawEmailCommand");
+    expect(sesSend.mock.calls[0][0].input.RawMessage.Data.toString()).toBe("RAW-MIME");
+  });
+});
+
+describe("handler /survey-test sendAll — envío manual", () => {
+  const ASISTENTES = [
+    { id: "a1", email: "ana@x.com", checkIn: true },
+    { id: "a2", email: "ana@x.com", checkIn: true }, // duplicada → 1 solo correo
+    { id: "a3", email: "beto@x.com", checkIn: false }, // sin check-in → fuera
+    { id: "a4", checkIn: true }, // sin email → fuera
+    { id: "a5", email: "carla@x.com", checkIn: true },
+  ];
+
+  it("sin eventId → 400", async () => {
+    const res = await handler(post("/survey-test", { sendAll: true }));
+    expect(res.statusCode).toBe(400);
+    expect(bodyOf(res).error).toBe("eventId es requerido");
+  });
+
+  it("encuesta sin preguntas → 400 sin enviar nada", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [{ ...ENCUESTA, questions: "[]" }] },
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", sendAll: true }));
+    expect(res.statusCode).toBe(400);
+    expect(bodyOf(res).error).toBe("La encuesta no tiene preguntas");
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("solo check-ins, dedupe por email, links con token y estampa sentAt", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "QueryCommand:EventAttendee-test": { Items: ASISTENTES },
+      "UpdateCommand:Survey-test": {},
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", sendAll: true }));
+    expect(res.statusCode).toBe(200);
+    const b = bodyOf(res);
+    expect(b.ok).toBe(true);
+    expect(b.sent).toBe(2);
+    const mails = sendMail.mock.calls.map(([m]) => m);
+    expect(mails.map((m) => m.to).sort()).toEqual(["ana@x.com", "carla@x.com"]);
+    // el token del link es el id del EventAttendee
+    expect(mails.find((m) => m.to === "ana@x.com").html).toContain(
+      "/landing/ev1/encuesta?a=a1"
+    );
+    expect(mails.find((m) => m.to === "carla@x.com").html).toContain(
+      "/landing/ev1/encuesta?a=a5"
+    );
+    // reenvío manual: estampa sentAt SIN condición (el admin ya confirmó)
+    const upds = ddbSend.mock.calls.filter(([c]) => c.__type === "UpdateCommand");
+    expect(upds).toHaveLength(1);
+    expect(upds[0][0].input).toMatchObject({
+      TableName: "Survey-test",
+      Key: { id: "sv1" },
+      UpdateExpression: "SET sentAt = :now",
+      ExpressionAttributeValues: { ":now": b.sentAt },
+    });
+    expect(upds[0][0].input.ConditionExpression).toBeUndefined();
+  });
+
+  it("pagina asistentes con ExclusiveStartKey", async () => {
+    let q = 0;
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "QueryCommand:EventAttendee-test": () =>
+        ++q === 1
+          ? {
+              Items: [{ id: "a1", email: "uno@x.com", checkIn: true }],
+              LastEvaluatedKey: { id: "a1" },
+            }
+          : { Items: [{ id: "a2", email: "dos@x.com", checkIn: true }] },
+      "UpdateCommand:Survey-test": {},
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", sendAll: true }));
+    expect(bodyOf(res).sent).toBe(2);
+    const queries = ddbSend.mock.calls.filter(([c]) => c.__type === "QueryCommand");
+    expect(queries).toHaveLength(2);
+    expect(queries[0][0].input.ExclusiveStartKey).toBeUndefined();
+    expect(queries[1][0].input.ExclusiveStartKey).toEqual({ id: "a1" });
+  });
+
+  it("sin check-ins → 400 y NO estampa sentAt", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "QueryCommand:EventAttendee-test": {
+        Items: [{ id: "a3", email: "beto@x.com", checkIn: false }],
+      },
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", sendAll: true }));
+    expect(res.statusCode).toBe(400);
+    expect(bodyOf(res).error).toBe(
+      "No hay asistentes con check-in para enviar la encuesta"
+    );
+    expect(
+      ddbSend.mock.calls.filter(([c]) => c.__type === "UpdateCommand")
+    ).toHaveLength(0);
+  });
+
+  it("elegibles pero TODOS los envíos fallan → 500 sin estampar (reintentable)", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "QueryCommand:EventAttendee-test": { Items: ASISTENTES },
+    });
+    sendMail.mockImplementation(async () => {
+      throw new Error("SES down");
+    });
+    const res = await handler(post("/survey-test", { eventId: "ev1", sendAll: true }));
+    expect(res.statusCode).toBe(500);
+    expect(bodyOf(res).error).toContain("No se pudo enviar ningún correo");
+    expect(bodyOf(res).error).toContain("2 asistente(s)");
+    expect(
+      ddbSend.mock.calls.filter(([c]) => c.__type === "UpdateCommand")
+    ).toHaveLength(0);
+  });
+});
+
+describe("handler /survey-analyze — análisis con IA (backend Bedrock)", () => {
+  const RESPUESTAS = [
+    {
+      id: "r1",
+      answers: JSON.stringify([
+        { type: "text", name: "q1", label: "Comentarios", userData: ["Excelente evento"] },
+      ]),
+    },
+    {
+      id: "r2",
+      answers: JSON.stringify([
+        { type: "text", name: "q1", label: "Comentarios", userData: ["Faltó café"] },
+      ]),
+    },
+  ];
+  const INSIGHTS = {
+    executiveSummary: "Feedback mayormente positivo",
+    overallSentiment: { score: 75, label: "Positivo" },
+    themes: [],
+    strengths: ["Organización"],
+    concerns: ["Café insuficiente"],
+    recommendations: ["Más café"],
+    perQuestion: [
+      { name: "q1", question: "Comentarios", insight: "Buenas impresiones", sentiment: "positivo" },
+    ],
+  };
+
+  it("sin eventId → 400 / sin encuesta → 404 / sin respuestas → 400", async () => {
+    expect((await handler(post("/survey-analyze", {}))).statusCode).toBe(400);
+
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [] },
+    });
+    const sin = await handler(post("/survey-analyze", { eventId: "ev1" }));
+    expect(sin.statusCode).toBe(404);
+    expect(bodyOf(sin).error).toBe("No hay encuesta para este evento");
+
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "QueryCommand:SurveyResponse-test": { Items: [] },
+    });
+    const vacio = await handler(post("/survey-analyze", { eventId: "ev1" }));
+    expect(vacio.statusCode).toBe(400);
+    expect(bodyOf(vacio).error).toBe("Aún no hay respuestas para analizar");
+    expect(bedrockSend).not.toHaveBeenCalled();
+  });
+
+  it("manda digest+preguntas a Bedrock y guarda insights como objeto NATIVO", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "QueryCommand:SurveyResponse-test": { Items: RESPUESTAS },
+      "UpdateCommand:Survey-test": {},
+    });
+    bedrockSend.mockImplementation(async () => ({
+      output: {
+        message: {
+          content: [
+            { text: "Claro, aquí está el análisis:\n" },
+            { text: `${JSON.stringify(INSIGHTS)}\nSaludos.` },
+          ],
+        },
+      },
+    }));
+    const res = await handler(post("/survey-analyze", { eventId: "ev1" }));
+    expect(res.statusCode).toBe(200);
+    const b = bodyOf(res);
+    expect(b.ok).toBe(true);
+    expect(b.insights).toEqual(INSIGHTS);
+    // las respuestas se leen del GSI byEventResponse
+    const q = ddbSend.mock.calls.find(([c]) => c.__type === "QueryCommand")[0];
+    expect(q.input).toMatchObject({
+      TableName: "SurveyResponse-test",
+      IndexName: "byEventResponse",
+      KeyConditionExpression: "eventID = :e",
+    });
+    // prompt completo al modelo configurado por env
+    const conv = bedrockSend.mock.calls[0][0];
+    expect(conv.__type).toBe("ConverseCommand");
+    expect(conv.input.modelId).toBe("us.test.claude-v9");
+    expect(conv.input.inferenceConfig).toEqual({ maxTokens: 4000 });
+    const prompt = conv.input.messages[0].content[0].text;
+    expect(prompt).toContain("Eres analista de experiencia de eventos");
+    expect(prompt).toContain("Evento: Hackathon USFQ");
+    expect(prompt).toContain("Total de respuestas: 2");
+    expect(prompt).toContain("Excelente evento");
+    expect(prompt).toContain("Faltó café");
+    expect(prompt).toContain("name: q1 | tipo: text | pregunta: Comentarios");
+    // insights se guardan NATIVOS (Map), no stringificados
+    const upd = ddbSend.mock.calls.find(([c]) => c.__type === "UpdateCommand")[0];
+    expect(upd.input.TableName).toBe("Survey-test");
+    expect(upd.input.Key).toEqual({ id: "sv1" });
+    expect(upd.input.UpdateExpression).toBe("SET insights = :i, insightsAt = :t");
+    expect(upd.input.ExpressionAttributeValues[":i"]).toEqual(INSIGHTS);
+    expect(upd.input.ExpressionAttributeValues[":t"]).toBe(b.insightsAt);
+  });
+
+  it("la IA sin contenido → 500 y NO guarda insights", async () => {
+    ddbRoute({
+      "GetCommand:Event-test": { Item: EVENTO },
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "QueryCommand:SurveyResponse-test": { Items: RESPUESTAS },
+    });
+    bedrockSend.mockImplementation(async () => ({
+      output: { message: { content: [] } },
+    }));
+    const res = await handler(post("/survey-analyze", { eventId: "ev1" }));
+    expect(res.statusCode).toBe(500);
+    expect(bodyOf(res).error).toBe("La IA no devolvió contenido");
+    expect(
+      ddbSend.mock.calls.filter(([c]) => c.__type === "UpdateCommand")
+    ).toHaveLength(0);
+  });
+});
+
+describe("handler scheduled — envío automático (claim primero)", () => {
+  const H = 3600e3;
+  const iso = (deltaMs) => new Date(Date.now() + deltaMs).toISOString();
+  const CHECKIN = { id: "a1", email: "ana@x.com", checkIn: true };
+
+  it("encuesta activa de evento terminado hace >1h: claim condicional y envía", async () => {
+    ddbRoute({
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "GetCommand:Event-test": { Item: { ...EVENTO, endDate: iso(-2 * H) } },
+      "QueryCommand:EventAttendee-test": { Items: [CHECKIN] },
+      "UpdateCommand:Survey-test": {},
+    });
+    const res = await handler({}); // sin httpMethod → scheduled
+    expect(res).toEqual({ ok: true });
+    // scan de encuestas activas sin enviar
+    const scan = ddbSend.mock.calls[0][0];
+    expect(scan.__type).toBe("ScanCommand");
+    expect(scan.input.FilterExpression).toBe(
+      "active = :t AND attribute_not_exists(sentAt)"
+    );
+    // claim atómico ANTES del primer correo
+    const updIdx = ddbSend.mock.calls.findIndex(([c]) => c.__type === "UpdateCommand");
+    const upd = ddbSend.mock.calls[updIdx][0];
+    expect(upd.input.ConditionExpression).toBe("attribute_not_exists(sentAt)");
+    expect(ddbSend.mock.invocationCallOrder[updIdx]).toBeLessThan(
+      sendMail.mock.invocationCallOrder[0]
+    );
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(sendMail.mock.calls[0][0].to).toBe("ana@x.com");
+    expect(sendMail.mock.calls[0][0].html).toContain("?a=a1");
+  });
+
+  it("todavía NO envía si el evento terminó hace menos de 1 hora", async () => {
+    ddbRoute({
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "GetCommand:Event-test": { Item: { ...EVENTO, endDate: iso(-0.5 * H) } },
+    });
+    expect(await handler({})).toEqual({ ok: true });
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(
+      ddbSend.mock.calls.filter(([c]) => c.__type === "UpdateCommand")
+    ).toHaveLength(0);
+  });
+
+  it("sendAt explícito manda a la hora exacta (sin esperar el fin + 1h)", async () => {
+    // el evento terminó hace 5 min (sin sendAt aún no tocaría), pero
+    // sendAt quedó hace 10 min → dispara ya.
+    ddbRoute({
+      "ScanCommand:Survey-test": { Items: [{ ...ENCUESTA, sendAt: iso(-10 * 60e3) }] },
+      "GetCommand:Event-test": { Item: { ...EVENTO, endDate: iso(-5 * 60e3) } },
+      "QueryCommand:EventAttendee-test": { Items: [CHECKIN] },
+      "UpdateCommand:Survey-test": {},
+    });
+    await handler({});
+    expect(sendMail).toHaveBeenCalledTimes(1);
+  });
+
+  it("se saltan: sendAt futuro, sin surveyEventId, evento borrado, sin preguntas", async () => {
+    ddbRoute({
+      "ScanCommand:Survey-test": {
+        Items: [
+          { ...ENCUESTA, id: "s-futuro", sendAt: iso(2 * H) },
+          { ...ENCUESTA, id: "s-sin-evento", surveyEventId: null },
+          { ...ENCUESTA, id: "s-evento-borrado", surveyEventId: "ev-borrado" },
+          { ...ENCUESTA, id: "s-sin-preguntas", questions: "[]" },
+        ],
+      },
+      "GetCommand:Event-test": (cmd) =>
+        cmd.input.Key.id === "ev-borrado"
+          ? { Item: undefined }
+          : { Item: { ...EVENTO, endDate: iso(-2 * H) } },
+    });
+    expect(await handler({})).toEqual({ ok: true });
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(
+      ddbSend.mock.calls.filter(([c]) => c.__type === "UpdateCommand")
+    ).toHaveLength(0);
+  });
+
+  it("claim perdido (otra corrida lo tomó) → NO reenvía", async () => {
+    ddbRoute({
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "GetCommand:Event-test": { Item: { ...EVENTO, endDate: iso(-2 * H) } },
+      "UpdateCommand:Survey-test": () => {
+        const e = new Error("ya estampado");
+        e.name = "ConditionalCheckFailedException";
+        throw e;
+      },
+    });
+    expect(await handler({})).toEqual({ ok: true });
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it("un error inesperado del claim revienta el scheduled (retry de Lambda)", async () => {
+    ddbRoute({
+      "ScanCommand:Survey-test": { Items: [ENCUESTA] },
+      "GetCommand:Event-test": { Item: { ...EVENTO, endDate: iso(-2 * H) } },
+      "UpdateCommand:Survey-test": () => {
+        throw new Error("dynamo caído");
+      },
+    });
+    await expect(handler({})).rejects.toThrow("dynamo caído");
+    expect(sendMail).not.toHaveBeenCalled();
   });
 });
