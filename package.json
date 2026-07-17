@@ -87,7 +87,8 @@
       "!src/setupTests.js",
       "!src/testUtils/**",
       "amplify/backend/function/surveyManager/src/index.js",
-      "amplify/backend/function/userManager/src/index.js"
+      "amplify/backend/function/userManager/src/index.js",
+      "!src/ui-components/EventPermission*"
     ],
     "coverageReporters": [
       "lcov",
