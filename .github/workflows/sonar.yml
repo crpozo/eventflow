@@ -24,6 +24,8 @@ jobs:
       # que resuelve @aws-sdk/pdf-lib/nodemailer desde su propio node_modules
       # (no está en git) — instalarlo también en CI.
       - run: npm ci --ignore-scripts --prefix amplify/backend/function/certificateSender/src
+      - run: npm ci --ignore-scripts --prefix amplify/backend/function/surveyManager/src
+      - run: npm ci --ignore-scripts --prefix amplify/backend/function/userManager/src
       # Configs gitignoradas que algunas vistas importan (mismo stub que ci.yml)
       - run: |
           [ -f src/amplifyconfiguration.json ] || echo '{}' > src/amplifyconfiguration.json

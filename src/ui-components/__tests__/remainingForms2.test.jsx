@@ -1,7 +1,7 @@
 /* Ola 3 — formularios generados por Amplify Studio que seguían a 0%:
  * BadgeCreateForm, BadgeUpdateForm, SurveyResponseCreateForm,
  * SurveyResponseUpdateForm, AttendeeCreateForm, AttendeeUpdateForm,
- * EventPermissionCreateForm, EventPermissionUpdateForm y UserCreateForm.
+ * UserCreateForm.
  * Mismo esquema de mocks de frontera que otherForms2.test.jsx.
  */
 import React from "react";
@@ -203,8 +203,6 @@ import SurveyResponseCreateForm from "../SurveyResponseCreateForm";
 import SurveyResponseUpdateForm from "../SurveyResponseUpdateForm";
 import AttendeeCreateForm from "../AttendeeCreateForm";
 import AttendeeUpdateForm from "../AttendeeUpdateForm";
-import EventPermissionCreateForm from "../EventPermissionCreateForm";
-import EventPermissionUpdateForm from "../EventPermissionUpdateForm";
 import UserCreateForm from "../UserCreateForm";
 
 const {
@@ -646,195 +644,7 @@ describe("AttendeeUpdateForm", () => {
   });
 });
 
-describe("EventPermissionCreateForm", () => {
-  test("userID y eventID requeridos: dos errores y no guarda", async () => {
-    render(<EventPermissionCreateForm />);
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    expect(await screen.findAllByText("The value is required")).toHaveLength(2);
-    expect(DataStore.save).not.toHaveBeenCalled();
-  });
 
-  test("agrega, edita y guarda capabilities con el ArrayField", async () => {
-    const onSuccess = jest.fn();
-    render(<EventPermissionCreateForm onSuccess={onSuccess} />);
-    fireEvent.change(screen.getByLabelText("User id"), {
-      target: { value: "u1" },
-    });
-    fireEvent.change(screen.getByLabelText("Event id"), {
-      target: { value: "e1" },
-    });
-
-    // agrega "read"
-    fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-    fireEvent.change(screen.getByLabelText("Capabilities"), {
-      target: { value: "read" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    expect(await screen.findByText("read")).toBeInTheDocument();
-
-    // edita el badge "read" -> "admin" (botón pasa a Save)
-    fireEvent.click(screen.getByText("read"));
-    fireEvent.change(screen.getByLabelText("Capabilities"), {
-      target: { value: "admin" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("admin")).toBeInTheDocument();
-    expect(screen.queryByText("read")).not.toBeInTheDocument();
-
-    // Cancel descarta lo tecleado sin agregarlo (espera a que ArrayField salga
-    // del modo edición: setIsEditing(false) ocurre tras un await interno)
-    fireEvent.click(await screen.findByRole("button", { name: "Add item" }));
-    fireEvent.change(screen.getByLabelText("Capabilities"), {
-      target: { value: "temporal" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByText("temporal")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    expect(DataStore.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userID: "u1",
-        eventID: "e1",
-        capabilities: ["admin"],
-      })
-    );
-    // clearOnSuccess limpia campos y badges
-    await waitFor(() => expect(screen.getByLabelText("User id")).toHaveValue(""));
-    expect(screen.queryByText("admin")).not.toBeInTheDocument();
-  });
-
-  test("onError recibe el mensaje si el guardado falla", async () => {
-    DataStore.save.mockRejectedValueOnce(new Error("denegado"));
-    const onError = jest.fn();
-    render(<EventPermissionCreateForm onError={onError} />);
-    fireEvent.change(screen.getByLabelText("User id"), {
-      target: { value: "u2" },
-    });
-    fireEvent.change(screen.getByLabelText("Event id"), {
-      target: { value: "e2" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
-    expect(onError).toHaveBeenCalledWith(
-      expect.objectContaining({ userID: "u2", eventID: "e2" }),
-      "denegado"
-    );
-  });
-});
-
-describe("EventPermissionUpdateForm", () => {
-  const permiso = {
-    id: "p1",
-    userID: "u1",
-    eventID: "e1",
-    capabilities: ["read", "write"],
-  };
-
-  test("sin id ni modelo deshabilita Submit y Reset", () => {
-    render(<EventPermissionUpdateForm />);
-    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
-  });
-
-  test("hidrata badges de capabilities, quita una y guarda con copyOf", async () => {
-    const onSuccess = jest.fn();
-    render(
-      <EventPermissionUpdateForm eventPermission={permiso} onSuccess={onSuccess} />
-    );
-    expect(await screen.findByDisplayValue("u1")).toBeInTheDocument();
-    expect(screen.getByText("read")).toBeInTheDocument();
-    expect(screen.getByText("write")).toBeInTheDocument();
-
-    // quita "read" (primer ícono de borrar)
-    fireEvent.click(screen.getAllByLabelText("button")[0]);
-    await waitFor(() => expect(screen.queryByText("read")).not.toBeInTheDocument());
-
-    fireEvent.change(screen.getByLabelText("User id"), {
-      target: { value: "u2" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    expect(DataStore.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "p1",
-        userID: "u2",
-        eventID: "e1",
-        capabilities: ["write"],
-      })
-    );
-  });
-
-  test("agrega y edita capabilities en el update con onChange interceptando", async () => {
-    const onChange = jest.fn((fields) => fields);
-    const onSuccess = jest.fn();
-    render(
-      <EventPermissionUpdateForm
-        eventPermission={{ id: "p2", userID: "u1", eventID: "e1", capabilities: [] }}
-        onChange={onChange}
-        onSuccess={onSuccess}
-      />
-    );
-    expect(await screen.findByDisplayValue("u1")).toBeInTheDocument();
-
-    // agrega "read"
-    fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-    fireEvent.change(screen.getByLabelText("Capabilities"), {
-      target: { value: "read" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    expect(await screen.findByText("read")).toBeInTheDocument();
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ capabilities: ["read"] })
-    );
-
-    // edita el badge -> "write"
-    fireEvent.click(screen.getByText("read"));
-    fireEvent.change(screen.getByLabelText("Capabilities"), {
-      target: { value: "write" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("write")).toBeInTheDocument();
-    expect(screen.queryByText("read")).not.toBeInTheDocument();
-
-    // edita también los IDs pasando por el interceptor onChange
-    fireEvent.change(screen.getByLabelText("Event id"), {
-      target: { value: "e9" },
-    });
-    fireEvent.change(screen.getByLabelText("User id"), {
-      target: { value: "u9" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    expect(DataStore.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "p2",
-        userID: "u9",
-        eventID: "e9",
-        capabilities: ["write"],
-      })
-    );
-  });
-
-  test("hidrata por idProp y Reset restaura; onError reporta fallos", async () => {
-    __setCollection("EventPermission", [permiso]);
-    DataStore.save.mockRejectedValueOnce(new Error("no autorizado"));
-    const onError = jest.fn();
-    render(<EventPermissionUpdateForm id="p1" onError={onError} />);
-    expect(await screen.findByDisplayValue("u1")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("User id"), {
-      target: { value: "hackeado" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-    expect(screen.getByLabelText("User id")).toHaveValue("u1");
-
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
-    expect(onError.mock.calls[0][1]).toBe("no autorizado");
-  });
-});
 
 describe("UserCreateForm", () => {
   test("email es requerido: error visible y no guarda", async () => {

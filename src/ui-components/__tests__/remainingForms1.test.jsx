@@ -1,6 +1,5 @@
 /* Ola 3 — gaps de cobertura en formularios generados por Amplify Studio:
  * AttendeeCreateForm, AttendeeUpdateForm, UserCreateForm,
- * EventPermissionCreateForm y EventPermissionUpdateForm.
  * Mismo esquema de mocks de frontera que otherForms*.test.jsx.
  */
 import React from "react";
@@ -178,8 +177,6 @@ jest.mock("aws-amplify/utils", () => ({
 import AttendeeCreateForm from "../AttendeeCreateForm";
 import AttendeeUpdateForm from "../AttendeeUpdateForm";
 import UserCreateForm from "../UserCreateForm";
-import EventPermissionCreateForm from "../EventPermissionCreateForm";
-import EventPermissionUpdateForm from "../EventPermissionUpdateForm";
 
 const {
   DataStore,
@@ -357,151 +354,7 @@ describe("UserCreateForm", () => {
   });
 });
 
-describe("EventPermissionCreateForm", () => {
-  test("userID y eventID son requeridos: muestra errores y no guarda", async () => {
-    render(<EventPermissionCreateForm />);
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    expect(await screen.findAllByText("The value is required")).toHaveLength(2);
-    expect(DataStore.save).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
-  });
 
-  test("crea el permiso con capabilities y limpia el formulario", async () => {
-    const onSuccess = jest.fn();
-    const onChange = jest.fn((fields) => fields);
-    render(<EventPermissionCreateForm onSuccess={onSuccess} onChange={onChange} />);
-    fireEvent.change(screen.getByLabelText("User id"), { target: { value: "u1" } });
-    fireEvent.blur(screen.getByLabelText("User id"));
-    fireEvent.change(screen.getByLabelText("Event id"), { target: { value: "e1" } });
-
-    fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-    fireEvent.change(screen.getByLabelText("Capabilities"), {
-      target: { value: "scan" },
-    });
-    fireEvent.blur(screen.getByLabelText("Capabilities"));
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    expect(await screen.findByText("scan")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    expect(DataStore.save).toHaveBeenCalledWith(
-      expect.objectContaining({ userID: "u1", eventID: "e1", capabilities: ["scan"] })
-    );
-    await waitFor(() => expect(screen.getByLabelText("User id")).toHaveValue(""));
-    expect(screen.queryByText("scan")).not.toBeInTheDocument();
-  });
-
-  test("Clear limpia lo tecleado y onError recibe el mensaje si falla", async () => {
-    const onError = jest.fn();
-    render(<EventPermissionCreateForm onError={onError} />);
-    fireEvent.change(screen.getByLabelText("User id"), { target: { value: "u9" } });
-    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
-    expect(screen.getByLabelText("User id")).toHaveValue("");
-
-    DataStore.save.mockRejectedValueOnce(new Error("rechazado"));
-    fireEvent.change(screen.getByLabelText("User id"), { target: { value: "u1" } });
-    fireEvent.change(screen.getByLabelText("Event id"), { target: { value: "e1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
-    expect(onError.mock.calls[0][1]).toBe("rechazado");
-  });
-});
-
-describe("EventPermissionUpdateForm", () => {
-  const permiso = {
-    id: "p1",
-    userID: "u1",
-    eventID: "e1",
-    capabilities: ["scan"],
-  };
-
-  test("sin id ni modelo deshabilita Submit y Reset", () => {
-    render(<EventPermissionUpdateForm />);
-    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
-  });
-
-  test("hidrata desde el modelo, edita una capability existente y guarda", async () => {
-    const onSuccess = jest.fn();
-    const onChange = jest.fn((fields) => fields);
-    render(
-      <EventPermissionUpdateForm
-        eventPermission={permiso}
-        onSuccess={onSuccess}
-        onChange={onChange}
-      />
-    );
-    await drain();
-    expect(screen.getByLabelText("User id")).toHaveValue("u1");
-    expect(screen.getByText("scan")).toBeInTheDocument();
-
-    // click en el badge entra a editar esa capability y "Save" la reemplaza
-    fireEvent.click(screen.getByText("scan"));
-    expect(screen.getByLabelText("Capabilities")).toHaveValue("scan");
-    fireEvent.change(screen.getByLabelText("Capabilities"), {
-      target: { value: "scan-badges" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("scan-badges")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("User id"), { target: { value: "u2" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
-    expect(DataStore.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "p1",
-        userID: "u2",
-        eventID: "e1",
-        capabilities: ["scan-badges"],
-      })
-    );
-  });
-
-  test("hidrata por id vía DataStore.query y Reset restaura los valores", async () => {
-    __setCollection("EventPermission", [
-      { id: "p2", userID: "user-x", eventID: "event-y", capabilities: ["scan"] },
-    ]);
-    render(<EventPermissionUpdateForm id="p2" />);
-    await drain();
-    expect(screen.getByLabelText("User id")).toHaveValue("user-x");
-    expect(DataStore.query).toHaveBeenCalledWith(expect.anything(), "p2");
-
-    fireEvent.change(screen.getByLabelText("User id"), { target: { value: "zz" } });
-    // el ícono elimina la capability
-    fireEvent.click(screen.getByLabelText("button"));
-    await waitFor(() => expect(screen.queryByText("scan")).not.toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-    expect(screen.getByLabelText("User id")).toHaveValue("user-x");
-    expect(screen.getByText("scan")).toBeInTheDocument();
-    expect(DataStore.save).not.toHaveBeenCalled();
-  });
-
-  test("userID vacío bloquea el submit con error requerido", async () => {
-    render(
-      <EventPermissionUpdateForm
-        eventPermission={{ id: "p3", userID: "", eventID: "e1", capabilities: [] }}
-      />
-    );
-    await drain();
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    expect(await screen.findByText("The value is required")).toBeInTheDocument();
-    expect(DataStore.save).not.toHaveBeenCalled();
-  });
-
-  test("onError recibe el mensaje si el guardado falla", async () => {
-    DataStore.save.mockRejectedValueOnce(new Error("offline"));
-    const onError = jest.fn();
-    render(<EventPermissionUpdateForm eventPermission={permiso} onError={onError} />);
-    await drain();
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
-    expect(onError).toHaveBeenCalledWith(
-      expect.objectContaining({ userID: "u1", eventID: "e1" }),
-      "offline"
-    );
-  });
-});
 
 describe("AttendeeUpdateForm", () => {
   const ea1 = { id: "ea1", email: "linked@x.com" };

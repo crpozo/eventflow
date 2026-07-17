@@ -28,6 +28,12 @@ jobs:
       - name: Install dependencies
         run: npm ci # sin --ignore-scripts: canvas (dep nativa) necesita su postinstall para instalar el binario; sin él la suite no corre
 
+      - name: Instalar deps de los Lambdas (los tests importan los módulos reales)
+        run: |
+          npm ci --ignore-scripts --prefix amplify/backend/function/certificateSender/src
+          npm ci --ignore-scripts --prefix amplify/backend/function/surveyManager/src
+          npm ci --ignore-scripts --prefix amplify/backend/function/userManager/src
+
       - name: Stub Amplify config files (gitignored in repo; real values come from Amplify Hosting)
         run: |
           [ -f src/amplifyconfiguration.json ] || echo '{}' > src/amplifyconfiguration.json
