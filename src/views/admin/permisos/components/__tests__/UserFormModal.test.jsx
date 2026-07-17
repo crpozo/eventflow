@@ -2,8 +2,10 @@
  * (src/views/admin/permisos/components/UserFormModal.jsx).
  *
  * Cubre en especial la validación de email: el regex se reescribió con clases
- * negadas para evitar el backtracking super-lineal, y aquí se prueba que
- * acepta/rechaza exactamente lo mismo que el patrón original /.+@.+\..+/.
+ * negadas y con '@' excluido del tramo previo al punto para que corra en
+ * tiempo LINEAL (sin backtracking super-lineal). Aquí se prueba que
+ * acepta/rechaza lo mismo que el patrón original /.+@.+\..+/ en emails
+ * representativos, y que las cadenas patológicas se rechazan al instante.
  * También: normalización al enviar, rol Admin (permisos vacíos), estado
  * "Guardando…", asociación label/control y cierre sin enviar.
  */
@@ -65,6 +67,9 @@ describe("UserFormModal — validación de email", () => {
       "con espacios@dominio x.com", // el patrón original también lo aceptaba
       "a@@b..c",
       "texto a@b.c alrededor",
+      "Nombre <a@b.c>", // pegado dentro de otro texto
+      "a@..b", // punto doble tras el @ (rareza que el original también aceptaba)
+      "a@" + "x".repeat(1000) + ".c", // dominio larguísimo con punto
     ];
     const rechazados = [
       "",
@@ -74,6 +79,8 @@ describe("UserFormModal — validación de email", () => {
       "a@b.", // nada después del punto
       "a@.b", // nada entre el @ y el punto
       "punto.antes@arroba",
+      "a b c", // sin @ ni punto
+      "a@b@", // arrobas sin punto posterior
     ];
     aceptados.forEach((email) =>
       expect(validarEmail(email)).toBe("Selecciona un rol.")
@@ -82,6 +89,22 @@ describe("UserFormModal — validación de email", () => {
       expect(validarEmail(email)).toBe("Ingresa un email válido.")
     );
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  test("cadenas patológicas del backtracking se rechazan y en tiempo lineal", () => {
+    renderModal();
+    const inicio = Date.now();
+    [
+      "@".repeat(40000), // solo arrobas: cada candidato muere en O(1)
+      "a@" + "x".repeat(40000), // tramo larguísimo sin punto tras el @
+      ".a@".repeat(10000), // '@' pegado al punto: basura que ya no se acepta
+    ].forEach((cadena) =>
+      expect(validarEmail(cadena)).toBe("Ingresa un email válido.")
+    );
+    // Con el patrón cuadrático anterior solo el primer caso tardaba varios
+    // segundos; el patrón lineal resuelve los tres al instante (margen
+    // holgado para máquinas de CI lentas).
+    expect(Date.now() - inicio).toBeLessThan(3000);
   });
 });
 

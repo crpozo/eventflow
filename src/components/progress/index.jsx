@@ -18,9 +18,9 @@ const CLASES_BARRA_POR_COLOR = {
 
 const CLASES_BARRA_DEFAULT = "bg-brand-500 dark:bg-brand-400";
 
-// hasOwnProperty evita resolver claves del prototipo (p. ej. "constructor").
+// Object.hasOwn evita resolver claves del prototipo (p. ej. "constructor").
 const clasesBarra = (color) =>
-  Object.prototype.hasOwnProperty.call(CLASES_BARRA_POR_COLOR, color)
+  Object.hasOwn(CLASES_BARRA_POR_COLOR, color)
     ? CLASES_BARRA_POR_COLOR[color]
     : CLASES_BARRA_DEFAULT;
 

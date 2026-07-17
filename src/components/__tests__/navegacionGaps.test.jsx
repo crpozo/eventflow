@@ -181,13 +181,17 @@ describe("Sidebar — fecha del header (compactDate)", () => {
     expect(fechaHeader().textContent).not.toMatch(/·/);
   });
 
-  test("timezone inválida cae al catch y omite la fecha", () => {
+  test("timezone inválida cae al catch, la registra en consola y omite la fecha", () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     seed({ startDate: "2026-07-10T14:00:00Z", timezone: "Zona/Invalida" });
     renderSidebar();
 
     // tzLabel trata cualquier zona distinta de Galápagos como GMT-5
     expect(fechaHeader()).toHaveTextContent("(GMT-5)");
     expect(fechaHeader().textContent).not.toMatch(/·/);
+    // El catch registra el RangeError de Intl con el prefijo de la función.
+    expect(errorSpy).toHaveBeenCalledWith("compactDate: ", expect.any(RangeError));
+    errorSpy.mockRestore();
   });
 
   test("sin startDate usa el campo date (fallback legado)", () => {

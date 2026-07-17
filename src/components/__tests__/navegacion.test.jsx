@@ -141,7 +141,10 @@ describe("Sidebar — rail principal", () => {
 
     fireEvent.mouseDown(avatar);
     expect(screen.getByText("carlos@usfq.edu.ec")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
+    const cerrarSesion = screen.getByRole("button", { name: "Cerrar sesión" });
+    // type=button explícito: sin él, dentro de un form actuaría como submit.
+    expect(cerrarSesion).toHaveAttribute("type", "button");
+    fireEvent.click(cerrarSesion);
     expect(__signOut).toHaveBeenCalledTimes(1);
   });
 

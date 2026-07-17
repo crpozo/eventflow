@@ -28,7 +28,6 @@ import { LuUserCheck } from "react-icons/lu";
 import {
   LiaExternalLinkAltSolid,
 } from "react-icons/lia";
-import { usePermissions } from "../../providers/PermissionsProvider";
 import logoDragon from "assets/img/usfq/logo-dragon-icon.png";
 
 // Icon-only primary rail (mock: black bar, "ef" logo on top, avatar at bottom).
@@ -59,7 +58,9 @@ const compactDate = (iso, tz) => {
   if (!iso) return "";
   try {
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return "";
+    // getTime() siempre devuelve number, así que Number.isNaN equivale al
+    // isNaN global sin la coerción implícita.
+    if (Number.isNaN(d.getTime())) return "";
     const zone = tz || "America/Guayaquil";
     const date = new Intl.DateTimeFormat("es-EC", {
       weekday: "short",
@@ -76,6 +77,8 @@ const compactDate = (iso, tz) => {
     }).format(d);
     return `${date} · ${hour}`;
   } catch (e) {
+    // Timezone inválida en Intl: se registra y se muestra la fecha vacía.
+    console.error("compactDate: ", e);
     return "";
   }
 };
@@ -85,7 +88,6 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
   const [event, setEvent] = React.useState(null);
   const [landing, setLanding] = React.useState(null);
   const [isActive, setIsActive] = React.useState(false);
-  const { isAdmin } = usePermissions();
   const location = useLocation();
   const { user, signOut } = useAuthenticator((context) => [context.user]);
 
@@ -113,7 +115,7 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
     // title in this panel. On mismatch, fetch the real event and heal the
     // stored copy; meanwhile the panel stays blank instead of showing the
     // wrong event.
-    const routeId = location.pathname.match(/\/eventos\/([^/]+)\//)?.[1];
+    const routeId = /\/eventos\/([^/]+)\//.exec(location.pathname)?.[1];
     if (routeId && routeId !== "crear" && parsed?.id !== routeId) {
       DataStore.query(Event, routeId).then((ev) => {
         if (!alive || !ev) return;
@@ -213,21 +215,21 @@ const Sidebar = ({ open, onClose, eventModel, activePath}) => {
             {initials}
           </button>
         }
-        children={
-          <div className="flex w-48 flex-col rounded-2xl bg-white p-3 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white">
-            <p className="mb-2 truncate text-xs text-gray-400">
-              {user?.signInDetails?.loginId || ""}
-            </p>
-            <button
-              className="text-left text-sm font-medium text-gray-800 hover:text-brand-500 focus:outline-none dark:text-white"
-              onClick={signOut}
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        }
         classNames={"bottom-12 left-10 w-max z-[60]"}
-      />
+      >
+        <div className="flex w-48 flex-col rounded-2xl bg-white p-3 shadow-xl shadow-shadow-500 dark:!bg-navy-700 dark:text-white">
+          <p className="mb-2 truncate text-xs text-gray-400">
+            {user?.signInDetails?.loginId || ""}
+          </p>
+          <button
+            type="button"
+            className="text-left text-sm font-medium text-gray-800 hover:text-brand-500 focus:outline-none dark:text-white"
+            onClick={signOut}
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </Dropdown>
     </div>
 
     {/* ── Secondary panel: event management ── */}

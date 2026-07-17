@@ -159,6 +159,35 @@ const checkInForUser = (eventAttendees, user) => {
   return attendee ? attendee.checkIn : false;
 };
 
+// Excel data flatten handler (no captura nada del componente: solo usa
+// stripHtml y sus argumentos, por eso vive a nivel de módulo).
+function flattenData(data) {
+  const flattenedData = [];
+
+  data.forEach((array) => {
+
+    // We remove header and paragraph from array
+    let filteredArray = array.filter(item => {
+      let type = item.type;
+      return type !== "header" && type !== "paragraph";
+    });
+
+    const flatArray = filteredArray.map((item) => {
+      const flatItem = {
+        Tipo: item.type,
+        Campo: stripHtml(item.label),
+        Valor: item.userData[0],
+      };
+
+      return flatItem;
+    });
+
+    flattenedData.push(flatArray);
+  });
+
+  return flattenedData;
+}
+
 // ¿Pasa el evento los filtros de campus/área/subárea activos?
 const passesTaxonomyFilters = (
   ev,
@@ -175,15 +204,13 @@ const passesTaxonomyFilters = (
     const career = careerById.get(ev.careerID);
     if (career?.areaID !== areaSelectID) return false;
   }
-  // Subárea filter (only when a real career is selected).
-  if (
-    careerSelectID &&
-    careerSelectID !== "empty-career" &&
-    ev.careerID !== careerSelectID
-  ) {
-    return false;
-  }
-  return true;
+  // Subárea filter (only when a real career is selected): pasa cuando no hay
+  // subárea real seleccionada o el evento pertenece a ella.
+  return (
+    !careerSelectID ||
+    careerSelectID === "empty-career" ||
+    ev.careerID === careerSelectID
+  );
 };
 
 // Opciones base de echarts para una pregunta mapeada a pie-chart en el Form.
@@ -959,34 +986,6 @@ const Reportes = () => {
   /*******************************************/
   /*************** EXCEL EXPORT **************/
   /*******************************************/
-
-  // Excel data flatten handler
-  function flattenData(data) {
-    const flattenedData = [];
-
-    data.forEach((array) => {
-
-      // We remove header and paragraph from array
-      let filteredArray = array.filter(item => {
-        let type = item.type;
-        return type !== "header" && type !== "paragraph";
-      });
-
-      const flatArray = filteredArray.map((item) => {
-        const flatItem = {
-          Tipo: item.type,
-          Campo: stripHtml(item.label),
-          Valor: item.userData[0],
-        };
-
-        return flatItem;
-      });
-
-      flattenedData.push(flatArray);
-    });
-
-    return flattenedData;
-  }
 
   // Generate excel using library XLSX
   function exportToExcel(data, eventAttendees) {

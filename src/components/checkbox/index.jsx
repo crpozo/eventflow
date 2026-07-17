@@ -18,9 +18,9 @@ const CLASES_CHECKED_POR_COLOR = {
 
 const CLASES_CHECKED_DEFAULT = "checked:bg-brand-500 dark:checked:bg-brand-400";
 
-// hasOwnProperty evita resolver claves del prototipo (p. ej. "constructor").
+// Object.hasOwn evita resolver claves del prototipo (p. ej. "constructor").
 const clasesChecked = (color) =>
-  Object.prototype.hasOwnProperty.call(CLASES_CHECKED_POR_COLOR, color)
+  Object.hasOwn(CLASES_CHECKED_POR_COLOR, color)
     ? CLASES_CHECKED_POR_COLOR[color]
     : CLASES_CHECKED_DEFAULT;
 

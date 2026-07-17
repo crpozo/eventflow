@@ -417,7 +417,7 @@ const Registro = (props) => {
       direccion: answers.find(item => item.name === 'direccion').userData[0].toString(),
       telefono: answers.find(item => item.name === 'telefono').userData[0].toString(),
       correo: answers.find(item => item.name === 'email').userData[0].toString(),
-      valor: price.replaceAll(/\$/g, '') * quantityProp,
+      valor: price.replaceAll('$', '') * quantityProp,
       evento_descripcion: "evento usfq",
       evento_id: event?.eventIdUSFQ?.toString(),
       trs_unico: "",

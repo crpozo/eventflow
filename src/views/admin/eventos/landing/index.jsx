@@ -76,6 +76,19 @@ const fromRecord = (l) =>
       }
     : { ...EMPTY };
 
+// Datos derivados de la columna de vista previa: fecha con el MISMO formato
+// que usa la landing real ("sábado 02/10/2027, 10:00 a. m.") y URL absoluta
+// del banner en CloudFront. Función pura (evento + borrador → valores).
+const datosVistaPrevia = (event, draft) => {
+  // startDate: los formularios escriben startDate (date queda null en filas
+  // nuevas); las filas legadas solo traen date.
+  const startIso = event?.startDate || event?.date;
+  return {
+    previewFecha: startIso ? formatDateHour(startIso, "ES", event?.timezone) : "",
+    bannerUrl: draft.mainBanner ? `${CLOUDFRONT}${draft.mainBanner}` : null,
+  };
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const stored = readStoredEvent();
@@ -225,12 +238,7 @@ const Dashboard = () => {
     return <PageLoader />;
   }
 
-  const startIso = event?.startDate || event?.date;
-  // Same formatter the real landing uses ("sábado 02/10/2027, 10:00 a. m.").
-  const previewFecha = startIso
-    ? formatDateHour(startIso, "ES", event?.timezone)
-    : "";
-  const bannerUrl = draft.mainBanner ? `${CLOUDFRONT}${draft.mainBanner}` : null;
+  const { previewFecha, bannerUrl } = datosVistaPrevia(event, draft);
 
   return (
     <div className="landing-page mt-3">

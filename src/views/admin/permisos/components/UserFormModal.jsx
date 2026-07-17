@@ -3,10 +3,14 @@ import { MdClose } from "react-icons/md";
 import PermissionTree from "./PermissionTree";
 
 // Validación mínima de email: algo@algo.algo en cualquier parte del texto.
-// Clases negadas (equivalentes al '.' de /.+@.+\..+/) para evitar el
-// backtracking super-lineal del regex original.
+// Clases negadas (equivalentes al '.' de /.+@.+\..+/). El tramo entre el @
+// y el punto excluye también '@': así cada '@' candidato del texto se
+// descarta en O(1) y el patrón corre en tiempo LINEAL (sin el backtracking
+// super-lineal del patrón anterior, cuadrático en cadenas tipo "@@@@…").
+// Única diferencia de lenguaje: basura con un '@' pegado al punto (p. ej.
+// "a@b@.c"), que nunca fue un email válido, ahora se rechaza.
 const EMAIL_RE =
-  /[^\n\r\u2028\u2029]@[^\n\r\u2028\u2029][^.\n\r\u2028\u2029]*\.[^\n\r\u2028\u2029]/;
+  /[^\n\r\u2028\u2029]@[^\n\r\u2028\u2029][^.@\n\r\u2028\u2029]*\.[^\n\r\u2028\u2029]/;
 
 /**
  * Create / edit user modal. Collects email, name, role and the hierarchical

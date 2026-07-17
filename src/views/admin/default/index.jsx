@@ -111,7 +111,7 @@ const relativeWhen = (iso, tz) => {
 };
 
 const monthShort = (d) =>
-  new Intl.DateTimeFormat("es-EC", { month: "short" }).format(d).replaceAll(/\./g, "");
+  new Intl.DateTimeFormat("es-EC", { month: "short" }).format(d).replaceAll(".", "");
 
 // Split the shared "lun 06/07/26 · 09:00" into { date, time } so the table
 // can stack them on two lines without changing the displayed values.
@@ -161,7 +161,7 @@ const slugify = (s) =>
     // guion, así que basta quitar un guion por extremo (lineal, sin backtracking).
     .replaceAll(/^-|-$/g, "") || "evento";
 
-const csvCell = (v) => `"${String(v ?? "").replaceAll(/"/g, '""')}"`;
+const csvCell = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
 
 // "↗ +22%" / "↘ -8%" — teal when growing, brand red when shrinking. Dark
 // surfaces lighten to *-300 like CHIP_COLORS (brand 50–400 is legacy purple,
