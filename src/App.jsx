@@ -17,7 +17,6 @@ import '@aws-amplify/ui-react/styles.css';
 // Layouts are code-split so a public landing visitor never downloads the admin
 // layout shell (Sidebar -> DataStore/models) or the other layouts they can't see.
 // Every usage below is already wrapped in a <React.Suspense> boundary.
-const RtlLayout = React.lazy(() => import("layouts/rtl"));
 const AdminLayout = React.lazy(() => import("layouts/admin"));
 const AuthLayout = React.lazy(() => import("layouts/auth"));
 const PageLayout = React.lazy(() => import("layouts/page"));
@@ -66,7 +65,6 @@ function ReportesRouteHandler() {
       <Routes>
         <Route path="auth/*" element={<AuthLayout />} />
         <Route path="admin/*" element={<AdminLayout />} />
-        <Route path="rtl/*" element={<RtlLayout />} />
         <Route path="page/*" element={<PageLayout />} />
         <Route path="landing/*" element={<LandingLayout />} />
         <Route path="privacidad" element={<LegalLayout />} />

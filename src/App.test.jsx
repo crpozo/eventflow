@@ -44,7 +44,6 @@ jest.mock('layouts/page', () => () => <div data-testid="page-layout" />);
 jest.mock('layouts/landing', () => () => <div data-testid="landing-layout" />);
 jest.mock('layouts/privacidad', () => () => <div data-testid="legal-layout" />);
 jest.mock('layouts/usuario', () => () => <div data-testid="user-layout" />);
-jest.mock('layouts/rtl', () => () => <div data-testid="rtl-layout" />);
 
 // Use moduleNameMapper-style approach: mock the CSS import at the module level
 // CRA already handles CSS mocking via its jest config, so we don't need to mock it here.
