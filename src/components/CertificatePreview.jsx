@@ -8,6 +8,15 @@ const CLOUDFRONT = "https://dnuc5lxyun5b.cloudfront.net/public/";
 const PDF_WORKER =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
+// Resuelve la plantilla almacenada a una URL visible: las URLs absolutas se
+// respetan tal cual y las keys se sirven por CloudFront.
+const resolveUrl = (certificate) => {
+  if (!certificate) return "";
+  return /^https?:\/\//i.test(certificate)
+    ? certificate
+    : `${CLOUDFRONT}${certificate}`;
+};
+
 // Live WYSIWYG preview of the certificate: the uploaded template (image OR the
 // first page of a PDF, rendered via pdf.js) with a sample name overlaid at the
 // chosen position/size/color. The name can be dragged (or click anywhere) to
@@ -29,11 +38,7 @@ export default function CertificatePreview({
   const [pdfState, setPdfState] = React.useState("idle"); // idle|loading|error|done
 
   const isPdf = certificate ? /\.pdf$/i.test(certificate) : false;
-  const url = certificate
-    ? /^https?:\/\//i.test(certificate)
-      ? certificate
-      : `${CLOUDFRONT}${certificate}`
-    : "";
+  const url = resolveUrl(certificate);
 
   // Render the first page of a PDF template to an image for the preview.
   React.useEffect(() => {

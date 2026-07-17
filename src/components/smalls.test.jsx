@@ -80,6 +80,29 @@ describe("NftCard", () => {
     expect(screen.getByRole("button", { name: "Ver evento" })).toBeInTheDocument();
   });
 
+  test("una fecha que revienta el formateo cae al catch y no rompe el render", () => {
+    const spyError = jest.spyOn(console, "error").mockImplementation(() => {});
+    renderCard({
+      title: "Fecha rota",
+      cat: "Ver",
+      pathSelect: "/x",
+      // new Date(obj) fuerza ToPrimitive → valueOf lanza y activa el catch.
+      date: {
+        valueOf: () => {
+          throw new Error("fecha corrupta");
+        },
+      },
+    });
+    expect(
+      screen.getByRole("heading", { name: "Fecha rota" })
+    ).toBeInTheDocument();
+    expect(spyError).toHaveBeenCalledWith(
+      "formatDate error: ",
+      expect.any(Error)
+    );
+    spyError.mockRestore();
+  });
+
   test("con pathEdit muestra 'Editar' y navega con el id del modelo en el state", () => {
     renderCard({
       title: "Mi área",

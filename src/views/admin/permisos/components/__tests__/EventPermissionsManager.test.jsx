@@ -139,6 +139,10 @@ describe("EventPermissionsManager — carga y selección", () => {
   test("ordena usuarios por email y eventos por título; sin selección no hay tabla", async () => {
     const { selUser, selEvent } = await renderManager();
 
+    // Las etiquetas están asociadas a sus selects (htmlFor/id).
+    expect(screen.getByLabelText("Usuario")).toBe(selUser);
+    expect(screen.getByLabelText("Evento")).toBe(selEvent);
+
     expect(
       within(selUser).getAllByRole("option").map((o) => o.textContent)
     ).toEqual(["Selecciona un usuario…", "ana@usfq.edu.ec", "beto@usfq.edu.ec"]);

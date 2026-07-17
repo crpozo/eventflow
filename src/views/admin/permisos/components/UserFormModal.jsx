@@ -2,6 +2,12 @@ import React from "react";
 import { MdClose } from "react-icons/md";
 import PermissionTree from "./PermissionTree";
 
+// Validación mínima de email: algo@algo.algo en cualquier parte del texto.
+// Clases negadas (equivalentes al '.' de /.+@.+\..+/) para evitar el
+// backtracking super-lineal del regex original.
+const EMAIL_RE =
+  /[^\n\r\u2028\u2029]@[^\n\r\u2028\u2029][^.\n\r\u2028\u2029]*\.[^\n\r\u2028\u2029]/;
+
 /**
  * Create / edit user modal. Collects email, name, role and the hierarchical
  * permissions, then calls onSubmit(data). The parent owns the API calls.
@@ -20,9 +26,10 @@ export default function UserFormModal({ mode, user, roles, tree, onSubmit, onClo
 
   const roleName = roles.find((r) => r.id === roleID)?.name;
   const isAdminRole = roleName === "Admin";
+  const submitLabel = isEdit ? "Guardar cambios" : "Crear usuario";
 
   const submit = async () => {
-    if (!isEdit && !/.+@.+\..+/.test(email)) {
+    if (!isEdit && !EMAIL_RE.test(email)) {
       alert("Ingresa un email válido.");
       return;
     }
@@ -54,15 +61,16 @@ export default function UserFormModal({ mode, user, roles, tree, onSubmit, onClo
           <h3 className="text-xl font-bold">
             {isEdit ? "Editar usuario" : "Crear usuario"}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-navy-700 dark:hover:text-white">
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-navy-700 dark:hover:text-white">
             <MdClose className="h-6 w-6" />
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-semibold">Email</label>
+            <label htmlFor="user-form-email" className="mb-1 block text-sm font-semibold">Email</label>
             <input
+              id="user-form-email"
               type="email"
               value={email}
               disabled={isEdit}
@@ -72,8 +80,9 @@ export default function UserFormModal({ mode, user, roles, tree, onSubmit, onClo
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold">Nombre</label>
+            <label htmlFor="user-form-name" className="mb-1 block text-sm font-semibold">Nombre</label>
             <input
+              id="user-form-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -84,8 +93,9 @@ export default function UserFormModal({ mode, user, roles, tree, onSubmit, onClo
         </div>
 
         <div className="mt-4">
-          <label className="mb-1 block text-sm font-semibold">Rol</label>
+          <label htmlFor="user-form-role" className="mb-1 block text-sm font-semibold">Rol</label>
           <select
+            id="user-form-role"
             value={roleID}
             onChange={(e) => setRoleID(e.target.value)}
             className="w-full rounded-xl border border-gray-200 p-3 text-sm outline-none dark:!bg-navy-900"
@@ -98,9 +108,9 @@ export default function UserFormModal({ mode, user, roles, tree, onSubmit, onClo
         </div>
 
         <div className="mt-4">
-          <label className="mb-1 block text-sm font-semibold">
+          <span className="mb-1 block text-sm font-semibold">
             Permisos (campus → área → evento)
-          </label>
+          </span>
           {isAdminRole ? (
             <p className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600 dark:!bg-navy-900 dark:text-gray-300">
               El rol Admin tiene acceso completo; no requiere asignación.
@@ -119,17 +129,19 @@ export default function UserFormModal({ mode, user, roles, tree, onSubmit, onClo
 
         <div className="mt-6 flex justify-end gap-3">
           <button
+            type="button"
             onClick={onClose}
             className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium hover:bg-gray-50 dark:border-navy-700 dark:hover:bg-navy-900"
           >
             Cancelar
           </button>
           <button
+            type="button"
             onClick={submit}
             disabled={busy}
             className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-black disabled:opacity-50"
           >
-            {busy ? "Guardando…" : isEdit ? "Guardar cambios" : "Crear usuario"}
+            {busy ? "Guardando…" : submitLabel}
           </button>
         </div>
       </div>

@@ -224,6 +224,27 @@ describe("Landing pública: carga y estados", () => {
     ).not.toBeNull();
   });
 
+  test("banner: usa la imagen del admin vía CloudFront o el placeholder local", async () => {
+    primeGraphql({
+      landing: landingFixture({ mainBanner: "banners/foto.jpg" }),
+    });
+    const { unmount } = renderLanding();
+    await screen.findByText("Detalles del evento");
+    expect(screen.getByAltText("Banner")).toHaveAttribute(
+      "src",
+      "https://dnuc5lxyun5b.cloudfront.net/public/banners/foto.jpg"
+    );
+    unmount();
+
+    // Sin mainBanner cae al placeholder empaquetado.
+    primeGraphql();
+    renderLanding();
+    await screen.findByText("Detalles del evento");
+    expect(screen.getByAltText("Banner").getAttribute("src")).toContain(
+      "bg-placeholder"
+    );
+  });
+
   test("landing desactivada + visitante anónimo => 'evento no activo'", async () => {
     primeGraphql({ landing: landingFixture({ active: false }) });
     renderLanding();
@@ -281,6 +302,23 @@ describe("Landing pública: sold-out con paginación", () => {
       nextToken: null,
     });
     expect(pageCalls[1][0].variables.nextToken).toBe("tok-2");
+  });
+
+  test("mientras se valida el cupo muestra el spinner del CTA (sin botón ni agotado)", async () => {
+    primeGraphql({ event: eventFixture({ maxRegs: 5 }) });
+    // El conteo de asistentes queda pendiente => isSoldOut sigue en null.
+    const base = mockGraphql.getMockImplementation();
+    mockGraphql.mockImplementation((args) =>
+      args.query.includes("eventAttendeesByEventID")
+        ? new Promise(() => {})
+        : base(args)
+    );
+    const { container } = renderLanding();
+
+    await screen.findByText("Detalles del evento");
+    expect(container.querySelector(".loader-small")).toBeInTheDocument();
+    expect(screen.queryByText("Reservar ticket")).not.toBeInTheDocument();
+    expect(screen.queryByText("Entradas Agotadas")).not.toBeInTheDocument();
   });
 
   test("con cupo disponible (count < maxRegs) permite reservar", async () => {

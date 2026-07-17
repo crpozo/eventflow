@@ -60,6 +60,16 @@ describe("PieChartApache", () => {
 });
 
 describe("CheckTable", () => {
+  test("la tabla no arrastra props ajenas al DOM (variant/mb/color)", () => {
+    const { container } = render(
+      <CheckTable columnsData={columnsDataCheck} tableData={tableDataCheck} />
+    );
+    const table = container.querySelector("table");
+    expect(table).not.toHaveAttribute("variant");
+    expect(table).not.toHaveAttribute("mb");
+    expect(table).not.toHaveAttribute("color");
+  });
+
   test("renderiza cabeceras y filas con nombre, progreso, cantidad y fecha", () => {
     render(
       <CheckTable columnsData={columnsDataCheck} tableData={tableDataCheck} />
@@ -80,6 +90,28 @@ describe("CheckTable", () => {
     // Un checkbox por fila (columna NAME)
     expect(screen.getAllByRole("checkbox")).toHaveLength(tableDataCheck.length);
   });
+
+  test("una columna no contemplada renderiza la celda vacía", () => {
+    render(
+      <CheckTable
+        columnsData={[
+          ...columnsDataCheck,
+          { Header: "EXTRA", accessor: "extra" },
+        ]}
+        tableData={[
+          {
+            name: ["Marketplace", false],
+            quantity: 1,
+            date: "Apr 26, 2022",
+            progress: 10,
+            extra: "no-renderizado",
+          },
+        ]}
+      />
+    );
+    expect(screen.getByText("EXTRA")).toBeInTheDocument();
+    expect(screen.queryByText("no-renderizado")).not.toBeInTheDocument();
+  });
 });
 
 describe("ComplexTable", () => {
@@ -98,6 +130,46 @@ describe("ComplexTable", () => {
     expect(screen.getByText("Error")).toBeInTheDocument();
     expect(screen.getAllByText("Marketplace").length).toBeGreaterThan(0);
     expect(screen.getByText("24.Jan.2021")).toBeInTheDocument();
+  });
+
+  test("un estado desconocido se muestra sin icono", () => {
+    render(
+      <ComplexTable
+        columnsData={columnsDataComplex}
+        tableData={[
+          {
+            name: "Marketplace",
+            status: "Pendiente",
+            date: "01.Feb.2021",
+            progress: 10,
+          },
+        ]}
+      />
+    );
+    const celda = screen.getByText("Pendiente").closest("td");
+    expect(celda.querySelector("svg")).toBeNull();
+  });
+
+  test("una columna no contemplada renderiza la celda vacía", () => {
+    render(
+      <ComplexTable
+        columnsData={[
+          ...columnsDataComplex,
+          { Header: "EXTRA", accessor: "extra" },
+        ]}
+        tableData={[
+          {
+            name: "Marketplace",
+            status: "Approved",
+            date: "24.Jan.2021",
+            progress: 30,
+            extra: "no-renderizado",
+          },
+        ]}
+      />
+    );
+    expect(screen.getByText("EXTRA")).toBeInTheDocument();
+    expect(screen.queryByText("no-renderizado")).not.toBeInTheDocument();
   });
 });
 
@@ -123,6 +195,11 @@ describe("WeeklyRevenue", () => {
       "bar"
     );
   });
+
+  test("el botón del card declara type=button", () => {
+    render(<WeeklyRevenue />);
+    expect(screen.getByRole("button")).toHaveAttribute("type", "button");
+  });
 });
 
 describe("TotalSpent", () => {
@@ -135,6 +212,13 @@ describe("TotalSpent", () => {
       "data-type",
       "line"
     );
+  });
+
+  test("los botones del card declaran type=button", () => {
+    render(<TotalSpent />);
+    const botones = screen.getAllByRole("button");
+    expect(botones).toHaveLength(2);
+    botones.forEach((b) => expect(b).toHaveAttribute("type", "button"));
   });
 });
 

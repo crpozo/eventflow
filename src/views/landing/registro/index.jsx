@@ -5,8 +5,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
 import { DataStore } from "aws-amplify/datastore";
-import { Form } from "models";
-import { Attendee, EventAttendee } from "models";
+import { Form, Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate, tzCityLabel } from "scripts/utils";
 import { getLandingUI } from "scripts/landingTranslations";
 import { translateFormData, restoreOriginalLabels, translateString } from "scripts/translateFormData";
@@ -64,7 +63,7 @@ class FormBuilder extends Component {
   }
 }
 
-const subeventosIds = [
+const subeventosIds = new Set([
   "364f6cfb-16a6-4f10-839f-e606df7b5537",
   "5eef9fae-24f6-49a5-871c-b84f381ce975",
   "da0fea1e-7517-4c62-97c4-970cc448ad9b",
@@ -85,7 +84,76 @@ const subeventosIds = [
   "7f702324-9813-4074-a2b7-70cc1f612af1",
   "654d33cf-402b-495a-844f-61d72e1e4980",
   "b1b9897e-6e45-4d08-8d41-9080fb6b9b44"
-];
+]);
+
+// Espera `ms` milisegundos. A nivel de módulo para no anidar promesas
+// dentro de los efectos del componente.
+const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Ids de los inputs de facturación que reemplazan la respuesta del form
+// con el mismo `name` cuando el usuario cambia los datos de facturación.
+const BILLING_FIELD_IDS = {
+  identificacion: "identificacion_facturacion",
+  nombres: "nombres_facturacion",
+  direccion: "direccion_facturacion",
+  telefono: "telefono_facturacion",
+  email: "email_facturacion",
+};
+
+// Reemplaza las respuestas de facturación con los valores de los inputs.
+const aplicarDatosFacturacion = (answers) =>
+  answers.map((item) => {
+    const fieldId = BILLING_FIELD_IDS[item.name];
+    if (!fieldId) return item;
+    return {
+      ...item,
+      userData: [document.getElementById(fieldId).value],
+    };
+  });
+
+// true si el correo ya está inscrito en OTRO subevento del grupo.
+const registradoEnOtroSubevento = (existing, eventID) =>
+  existing.some(
+    (att) => att.eventID !== eventID && subeventosIds.has(att.eventID)
+  );
+
+// Etiquetas del toggle "Leer más/menos" del consentimiento por idioma.
+const CONSENT_TOGGLE_LABELS = {
+  EN: { expanded: "Read less", collapsed: "Read more" },
+  ES: { expanded: "Leer menos", collapsed: "Leer más" },
+};
+
+const consentToggleLabel = (lang, expanded) => {
+  const labels =
+    CONSENT_TOGGLE_LABELS[(lang || "ES").toUpperCase()] ??
+    CONSENT_TOGGLE_LABELS.ES;
+  return expanded ? labels.expanded : labels.collapsed;
+};
+
+// Disparar email server-side de inmediato (eventos gratuitos).
+// keepalive: true para que sobreviva si el usuario cierra la pestaña
+// antes de que termine la generación del PDF. El Lambda detecta
+// ticket="" y envía un correo con QR inline; cuando luego se sube
+// el PDF y se actualiza ticket, NO se reenvía (es idempotente).
+const dispararEmailTemprano = (eventAttendeeId) => {
+  try {
+    fetch(
+      "https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email",
+      {
+        method: "POST",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventAttendeeId,
+          typePayment: "CARD",
+          statusPayment: "SUCCESSFUL",
+        }),
+      }
+    ).catch((e) => console.warn("early trigger-email failed:", e));
+  } catch (e) {
+    console.warn("early trigger-email exception:", e);
+  }
+};
 
 const Registro = (props) => {
 
@@ -103,7 +171,6 @@ const Registro = (props) => {
   const [ticketsArray, setTicketsArray] = React.useState(
     Array.from({ length: quantity }, (_, index) => index)
   );
-  const [uploadProgress, setUploadProgress] = React.useState(100);
   const [changeBilling, setChangeBilling] = React.useState(false);
   const [showBillingFields, setShowBillingFields] = React.useState(false);
   const [isProcessing, setIsProcessing] = React.useState(true);
@@ -181,12 +248,6 @@ const Registro = (props) => {
     setShowBillingFields(state);
     setChangeBilling(state);
   };
-
-  React.useEffect(() => {
-    if (eventAttendee && eventAttendee.ticket) {
-      setUploadProgress(100);
-    }
-  }, [eventAttendee]);
 
   // EventAttende parameter + Graphql Data
   React.useEffect(() => {
@@ -271,11 +332,8 @@ const Registro = (props) => {
           ? "https://btnpagos.usfq.edu.ec/pagos/TIPO_TARJETA.ASPX?orgname=5&TRS="
           : "https://btnpagos.usfq.edu.ec/pagosx/TIPO_TARJETA.ASPX?orgname=5&TRS=";
 
-        const delayPromise = () =>
-          new Promise((resolve) => setTimeout(resolve, 3000));
-
         try {
-          await delayPromise();
+          await esperar(3000);
           window.location.href = `${redirectUrl}${trs}`;
         } catch (error) {
           console.error("Error in redirectUSFQ:", error);
@@ -286,223 +344,161 @@ const Registro = (props) => {
     }
   }, [trs, eventAttendee]);
 
+  // Captura las respuestas del formRender y las normaliza (labels originales
+  // en español + datos de facturación cuando el usuario los cambió).
+  const capturarRespuestas = async () => {
+    const fbRender = document.querySelector("#fb-editor");
+    const jq = await loadJQueryAndFormBuilder();
+    let answers = jq(fbRender).formRender("userData");
+
+    // If the form is being shown translated, restore the original Spanish
+    // labels so stored answers stay consistent regardless of display language.
+    if ((lang || "ES").toLowerCase() !== "es") {
+      answers = restoreOriginalLabels(answers, formDataFull);
+    }
+
+    if (changeBilling) {
+      answers = aplicarDatosFacturacion(answers);
+    }
+
+    return answers;
+  };
+
+  // Valida que el correo no esté ya registrado en este evento ni (para
+  // subeventos) en otra actividad del grupo. Devuelve true si puede seguir.
+  const validarRegistroUnico = async (answers) => {
+    // Check if an EventAttendee with the same email already exists for this event
+    const emailRaw = answers.find((item) => item.name === "email")?.userData[0];
+    const email = emailRaw?.toLowerCase();
+
+    const existing = await DataStore.query(EventAttendee, (ea) =>
+      ea.email.eq(email)
+    );
+
+    if (existing.some((att) => att.eventID === eventID)) {
+      alert("Ya existe un registro con este correo para este evento.");
+      return false;
+    }
+
+    if (subeventosIds.has(eventID) && registradoEnOtroSubevento(existing, eventID)) {
+      alert("Ya estás registrado en otra actividad. Solo se permite la inscripción a una única actividad.");
+      return false;
+    }
+
+    return true;
+  };
+
+  // Create and save the EventAttendee record
+  const guardarEventAttendee = (answers, attendee, isFree) =>
+    DataStore.save(
+      new EventAttendee({
+        eventID: eventID,
+        attendeeID: attendee.id,
+        authorized: isFree,
+        checkIn: false,
+        formAnswers: answers,
+        ticket: ``,
+        email: answers
+          .find((item) => item.name === "email")
+          .userData[0].toString(),
+        allowContact: false,
+        quantity: quantityProp,
+        scanned: 0,
+        profileURL: `${domain}/usuario/${attendee.id}`,
+      })
+    );
+
+  // get token from USFQ + registro financiero → TRS para la pasarela de pagos.
+  const iniciarPagoUSFQ = async (answers, newEventAttendee) => {
+    const accessToken = await getTokenFinancial();
+    const requestBody = [{
+      identificacion: Number.parseInt(answers.find(item => item.name === 'identificacion').userData[0]),
+      nombres: answers.find(item => item.name === 'nombres').userData[0].toString(),
+      direccion: answers.find(item => item.name === 'direccion').userData[0].toString(),
+      telefono: answers.find(item => item.name === 'telefono').userData[0].toString(),
+      correo: answers.find(item => item.name === 'email').userData[0].toString(),
+      valor: price.replaceAll(/\$/g, '') * quantityProp,
+      evento_descripcion: "evento usfq",
+      evento_id: event?.eventIdUSFQ?.toString(),
+      trs_unico: "",
+      codigo: "0",
+      clave: "SEOP",
+      tipo_pago: "O",
+      diferido: "BTNS",
+      periodo: event?.periodoUSFQ?.toString(),
+      correo_adicional: "",
+      colegio: "",
+      especialidad: "",
+      envio: "N",
+      usuario: event?.usuarioUSFQ?.toString(),
+      reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
+      reg_id_externo: newEventAttendee.id
+    }];
+    const trsUSFQ = await postRegistroFinanciero(requestBody, accessToken);
+    setTrs(trsUSFQ);
+  };
+
   // Submit Form
   const handleSubmit = async () => {
     clearErrorMessages();
     const isValid = validateForm(lang);
 
-    if (isValid) { 
-      setIsProcessing(true);
-
-      let userConfirmed;
-      // Show popup terms and conditions + transaction details
-      const isFree = props.landing.cost === 'Gratuito';
-      if(!isFree)
-        userConfirmed = await showCustomPopup();
-
-      if (!isFree && userConfirmed || isFree) {
-
-        const fbRender = document.querySelector("#fb-editor");
-        const jq = await loadJQueryAndFormBuilder();
-        let userData = jq(fbRender).formRender("userData");
-
-        // If the form is being shown translated, restore the original Spanish
-        // labels so stored answers stay consistent regardless of display language.
-        if ((lang || "ES").toLowerCase() !== "es") {
-          userData = restoreOriginalLabels(userData, formDataFull);
-        }
-
-        if (changeBilling) {
-          // Replace the billing information with the new values
-          userData = userData.map((item) => {
-            switch (item.name) {
-              case "identificacion":
-                return {
-                  ...item,
-                  userData: [
-                    document.getElementById("identificacion_facturacion").value,
-                  ],
-                };
-              case "nombres":
-                return {
-                  ...item,
-                  userData: [
-                    document.getElementById("nombres_facturacion").value,
-                  ],
-                };
-              case "direccion":
-                return {
-                  ...item,
-                  userData: [
-                    document.getElementById("direccion_facturacion").value,
-                  ],
-                };
-              case "telefono":
-                return {
-                  ...item,
-                  userData: [
-                    document.getElementById("telefono_facturacion").value,
-                  ],
-                };
-              case "email":
-                return {
-                  ...item,
-                  userData: [
-                    document.getElementById("email_facturacion").value,
-                  ],
-                };
-              default:
-                return item;
-            }
-          });
-        }
-
-        setUserData(userData);
-
-        const { ok } = await validateBannerCode(userData);
-
-        if (!ok) {
-          alert("El código banner o identificación CI no es válido");
-          setIsProcessing(false);
-          return; 
-        }
-
-
-        async function createAttende() {
-          const attendee = await DataStore.save(new Attendee({}));
-          return attendee;
-        }
-
-        // Make sure to await the creation of the attendee
-        const attendee = await createAttende();
-
-        if (attendee) {
-          try {
-            // Testing multiple users
-            //iterateWithDelay(userData)
-
-            // Check if an EventAttendee with the same email already exists for this event
-            const emailRaw = userData.find((item) => item.name === "email")?.userData[0];
-            const email = emailRaw?.toLowerCase();
-
-            const existing = await DataStore.query(EventAttendee, (ea) =>
-              ea.email.eq(email)
-            );
-
-            const match = existing.find((att) => att.eventID === eventID);
-
-            if (match) {
-              alert("Ya existe un registro con este correo para este evento.");
-              setIsProcessing(false);
-              return;
-            }
-
-            const isSubevento = subeventosIds.includes(eventID);
-
-            if (isSubevento) {
-              const alreadyRegisteredInAnotherSubevento = existing.some(
-                (att) => att.eventID !== eventID && subeventosIds.includes(att.eventID)
-              );
-
-              if (alreadyRegisteredInAnotherSubevento) {
-                alert("Ya estás registrado en otra actividad. Solo se permite la inscripción a una única actividad.");
-                setIsProcessing(false);
-                return;
-              }
-            }
-
-            // Create and save the EventAttendee record
-            const newEventAttendee = await DataStore.save(
-              new EventAttendee({
-                eventID: eventID,
-                attendeeID: attendee.id,
-                authorized: isFree ? true : false,
-                checkIn: false,
-                formAnswers: userData,
-                ticket: ``,
-                email: userData
-                  .find((item) => item.name === "email")
-                  .userData[0].toString(),
-                allowContact: false,
-                quantity: quantityProp,
-                scanned: 0,
-                profileURL: `${domain}/usuario/${attendee.id}`,
-              })
-            );
-
-            setEventAttendee(newEventAttendee);
-            setFormRegister(true);
-
-            // Disparar email server-side de inmediato.
-            // keepalive: true para que sobreviva si el usuario cierra la pestaña
-            // antes de que termine la generación del PDF. El Lambda detecta
-            // ticket="" y envía un correo con QR inline; cuando luego se sube
-            // el PDF y se actualiza ticket, NO se reenvía (es idempotente).
-            if (isFree) {
-              try {
-                fetch(
-                  "https://edunvujidf.execute-api.sa-east-1.amazonaws.com/prod/trigger-email",
-                  {
-                    method: "POST",
-                    keepalive: true,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      eventAttendeeId: newEventAttendee.id,
-                      typePayment: "CARD",
-                      statusPayment: "SUCCESSFUL",
-                    }),
-                  }
-                ).catch((e) => console.warn("early trigger-email failed:", e));
-              } catch (e) {
-                console.warn("early trigger-email exception:", e);
-              }
-            }
-
-            // get token from USFQ
-            if(!isFree){
-              const accessToken = await getTokenFinancial();
-              const requestBody = [{
-                identificacion: parseInt(userData.find(item => item.name === 'identificacion').userData[0]),
-                nombres: userData.find(item => item.name === 'nombres').userData[0].toString(),
-                direccion: userData.find(item => item.name === 'direccion').userData[0].toString(),
-                telefono: userData.find(item => item.name === 'telefono').userData[0].toString(),
-                correo: userData.find(item => item.name === 'email').userData[0].toString(),
-                valor: price.replace(/\$/g, '') * quantityProp,
-                evento_descripcion: "evento usfq",
-                evento_id: event?.eventIdUSFQ?.toString(),
-                trs_unico: "",
-                codigo: "0",
-                clave: "SEOP",
-                tipo_pago: "O",
-                diferido: "BTNS",
-                periodo: event?.periodoUSFQ?.toString(),
-                correo_adicional: "",
-                colegio: "",
-                especialidad: "",
-                envio: "N",
-                usuario: event?.usuarioUSFQ?.toString(),
-                reg_url_retorno: `${currentUrl}?EventAttendee=${newEventAttendee.id}`,
-                reg_id_externo: newEventAttendee.id
-              }];
-              const trs = await postRegistroFinanciero(requestBody, accessToken);
-              setTrs(trs); 
-            } else {
-              // Redirect to Eventflow
-              setTimeout(() => {
-                navigate(`?EventAttendee=${newEventAttendee.id}`);
-              },2000)
-            }
-            
-          } catch (error) {
-            console.error("HandleSubmit:", error);
-            setIsProcessing(false);
-          }
-        }
-      } else {
-        console.log("Process canceled by the user");
-      }
-    } else {
+    if (!isValid) {
       console.log("Form is not valid");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // Show popup terms and conditions + transaction details
+    const isFree = props.landing.cost === 'Gratuito';
+    if (!isFree) {
+      const userConfirmed = await showCustomPopup();
+      if (!userConfirmed) {
+        console.log("Process canceled by the user");
+        return;
+      }
+    }
+
+    const answers = await capturarRespuestas();
+    setUserData(answers);
+
+    const { ok } = await validateBannerCode(answers);
+
+    if (!ok) {
+      alert("El código banner o identificación CI no es válido");
+      setIsProcessing(false);
+      return;
+    }
+
+    // Make sure to await the creation of the attendee
+    const attendee = await DataStore.save(new Attendee({}));
+    if (!attendee) return;
+
+    try {
+      const puedeRegistrarse = await validarRegistroUnico(answers);
+      if (!puedeRegistrarse) {
+        setIsProcessing(false);
+        return;
+      }
+
+      const newEventAttendee = await guardarEventAttendee(answers, attendee, isFree);
+
+      setEventAttendee(newEventAttendee);
+      setFormRegister(true);
+
+      if (isFree) {
+        dispararEmailTemprano(newEventAttendee.id);
+        // Redirect to Eventflow
+        setTimeout(() => {
+          navigate(`?EventAttendee=${newEventAttendee.id}`);
+        }, 2000);
+      } else {
+        await iniciarPagoUSFQ(answers, newEventAttendee);
+      }
+    } catch (error) {
+      console.error("HandleSubmit:", error);
+      setIsProcessing(false);
     }
   };
 
@@ -552,12 +548,12 @@ const Registro = (props) => {
       const popupOverlay = document.querySelector(".popup-privacy-overlay");
       if (popupOverlay)
         popupOverlay.addEventListener("click", () => {
-          document.body.removeChild(popup);
+          popup.remove();
         });
 
       // Add event listener for the redirect button
       redirectButton.addEventListener("click", () => {
-        document.body.removeChild(popup);
+        popup.remove();
         resolve(true);
       });
     });
@@ -617,7 +613,9 @@ const Registro = (props) => {
       );
 
       if (!response.ok) {
-        const errorResponseData = await response.json();
+        // Se consume el cuerpo del error antes de lanzar (mismo comportamiento
+        // que antes: un JSON inválido también termina en el retry).
+        await response.json();
         throw new Error(`HTTPS error! Status: ${response.status}`);
       }
 
@@ -677,7 +675,6 @@ const Registro = (props) => {
 
       await pdf?.outputPdf().then(async function (pdf) {
         if (eventAttendee.ticket?.length == 0 || eventAttendee.ticket == null) {
-          setUploadProgress(0);
           const base64PDF = btoa(pdf);
           await savePDFStorage(base64PDF);
         }
@@ -699,12 +696,11 @@ const Registro = (props) => {
     try {
       
       if (eventAttendee.ticket && eventAttendee.ticket.length > 0) {
-        setUploadProgress(100);
         setIsProcessing(false); 
         return;
       }
 
-      const resultUpload = await uploadData({
+      await uploadData({
         key: eventAttendee.id + "_" + event.id + "_ticket.txt",
         data: ticket,
         options: {
@@ -712,8 +708,6 @@ const Registro = (props) => {
           metadata: { key: event.id },
         },
       }).result;
-
-      setUploadProgress(100);
 
       const getUrlResult = await getUrl({
         key: eventAttendee.id + "_" + event.id + "_ticket.txt",
@@ -725,9 +719,8 @@ const Registro = (props) => {
       const original = await DataStore.query(EventAttendee, eventAttendee.id);
       // Si el keepalive ya disparó el Lambda y marcó ticket="sent-qr:...",
       // el correo ya se envió. No reenviamos para evitar duplicados.
-      const alreadyEmailedByServer =
-        original?.ticket && original.ticket.startsWith("sent-qr:");
-      const updatedEventAttendee = await DataStore.save(
+      const alreadyEmailedByServer = original?.ticket?.startsWith("sent-qr:");
+      await DataStore.save(
         EventAttendee.copyOf(original, (updated) => {
           updated.ticket = decodeURIComponent(
             getUrlResult.url.pathname.substring(1)
@@ -765,7 +758,9 @@ const Registro = (props) => {
         }
       );
 
-      const data = await response.json();
+      // Se consume la respuesta para conservar el comportamiento original
+      // (un cuerpo inválido cae al catch y se registra en consola).
+      await response.json();
 
     } catch (e) {
       console.error("sendTicketEmail: ", e);
@@ -783,6 +778,27 @@ const Registro = (props) => {
 
   if (!formData) {
     return <FullScreenLoader label={ui.loading} />;
+  }
+
+  // Sección del formulario: loader inline → error → formulario renderizado.
+  // (Se calcula aquí para evitar ternarios anidados en el JSX.)
+  let formBuilderSection = memoizedFormBuilder;
+  if (formBuilderLoading) {
+    /* Loader inline de sección: carga del formBuilder dentro del
+       landing ya renderizado — no debe tapar banner/título con un
+       overlay full-screen (FullScreenLoader es solo FUERA del layout). */
+    formBuilderSection = (
+      <div className="flex flex-col items-center justify-center py-16">
+        <span className="loader" />
+        <p className="text-base text-gray-600">{ui.loadingForm}</p>
+      </div>
+    );
+  } else if (formBuilderError) {
+    formBuilderSection = (
+      <p className="text-red-500 text-center">
+        {formBuilderError}
+      </p>
+    );
   }
 
   return (
@@ -811,37 +827,18 @@ const Registro = (props) => {
               className="d-flex flex-col	mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0"
             >
               
-            {formBuilderLoading ? (
-              /* Loader inline de sección: carga del formBuilder dentro del
-                 landing ya renderizado — no debe tapar banner/título con un
-                 overlay full-screen (FullScreenLoader es solo FUERA del layout). */
-              <div className="flex flex-col items-center justify-center py-16">
-                <span className="loader" />
-                <p className="text-base text-gray-600">{ui.loadingForm}</p>
-              </div>
-            ) : formBuilderError ? (
-              <p className="text-red-500 text-center">
-                {formBuilderError}
-              </p>
-            ) : (
-              memoizedFormBuilder
-            )}
+            {formBuilderSection}
 
               {/* Start new invoice data fields  */}
 
               {props.landing.cost != 'Gratuito' && 
                 <div className="mb-1 py-3">
-                  <label
+                  {/* Botón nativo: Enter/Espacio disparan el click sin
+                      handlers de teclado manuales. */}
+                  <button
+                    type="button"
                     className="font-medium flex items-center cursor-pointer"
-                    role="button"
-                    tabIndex={0}
                     onClick={() => handleBillingCheckboxChange(!showBillingFields)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleBillingCheckboxChange(!showBillingFields);
-                      }
-                    }}
                   >
                     <div 
                       className={`w-5 h-5 mr-2 border border-gray-400 rounded flex items-center justify-center ${showBillingFields ? 'bg-blue-500' : 'bg-white'}`}
@@ -853,7 +850,7 @@ const Registro = (props) => {
                       )}
                     </div>
                     {ui.changeBilling}
-                  </label>
+                  </button>
                 </div>
               }
 
@@ -996,13 +993,7 @@ const Registro = (props) => {
                     }}
                     className="mt-1 pl-9 text-sm font-semibold text-red-500 hover:underline"
                   >
-                    {consentExpanded
-                      ? (lang || "ES").toUpperCase() === "EN"
-                        ? "Read less"
-                        : "Leer menos"
-                      : (lang || "ES").toUpperCase() === "EN"
-                      ? "Read more"
-                      : "Leer más"}
+                    {consentToggleLabel(lang, consentExpanded)}
                   </button>
                 </div>
               )}
@@ -1033,6 +1024,7 @@ const Registro = (props) => {
           <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3 opacity-100">
             <img
               src={logo}
+              alt="USFQ"
               className="mb-3 w-[80px] md:w-[90px] lg:w-[150px]"
             />
             <h2 className="mb-2 text-center text-xl font-semibold text-black">
@@ -1099,6 +1091,7 @@ const Registro = (props) => {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleExport(false)}
                   className="ticket-download-btn"
                 >
@@ -1116,12 +1109,14 @@ const Registro = (props) => {
                 <div
                   className={`ticket-cards-grid ${quantity > 1 ? "ticket-cards-multi" : ""}`}
                 >
-                  {ticketsArray.map((_, index) => (
+                  {/* Cada elemento de ticketsArray ES su número de ticket:
+                      clave estable derivada del contenido, no del índice. */}
+                  {ticketsArray.map((ticketNumber) => (
                     <div
-                      id={`pdf-content-${index}`}
+                      id={`pdf-content-${ticketNumber}`}
                       ref={pdfContentRef}
-                      key={index}
-                      className={`ticket-card-wrapper ticket-${index}`}
+                      key={`ticket-${ticketNumber}`}
+                      className={`ticket-card-wrapper ticket-${ticketNumber}`}
                     >
                       <div className="ticket-card">
                         <div
@@ -1153,8 +1148,10 @@ const Registro = (props) => {
 
                           {/* Attendee info */}
                           <div className="ticket-card-bottom">
-                            {userData.map((data, i) => (
-                              <div key={i}>
+                            {/* El name del campo es único en el formulario:
+                                sirve de clave estable. */}
+                            {userData.map((data) => (
+                              <div key={data.name}>
                                 {data.name === "nombres" && (
                                   <p className="ticket-attendee-name">
                                     {data.userData[0]}

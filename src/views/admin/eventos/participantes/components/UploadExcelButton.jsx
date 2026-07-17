@@ -8,6 +8,51 @@ import QRCode from "qrcode";
 import html2pdf from "html2pdf.js";
 import logo from "assets/img/usfq/logo_2025.png";
 
+async function createAttendee() {
+  return await DataStore.save(new Attendee({}));
+}
+
+// Convierte todas las llaves de una fila del Excel a minúsculas
+const normalizeRowKeys = (row) =>
+  Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])
+  );
+
+// Busca la columna del Excel que corresponde al campo del formulario
+const findParticipantValue = (participant, fieldNameLower) => {
+  const matchingKey = Object.keys(participant).find(key => {
+    const keyLower = key.toLowerCase();
+    // Match if the form field name contains part of the Excel column name or vice versa
+    return keyLower.includes(fieldNameLower) ||
+           fieldNameLower.includes(keyLower) ||
+           // Special handling for common field name variations
+           (fieldNameLower.includes('nombre') && keyLower.includes('nombre')) ||
+           (fieldNameLower.includes('universidad') && keyLower.includes('universidad')) ||
+           (fieldNameLower.includes('cargo') && keyLower.includes('cargo'));
+  });
+
+  return matchingKey ? participant[matchingKey] : '';
+};
+
+// Map Excel columns to form fields more flexibly
+const mapParticipantAnswers = (questions, participant) =>
+  questions.map((q) => {
+    const fieldNameLower = q.name.toLowerCase();
+
+    // Try exact match first
+    let value = participant[fieldNameLower];
+
+    // If not found, try to find by partial match
+    if (!value || value === '') {
+      value = findParticipantValue(participant, fieldNameLower);
+    }
+
+    return {
+      ...q,
+      userData: [value ?? '']
+    };
+  });
+
 export default function UploadExcelButton({ event }) {
   const url = window.location.href;
   const domain = url.split("/")[2];
@@ -15,7 +60,7 @@ export default function UploadExcelButton({ event }) {
   const fileInputRef = useRef(null);
 
   const handleButtonClick = async () => {
-    if (!event || !event.id) {
+    if (!event?.id) {
       alert('Error: No se ha cargado la información del evento. Por favor recarga la página.');
       return;
     }
@@ -160,7 +205,7 @@ export default function UploadExcelButton({ event }) {
       const arrayBuffer = pdf.output('arraybuffer'); // binary
       const uint8 = new Uint8Array(arrayBuffer);
       let binary = '';
-      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+      for (const byte of uint8) binary += String.fromCodePoint(byte);
       const base64PDF = btoa(binary);
 
       // Optional local download to verify (blob route is safer than mixing strings)
@@ -175,7 +220,7 @@ export default function UploadExcelButton({ event }) {
       console.log('✓ PDF generado y convertido a base64');
       return base64PDF;
     } finally {
-      document.body.removeChild(tempDiv);
+      tempDiv.remove();
     }
   };
 
@@ -183,40 +228,36 @@ export default function UploadExcelButton({ event }) {
 
   // Save PDF to storage and update EventAttendee
   const savePDFAndUpdateAttendee = async (eventAttendee, base64PDF) => {
-    try {
-      // Upload PDF to storage
-      await uploadData({
-        key: `${eventAttendee.id}_${event.id}_ticket.txt`,
-        data: base64PDF,
-        options: {
-          accessLevel: "guest",
-          metadata: { key: event.id },
-        },
-      }).result;
+    // Upload PDF to storage
+    await uploadData({
+      key: `${eventAttendee.id}_${event.id}_ticket.txt`,
+      data: base64PDF,
+      options: {
+        accessLevel: "guest",
+        metadata: { key: event.id },
+      },
+    }).result;
 
-      // Get URL for the uploaded file
-      const getUrlResult = await getUrl({
-        key: `${eventAttendee.id}_${event.id}_ticket.txt`,
-        options: {
-          accessLevel: "guest",
-        },
-      });
+    // Get URL for the uploaded file
+    const getUrlResult = await getUrl({
+      key: `${eventAttendee.id}_${event.id}_ticket.txt`,
+      options: {
+        accessLevel: "guest",
+      },
+    });
 
-      const ticketPath = decodeURIComponent(getUrlResult.url.pathname.substring(1));
+    const ticketPath = decodeURIComponent(getUrlResult.url.pathname.substring(1));
 
-      // Update EventAttendee with ticket URL
-      const original = await DataStore.query(EventAttendee, eventAttendee.id);
-      const updatedEventAttendee = await DataStore.save(
-        EventAttendee.copyOf(original, (updated) => {
-          updated.ticket = ticketPath;
-          updated.authorized = true;
-        })
-      );
+    // Update EventAttendee with ticket URL
+    const original = await DataStore.query(EventAttendee, eventAttendee.id);
+    const updatedEventAttendee = await DataStore.save(
+      EventAttendee.copyOf(original, (updated) => {
+        updated.ticket = ticketPath;
+        updated.authorized = true;
+      })
+    );
 
-      return updatedEventAttendee;
-    } catch (error) {
-      throw error;
-    }
+    return updatedEventAttendee;
   };
 
   // Send ticket email
@@ -252,9 +293,131 @@ export default function UploadExcelButton({ event }) {
     return result;
   };
 
-  async function createAttendee() {
-    return await DataStore.save(new Attendee({}));
-  }
+  const resetFileInput = () => {
+    setIsPending(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Crea el asistente, genera su ticket (QR + PDF) y envía el email
+  const processParticipant = async (participant, questions) => {
+    const attendee = await createAttendee();
+
+    const answers = mapParticipantAnswers(questions, participant);
+
+    if (!attendee) return;
+
+    // Create EventAttendee record
+    const newEventAttendee = await DataStore.save(
+      new EventAttendee({
+        eventID: event.id,
+        attendeeID: attendee.id,
+        authorized: false,
+        checkIn: false,
+        formAnswers: JSON.stringify(answers),
+        ticket: ``,
+        email: participant.email,
+        allowContact: false,
+        quantity: 1,
+        scanned: 0,
+        profileURL: `${domain}/usuario/${attendee.id}`,
+      })
+    );
+
+    // Generate QR code with EventAttendee ID (same as landing)
+    const qrCodeDataURL = await generateQRCode(newEventAttendee.id);
+    if (!qrCodeDataURL) return;
+
+    // Generate ticket HTML
+    const ticketHTML = generateTicketHTML(newEventAttendee, qrCodeDataURL, answers, event);
+    console.log('🎫 HTML del ticket generado para:', participant.email);
+    console.log('📝 HTML completo:', ticketHTML.substring(0, 500) + '...');
+
+    // Generate PDF from HTML
+    const base64PDF = await generatePDFFromHTML(ticketHTML);
+    console.log('📄 PDF generado, base64 length:', base64PDF?.length || 0);
+
+    // Save PDF and update EventAttendee
+    const updatedEventAttendee = await savePDFAndUpdateAttendee(newEventAttendee, base64PDF);
+
+    // Verify ticket is present
+    if (!updatedEventAttendee.ticket || updatedEventAttendee.ticket === '') {
+      console.error(`❌ ERROR: Ticket vacío para ${participant.email}. Email NO enviado.`);
+      alert(`ERROR: No se pudo generar el ticket para ${participant.email}. Email no enviado.`);
+      return;
+    }
+
+    console.log(`✓ Ticket guardado localmente: ${updatedEventAttendee.ticket}`);
+
+    // Wait longer for DataStore sync - increased to 15 seconds
+    console.log(`⏱️ Esperando 15 segundos para sincronización con DynamoDB...`);
+    await new Promise(resolve => setTimeout(resolve, 15000));
+
+    // Query from DataStore to verify sync
+    console.log(`🔍 Verificando sincronización en DynamoDB...`);
+    const verifiedFromDB = await DataStore.query(EventAttendee, updatedEventAttendee.id);
+
+    if (!verifiedFromDB?.ticket || verifiedFromDB.ticket === '') {
+      console.error(`❌ ERROR: Ticket no sincronizado para ${participant.email} después de 15s. Email NO enviado.`);
+      console.error(`❌ Estado en DB:`, verifiedFromDB);
+      alert(`ERROR: El ticket no se sincronizó para ${participant.email}. Email no enviado.`);
+      return;
+    }
+
+    console.log(`✓ Ticket verificado en DB: ${verifiedFromDB.ticket}`);
+
+    // Send ticket email only if ticket is confirmed in DB
+    try {
+      console.log(`📧 Intentando enviar email a ${participant.email}...`);
+      await sendTicketEmail(updatedEventAttendee.id);
+      console.log(`✓ Email enviado exitosamente a: ${participant.email}`);
+
+      // Delay between emails to avoid throttling
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (emailError) {
+      console.error(`❌ Error enviando email a ${participant.email}:`, emailError);
+      console.error(`❌ Detalles del error:`, emailError.message);
+    }
+  };
+
+  // Procesa el contenido del Excel: un ticket + email por participante
+  const processExcelData = async (fileBuffer) => {
+    try {
+      // Verify event is loaded
+      if (!event?.id) {
+        alert('Error: El evento no se ha cargado correctamente. Por favor recarga la página.');
+        return;
+      }
+
+      console.log('✓ Evento cargado:', event.id, event.title);
+
+      const data = new Uint8Array(fileBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      // Convert all keys to lowercase
+      const participants = XLSX.utils.sheet_to_json(worksheet).map(normalizeRowKeys);
+
+      const questions = (await DataStore.query(Form, (f) => f.formEventId.eq(event.id)))[0]?.questions;
+
+      for (const participant of participants) {
+        try {
+          await processParticipant(participant, questions);
+        } catch (error) {
+          console.error('❌ Error procesando participante del Excel:', error);
+        }
+      }
+
+      alert("Importación completada. Los tickets han sido generados y enviados por email.");
+    } catch (err) {
+      console.error('❌ Error procesando el archivo Excel:', err);
+      alert("Hubo un error procesando el archivo.");
+    } finally {
+      resetFileInput();
+    }
+  };
 
   const handleFileChange = async (fileEvent) => {
     try {
@@ -263,175 +426,21 @@ export default function UploadExcelButton({ event }) {
 
       setIsPending(true);
 
-      const reader = new FileReader();
-
-      reader.onload = async (e) => {
-        try {
-          // Verify event is loaded
-          if (!event || !event.id) {
-            alert('Error: El evento no se ha cargado correctamente. Por favor recarga la página.');
-            setIsPending(false);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-            return;
-          }
-
-          console.log('✓ Evento cargado:', event.id, event.title);
-
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: "array" });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          let participants = XLSX.utils.sheet_to_json(worksheet);
-
-          // Convert all keys to lowercase
-          participants = participants.map((row) => {
-            return Object.fromEntries(
-              Object.entries(row).map(([key, value]) => [
-                key.toLowerCase(),
-                value,
-              ])
-            );
-          });
-
-          const questions = (await DataStore.query(Form, (f) => f.formEventId.eq(event.id)))[0]?.questions;
-
-          for (const participant of participants) {
-            try {
-              const attendee = await createAttendee();
-
-              // Map Excel columns to form fields more flexibly
-              const answers = questions.map((q) => {
-                const fieldNameLower = q.name.toLowerCase();
-
-                // Try exact match first
-                let value = participant[fieldNameLower];
-
-                // If not found, try to find by partial match
-                if (!value || value === '') {
-                  const matchingKey = Object.keys(participant).find(key => {
-                    const keyLower = key.toLowerCase();
-                    // Match if the form field name contains part of the Excel column name or vice versa
-                    return keyLower.includes(fieldNameLower) ||
-                           fieldNameLower.includes(keyLower) ||
-                           // Special handling for common field name variations
-                           (fieldNameLower.includes('nombre') && keyLower.includes('nombre')) ||
-                           (fieldNameLower.includes('universidad') && keyLower.includes('universidad')) ||
-                           (fieldNameLower.includes('cargo') && keyLower.includes('cargo'));
-                  });
-
-                  value = matchingKey ? participant[matchingKey] : '';
-                }
-
-                return {
-                  ...q,
-                  userData: [value ?? '']
-                };
-              });
-
-              if (attendee) {
-                // Create EventAttendee record
-                const newEventAttendee = await DataStore.save(
-                  new EventAttendee({
-                    eventID: event.id,
-                    attendeeID: attendee.id,
-                    authorized: false,
-                    checkIn: false,
-                    formAnswers: JSON.stringify(answers),
-                    ticket: ``,
-                    email: participant.email,
-                    allowContact: false,
-                    quantity: 1,
-                    scanned: 0,
-                    profileURL: `${domain}/usuario/${attendee.id}`,
-                  })
-                );
-
-                // Generate QR code with EventAttendee ID (same as landing)
-                const qrCodeDataURL = await generateQRCode(newEventAttendee.id);
-
-                if (qrCodeDataURL) {
-                  // Generate ticket HTML
-                  const ticketHTML = generateTicketHTML(newEventAttendee, qrCodeDataURL, answers, event);
-                  console.log('🎫 HTML del ticket generado para:', participant.email);
-                  console.log('📝 HTML completo:', ticketHTML.substring(0, 500) + '...');
-
-                  // Generate PDF from HTML
-                  const base64PDF = await generatePDFFromHTML(ticketHTML);
-                  console.log('📄 PDF generado, base64 length:', base64PDF?.length || 0);
-
-                  // Save PDF and update EventAttendee
-                  const updatedEventAttendee = await savePDFAndUpdateAttendee(newEventAttendee, base64PDF);
-
-                  // Verify ticket is present
-                  if (!updatedEventAttendee.ticket || updatedEventAttendee.ticket === '') {
-                    console.error(`❌ ERROR: Ticket vacío para ${participant.email}. Email NO enviado.`);
-                    alert(`ERROR: No se pudo generar el ticket para ${participant.email}. Email no enviado.`);
-                  } else {
-                    console.log(`✓ Ticket guardado localmente: ${updatedEventAttendee.ticket}`);
-
-                    // Wait longer for DataStore sync - increased to 15 seconds
-                    console.log(`⏱️ Esperando 15 segundos para sincronización con DynamoDB...`);
-                    await new Promise(resolve => setTimeout(resolve, 15000));
-
-                    // Query from DataStore to verify sync
-                    console.log(`🔍 Verificando sincronización en DynamoDB...`);
-                    const verifiedFromDB = await DataStore.query(EventAttendee, updatedEventAttendee.id);
-
-                    if (!verifiedFromDB || !verifiedFromDB.ticket || verifiedFromDB.ticket === '') {
-                      console.error(`❌ ERROR: Ticket no sincronizado para ${participant.email} después de 15s. Email NO enviado.`);
-                      console.error(`❌ Estado en DB:`, verifiedFromDB);
-                      alert(`ERROR: El ticket no se sincronizó para ${participant.email}. Email no enviado.`);
-                    } else {
-                      console.log(`✓ Ticket verificado en DB: ${verifiedFromDB.ticket}`);
-
-                      // Send ticket email only if ticket is confirmed in DB
-                      try {
-                        console.log(`📧 Intentando enviar email a ${participant.email}...`);
-                        await sendTicketEmail(updatedEventAttendee.id);
-                        console.log(`✓ Email enviado exitosamente a: ${participant.email}`);
-
-                        // Delay between emails to avoid throttling
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                      } catch (emailError) {
-                        console.error(`❌ Error enviando email a ${participant.email}:`, emailError);
-                        console.error(`❌ Detalles del error:`, emailError.message);
-                      }
-                    }
-                  }
-                }
-              }
-            } catch (error) {
-              // Silent error handling
-            }
-          }
-
-          alert("Importación completada. Los tickets han sido generados y enviados por email.");
-        } catch (err) {
-          alert("Hubo un error procesando el archivo.");
-        } finally {
-          setIsPending(false);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        }
-      };
-
-      reader.onerror = () => {
-        setIsPending(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      };
-
-      reader.readAsArrayBuffer(file);
-    } catch (err) {
-      alert("Error manejando la subida del archivo.");
-      setIsPending(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      let fileBuffer;
+      try {
+        fileBuffer = await file.arrayBuffer();
+      } catch (readError) {
+        // Igual que el onerror del viejo FileReader: se resetea sin alertar
+        console.error('❌ Error leyendo el archivo:', readError);
+        resetFileInput();
+        return;
       }
+
+      await processExcelData(fileBuffer);
+    } catch (err) {
+      console.error('❌ Error manejando la subida del archivo:', err);
+      alert("Error manejando la subida del archivo.");
+      resetFileInput();
     }
   };
 

@@ -6,10 +6,14 @@ import { FiExternalLink } from "react-icons/fi";
 
 export default function Landing() {
   const getRoutes = (routes) => {
-    return routes.map((prop, key) => {
+    return routes.map((prop) => {
       if (prop.layout === "/usuario") {
         return (
-          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+          <Route
+            path={`/${prop.path}`}
+            element={prop.component}
+            key={prop.layout + prop.path}
+          />
         );
       } else {
         return null;
@@ -22,7 +26,7 @@ export default function Landing() {
         <main className={`mx-auto d-flex flex-col	justify-center min-h-screen`}>
             <div className="flex h-[100px] w-full bg-usfqPrimary mb-[50px] sm:mb-0">
               <div className="container flex items-center justify-between pt-3">
-                <img src={logo} className="w-[120px]" />
+                <img src={logo} alt="Logo USFQ" className="w-[120px]" />
                 <Link
                   to="https://www.usfq.edu.ec/es"
                   className="flex items-center gap-2 hover:text-red-500 hover:no-underline"

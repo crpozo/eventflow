@@ -103,10 +103,10 @@ const generatePDFBase64 = async (htmlContent) => {
     const arrayBuffer = pdf.output("arraybuffer");
     const uint8 = new Uint8Array(arrayBuffer);
     let binary = "";
-    for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+    for (const byte of uint8) binary += String.fromCodePoint(byte);
     return btoa(binary);
   } finally {
-    document.body.removeChild(tempDiv);
+    tempDiv.remove();
   }
 };
 
@@ -154,8 +154,46 @@ const findMissing = async (eventId) => {
   return all.filter((ea) => !ea.ticket || ea.ticket.length === 0);
 };
 
+// formAnswers llega como AWSJSON; ante un string corrupto se cae a [].
+const parseFormAnswers = (formAnswers) => {
+  try {
+    return JSON.parse(formAnswers || "[]");
+  } catch (_) {
+    return [];
+  }
+};
+
+// Pipeline completo para UN attendee: QR -> HTML -> PDF -> S3 -> DataStore ->
+// verificación de sync -> email. Lanza en el primer paso que falle.
+const procesarAttendee = async (ea, event) => {
+  if (!ea.email) {
+    throw new Error("EventAttendee sin email");
+  }
+
+  const answers = parseFormAnswers(ea.formAnswers);
+
+  const qr = await generateQRCode(ea.id);
+  if (!qr) throw new Error("Fallo al generar QR");
+
+  const html = generateTicketHTML(ea, qr, answers, event);
+  const base64 = await generatePDFBase64(html);
+  if (!base64) throw new Error("PDF vacío");
+
+  const updated = await uploadTicketAndUpdate(ea, event, base64);
+
+  // Esperar sync DataStore -> DynamoDB (mismo patrón que UploadExcelButton)
+  await new Promise((r) => setTimeout(r, 15000));
+
+  const verified = await DataStore.query(EventAttendee, updated.id);
+  if (!verified?.ticket || verified.ticket === "") {
+    throw new Error("Ticket no sincronizado a DynamoDB tras 15s");
+  }
+
+  await triggerEmail(updated.id);
+};
+
 export async function regenMissingTickets(event, { dryRun = false } = {}) {
-  if (!event || !event.id) {
+  if (!event?.id) {
     console.error("[regen] No event provided.");
     return;
   }
@@ -198,36 +236,7 @@ export async function regenMissingTickets(event, { dryRun = false } = {}) {
     const label = `[${i + 1}/${missing.length}] ${ea.email || ea.id}`;
     try {
       console.log(`${label} — generando...`);
-
-      if (!ea.email) {
-        throw new Error("EventAttendee sin email");
-      }
-
-      let answers = [];
-      try {
-        answers = JSON.parse(ea.formAnswers || "[]");
-      } catch (_) {
-        answers = [];
-      }
-
-      const qr = await generateQRCode(ea.id);
-      if (!qr) throw new Error("Fallo al generar QR");
-
-      const html = generateTicketHTML(ea, qr, answers, event);
-      const base64 = await generatePDFBase64(html);
-      if (!base64) throw new Error("PDF vacío");
-
-      const updated = await uploadTicketAndUpdate(ea, event, base64);
-
-      // Esperar sync DataStore -> DynamoDB (mismo patrón que UploadExcelButton)
-      await new Promise((r) => setTimeout(r, 15000));
-
-      const verified = await DataStore.query(EventAttendee, updated.id);
-      if (!verified || !verified.ticket || verified.ticket === "") {
-        throw new Error("Ticket no sincronizado a DynamoDB tras 15s");
-      }
-
-      await triggerEmail(updated.id);
+      await procesarAttendee(ea, event);
       console.log(`${label} — ✓ enviado`);
       results.sent.push(ea.email);
 

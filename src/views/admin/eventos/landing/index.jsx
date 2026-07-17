@@ -140,7 +140,7 @@ const Dashboard = () => {
       const name = (draft.ticketTitle[i] ?? "").trim();
       const priceRaw = String(draft.ticketPrice[i] ?? "").trim();
       if (!name && !priceRaw) continue;
-      const price = parseFloat(priceRaw);
+      const price = Number.parseFloat(priceRaw);
       if (!name || !Number.isFinite(price)) {
         alert(
           "Completa nombre y precio en todas las entradas (o elimina la fila incompleta)."
@@ -194,6 +194,16 @@ const Dashboard = () => {
 
   /* Tickets: paired title/price rows */
   const ticketRows = Math.max(draft.ticketTitle.length, draft.ticketPrice.length);
+  // Keys estables por fila (ref con contador): las filas no tienen id propio
+  // en el modelo, usar el contenido como key remontaría el input en cada tecla
+  // (perdiendo el foco) y el índice se desalinea al eliminar filas intermedias.
+  const rowKeysRef = React.useRef({ next: 0, keys: [] });
+  const rowKeys = rowKeysRef.current;
+  while (rowKeys.keys.length < ticketRows) {
+    rowKeys.keys.push(`entrada-${rowKeys.next}`);
+    rowKeys.next += 1;
+  }
+  rowKeys.keys.length = ticketRows;
   const setTicket = (i, key, value) => {
     const titles = [...draft.ticketTitle];
     const prices = [...draft.ticketPrice];
@@ -203,11 +213,13 @@ const Dashboard = () => {
     else prices[i] = value;
     set({ ticketTitle: titles, ticketPrice: prices });
   };
-  const removeTicket = (i) =>
+  const removeTicket = (i) => {
+    rowKeysRef.current.keys = rowKeysRef.current.keys.filter((_, j) => j !== i);
     set({
       ticketTitle: draft.ticketTitle.filter((_, j) => j !== i),
       ticketPrice: draft.ticketPrice.filter((_, j) => j !== i),
     });
+  };
 
   if (!loaded) {
     return <PageLoader />;
@@ -341,7 +353,7 @@ const Dashboard = () => {
                 <p className="mb-3 text-sm text-gray-400">Sin entradas configuradas.</p>
               )}
               {Array.from({ length: ticketRows }).map((_, i) => (
-                <div key={i} className="mb-2 flex items-center gap-2">
+                <div key={rowKeys.keys[i]} className="mb-2 flex items-center gap-2">
                   <TextInput
                     value={draft.ticketTitle[i] ?? ""}
                     placeholder="Nombre (ej. General)"

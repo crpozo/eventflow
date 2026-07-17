@@ -100,16 +100,6 @@ button.amplify-button:hover {
   border-top: 1px solid #eeedf2;
 }
 
-@media (min-width: 1300px) {
-  /* .amplify-grid .amplify-field, .amplify-button.amplify-field-group__control{
-		max-width: 50%;
-	} */
-}
-
-hr.amplify-divider--horizontal {
-  /*display: none;*/
-}
-
 .amplify-grid .amplify-field .amplify-input,
 .amplify-grid .amplify-field .amplify-textarea {
   background: #f8f9fb;
@@ -383,9 +373,6 @@ textarea:focus-visible {
   .rendered-form .form-group:not(.formbuilder-textarea){
     width: 47%;
     float:left;
-  }
-
-  .rendered-form .form-group:not(.formbuilder-textarea){
     margin-right: 15px;
   }
 }
@@ -394,12 +381,8 @@ textarea:focus-visible {
   .rendered-form .form-group:not(.formbuilder-textarea){
     width: 48%;
     float:left;
-  }
-
-  .rendered-form .form-group:not(.formbuilder-textarea){
     margin-right: 15px;
   }
-
 }
 .rendered-form .form-group.formbuilder-textarea{
   clear: both;
@@ -511,7 +494,9 @@ textarea:focus-visible {
 }
 
 .popup-privacy button{
-  background: rgb(245 57 57);
+  /* Rojo oscurecido mínimamente (antes rgb(245 57 57)) para contraste AA
+     4.5:1 con el texto blanco. */
+  background: rgb(224 42 42);
   color: white;
   padding: 8px 35px;
   border-radius: 8px;
@@ -694,7 +679,8 @@ textarea:focus-visible {
   color: white;
   font: inherit;
   font-weight: bold;
-  background-color: #F53939;
+  /* Rojo oscurecido mínimamente (antes #F53939) para contraste AA 4.5:1. */
+  background-color: #E02A2A;
   width: 100%;
   border: none;
   padding: 0.8rem;

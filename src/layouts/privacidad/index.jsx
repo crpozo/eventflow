@@ -1,14 +1,18 @@
 import Navbar from "components/navbar";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import routes from "routes.js";
 
 export default function Landing() {
 
   const getRoutes = (routes) => {
-    return routes.map((prop, key) => {
+    return routes.map((prop) => {
       if (prop.layout === "/privacidad") {
         return (
-          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+          <Route
+            path={`/${prop.path}`}
+            element={prop.component}
+            key={prop.layout + prop.path}
+          />
         );
       } else {
         return null;

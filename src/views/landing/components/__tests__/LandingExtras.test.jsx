@@ -1,8 +1,8 @@
 /**
  * Tests de LandingExtras (src/views/landing/components/LandingExtras.jsx):
  * galería (dedupe + resolución CloudFront), carrusel de logos duplicado y el
- * lightbox accesible (click, Enter/Espacio, Escape, botón Cerrar y el
- * stopPropagation de la imagen ampliada).
+ * lightbox accesible (click, Enter/Espacio, Escape, botón Cerrar y el fondo
+ * clickeable que cierra sin cerrar al hacer click en la imagen ampliada).
  */
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -69,11 +69,15 @@ describe("LandingExtras: lightbox", () => {
     expect(getDialog()).not.toBeInTheDocument();
   });
 
-  test("teclado: Enter abre, botón Cerrar cierra, Espacio reabre y Enter en el overlay cierra", () => {
+  test("teclado: Enter abre, botón Cerrar cierra, Espacio reabre y el fondo clickeable cierra", () => {
     renderExtras({ galleryPhotos: ["foto1.jpg"] });
     const thumb = screen.getByAltText(`${ui.gallery} 1`);
 
-    // Enter sobre la miniatura (role=button) abre el lightbox.
+    // Una tecla cualquiera no abre nada.
+    fireEvent.keyDown(thumb, { key: "Tab" });
+    expect(getDialog()).not.toBeInTheDocument();
+
+    // Enter sobre la miniatura (burbujea al <button>) abre el lightbox.
     fireEvent.keyDown(thumb, { key: "Enter" });
     expect(getDialog()).toBeInTheDocument();
 
@@ -83,28 +87,32 @@ describe("LandingExtras: lightbox", () => {
 
     // Espacio también abre.
     fireEvent.keyDown(thumb, { key: " " });
-    const dialog = getDialog();
-    expect(dialog).toBeInTheDocument();
+    expect(getDialog()).toBeInTheDocument();
 
-    // Enter sobre el overlay cierra.
-    fireEvent.keyDown(dialog, { key: "Enter" });
+    // El fondo clickeable (todo el overlay oscuro) cierra.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cerrar imagen ampliada" })
+    );
     expect(getDialog()).not.toBeInTheDocument();
   });
 
-  test("click en la imagen ampliada NO cierra (stopPropagation); click en el overlay sí", () => {
+  test("click en la imagen ampliada NO cierra; el fondo clickeable sí", () => {
     renderExtras({ galleryPhotos: ["foto1.jpg"] });
     fireEvent.click(screen.getByAltText(`${ui.gallery} 1`));
 
+    // La imagen ampliada no tiene handlers: ni click ni teclado la cierran.
     const dialog = getDialog();
     const zoomed = dialog.querySelector("img");
     fireEvent.click(zoomed);
     expect(getDialog()).toBeInTheDocument();
 
-    // Enter/Espacio sobre la imagen ampliada tampoco cierran (stopPropagation).
     fireEvent.keyDown(zoomed, { key: "Enter" });
     expect(getDialog()).toBeInTheDocument();
 
-    fireEvent.click(dialog); // overlay
+    // El fondo clickeable (cubre todo el overlay) sí cierra.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cerrar imagen ampliada" })
+    );
     expect(getDialog()).not.toBeInTheDocument();
   });
 
@@ -114,6 +122,29 @@ describe("LandingExtras: lightbox", () => {
     const dialog = getDialog();
     expect(dialog).toBeInTheDocument();
     expect(dialog.querySelector("img")).toHaveAttribute(
+      "src",
+      `${CLOUDFRONT}l1.png`
+    );
+  });
+
+  test("teclado en los logos: Enter/Espacio abren el lightbox; otras teclas no", () => {
+    renderExtras({ partnerLogos: ["l1.png"] });
+    const logo = screen.getAllByAltText("partner logo")[0];
+
+    // Una tecla cualquiera no abre nada.
+    fireEvent.keyDown(logo, { key: "a" });
+    expect(getDialog()).not.toBeInTheDocument();
+
+    // Enter abre (burbujea al <button> del logo).
+    fireEvent.keyDown(logo, { key: "Enter" });
+    expect(getDialog()).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(getDialog()).not.toBeInTheDocument();
+
+    // Espacio también abre.
+    fireEvent.keyDown(logo, { key: " " });
+    expect(getDialog()).toBeInTheDocument();
+    expect(getDialog().querySelector("img")).toHaveAttribute(
       "src",
       `${CLOUDFRONT}l1.png`
     );

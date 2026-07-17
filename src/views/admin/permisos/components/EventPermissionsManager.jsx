@@ -14,6 +14,11 @@ const ACTIONS = [
   { key: "edit", label: "Editar" },
 ];
 
+// Predicado DataStore del EventPermission de un usuario+evento. Extraído a
+// nivel de módulo para no anidar funciones de más de 4 niveles en el efecto.
+const byUserAndEvent = (userId, eventId) => (p) =>
+  p.and((c) => [c.userID.eq(userId), c.eventID.eq(eventId)]);
+
 /**
  * Admin tool: configure, per user + per event, which sections they can
  * View / Edit. Stored as 'section:action' tokens on EventPermission.
@@ -54,8 +59,9 @@ export default function EventPermissionsManager() {
     }
     let active = true;
     (async () => {
-      const rows = await DataStore.query(EventPermission, (p) =>
-        p.and((c) => [c.userID.eq(userId), c.eventID.eq(eventId)])
+      const rows = await DataStore.query(
+        EventPermission,
+        byUserAndEvent(userId, eventId)
       );
       if (!active) return;
       const rec = rows[0] || null;
@@ -125,8 +131,9 @@ export default function EventPermissionsManager() {
 
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-semibold">Usuario</label>
+          <label htmlFor="event-perm-user" className="mb-1 block text-sm font-semibold">Usuario</label>
           <select
+            id="event-perm-user"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             className="w-full rounded-xl border border-gray-200 p-3 text-sm outline-none dark:!bg-navy-900"
@@ -140,8 +147,9 @@ export default function EventPermissionsManager() {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-semibold">Evento</label>
+          <label htmlFor="event-perm-event" className="mb-1 block text-sm font-semibold">Evento</label>
           <select
+            id="event-perm-event"
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
             className="w-full rounded-xl border border-gray-200 p-3 text-sm outline-none dark:!bg-navy-900"

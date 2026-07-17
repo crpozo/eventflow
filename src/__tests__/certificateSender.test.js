@@ -780,6 +780,19 @@ describe("handler POST — prueba individual (handleTest)", () => {
     expect(sendMail.mock.calls[0][0].subject).toBe("Asunto custom");
   });
 
+  it("certificateKey que ya trae el prefijo public/ no se duplica", async () => {
+    ddbRoute({ QueryCommand: { Items: [] }, GetCommand: { Item: EVENTO } });
+    const res = await handler(
+      httpPost({
+        eventId: "ev1",
+        email: "x@y.z",
+        certificateKey: "public/certs/directa.png",
+      })
+    );
+    expect(res.statusCode).toBe(200);
+    expect(s3Send.mock.calls[0][0].input.Key).toBe("public/certs/directa.png");
+  });
+
   it("si la búsqueda del registro falla, cae al nombre de muestra sin reventar", async () => {
     ddbRoute({
       QueryCommand: () => {
@@ -864,6 +877,20 @@ describe("handler POST sendAll — reenvío manual corregido", () => {
     const res = await handler(httpPost({ eventId: "ev1", sendAll: true }));
     expect(res.statusCode).toBe(200);
     expect(bodyOf(res)).toEqual({ ok: true, sent: 2, eligible: 3 });
+  });
+
+  it("un fallo del estampado final → 500 con mensaje y CORS", async () => {
+    ddbRoute({
+      GetCommand: { Item: EVENTO },
+      QueryCommand: { Items: [asistente("ana@x.com", true, RESP_SI)] },
+      UpdateCommand: () => {
+        throw new Error("dynamo caído");
+      },
+    });
+    const res = await handler(httpPost({ eventId: "ev1", sendAll: true }));
+    expect(res.statusCode).toBe(500);
+    expect(bodyOf(res).error).toBe("dynamo caído");
+    expect(res.headers["Access-Control-Allow-Origin"]).toBe("*");
   });
 
   it("sin elegibles → 400 y NO estampa certificatesSentAt", async () => {
@@ -970,6 +997,28 @@ describe("handler scheduled — Scan→claim→Query→send", () => {
     });
     await handler({});
     expect(sendMail.mock.calls.map(([m]) => m.to)).toEqual(["uno@x.com"]);
+  });
+
+  it("certificatePosition cruda no-JSON: se loguea, se ignora sendAt y dispara por endDate", async () => {
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      ddbRoute({
+        ScanCommand: {
+          Items: [{ ...EVENTO, certificatePosition: "centro", endDate: past }],
+        },
+        UpdateCommand: {},
+        QueryCommand: { Items: [asistente("uno@x.com", true, RESP_SI)] },
+      });
+      expect(await handler({})).toEqual({ statusCode: 200 });
+      expect(sendMail.mock.calls.map(([m]) => m.to)).toEqual(["uno@x.com"]);
+      expect(
+        spy.mock.calls.some(([msg]) =>
+          String(msg).includes("certificatePosition no es JSON")
+        )
+      ).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("claim perdido (ConditionalCheckFailed) → salta ese evento y sigue con el resto", async () => {

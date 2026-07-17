@@ -64,6 +64,8 @@ export async function translateFormData(questions, targetLang) {
       arr = JSON.parse(questions);
       wasString = true;
     } catch (e) {
+      // AWSJSON corrupto: se loguea y se devuelve la definición sin traducir.
+      console.error("translateFormData: definición de formulario no es JSON válido", e);
       return questions;
     }
   }
@@ -119,7 +121,7 @@ export function restoreOriginalLabels(captured, original) {
 
   const byName = {};
   orig.forEach((q) => {
-    if (q && q.name !== undefined) byName[q.name] = q;
+    if (q?.name !== undefined) byName[q.name] = q;
   });
 
   return captured.map((item) => {
@@ -134,7 +136,7 @@ export function restoreOriginalLabels(captured, original) {
     if (Array.isArray(item.values) && Array.isArray(orig.values)) {
       const labelByValue = {};
       orig.values.forEach((v) => {
-        if (v && v.value !== undefined) labelByValue[v.value] = v.label;
+        if (v?.value !== undefined) labelByValue[v.value] = v.label;
       });
       merged.values = item.values.map((v) =>
         v && labelByValue[v.value] !== undefined

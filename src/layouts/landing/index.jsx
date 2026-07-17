@@ -3,10 +3,14 @@ import routes from "routes.js";
 
 export default function Landing() {
   const getRoutes = (routes) => {
-    return routes.map((prop, key) => {
+    return routes.map((prop) => {
       if (prop.layout === "/landing") {
         return (
-          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+          <Route
+            path={`/${prop.path}`}
+            element={prop.component}
+            key={prop.layout + prop.path}
+          />
         );
       } else {
         return null;

@@ -8,8 +8,7 @@ import { PermissionsProvider, usePermissions } from "./providers/PermissionsProv
 // FullScreenLoader es el loader canónico centrado en viewport fuera del layout.
 import { FullScreenLoader } from "components/adminUi";
 import { I18n, Hub } from 'aws-amplify/utils';
-import { Authenticator, translations } from '@aws-amplify/ui-react'
-import { useAuthenticator } from '@aws-amplify/ui-react';
+import { Authenticator, translations, useAuthenticator } from '@aws-amplify/ui-react';
 import { Amplify } from 'aws-amplify';
 import config from './amplifyconfiguration.json';
 import '@aws-amplify/ui-react/styles.css';
@@ -105,7 +104,7 @@ function App() {
     document.head.appendChild(cookieDeclarationScript);
 
     return () => {
-      document.head.removeChild(cookieDeclarationScript);
+      cookieDeclarationScript.remove();
     };
   }, []);
 
@@ -129,30 +128,38 @@ function App() {
     return <FullScreenLoader />;
   }
 
-  // For anonymous users - render routes directly without PermissionsProvider
+  // For anonymous users - render routes directly without PermissionsProvider.
+  // Retornos tempranos por ruta pública en lugar de un ternario anidado.
   if (route !== 'authenticated') {
+    if (isLandingRoute) {
+      return (
+        <React.Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="landing/*" element={<LandingLayout />} />
+          </Routes>
+        </React.Suspense>
+      );
+    }
+    if (isLegalRoute) {
+      return (
+        <React.Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="privacidad" element={<LegalLayout />} />
+          </Routes>
+        </React.Suspense>
+      );
+    }
+    if (isUserRoute) {
+      return (
+        <React.Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="usuario/*" element={<UserLayout />} />
+          </Routes>
+        </React.Suspense>
+      );
+    }
     return (
-      <>
-        {isLandingRoute ? (
-          <React.Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="landing/*" element={<LandingLayout />} />
-            </Routes>
-          </React.Suspense>
-        ) : isLegalRoute ? (
-          <React.Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="privacidad" element={<LegalLayout />} />
-            </Routes>
-          </React.Suspense>
-        ) : isUserRoute ? (
-          <React.Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="usuario/*" element={<UserLayout />} />
-            </Routes>
-          </React.Suspense>
-        ) : ( 
-          <div className="bg-usfqPrimary flex min-h-screen items-center justify-center bg-lightPrimary px-0 py-0 lg:px-4 lg:py-6">
+      <div className="bg-usfqPrimary flex min-h-screen items-center justify-center bg-lightPrimary px-0 py-0 lg:px-4 lg:py-6">
             <div className="flex flex-col-reverse justify-center lg:flex-row overflow-hidden rounded-3xl shadow-lg w-full max-w-6xl h-screen lg:h-[670px]">
               
               {/* Imagen lado izquierdo */}
@@ -188,9 +195,7 @@ function App() {
               </div>
 
             </div>
-          </div>
-        )}
-      </>
+      </div>
     );
   }
 

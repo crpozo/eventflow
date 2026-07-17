@@ -174,12 +174,47 @@ describe("Encuesta pública: estados de carga", () => {
     ).toBeInTheDocument();
   });
 
-  test("questions corruptas (no JSON) también caen en 'Encuesta no disponible'", async () => {
+  test("questions corruptas (no JSON) también caen en 'Encuesta no disponible' y se registra el error", async () => {
+    const errorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     primeGraphql({ surveys: [{ id: "s-1", questions: "esto-no-es-json" }] });
     renderSurvey();
     expect(
       await screen.findByText("Encuesta no disponible")
     ).toBeInTheDocument();
+    // El parse tolerante no es silencioso: deja rastro en consola.
+    expect(errorSpy).toHaveBeenCalledWith(
+      "survey questions parse:",
+      expect.any(Error)
+    );
+  });
+
+  test("si getEvent falla, la encuesta carga igual con el título de respaldo", async () => {
+    const errorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    primeGraphql();
+    mockGraphql.mockImplementation(async ({ query }) => {
+      if (query.includes("listSurveys")) {
+        return { data: { listSurveys: { items: [surveyItemFixture()] } } };
+      }
+      if (query.includes("listSurveyResponses")) {
+        return { data: { listSurveyResponses: { items: [] } } };
+      }
+      if (query.includes("getEvent")) {
+        throw new Error("getEvent down");
+      }
+      return { data: {} };
+    });
+    renderSurvey();
+    await waitForReady();
+    // El título es cosmético: cae al fallback sin bloquear el formulario.
+    expect(screen.getByText("Encuesta del evento")).toBeInTheDocument();
+    expect(errorSpy).toHaveBeenCalledWith(
+      "survey event title:",
+      expect.any(Error)
+    );
   });
 
   test("muestra '¡Ya respondiste!' cuando el token ya tiene una respuesta", async () => {

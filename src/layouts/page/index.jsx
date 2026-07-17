@@ -14,34 +14,32 @@ export default function Admin(props) {
   }, [location.pathname]);
 
   const getActiveRoute = (routes) => {
-    let activeRoute = "Campus";
-    for (let i = 0; i < routes.length; i++) {
-      if (
-        window.location.href.indexOf(
-          routes[i].layout + "/" + routes[i].path
-        ) !== -1
-      ) {
-        setCurrentRoute(routes[i].name);
+    const activeRoute = "Campus";
+    for (const route of routes) {
+      if (window.location.href.includes(route.layout + "/" + route.path)) {
+        setCurrentRoute(route.name);
       }
     }
     return activeRoute;
   };
   const getActiveNavbar = (routes) => {
-    let activeNavbar = false;
-    for (let i = 0; i < routes.length; i++) {
-      if (
-        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
-      ) {
-        return routes[i].secondary;
+    const activeNavbar = false;
+    for (const route of routes) {
+      if (window.location.href.includes(route.layout + route.path)) {
+        return route.secondary;
       }
     }
     return activeNavbar;
   };
   const getRoutes = (routes) => {
-    return routes.map((prop, key) => {
+    return routes.map((prop) => {
       if (prop.layout === "/page") {
         return (
-          <Route path={`/${prop.path}`} element={prop.component} key={key} />
+          <Route
+            path={`/${prop.path}`}
+            element={prop.component}
+            key={prop.layout + prop.path}
+          />
         );
       } else {
         return null;

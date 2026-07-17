@@ -36,6 +36,8 @@
  * cada check-in) y que cada corrida horaria lo repitiera; Timeout CFN 25→300s.
  * Previo 2026-07-03: envío automático 1h después del fin; lotes allSettled;
  * {eligible,sent}; normalizeQuestions legacy)
+ * rev 2026-07-17: limpieza Sonar sin cambio de conducta — stripHtml lineal
+ * (S8786), surveyTriggerMs/handleRest extraídos (S3776), Number.NaN (S7773).
  */
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -74,8 +76,16 @@ const parseJson = (v, fallback) => {
   }
 };
 
-const surveyLink = (eventId, token) =>
-  `${APP_URL}/landing/${eventId}/encuesta${token ? `?a=${encodeURIComponent(token)}` : ""}`;
+const surveyLink = (eventId, token) => {
+  const query = token ? `?a=${encodeURIComponent(token)}` : "";
+  return `${APP_URL}/landing/${eventId}/encuesta${query}`;
+};
+
+// Quita etiquetas HTML de los labels de formBuilder. `[^<>]*` (y no `[^>]*`):
+// al no poder cruzar el siguiente '<', cada intento de match queda acotado y
+// el peor caso es lineal — con `[^>]*`, un label lleno de '<' sin '>' se
+// re-escaneaba desde cada '<' hasta el final (cuadrático, S8786).
+const stripHtml = (s) => String(s).replace(/<[^<>]*>/g, "").trim();
 
 const inviteHtml = (eventTitle, intro, link) => `
   <div style="font-family:Helvetica,Arial,sans-serif;max-width:520px;margin:0;color:#1a1a1a;text-align:left">
@@ -171,7 +181,7 @@ const buildDigest = (responses) => {
     const parts = [];
     answers.forEach((f) => {
       if (f.type === "header" || f.type === "paragraph") return;
-      const label = String(f.label || f.name || "").replace(/<[^>]*>/g, "").trim();
+      const label = stripHtml(f.label || f.name || "");
       const val = Array.isArray(f.userData)
         ? f.userData.filter(Boolean).join(", ")
         : f.userData;
@@ -225,7 +235,7 @@ const questionsDigest = (questions) =>
   normalizeQuestions(questions)
     .filter((q) => q.type !== "header" && q.type !== "paragraph")
     .map((q) => {
-      const label = String(q.label || q.name || "").replace(/<[^>]*>/g, "").trim();
+      const label = stripHtml(q.label || q.name || "");
       return `  - name: ${q.name} | tipo: ${q.type} | pregunta: ${label}`;
     })
     .join("\n");
@@ -513,6 +523,16 @@ const claimSentAt = async (surveyId, iso) => {
   }
 };
 
+// Momento en que corresponde disparar el envío. Con sendAt explícito → a esa
+// hora exacta. Sin sendAt (checkbox "enviar al finalizar") → 1 HORA DESPUÉS
+// del fin del evento, para no interrumpir mientras aún está en curso /
+// cerrando. Number.NaN cuando el evento no tiene ninguna fecha utilizable.
+const surveyTriggerMs = (survey, ev) => {
+  if (survey.sendAt) return new Date(survey.sendAt).getTime();
+  const endIso = ev.endDate || ev.date || ev.startDate;
+  return endIso ? new Date(endIso).getTime() + 60 * 60 * 1000 : Number.NaN;
+};
+
 const runScheduled = async () => {
   const now = Date.now();
   const surveys = await ddb.send(
@@ -529,16 +549,7 @@ const runScheduled = async () => {
     const ev = await getEvent(eventId);
     if (!ev) continue;
 
-    // Con sendAt explícito → a esa hora exacta. Sin sendAt (checkbox "enviar
-    // al finalizar") → 1 HORA DESPUÉS del fin del evento, para no interrumpir
-    // mientras aún está en curso / cerrando.
-    let triggerMs;
-    if (survey.sendAt) {
-      triggerMs = new Date(survey.sendAt).getTime();
-    } else {
-      const endIso = ev.endDate || ev.date || ev.startDate;
-      triggerMs = endIso ? new Date(endIso).getTime() + 60 * 60 * 1000 : NaN;
-    }
+    const triggerMs = surveyTriggerMs(survey, ev);
     if (!Number.isFinite(triggerMs) || triggerMs > now) continue;
     if (normalizeQuestions(survey.questions).length === 0) continue;
 
@@ -551,29 +562,33 @@ const runScheduled = async () => {
 
 /* ─────────────────────────── handler ─────────────────────────── */
 
+// Dispatch de los POST REST (extraído del handler por S3776): parsea el body,
+// resuelve la ruta y delega en su sub-handler con el 500 controlado.
+const handleRest = async (event) => {
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch (e) {
+    return json(400, { error: "Cuerpo inválido" });
+  }
+  const path = event.path || event.rawPath || event.resource || "";
+  try {
+    if (/survey-analyze/.test(path)) return await handleAnalyze(body);
+    if (/survey-test/.test(path))
+      return body.sendAll === true
+        ? await handleSendNow(body)
+        : await handleTest(body);
+    return json(404, { error: `Ruta no encontrada: ${path}` });
+  } catch (e) {
+    console.error("survey REST failed:", e);
+    return json(500, { error: e?.message || String(e) });
+  }
+};
+
 exports.handler = async (event) => {
   const method = event?.httpMethod || event?.requestContext?.http?.method;
-  if (method) {
-    if (method === "OPTIONS") return json(200, { ok: true });
-    if (method !== "POST") return json(405, { error: `Method ${method} not allowed` });
-    let body;
-    try {
-      body = JSON.parse(event.body || "{}");
-    } catch (e) {
-      return json(400, { error: "Cuerpo inválido" });
-    }
-    const path = event.path || event.rawPath || event.resource || "";
-    try {
-      if (/survey-analyze/.test(path)) return await handleAnalyze(body);
-      if (/survey-test/.test(path))
-        return body.sendAll === true
-          ? await handleSendNow(body)
-          : await handleTest(body);
-      return json(404, { error: `Ruta no encontrada: ${path}` });
-    } catch (e) {
-      console.error("survey REST failed:", e);
-      return json(500, { error: e?.message || String(e) });
-    }
-  }
-  return runScheduled();
+  if (!method) return runScheduled(); // sin método HTTP → corrida programada
+  if (method === "OPTIONS") return json(200, { ok: true });
+  if (method !== "POST") return json(405, { error: `Method ${method} not allowed` });
+  return handleRest(event);
 };

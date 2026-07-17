@@ -600,6 +600,204 @@ describe("Reportes — modo detalle de evento", () => {
   });
 });
 
+/* ── Regexes (stripHtml y mapeo className→chart) ───────────────────────────
+ * Prueban que, tras reescribir los patrones para evitar backtracking
+ * super-lineal (`<[^<>]*>` y `/^(.*)-chart/`), el comportamiento de
+ * aceptación/rechazo sobre entradas representativas es idéntico al original. */
+
+describe("Reportes — stripHtml y mapeo de className a chart", () => {
+  test("labels con HTML se limpian, '<' sin cerrar queda intacto y solo el sufijo -chart exacto grafica", async () => {
+    const f = DataStore.__fixtures;
+    // Evento propio para no interferir con los fixtures de los demás tests
+    f.Event.push({
+      id: "e4",
+      title: "Seminario Datos",
+      careerID: "s1",
+      startDate: PAST,
+    });
+    const answers = (genero) => [
+      {
+        name: "genero",
+        type: "select",
+        label: "<b>Género</b>",
+        userData: [genero],
+        values: [
+          { label: "<i>Masculino</i>", value: "M" },
+          { label: "Femenino", value: "F" },
+          // opción sin label → se muestra su value tal cual
+          { value: "NS" },
+        ],
+      },
+      {
+        name: "nivel",
+        type: "select",
+        label: "Nivel de estudios <sin cerrar",
+        className: "form-control",
+        userData: ["Pregrado"],
+        values: [{ label: "Pregrado", value: "Pregrado" }],
+      },
+      // number sin valores numéricos → rama "Sin valores numéricos."
+      {
+        name: "mascotas",
+        type: "number",
+        label: "Mascotas",
+        className: "form-control",
+        userData: ["N/A"],
+      },
+      // select SIN userData → se ignora al agrupar charts y en las barras
+      {
+        name: "comentario_sel",
+        type: "select",
+        label: "Comentario opcional",
+        className: "no-chart",
+      },
+      // select sin name NI label → sin clave estable, no genera distribución
+      { type: "select", label: "", className: "no-chart", userData: ["x"] },
+    ];
+    f.EventAttendee.push(
+      {
+        id: "ea4",
+        eventID: "e4",
+        email: "a@x.com",
+        checkIn: true,
+        formAnswers: answers("M"),
+      },
+      {
+        id: "ea5",
+        eventID: "e4",
+        email: "b@x.com",
+        checkIn: false,
+        formAnswers: answers("F"),
+      }
+    );
+    f.Form.push({
+      id: "f4",
+      Event: { id: "e4" },
+      questions: [
+        // "pie-chart-legacy" contiene "-chart" pero NO es un mapeo válido
+        // (pie-/bar-chart): no debe generar echart, igual que antes.
+        {
+          name: "genero",
+          className: "form-control pie-chart-legacy",
+          label: "<b>Género</b>",
+        },
+      ],
+    });
+
+    renderReportes();
+    fireEvent.click(await screen.findByText("Seminario Datos"));
+    expect(await screen.findByText("Reporte del evento")).toBeInTheDocument();
+
+    // stripHtml: el label del select aparece sin las etiquetas <b>…</b>
+    expect(await screen.findByText("Género")).toBeInTheDocument();
+    // …y un label con `<` sin cerrar no pierde texto (no hay tag que quitar)
+    expect(
+      screen.getByText("Nivel de estudios <sin cerrar")
+    ).toBeInTheDocument();
+    // el label de una opción con markup también se limpia en las barras
+    expect(screen.getByText("Masculino")).toBeInTheDocument();
+    // una opción sin label muestra su value tal cual
+    expect(screen.getByText("NS")).toBeInTheDocument();
+    // className sin sufijo -chart mapeado → cero echarts para este evento
+    expect(screen.queryAllByTestId("echart")).toHaveLength(0);
+    // pregunta numérica sin valores finitos → aviso, no Promedio/Mín/Máx
+    expect(screen.getByText("Mascotas")).toBeInTheDocument();
+    expect(screen.getByText("Sin valores numéricos.")).toBeInTheDocument();
+    expect(screen.queryByText("Promedio")).not.toBeInTheDocument();
+    // preguntas sin respuestas o sin clave estable no generan distribución
+    expect(screen.queryByText("Comentario opcional")).not.toBeInTheDocument();
+  });
+});
+
+/* ── Filtros de taxonomía y fechas sobre la grilla ─────────────────────── */
+
+describe("Reportes — taxonomía (campus/área/subárea) y fechas en la grilla", () => {
+  test("excluye eventos de otras ramas, tolera fechas raras y las fechas podan áreas/subáreas/eventos", async () => {
+    const f = DataStore.__fixtures;
+    // Rama paralela: área Comercial (a2) con subárea Ventas (s2) y un evento
+    f.Area.push({ id: "a2", title: "Área Comercial", campusID: "c1" });
+    f.Career.push(
+      { id: "s2", title: "Subárea Ventas", areaID: "a2" },
+      { id: "s3", title: "Subárea Neuro", areaID: "a1" }
+    );
+    f.Event.push(
+      { id: "e5", title: "Expo Ventas", careerID: "s2", startDate: PAST },
+      { id: "e6", title: "Congreso Neuro", careerID: "s3", startDate: PAST },
+      // subárea desconocida → nunca pasa el filtro de campus
+      { id: "e9", title: "Evento Huérfano", careerID: "s-x", startDate: PAST },
+      // sin ningún campo de fecha → "Sin fecha"
+      { id: "e10", title: "Evento Sin Fecha", careerID: "s1" },
+      // fecha numérica (timestamp) → se normaliza con toISOString
+      { id: "e11", title: "Evento Fecha Rara", careerID: "s1", startDate: 1589104800000 },
+      // AWSDate con formato válido pero fecha imposible → "Sin fecha"
+      { id: "e12", title: "Evento Fecha Inválida", careerID: "s1", startDate: "9999-99-99" },
+    );
+
+    renderReportes();
+    await screen.findByText("Congreso Cardio");
+
+    // Todos los eventos de campus c1 se ven; el huérfano no
+    expect(screen.getByText("Expo Ventas")).toBeInTheDocument();
+    expect(screen.getByText("Congreso Neuro")).toBeInTheDocument();
+    expect(screen.getByText("Evento Sin Fecha")).toBeInTheDocument();
+    expect(screen.getByText("Evento Fecha Rara")).toBeInTheDocument();
+    expect(screen.getByText("Evento Fecha Inválida")).toBeInTheDocument();
+    expect(screen.queryByText("Evento Huérfano")).not.toBeInTheDocument();
+    // e10 (sin fecha) y e12 (fecha inválida) muestran "Sin fecha"
+    expect(screen.getAllByText("Sin fecha").length).toBeGreaterThanOrEqual(2);
+    // e11 (timestamp de mayo 2020) se formatea como fecha corta
+    expect(screen.getAllByText(/may\.? 2020/).length).toBeGreaterThanOrEqual(1);
+
+    // Filtro de Área a1 → fuera Expo Ventas (área a2)
+    fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
+    const selects = screen.getAllByRole("combobox");
+    fireEvent.change(selects[1], { target: { value: "a1" } });
+    await waitFor(() =>
+      expect(screen.queryByText("Expo Ventas")).not.toBeInTheDocument()
+    );
+    expect(screen.getByText("Congreso Neuro")).toBeInTheDocument();
+
+    // Filtro de Subárea s1 → fuera Congreso Neuro (subárea s3)
+    await waitFor(() =>
+      expect(within(selects[2]).getByText("Subárea Cardio")).toBeInTheDocument()
+    );
+    fireEvent.change(selects[2], { target: { value: "s1" } });
+    await waitFor(() =>
+      expect(screen.queryByText("Congreso Neuro")).not.toBeInTheDocument()
+    );
+    expect(screen.getByText("Congreso Cardio")).toBeInTheDocument();
+
+    // Rango de fechas [2050-01-01, 2051-12-31] → poda áreas, subáreas y
+    // eventos que no tienen eventos dentro del rango
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    fireEvent.change(dateInputs[0], { target: { value: "2050-01-01" } });
+    fireEvent.change(dateInputs[1], { target: { value: "2051-12-31" } });
+
+    // Áreas: solo a1 tiene eventos en rango → a2 desaparece del select
+    await waitFor(() =>
+      expect(
+        within(selects[1]).queryByText("Área Comercial")
+      ).not.toBeInTheDocument()
+    );
+    // Subáreas: solo s1 tiene eventos en rango → s3 desaparece del select
+    await waitFor(() =>
+      expect(
+        within(selects[2]).queryByText("Subárea Neuro")
+      ).not.toBeInTheDocument()
+    );
+    // Eventos de s1 en rango: solo los futuros (Feria y Taller)
+    await waitFor(() =>
+      expect(
+        within(selects[3]).getByText("Feria Salud")
+      ).toBeInTheDocument()
+    );
+    expect(
+      within(selects[3]).queryByText("Congreso Cardio")
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/2 en Campus Quito/)).toBeInTheDocument();
+  });
+});
+
 /* ── Exportación a Excel ───────────────────────────────────────────────── */
 
 describe("Reportes — exportación a Excel", () => {

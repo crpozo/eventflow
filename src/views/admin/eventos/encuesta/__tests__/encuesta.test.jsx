@@ -137,12 +137,13 @@ const postResponds = (data) =>
   });
 
 // La paleta se renderiza DESPUÉS del lienzo: la última coincidencia del label
-// con ancestro role=button es siempre el item de la paleta (los chips de
-// tarjeta usan el mismo texto y el tip del pie no es clicable).
+// con ancestro clicable (button nativo del item o la tarjeta role=button) es
+// siempre el item de la paleta (los chips de tarjeta usan el mismo texto y el
+// tip del pie no es clicable).
 const paletteItem = (label) =>
   screen
     .getAllByText(label)
-    .map((el) => el.closest('[role="button"]'))
+    .map((el) => el.closest('button, [role="button"]'))
     .filter(Boolean)
     .pop();
 
@@ -367,6 +368,13 @@ describe("Builder — paleta y tarjetas", () => {
     fireEvent.keyDown(screen.getByDisplayValue("PA editada"), { key: "Enter" });
     expect(screen.getByDisplayValue("PA editada")).toBeInTheDocument();
 
+    // editar el placeholder actualiza el campo
+    fireEvent.change(
+      screen.getByPlaceholderText("Texto de ayuda dentro del campo"),
+      { target: { value: "Escribe tu nombre" } }
+    );
+    expect(ref.current[0].placeholder).toBe("Escribe tu nombre");
+
     fireEvent.click(screen.getByRole("switch")); // Obligatoria ON
     fireEvent.click(screen.getByText("Listo"));
     expect(screen.getByText("PA editada")).toBeInTheDocument();
@@ -414,6 +422,14 @@ describe("Builder — paleta y tarjetas", () => {
     fireEvent.click(paletteItem("Descripción"));
     fireEvent.click(screen.getByText("Listo"));
     expect(screen.getByText("Texto descriptivo")).toBeInTheDocument();
+
+    // re-seleccionar la descripción, vaciarla y cerrar → placeholder de vacío
+    fireEvent.click(screen.getByText("Texto descriptivo"));
+    fireEvent.change(screen.getByDisplayValue("Texto descriptivo"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByText("Listo"));
+    expect(screen.getByText("Descripción sin texto")).toBeInTheDocument();
   });
 
   test("drag & drop: paleta→dropzone añade, mover reordena y paleta→tarjeta inserta antes", () => {
@@ -453,6 +469,145 @@ describe("Builder — paleta y tarjetas", () => {
       "PA",
       "Pregunta de fecha",
     ]);
+  });
+
+  test("dnd: dragStart publica los datos, la dropzone se resalta y soltar un movimiento manda la tarjeta al final", () => {
+    const ref = { current: null };
+    render(
+      <Harness
+        initial={hydrateQuestions([
+          { type: "text", label: "PA", name: "n-a" },
+          { type: "text", label: "PB", name: "n-b" },
+        ])}
+        fieldsRef={ref}
+      />
+    );
+
+    // dragStart en la paleta publica el tipo con efecto copy
+    const paletteData = {};
+    const paletteDT = makeDT(paletteData);
+    fireEvent.dragStart(paletteItem("Fecha"), { dataTransfer: paletteDT });
+    expect(paletteData["eventflow/palette"]).toBe("date");
+    expect(paletteDT.effectAllowed).toBe("copy");
+
+    // dragOver válido resalta la dropzone y dragLeave la apaga
+    const zone = screen.getByText(/Arrastra un tipo aquí/).closest("div");
+    fireEvent.dragOver(zone, {
+      dataTransfer: makeDT({ "eventflow/palette": "date" }),
+    });
+    expect(zone.className).toContain("border-brand-500");
+    fireEvent.dragLeave(zone);
+    expect(zone.className).not.toContain("border-brand-500");
+
+    // dragOver con datos ajenos NO resalta (arrastre inválido)
+    fireEvent.dragOver(zone, { dataTransfer: makeDT({ "text/plain": "x" }) });
+    expect(zone.className).not.toContain("border-brand-500");
+
+    // dragStart del asa publica el índice y atenúa la tarjeta
+    const handleData = {};
+    const handleDT = makeDT(handleData);
+    fireEvent.dragStart(
+      within(cardOf("PA")).getByTitle("Arrastra para reordenar"),
+      { dataTransfer: handleDT }
+    );
+    expect(handleData["eventflow/move"]).toBe("0");
+    expect(handleDT.effectAllowed).toBe("move");
+    expect(cardOf("PA").className).toContain("opacity-50");
+
+    // dragOver sobre otra tarjeta acepta el movimiento
+    fireEvent.dragOver(cardOf("PB"), {
+      dataTransfer: makeDT({ "eventflow/move": "0" }),
+    });
+
+    // dragEnd limpia el estado de arrastre
+    fireEvent.dragEnd(within(cardOf("PA")).getByTitle("Arrastra para reordenar"));
+    expect(cardOf("PA").className).not.toContain("opacity-50");
+
+    // soltar el movimiento en la dropzone manda la tarjeta al final
+    fireEvent.drop(zone, { dataTransfer: makeDT({ "eventflow/move": "0" }) });
+    expect(ref.current.map((f) => f.label)).toEqual(["PB", "PA"]);
+  });
+
+  test("editar opciones de un campo no toca los demás campos", () => {
+    const ref = { current: null };
+    render(
+      <Harness
+        initial={hydrateQuestions([
+          { type: "text", label: "Otra pregunta", name: "t-x" },
+          {
+            type: "radio-group",
+            label: "Escala",
+            name: "r-x",
+            values: [
+              { label: "Buena", value: "option-1" },
+              { label: "Mala", value: "option-2" },
+            ],
+          },
+        ])}
+        fieldsRef={ref}
+      />
+    );
+    fireEvent.click(cardOf("Escala"));
+    fireEvent.change(screen.getByDisplayValue("Buena"), {
+      target: { value: "Excelente" },
+    });
+    fireEvent.click(screen.getAllByTitle("Quitar opción")[1]);
+    expect(ref.current[0]).toMatchObject({
+      label: "Otra pregunta",
+      values: null,
+    });
+    expect(ref.current[1].values).toEqual([
+      { label: "Excelente", value: "option-1" },
+    ]);
+  });
+
+  test("duplicar un campo de opciones copia values sin compartir referencias", () => {
+    const ref = { current: null };
+    render(
+      <Harness
+        initial={hydrateQuestions([
+          {
+            type: "radio-group",
+            label: "Escala",
+            name: "r-a",
+            values: [
+              { label: "Sí", value: "option-1" },
+              { label: "No", value: "option-2" },
+            ],
+          },
+        ])}
+        fieldsRef={ref}
+      />
+    );
+    fireEvent.click(within(cardOf("Escala")).getByTitle("Duplicar"));
+    expect(ref.current).toHaveLength(2);
+    const [orig, copia] = ref.current;
+    expect(copia.values).toEqual(orig.values);
+    expect(copia.values).not.toBe(orig.values);
+    expect(copia.values[0]).not.toBe(orig.values[0]);
+    expect(copia.name).not.toBe(orig.name);
+  });
+
+  test("el aviso de IA del textarea enlaza al dashboard y el label vacío muestra su placeholder", () => {
+    render(<Harness />);
+    fireEvent.click(paletteItem("Texto largo"));
+    const link = screen.getByRole("link", { name: "Resultados encuesta" });
+    expect(link).toHaveAttribute(
+      "href",
+      "/admin/eventos/ev-1/encuesta-dashboard/"
+    );
+    fireEvent.click(link);
+    // sigue en edición: el clic en el enlace no burbujea a la tarjeta
+    expect(
+      screen.getByDisplayValue("Pregunta de texto largo")
+    ).toBeInTheDocument();
+
+    // sin texto y cerrada → placeholder genérico de pregunta vacía
+    fireEvent.change(screen.getByDisplayValue("Pregunta de texto largo"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByText("Listo"));
+    expect(screen.getByText("Pregunta sin texto")).toBeInTheDocument();
   });
 
   test("canEdit=false bloquea añadir y seleccionar", () => {
@@ -531,6 +686,14 @@ describe("Builder — PreviewModal", () => {
     fireEvent.click(container.firstChild); // fondo
     fireEvent.keyDown(container.firstChild, { key: "Enter" });
     expect(onClose).toHaveBeenCalledTimes(3);
+
+    // Espacio en el fondo también cierra; otras teclas o teclas dentro del
+    // contenido no cierran
+    fireEvent.keyDown(container.firstChild, { key: " " });
+    expect(onClose).toHaveBeenCalledTimes(4);
+    fireEvent.keyDown(container.firstChild, { key: "Escape" });
+    fireEvent.keyDown(screen.getByText("Vista previa"), { key: "Enter" });
+    expect(onClose).toHaveBeenCalledTimes(4);
   });
 
   test("sin preguntas muestra el estado vacío", () => {
@@ -739,6 +902,85 @@ describe("Encuesta admin — envío e invitación", () => {
     ).toBeInTheDocument();
   });
 
+  test("con envío automático activado el confirm avisa que el auto-envío ya no correrá", async () => {
+    DataStore.__state.emissions = [
+      { items: [{ ...SURVEY_ROW, active: true }], isSynced: true },
+    ];
+    renderEncuesta();
+    await screen.findByText("Encuesta del evento");
+    fireEvent.click(screen.getByRole("button", { name: "Envío e invitación" }));
+
+    confirmSpy.mockReturnValueOnce(false);
+    fireEvent.click(screen.getByRole("button", { name: /Enviar encuesta ahora/ }));
+    expect(confirmSpy).toHaveBeenLastCalledWith(
+      expect.stringContaining("ya no se ejecutará")
+    );
+    expect(api.__mocks.post).not.toHaveBeenCalled();
+  });
+
+  test("el confirm del reenvío muestra la fecha ya enviada y avisa cambios sin guardar", async () => {
+    DataStore.__state.emissions = [{ items: [SURVEY_ROW], isSynced: true }];
+    api.__mocks.graphql.mockResolvedValue({
+      data: {
+        listSurveys: {
+          items: [{ id: "sv-1", sentAt: "2026-06-01T10:00:00.000Z" }],
+        },
+      },
+    });
+    renderEncuesta();
+    await screen.findByText("Encuesta del evento");
+    fireEvent.click(screen.getByRole("button", { name: "Envío e invitación" }));
+    const btn = await screen.findByRole("button", { name: /Reenviar encuesta/ });
+
+    // editar el asunto deja cambios sin guardar (dirtyRef)
+    fireEvent.change(screen.getByDisplayValue("Asunto guardado"), {
+      target: { value: "Asunto editado" },
+    });
+    confirmSpy.mockReturnValueOnce(false);
+    fireEvent.click(btn);
+    expect(confirmSpy).toHaveBeenLastCalledWith(
+      expect.stringContaining("ya se envió el")
+    );
+    expect(confirmSpy).toHaveBeenLastCalledWith(
+      expect.stringContaining("cambios sin guardar")
+    );
+    expect(api.__mocks.post).not.toHaveBeenCalled();
+  });
+
+  test("si el envío manual falla la alerta muestra HTTP y detalle (o solo el mensaje base)", async () => {
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    DataStore.__state.emissions = [{ items: [SURVEY_ROW], isSynced: true }];
+    api.__mocks.post.mockImplementation(() => {
+      const err = new Error("boom");
+      err.response = {
+        statusCode: 500,
+        body: JSON.stringify({ error: "sin plantilla" }),
+      };
+      throw err;
+    });
+    renderEncuesta();
+    await screen.findByText("Encuesta del evento");
+    fireEvent.click(screen.getByRole("button", { name: "Envío e invitación" }));
+
+    const btn = screen.getByRole("button", { name: /Enviar encuesta ahora/ });
+    fireEvent.click(btn);
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        "No se pudo enviar la encuesta (HTTP 500): sin plantilla"
+      )
+    );
+
+    // error sin response: la alerta queda con el mensaje base
+    api.__mocks.post.mockImplementation(() => {
+      throw new Error("caída total");
+    });
+    fireEvent.click(btn);
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith("No se pudo enviar la encuesta")
+    );
+    errSpy.mockRestore();
+  });
+
   test("el sentAt estampado por la Lambda llega por GraphQL (no por DataStore)", async () => {
     DataStore.__state.emissions = [{ items: [SURVEY_ROW], isSynced: true }];
     api.__mocks.graphql.mockResolvedValue({
@@ -818,6 +1060,15 @@ describe("Encuesta admin — compartir y probar", () => {
       expect(alertSpy).toHaveBeenCalledWith(
         "No se pudo enviar la prueba (HTTP 500): sin plantilla"
       )
+    );
+
+    // error sin response: la alerta queda con el mensaje base
+    api.__mocks.post.mockImplementation(() => {
+      throw new Error("caída total");
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Enviar prueba/ }));
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith("No se pudo enviar la prueba")
     );
     errSpy.mockRestore();
   });

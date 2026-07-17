@@ -67,7 +67,7 @@ const compactDate = (iso, tz) => {
   if (!iso) return "";
   try {
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return "";
+    if (Number.isNaN(d.getTime())) return "";
     const zone = tz || "America/Guayaquil";
     const date = new Intl.DateTimeFormat("es-EC", {
       weekday: "short", day: "2-digit", month: "2-digit", year: "2-digit", timeZone: zone,
@@ -77,6 +77,8 @@ const compactDate = (iso, tz) => {
     }).format(d);
     return `${date.replace(",", "")} · ${hour}`;
   } catch (e) {
+    // Timezone o fecha inválidas: se registra y se muestra vacío.
+    console.error("compactDate: ", e);
     return "";
   }
 };
@@ -92,7 +94,7 @@ const dayKey = (d, tz) =>
 // "Hoy" / "Mañana" / "En N días" / "En N meses" (calendar days, event tz).
 const relativeWhen = (iso, tz) => {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) return "";
   try {
     const days = Math.round(
       (Date.parse(dayKey(d, tz)) - Date.parse(dayKey(new Date(), tz))) / DAY_MS
@@ -102,12 +104,14 @@ const relativeWhen = (iso, tz) => {
     if (days < 60) return `En ${days} días`;
     return `En ${Math.round(days / 30.44)} meses`;
   } catch (e) {
+    // Timezone inválida en dayKey: se registra y se muestra vacío.
+    console.error("relativeWhen: ", e);
     return "";
   }
 };
 
 const monthShort = (d) =>
-  new Intl.DateTimeFormat("es-EC", { month: "short" }).format(d).replace(/\./g, "");
+  new Intl.DateTimeFormat("es-EC", { month: "short" }).format(d).replaceAll(/\./g, "");
 
 // Split the shared "lun 06/07/26 · 09:00" into { date, time } so the table
 // can stack them on two lines without changing the displayed values.
@@ -143,7 +147,7 @@ const AVATAR_COLORS = [
 const avatarColor = (id) => {
   const s = String(id || "");
   let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.codePointAt(i)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 };
 
@@ -151,11 +155,13 @@ const slugify = (s) =>
   (s || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "evento";
+    .replaceAll(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    // El replaceAll anterior colapsa cada racha no alfanumérica en UN solo
+    // guion, así que basta quitar un guion por extremo (lineal, sin backtracking).
+    .replaceAll(/^-|-$/g, "") || "evento";
 
-const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+const csvCell = (v) => `"${String(v ?? "").replaceAll(/"/g, '""')}"`;
 
 // "↗ +22%" / "↘ -8%" — teal when growing, brand red when shrinking. Dark
 // surfaces lighten to *-300 like CHIP_COLORS (brand 50–400 is legacy purple,
@@ -205,7 +211,7 @@ const Dashboard = () => {
       }
       sub = DataStore.observeQuery(Event, (e) => e.careerID.eq(subAreaId)).subscribe(onResults);
     }
-    return () => sub && sub.unsubscribe();
+    return () => sub?.unsubscribe();
   }, [loading, isAdmin, navigate]);
 
   React.useEffect(() => {
@@ -262,7 +268,7 @@ const Dashboard = () => {
     let prev = 0;
     scopedAttendees.forEach((a) => {
       const t = Date.parse(a.createdAt);
-      if (isNaN(t) || t > nowMs) return;
+      if (Number.isNaN(t) || t > nowMs) return;
       if (t >= nowMs - w) cur += 1;
       else if (t >= nowMs - 2 * w) prev += 1;
     });
@@ -284,7 +290,7 @@ const Dashboard = () => {
       let prev = 0;
       scopedAttendees.forEach((a) => {
         const t = Date.parse(a.createdAt);
-        if (isNaN(t) || t > nowMs) return;
+        if (Number.isNaN(t) || t > nowMs) return;
         if (t >= start) buckets[Math.min(3, Math.floor((t - start) / step))].value += 1;
         else if (t >= start - 30 * DAY_MS) prev += 1;
       });
@@ -307,7 +313,7 @@ const Dashboard = () => {
     let prev = 0;
     scopedAttendees.forEach((a) => {
       const t = Date.parse(a.createdAt);
-      if (isNaN(t) || t > nowMs) return;
+      if (Number.isNaN(t) || t > nowMs) return;
       if (t >= rangeStart) {
         const d = new Date(t);
         const b = byMonth.get(`${d.getFullYear()}-${d.getMonth()}`);
@@ -362,7 +368,7 @@ const Dashboard = () => {
     link.download = `reporte-${slugify(featured.title)}.csv`;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -661,7 +667,9 @@ const Dashboard = () => {
                     const isLast = i === chart.buckets.length - 1;
                     return (
                       <div
-                        key={i}
+                        // Las etiquetas son únicas por periodo (S1..S4 o meses
+                        // consecutivos), así que sirven de key estable.
+                        key={b.label}
                         className="flex h-full flex-1 flex-col items-center justify-end gap-1"
                       >
                         <span

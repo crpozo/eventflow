@@ -35,18 +35,16 @@ export default function Admin(props) {
   }, [routeResult]);
 
   const getActiveNavbar = (routes) => {
-    let activeNavbar = false;
-    for (let i = 0; i < routes.length; i++) {
-      if (
-        window.location.href.indexOf(routes[i].layout + routes[i].path) !== -1
-      ) {
-        return routes[i].secondary;
+    const activeNavbar = false;
+    for (const route of routes) {
+      if (window.location.href.includes(route.layout + route.path)) {
+        return route.secondary;
       }
     }
     return activeNavbar;
   };
   const getRoutes = React.useCallback((routes) => {
-    return routes.map((prop, key) => {
+    return routes.map((prop) => {
       if (prop.layout === "/admin") {
         // Fallback = PageLoader (70vh) y no una caja chica: debe ocupar la
         // misma geometría que los loaders de las páginas para que el spinner
@@ -56,7 +54,7 @@ export default function Admin(props) {
             <React.Suspense fallback={<PageLoader />}>
               {prop.component}
             </React.Suspense>
-          } key={key} />
+          } key={prop.layout + prop.path} />
         );
       } else {
         return null;

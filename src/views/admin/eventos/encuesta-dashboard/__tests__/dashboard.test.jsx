@@ -293,6 +293,43 @@ describe("Dashboard encuesta — carga, métricas y resultados por pregunta", ()
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1); // r3 fecha
   });
 
+  test("stripHtml equivale al regex previo: tags anidados, '<' sin cierre y tag vacío", async () => {
+    // Entradas representativas del comportamiento de .replace(/<[^>]*>/g, ""):
+    // se elimina cada tramo "<...>" hasta el primer ">" y un "<" sin cierre
+    // queda intacto (el escaneo lineal debe conservar exactamente eso).
+    DataStore.__state.surveyItems = [
+      {
+        id: "sv-1",
+        surveyEventId: "ev-1",
+        questions: [
+          { type: "text", label: "Nombre <b>del <i>invitado</i></b>", name: "p1" },
+          { type: "text", label: "Rota <sin cierre", name: "p2" },
+          { type: "text", label: "Mixta <a<b> rara", name: "p3" },
+          { type: "text", label: "<>Vacía", name: "p4" },
+          { type: "text", label: "Regla 5 > 3 estricta", name: "p5" },
+          { type: "text", name: "p6" }, // sin label → cae al name
+        ],
+      },
+    ];
+    // Una respuesta sin answers cubre además la normalización a [] en los memos.
+    DataStore.__state.fixtures = {
+      SurveyResponse: [{ id: "rx", eventID: "ev-1", answers: null }],
+      EventAttendee: [],
+    };
+    renderDash();
+    await screen.findByText("Resultados de la encuesta");
+
+    expect(screen.getByText("1. Nombre del invitado")).toBeInTheDocument();
+    expect(screen.getByText("2. Rota <sin cierre")).toBeInTheDocument();
+    expect(screen.getByText("3. Mixta rara")).toBeInTheDocument();
+    expect(screen.getByText("4. Vacía")).toBeInTheDocument();
+    // ">" sin "<" previo no se toca (mismo accept/reject que el regex)
+    expect(screen.getByText("5. Regla 5 > 3 estricta")).toBeInTheDocument();
+    // sin label: stripHtml("") queda vacío y el card usa el name
+    expect(screen.getByText("6. p6")).toBeInTheDocument();
+    expect(metricValue("Respuestas")).toBe("1");
+  });
+
   test("sin Survey canónica deriva las preguntas de las propias respuestas", async () => {
     DataStore.__state.surveyItems = [];
     renderDash();
@@ -399,6 +436,90 @@ describe("Dashboard encuesta — análisis con IA", () => {
       )
     );
     errSpy.mockRestore();
+  });
+
+  test("un error sin status ni body parseable alerta el mensaje genérico", async () => {
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    api.__mocks.post.mockImplementation(() => {
+      const err = new Error("boom");
+      err.response = { body: "esto no es JSON {" }; // sin statusCode
+      throw err;
+    });
+    renderDash();
+    await screen.findByText("Resultados de la encuesta");
+
+    fireEvent.click(screen.getByRole("button", { name: /Analizar con IA/ }));
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith("No se pudo analizar")
+    );
+    errSpy.mockRestore();
+  });
+
+  test("listas con textos duplicados se renderizan completas (claves estables)", async () => {
+    postResponds({
+      insights: JSON.stringify({
+        ...INSIGHTS,
+        overallSentiment: { label: "Mixto", score: 50 },
+        strengths: ["Networking", "Networking"],
+        themes: [
+          {
+            title: "Comida",
+            sentiment: "positivo",
+            sampleQuotes: ["igual", "igual"],
+          },
+          { title: "Comida", sentiment: "negativo" },
+          { summary: "Tema sin título ni sentimiento" },
+        ],
+      }),
+      insightsAt: "2026-07-15T10:00:00.000Z",
+    });
+    renderDash();
+    await screen.findByText("Resultados de la encuesta");
+
+    fireEvent.click(screen.getByRole("button", { name: /Analizar con IA/ }));
+    expect(
+      await screen.findByText("Resumen ejecutivo del evento.")
+    ).toBeInTheDocument();
+
+    // Duplicados: cada elemento se pinta igual (clave = contenido numerado)
+    expect(screen.getAllByText("Networking")).toHaveLength(2);
+    expect(screen.getAllByText("Comida")).toHaveLength(2);
+    expect(screen.getAllByText("“igual”")).toHaveLength(2);
+    // El tema sin título/sentimiento también se renderiza
+    expect(screen.getByText("Tema sin título ni sentimiento")).toBeInTheDocument();
+
+    // Score 50 → termómetro ámbar al 50%
+    const track = screen.getByText("Mixto (50/100)").previousElementSibling;
+    expect(track.firstElementChild).toHaveStyle({
+      width: "50%",
+      background: "#f59e0b",
+    });
+  });
+
+  test("con score bajo el termómetro de sentimiento se pinta rojo", async () => {
+    api.__mocks.graphql.mockResolvedValue({
+      data: {
+        listSurveys: {
+          items: [
+            {
+              id: "sv-1",
+              insights: JSON.stringify({
+                overallSentiment: { label: "Negativo", score: 12 },
+              }),
+              insightsAt: "2026-07-14T09:00:00.000Z",
+              questions: JSON.stringify(QUESTIONS),
+            },
+          ],
+        },
+      },
+    });
+    renderDash();
+    const label = await screen.findByText("Negativo (12/100)");
+    const track = label.previousElementSibling;
+    expect(track.firstElementChild).toHaveStyle({
+      width: "12%",
+      background: "#e41b23",
+    });
   });
 
   test("insights precargados por GraphQL (AWSJSON doble-encodeado) + hint sin perQuestion + PDF", async () => {

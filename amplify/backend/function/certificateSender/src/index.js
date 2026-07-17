@@ -105,7 +105,7 @@ const isCertAdmin = (att) =>
 // Files uploaded from the app with the default ("guest") access level live
 // under the "public/" prefix in the bucket.
 const s3KeyFor = (key) =>
-  /^public\//.test(key) ? key : `public/${key}`;
+  key.startsWith("public/") ? key : `public/${key}`;
 
 const streamToBuffer = async (stream) => {
   const chunks = [];
@@ -126,6 +126,7 @@ const parseAnswers = (raw) => {
     const v = JSON.parse(raw);
     return Array.isArray(v) ? v : [];
   } catch (e) {
+    console.error("formAnswers ilegible (no es JSON), se ignora:", e?.message);
     return [];
   }
 };
@@ -270,7 +271,7 @@ const wantsCertificate = (eventAttendee) => {
   let answer = selected;
   if (Array.isArray(field.values)) {
     const opt = field.values.find((v) => String(v?.value) === String(selected));
-    if (opt && opt.label) answer = String(opt.label);
+    if (opt?.label) answer = String(opt.label);
   }
   return isAffirmative(answer);
 };
@@ -314,7 +315,7 @@ const resolvePosition = (stored) => {
     if (raw.preset) {
       const base = PRESET_POSITIONS[raw.preset] || PRESET_POSITIONS["centro"];
       const merged = { ...base };
-      if (raw.fontPct != null && !isNaN(Number(raw.fontPct)))
+      if (raw.fontPct != null && !Number.isNaN(Number(raw.fontPct)))
         merged.fontPct = Number(raw.fontPct);
       if (raw.color) merged.color = raw.color;
       return merged;
@@ -331,9 +332,9 @@ const hexToRgb = (hex) => {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "#1a1a1a");
   if (!m) return rgb(0.1, 0.1, 0.1);
   return rgb(
-    parseInt(m[1], 16) / 255,
-    parseInt(m[2], 16) / 255,
-    parseInt(m[3], 16) / 255
+    Number.parseInt(m[1], 16) / 255,
+    Number.parseInt(m[2], 16) / 255,
+    Number.parseInt(m[3], 16) / 255
   );
 };
 // (asignación tardía: ver nota de resolvePosition)
@@ -451,6 +452,86 @@ const json = (statusCode, data) => ({
   body: JSON.stringify(data),
 });
 
+// Carga la plantilla del certificado desde S3 (una sola vez por evento).
+const loadTemplate = async (certKey) => {
+  const obj = await s3.send(
+    new GetObjectCommand({
+      Bucket: STORAGE_BUCKET,
+      Key: s3KeyFor(certKey),
+    })
+  );
+  return {
+    templateBytes: await streamToBuffer(obj.Body),
+    contentType: obj.ContentType || "image/png",
+  };
+};
+
+// Filtros del envío masivo (flujo automático y reenvío sendAll):
+//   - sin email no hay a quién enviar
+//   - admin (CERT_ADMIN_ALWAYS): exento de filtros, recibe todo (monitoreo)
+//   - certificado de PARTICIPACIÓN: solo quienes asistieron (checkIn === true;
+//     puede venir false/ausente para los inscritos que no llegaron)
+//   - se honra la pregunta "¿Desea recibir certificado de participación?"
+const isEligibleRecipient = (att) => {
+  if (!att.email) return false;
+  if (isCertAdmin(att)) return true;
+  if (att.checkIn !== true) return false;
+  return wantsCertificate(att);
+};
+
+// Todos los asistentes elegibles del evento (Query paginada por el GSI byEvent).
+const collectRecipients = async (eventId) => {
+  const recipients = [];
+  let lastKey;
+  do {
+    const page = await ddb.send(
+      new QueryCommand({
+        TableName: EVENTATTENDEE_TABLE,
+        IndexName: BYEVENT_INDEX,
+        KeyConditionExpression: "eventID = :e",
+        ExpressionAttributeValues: { ":e": eventId },
+        ExclusiveStartKey: lastKey,
+      })
+    );
+    for (const att of page.Items || []) {
+      if (isEligibleRecipient(att)) recipients.push(att);
+    }
+    lastKey = page.LastEvaluatedKey;
+  } while (lastKey);
+  return recipients;
+};
+
+// Envío en lotes concurrentes de 10 (rev 2026-07-10: en serie, cientos de
+// PDFs no cabían en ningún timeout). Un fallo individual se loguea y no tumba
+// el lote. Devuelve cuántos certificados salieron.
+const CERT_BATCH = 10;
+const sendCertificateBatches = async ({
+  recipients,
+  template,
+  pos,
+  eventTitle,
+  subject,
+  logLabel,
+}) => {
+  const { templateBytes, contentType } = template;
+  let sent = 0;
+  for (let i = 0; i < recipients.length; i += CERT_BATCH) {
+    const batch = recipients.slice(i, i + CERT_BATCH);
+    const results = await Promise.allSettled(
+      batch.map(async (att) => {
+        const name = extractName(att) || "Participante";
+        const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
+        await sendEmail(att.email, eventTitle, pdf, subject);
+      })
+    );
+    results.forEach((r, j) => {
+      if (r.status === "fulfilled") sent += 1;
+      else console.error(`${logLabel} for ${batch[j].email}`, r.reason);
+    });
+  }
+  return sent;
+};
+
 // On-demand test: generate ONE certificate from the event's template and email
 // it to `email` (with a sample/given name). Does NOT touch attendees or mark the
 // event as sent — it only proves the template/position/SES work.
@@ -515,14 +596,7 @@ const handleTest = async (body) => {
         error: "Sube una plantilla de certificado antes de probar",
       });
 
-    const obj = await s3.send(
-      new GetObjectCommand({
-        Bucket: STORAGE_BUCKET,
-        Key: s3KeyFor(certKey),
-      })
-    );
-    const templateBytes = await streamToBuffer(obj.Body);
-    const contentType = obj.ContentType || "image/png";
+    const { templateBytes, contentType } = await loadTemplate(certKey);
     const pos = resolvePosition(positionRaw);
     const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
     await sendEmail(email, ev.title || "Evento", pdf, subjectOverride);
@@ -550,70 +624,24 @@ const handleSendAll = async (body) => {
     if (!ev.certificate)
       return json(400, { error: "El evento no tiene plantilla de certificado" });
 
-    const obj = await s3.send(
-      new GetObjectCommand({
-        Bucket: STORAGE_BUCKET,
-        Key: s3KeyFor(ev.certificate),
-      })
-    );
-    const templateBytes = await streamToBuffer(obj.Body);
-    const contentType = obj.ContentType || "image/png";
+    const template = await loadTemplate(ev.certificate);
     const pos = resolvePosition(ev.certificatePosition);
-
-    const recipients = [];
-    let lastKey;
-    do {
-      const page = await ddb.send(
-        new QueryCommand({
-          TableName: EVENTATTENDEE_TABLE,
-          IndexName: BYEVENT_INDEX,
-          KeyConditionExpression: "eventID = :e",
-          ExpressionAttributeValues: { ":e": eventId },
-          ExclusiveStartKey: lastKey,
-        })
-      );
-      for (const att of page.Items || []) {
-        if (!att.email) continue;
-        const admin = isCertAdmin(att); // admin: exento de filtros, recibe todo
-        // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
-        if (!admin && att.checkIn !== true) continue;
-        if (!admin && !wantsCertificate(att)) continue;
-        recipients.push(att);
-      }
-      lastKey = page.LastEvaluatedKey;
-    } while (lastKey);
-
+    const recipients = await collectRecipients(eventId);
     if (recipients.length === 0)
       return json(400, {
         error: "No hay inscritos que hayan pedido certificado",
       });
 
-    const CERT_BATCH = 10;
-    let sent = 0;
-    for (let i = 0; i < recipients.length; i += CERT_BATCH) {
-      const batch = recipients.slice(i, i + CERT_BATCH);
-      const results = await Promise.allSettled(
-        batch.map(async (att) => {
-          const name = extractName(att) || "Participante";
-          const pdf = await buildCertificatePdf(
-            templateBytes,
-            contentType,
-            name,
-            pos
-          );
-          await sendEmail(att.email, ev.title || "Evento", pdf, subject);
-        })
-      );
-      results.forEach((r, j) => {
-        if (r.status === "fulfilled") sent += 1;
-        else
-          console.error(
-            `manual certificate failed for ${batch[j].email}`,
-            r.reason
-          );
-      });
-    }
+    const sent = await sendCertificateBatches({
+      recipients,
+      template,
+      pos,
+      eventTitle: ev.title || "Evento",
+      subject,
+      logLabel: "manual certificate failed",
+    });
 
+    // Reenvío manual: RE-estampa aunque ya exista (sin condición) — el admin decide.
     await ddb.send(
       new UpdateCommand({
         TableName: EVENT_TABLE,
@@ -632,22 +660,99 @@ const handleSendAll = async (body) => {
   }
 };
 
+// Dispatch REST (API Gateway): preflight CORS, método y parseo del body.
+const handleHttp = (method, event) => {
+  if (method === "OPTIONS") return json(200, { ok: true });
+  if (method !== "POST")
+    return json(405, { error: `Method ${method} not allowed` });
+  let body;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch (e) {
+    return json(400, { error: "Cuerpo inválido" });
+  }
+  return body.sendAll === true ? handleSendAll(body) : handleTest(body);
+};
+
+// Optional scheduled send time, stored in the certificatePosition JSON as
+// `sendAt` (ISO). If set, certificates go out at/after that moment; if not,
+// they go out once the event has ended (legacy behavior).
+// AWSJSON llega como OBJETO nativo del DocumentClient (mismo caso que
+// formAnswers, rev 2026-07-13b): JSON.parse(objeto) lanza y el sendAt
+// programado se perdía en silencio — el envío nunca disparaba a la hora.
+const resolveScheduledAt = (event) => {
+  try {
+    const cfg =
+      typeof event.certificatePosition === "string"
+        ? JSON.parse(event.certificatePosition || "null")
+        : event.certificatePosition;
+    if (cfg && typeof cfg === "object" && cfg.sendAt) return cfg.sendAt;
+  } catch (e) {
+    // no es JSON → sin horario programado; decide la fecha del evento
+    console.error("certificatePosition no es JSON, se ignora sendAt:", e?.message);
+  }
+  return undefined;
+};
+
+// CLAIM FIRST (fix 2026-07-10, mismo bug que surveyManager): estampar
+// certificatesSentAt de forma atómica ANTES de enviar. Si la función se
+// queda sin tiempo a mitad del lote, los reintentos async de Lambda y las
+// corridas horarias siguientes quedan en no-op en vez de duplicar los
+// certificados de todos. Devuelve false si otra corrida ya lo reclamó.
+const claimEvent = async (eventId) => {
+  try {
+    await ddb.send(
+      new UpdateCommand({
+        TableName: EVENT_TABLE,
+        Key: { id: eventId },
+        UpdateExpression: "SET certificatesSentAt = :now",
+        ConditionExpression: "attribute_not_exists(certificatesSentAt)",
+        ExpressionAttributeValues: { ":now": new Date().toISOString() },
+      })
+    );
+    return true;
+  } catch (e) {
+    if (e?.name === "ConditionalCheckFailedException") return false; // ya reclamado
+    throw e;
+  }
+};
+
+// Procesa UN evento pendiente del flujo automático: valida fecha/plantilla,
+// reclama certificatesSentAt y envía a los asistentes elegibles.
+const processScheduledEvent = async (event, now) => {
+  const triggerIso = resolveScheduledAt(event) || event.endDate || event.date;
+  if (!triggerIso || new Date(triggerIso).getTime() > now) return; // not yet
+  if (!event.certificate) return;
+
+  const pos = resolvePosition(event.certificatePosition);
+  // Load template once per event. El claim va DESPUÉS de validar que la
+  // plantilla carga, para no bloquear eventos que aún no pueden enviar.
+  const template = await loadTemplate(event.certificate);
+
+  if (!(await claimEvent(event.id))) return; // ya reclamado: no-op
+
+  // All attendees of this event (collected first, then sent in concurrent
+  // batches — serial PDF+email for hundreds of attendees outlives any
+  // timeout).
+  const recipients = await collectRecipients(event.id);
+  const sentCount = await sendCertificateBatches({
+    recipients,
+    template,
+    pos,
+    eventTitle: event.title,
+    logLabel: "certificate failed",
+  });
+
+  console.log(
+    `Certificates sent for event ${event.id} (${event.title}): ${sentCount}/${recipients.length}`
+  );
+};
+
 exports.handler = async (event) => {
   // On-demand REST via API Gateway: single test send { eventId, email, name?,
   // subject? } or manual batch { eventId, sendAll: true, subject? }.
   const method = event?.httpMethod || event?.requestContext?.http?.method;
-  if (method) {
-    if (method === "OPTIONS") return json(200, { ok: true });
-    if (method !== "POST")
-      return json(405, { error: `Method ${method} not allowed` });
-    let body;
-    try {
-      body = JSON.parse(event.body || "{}");
-    } catch (e) {
-      return json(400, { error: "Cuerpo inválido" });
-    }
-    return body.sendAll === true ? handleSendAll(body) : handleTest(body);
-  }
+  if (method) return handleHttp(method, event);
 
   const now = Date.now();
 
@@ -661,108 +766,8 @@ exports.handler = async (event) => {
     })
   );
 
-  for (const event of events.Items || []) {
-    // Optional scheduled send time, stored in the certificatePosition JSON as
-    // `sendAt` (ISO). If set, certificates go out at/after that moment; if not,
-    // they go out once the event has ended (legacy behavior).
-    let scheduledAt;
-    try {
-      // AWSJSON llega como OBJETO nativo del DocumentClient (mismo caso que
-      // formAnswers, rev 2026-07-13b): JSON.parse(objeto) lanza y el sendAt
-      // programado se perdía en silencio — el envío nunca disparaba a la hora.
-      const cfg =
-        typeof event.certificatePosition === "string"
-          ? JSON.parse(event.certificatePosition || "null")
-          : event.certificatePosition;
-      if (cfg && typeof cfg === "object" && cfg.sendAt) scheduledAt = cfg.sendAt;
-    } catch (e) {
-      /* not JSON / no schedule */
-    }
-    const triggerIso = scheduledAt || event.endDate || event.date;
-    if (!triggerIso || new Date(triggerIso).getTime() > now) continue; // not yet
-    if (!event.certificate) continue;
-
-    const pos = resolvePosition(event.certificatePosition);
-
-    // Load template once per event.
-    const obj = await s3.send(
-      new GetObjectCommand({
-        Bucket: STORAGE_BUCKET,
-        Key: s3KeyFor(event.certificate),
-      })
-    );
-    const templateBytes = await streamToBuffer(obj.Body);
-    const contentType = obj.ContentType || "image/png";
-
-    // CLAIM FIRST (fix 2026-07-10, mismo bug que surveyManager): estampar
-    // certificatesSentAt de forma atómica ANTES de enviar. Si la función se
-    // queda sin tiempo a mitad del lote, los reintentos async de Lambda y las
-    // corridas horarias siguientes quedan en no-op en vez de duplicar los
-    // certificados de todos. El claim va DESPUÉS de validar que la plantilla
-    // carga, para no bloquear eventos que aún no pueden enviar.
-    try {
-      await ddb.send(
-        new UpdateCommand({
-          TableName: EVENT_TABLE,
-          Key: { id: event.id },
-          UpdateExpression: "SET certificatesSentAt = :now",
-          ConditionExpression: "attribute_not_exists(certificatesSentAt)",
-          ExpressionAttributeValues: { ":now": new Date().toISOString() },
-        })
-      );
-    } catch (e) {
-      if (e?.name === "ConditionalCheckFailedException") continue; // ya reclamado
-      throw e;
-    }
-
-    // All attendees of this event (collected first, then sent in concurrent
-    // batches — serial PDF+email for hundreds of attendees outlives any
-    // timeout).
-    const recipients = [];
-    let lastKey;
-    do {
-      const page = await ddb.send(
-        new QueryCommand({
-          TableName: EVENTATTENDEE_TABLE,
-          IndexName: BYEVENT_INDEX,
-          KeyConditionExpression: "eventID = :e",
-          ExpressionAttributeValues: { ":e": event.id },
-          ExclusiveStartKey: lastKey,
-        })
-      );
-      for (const att of page.Items || []) {
-        if (!att.email) continue;
-        const admin = isCertAdmin(att); // admin: exento de filtros, recibe todo
-        // Certificado de PARTICIPACIÓN: solo a quienes asistieron (check-in).
-        // checkIn puede venir false/ausente para los inscritos que no llegaron.
-        if (!admin && att.checkIn !== true) continue;
-        // Honor the "¿Desea recibir certificado de participación?" answer.
-        if (!admin && !wantsCertificate(att)) continue;
-        recipients.push(att);
-      }
-      lastKey = page.LastEvaluatedKey;
-    } while (lastKey);
-
-    const CERT_BATCH = 10;
-    let sentCount = 0;
-    for (let i = 0; i < recipients.length; i += CERT_BATCH) {
-      const batch = recipients.slice(i, i + CERT_BATCH);
-      const results = await Promise.allSettled(
-        batch.map(async (att) => {
-          const name = extractName(att) || "Participante";
-          const pdf = await buildCertificatePdf(templateBytes, contentType, name, pos);
-          await sendEmail(att.email, event.title, pdf);
-        })
-      );
-      results.forEach((r, j) => {
-        if (r.status === "fulfilled") sentCount += 1;
-        else console.error(`certificate failed for ${batch[j].email}`, r.reason);
-      });
-    }
-
-    console.log(
-      `Certificates sent for event ${event.id} (${event.title}): ${sentCount}/${recipients.length}`
-    );
+  for (const ev of events.Items || []) {
+    await processScheduledEvent(ev, now);
   }
 
   return { statusCode: 200 };

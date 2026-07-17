@@ -95,6 +95,12 @@ const PALETTE_STRUCTURE = [{ type: "header" }, { type: "paragraph" }];
 let uidSeq = 0;
 let nameSeq = 0;
 
+function hydrateValues(f) {
+  if (Array.isArray(f.values)) return f.values.map((v) => ({ ...v }));
+  // campo de opciones malformado: el editor reconstruye sus opciones ([])
+  return OPTION_TYPES.has(f.type) ? [] : null;
+}
+
 export function hydrateQuestions(rawQuestions) {
   let list = rawQuestions;
   if (typeof list === "string") {
@@ -114,11 +120,7 @@ export function hydrateQuestions(rawQuestions) {
       label: f.label == null ? "" : String(f.label),
       name: f.name,
       required: !!f.required,
-      values: Array.isArray(f.values)
-        ? f.values.map((v) => ({ ...v }))
-        : OPTION_TYPES.has(f.type)
-        ? [] // malformed option field: let the editor rebuild its options
-        : null,
+      values: hydrateValues(f),
       placeholder: f.placeholder == null ? "" : String(f.placeholder),
     }));
 }
@@ -188,9 +190,27 @@ function nextOptionValue(values) {
   let max = 0;
   values.forEach((v) => {
     const m = /^option-(\d+)$/.exec(String(v.value || ""));
-    if (m) max = Math.max(max, parseInt(m[1], 10));
+    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
   });
   return `option-${Math.max(max, values.length) + 1}`;
+}
+
+/* Helpers puros de opciones a nivel de módulo: mantienen los callbacks de
+   setFields planos (sin anidar map dentro de map dentro del componente). */
+function renameOption(fields, uid, index, label) {
+  return fields.map((f) => {
+    if (f.uid !== uid || !Array.isArray(f.values)) return f;
+    // Only the label changes — the value stays so stored answers keep matching.
+    const values = f.values.map((v, i) => (i === index ? { ...v, label } : v));
+    return { ...f, values };
+  });
+}
+
+function removeOption(fields, uid, index) {
+  return fields.map((f) => {
+    if (f.uid !== uid || !Array.isArray(f.values) || f.values.length <= 1) return f;
+    return { ...f, values: f.values.filter((_, i) => i !== index) };
+  });
 }
 
 /* ── small shared bits ───────────────────────────────────────────────── */
@@ -212,8 +232,9 @@ function CanvasPreview({ q }) {
     case "checkbox-group":
       return (
         <div className="mt-3 flex flex-col gap-2.5">
-          {(q.values || []).map((v, i) => (
-            <div key={i} className="flex items-center gap-2.5">
+          {/* v.value es estable y único dentro del campo (renombrar no lo toca) */}
+          {(q.values || []).map((v) => (
+            <div key={v.value} className="flex items-center gap-2.5">
               <span
                 className={`h-[18px] w-[18px] shrink-0 border-2 border-gray-300 ${
                   q.type === "radio-group" ? "rounded-full" : "rounded-md"
@@ -255,6 +276,32 @@ function CanvasPreview({ q }) {
       // Unknown/legacy type: generic placeholder, the raw field is preserved.
       return <div className={`mt-3 ${fakeBoxCls}`}>Campo "{q.type || "desconocido"}"</div>;
   }
+}
+
+/* Cuerpo de la tarjeta cuando NO está seleccionada, según el tipo. */
+function CollapsedBody({ q }) {
+  if (q.type === "header") {
+    return (
+      <h4 className="text-lg font-bold text-navy-700 dark:text-white">
+        {q.label || <span className="font-normal text-gray-400">Título sin texto</span>}
+      </h4>
+    );
+  }
+  if (q.type === "paragraph") {
+    return (
+      <p className="text-base text-gray-500">
+        {q.label || <span className="text-gray-400">Descripción sin texto</span>}
+      </p>
+    );
+  }
+  return (
+    <>
+      <p className="text-base font-semibold text-navy-700 dark:text-white">
+        {q.label || <span className="font-normal text-gray-400">Pregunta sin texto</span>}
+      </p>
+      <CanvasPreview q={q} />
+    </>
+  );
 }
 
 /* ── one question card (view + edit modes) ───────────────────────────── */
@@ -371,8 +418,9 @@ function QuestionCard({
 
           {hasOptions && (
             <div className="flex flex-col gap-2">
+              {/* clave por value: es estable al escribir el label (nunca se reescribe) */}
               {q.values.map((v, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <div key={v.value} className="flex items-center gap-2">
                   <TextInput
                     className="!h-auto !py-2 !text-sm"
                     value={v.label == null ? "" : String(v.label)}
@@ -437,11 +485,10 @@ function QuestionCard({
             {structural ? (
               <span />
             ) : (
-              <label
-                className="flex cursor-pointer items-center gap-2"
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
+              // Sin stopPropagation: la tarjeta ya está seleccionada (el pie solo
+              // se ve en edición), así que el clic que burbujea re-selecciona el
+              // mismo uid (no-op) y su onKeyDown ignora eventos burbujeados.
+              <label className="flex cursor-pointer items-center gap-2">
                 <span className="text-sm text-navy-700 dark:text-white">Obligatoria</span>
                 <Toggle
                   checked={q.required}
@@ -461,22 +508,7 @@ function QuestionCard({
         </div>
       ) : (
         <div className="mt-3">
-          {q.type === "header" ? (
-            <h4 className="text-lg font-bold text-navy-700 dark:text-white">
-              {q.label || <span className="font-normal text-gray-400">Título sin texto</span>}
-            </h4>
-          ) : q.type === "paragraph" ? (
-            <p className="text-base text-gray-500">
-              {q.label || <span className="text-gray-400">Descripción sin texto</span>}
-            </p>
-          ) : (
-            <>
-              <p className="text-base font-semibold text-navy-700 dark:text-white">
-                {q.label || <span className="font-normal text-gray-400">Pregunta sin texto</span>}
-              </p>
-              <CanvasPreview q={q} />
-            </>
-          )}
+          <CollapsedBody q={q} />
         </div>
       )}
     </div>
@@ -489,9 +521,10 @@ function PaletteItem({ type, hint, canEdit, onAdd }) {
   const meta = TYPE_META[type];
   const Icon = meta.icon;
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    // Botón nativo (accesible); el preventDefault del onKeyDown evita que la
+    // activación nativa de Enter/Espacio dispare onAdd dos veces.
+    <button
+      type="button"
       draggable={canEdit}
       onDragStart={(e) => {
         e.dataTransfer.setData("eventflow/palette", type);
@@ -513,7 +546,7 @@ function PaletteItem({ type, hint, canEdit, onAdd }) {
         <span className="text-sm font-medium text-navy-700 dark:text-white">{meta.label}</span>
       </div>
       {hint || null}
-    </div>
+    </button>
   );
 }
 
@@ -536,8 +569,8 @@ export function QuestionsTab({ fields, setFields, selectedUid, setSelectedUid, c
   }, [fields]);
 
   const dndValid = (e) => {
-    const types = Array.from(e.dataTransfer?.types || []);
-    return types.includes("eventflow/palette") || types.includes("eventflow/move");
+    const types = new Set(e.dataTransfer?.types || []);
+    return types.has("eventflow/palette") || types.has("eventflow/move");
   };
 
   function addQuestion(type, atIndex = null) {
@@ -590,14 +623,7 @@ export function QuestionsTab({ fields, setFields, selectedUid, setSelectedUid, c
 
   function optionChange(uid, index, label) {
     if (!canEdit) return;
-    setFields((prev) =>
-      prev.map((f) => {
-        if (f.uid !== uid || !Array.isArray(f.values)) return f;
-        // Only the label changes — the value stays so stored answers keep matching.
-        const values = f.values.map((v, i) => (i === index ? { ...v, label } : v));
-        return { ...f, values };
-      })
-    );
+    setFields((prev) => renameOption(prev, uid, index, label));
   }
 
   function optionAdd(uid) {
@@ -616,12 +642,7 @@ export function QuestionsTab({ fields, setFields, selectedUid, setSelectedUid, c
 
   function optionRemove(uid, index) {
     if (!canEdit) return;
-    setFields((prev) =>
-      prev.map((f) => {
-        if (f.uid !== uid || !Array.isArray(f.values) || f.values.length <= 1) return f;
-        return { ...f, values: f.values.filter((_, i) => i !== index) };
-      })
-    );
+    setFields((prev) => removeOption(prev, uid, index));
   }
 
   function handleDragStart(e, index) {
@@ -640,7 +661,7 @@ export function QuestionsTab({ fields, setFields, selectedUid, setSelectedUid, c
       addQuestion(paletteType, index); // insert BEFORE this card
     } else {
       const from = e.dataTransfer.getData("eventflow/move");
-      if (from !== "") moveField(parseInt(from, 10), index);
+      if (from !== "") moveField(Number.parseInt(from, 10), index);
     }
     setDragIndex(null);
   }
@@ -654,7 +675,7 @@ export function QuestionsTab({ fields, setFields, selectedUid, setSelectedUid, c
       addQuestion(paletteType);
     } else {
       const from = e.dataTransfer.getData("eventflow/move");
-      if (from !== "") moveField(parseInt(from, 10), null);
+      if (from !== "") moveField(Number.parseInt(from, 10), null);
     }
     setDragIndex(null);
   }
@@ -768,9 +789,9 @@ function PreviewField({ q }) {
     case "checkbox-group":
       control = (
         <div className="flex flex-col gap-2.5">
-          {(q.values || []).map((v, i) => (
+          {(q.values || []).map((v) => (
             <label
-              key={i}
+              key={v.value}
               className="flex cursor-pointer items-center gap-2.5 text-base text-navy-700 dark:text-white"
             >
               <input
@@ -791,8 +812,8 @@ function PreviewField({ q }) {
           <option value="" disabled>
             Selecciona una opción…
           </option>
-          {(q.values || []).map((v, i) => (
-            <option key={i} value={v.value}>
+          {(q.values || []).map((v) => (
+            <option key={v.value} value={v.value}>
               {v.label}
             </option>
           ))}
@@ -832,19 +853,19 @@ export function PreviewModal({ fields, onClose }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="button"
       tabIndex={0}
-      onClick={onClose}
+      // e.target === e.currentTarget: solo el fondo cierra; los clics y teclas
+      // dentro del contenido (inputs de la vista previa) no cierran el modal.
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           onClose();
         }
       }}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-        className="relative max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:!bg-navy-800"
-      >
+      <div className="relative max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:!bg-navy-800">
         <button
           type="button"
           title="Cerrar"

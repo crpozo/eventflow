@@ -1,22 +1,21 @@
 import Card from "components/card";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
+// Formatea la fecha de última actualización, ej. "15 jul. 2026".
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'short' });
+    const year = date.getFullYear();
+    return `${day} ${month}. ${year}`;
+  } catch (e) {
+    console.error("formatDate error: ", e);
+  }
+}
 
 const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date, cat, color }) => {
-  const { state } = useLocation();
-  const id = state?.id;
   const navigate = useNavigate();
-
-  function formatDate(dateString) {
-    try {
-      const date = new Date(dateString);
-      const day = date.getDate();
-      const month = date.toLocaleString('default', { month: 'short' });
-      const year = date.getFullYear();
-      return `${day} ${month}. ${year}`;
-    } catch (e) {
-      console.error("formatDate error: ", e);
-    }
-  }
 
   const handleSelect = () => {
     navigate(`${pathSelect}`);
@@ -57,6 +56,7 @@ const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date,
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end">
             {pathEdit && (
               <button
+                type="button"
                 onClick={() => navigate(`${pathEdit}`, { state: { id: modelID } })}
                 className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-brand-500 text-[#909090] hover:text-white transition"
               >
@@ -65,6 +65,7 @@ const NftCard = ({ modelName, modelID, model, pathEdit, pathSelect, title, date,
             )}
 
             <button
+              type="button"
               onClick={handleSelect}
               className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-[#909090] hover:bg-brand-500 hover:text-white transition focus:outline-none"
             >

@@ -62,10 +62,25 @@ const roles = [
   { id: "r-admin", name: "Admin" },
   { id: "r-editor", name: "Editor" },
 ];
-const campuses = [{ id: "c1", title: "Cumbayá" }];
-const areas = [{ id: "a1", title: "Ingeniería", campusID: "c1" }];
-const careers = [{ id: "k1", areaID: "a1" }];
-const eventos = [{ id: "e1", title: "Feria", careerID: "k1" }];
+const campuses = [
+  { id: "c1", title: "Cumbayá" },
+  { id: "c2", title: "Quito" }, // sin áreas
+];
+const areas = [
+  { id: "a1", title: "Ingeniería", campusID: "c1" },
+  { id: "a2", title: "Arquitectura", campusID: "c1" }, // sin eventos
+];
+const careers = [
+  { id: "k1", areaID: "a1" },
+  { id: "k2", areaID: "a2" },
+];
+const eventos = [
+  { id: "e1", title: "Feria", careerID: "k1" },
+  { id: "e3", title: "", careerID: "k1" }, // sin título: igual se ordena
+  { id: "e4", title: "", careerID: "k1" }, // otro sin título (empatan)
+  // Carrera desconocida: el árbol lo descarta porque no resuelve a un área.
+  { id: "e-huerfano", title: "Huérfano", careerID: "k-fantasma" },
+];
 
 const dsUsers = [
   { id: "u-admin", email: "admin@usfq.edu.ec", name: "Admin USFQ", roleID: "r-admin" },
@@ -319,6 +334,47 @@ describe("Permisos (views/admin/permisos)", () => {
     );
   });
 
+  test("crear cuando Cognito avisa 'ya existe' sin código de estado: también reutiliza", async () => {
+    post.mockImplementationOnce(() => {
+      throw new Error("ya existe una cuenta con ese correo");
+    });
+    await renderVista();
+    const modal = await abrirModalCrear();
+    completarYEnviar(modal, {
+      email: "nuevo@usfq.edu.ec",
+      name: "Nuevo",
+      roleID: "r-editor",
+    });
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("se reutilizó"))
+    );
+    expect(DataStore.save).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "nuevo@usfq.edu.ec" })
+    );
+  });
+
+  test("crear con invitación fallida y sin contraseña temporal: '(no disponible)'", async () => {
+    post.mockImplementationOnce(() => ({
+      response: Promise.resolve({
+        body: { json: async () => ({ emailSent: false }) },
+      }),
+    }));
+    await renderVista();
+    const modal = await abrirModalCrear();
+    completarYEnviar(modal, {
+      email: "nuevo@usfq.edu.ec",
+      name: "Nuevo",
+      roleID: "r-editor",
+    });
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringContaining("(no disponible)")
+      )
+    );
+  });
+
   test("crear con la API sin desplegar: guarda el registro y avisa (rol Admin sin árbol)", async () => {
     post.mockImplementationOnce(() => {
       throw new Error("API name is invalid");
@@ -368,6 +424,29 @@ describe("Permisos (views/admin/permisos)", () => {
     expect(errSpy).toHaveBeenCalled();
     // El modal permanece abierto para corregir
     expect(screen.getByRole("heading", { name: "Crear usuario" })).toBeInTheDocument();
+  });
+
+  test("crear con un error sin mensaje ni nombre: alerta genérica y no guarda", async () => {
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    // Rechaza con un objeto plano: no es 'ya existe' ni 'API sin desplegar'.
+    post.mockImplementationOnce(() => ({
+      response: Promise.reject({ codigo: "desconocido" }),
+    }));
+    await renderVista();
+    const modal = await abrirModalCrear();
+    completarYEnviar(modal, {
+      email: "nuevo@usfq.edu.ec",
+      name: "Nuevo",
+      roleID: "r-editor",
+    });
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringContaining("No se pudo guardar:")
+      )
+    );
+    expect(DataStore.save).not.toHaveBeenCalled();
+    expect(errSpy).toHaveBeenCalled();
   });
 
   test("edita un usuario existente vía DataStore.copyOf", async () => {
@@ -455,6 +534,149 @@ describe("Permisos (views/admin/permisos)", () => {
 
     await waitFor(() =>
       expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("Nueva#456"))
+    );
+  });
+
+  test("reenviar sin éxito ni contraseña: muestra el emailError del backend", async () => {
+    post.mockImplementationOnce(() => ({
+      response: Promise.resolve({
+        body: { json: async () => ({ emailSent: false, emailError: "SES caído" }) },
+      }),
+    }));
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        "No se pudo reenviar el correo.\n\nSES caído"
+      )
+    );
+  });
+
+  test("reenviar con respuesta vacía del backend: alerta genérica", async () => {
+    // El mock por defecto de post responde {} (ni emailSent ni contraseña).
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith("No se pudo reenviar el correo.")
+    );
+  });
+
+  test("reenviar cuando el error lanzado es un texto plano: detecta la API faltante", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    // Rechaza con un texto plano (sin .message), como algunos SDK antiguos.
+    post.mockImplementationOnce(() => ({
+      response: Promise.reject("API name is invalid"),
+    }));
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringContaining("aún no está desplegada")
+      )
+    );
+  });
+
+  test("reenviar con error: usa el detalle del cuerpo de la respuesta", async () => {
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    post.mockImplementationOnce(() => {
+      throw Object.assign(new Error("Request failed"), {
+        response: {
+          statusCode: 500,
+          body: { json: async () => ({ error: "SES no configurado" }) },
+        },
+      });
+    });
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        "No se pudo reenviar el correo.\n\nSES no configurado"
+      )
+    );
+    expect(errSpy).toHaveBeenCalledWith("resend error:", expect.any(Error));
+  });
+
+  test("reenviar con 404: sugiere desplegar el endpoint /users", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    post.mockImplementationOnce(() => {
+      throw Object.assign(new Error("Not Found"), {
+        response: { statusCode: 404 },
+      });
+    });
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringContaining("El endpoint /users no está desplegado")
+      )
+    );
+  });
+
+  test("reenviar con cuerpo ilegible y 'unknown error': diagnostica el API Gateway", async () => {
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    post.mockImplementationOnce(() => {
+      throw Object.assign(new Error("unknown error"), {
+        response: {
+          body: {
+            json: async () => {
+              throw new Error("json roto");
+            },
+          },
+        },
+      });
+    });
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringContaining("El endpoint /users no está desplegado")
+      )
+    );
+    expect(errSpy).toHaveBeenCalledWith(
+      "No se pudo leer el cuerpo del error:",
+      expect.any(Error)
+    );
+  });
+
+  test("reenviar con la función sin desplegar: avisa de userManager", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    post.mockImplementationOnce(() => {
+      throw new Error("API name is invalid");
+    });
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringContaining("aún no está desplegada")
+      )
+    );
+  });
+
+  test("reenviar con error desconocido: alerta genérica sin detalle", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    post.mockImplementationOnce(() => {
+      throw new Error("otra cosa");
+    });
+    await renderVista();
+    const filaEditor = screen.getByText("editor@usfq.edu.ec").closest("tr");
+    fireEvent.click(within(filaEditor).getByRole("button", { name: /Reenviar/ }));
+
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith("No se pudo reenviar el correo.")
     );
   });
 

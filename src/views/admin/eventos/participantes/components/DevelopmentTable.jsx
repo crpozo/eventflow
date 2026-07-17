@@ -1,6 +1,5 @@
 import { Card, TYPE } from "components/adminUi";
 import React, { useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import {
   useGlobalFilter,
   usePagination,
@@ -8,8 +7,6 @@ import {
   useTable,
 } from "react-table";
 
-import { IoEnterOutline } from "react-icons/io5";
-import { MdDownload } from "react-icons/md";
 import UploadExcelButton from "./UploadExcelButton";
 import DownloadBadgeButton from "./DownloadBadgeButton";
 import DeleteParticipantButton from "./DeleteParticipantButton";
@@ -17,8 +14,6 @@ import DownloadAllBadgesButton from "./DownloadAllBadgesButton";
 
 const DevelopmentTable = (props) => {
   const { columnsData, tableData, event, canEdit = true } = props;
-
-  const navigate = useNavigate();
 
   const columns = useMemo(() => columnsData, [columnsData]);
   const data = useMemo(() => tableData, [tableData]);
@@ -70,45 +65,51 @@ const DevelopmentTable = (props) => {
         <table
           {...getTableProps()}
           className="mt-8 h-max w-full"
-          variant="simple"
           color="gray-500"
-          mb="24px"
         >
           <thead>
-            {headerGroups.map((headerGroup, index) => (
-              <tr {...headerGroup.getHeaderGroupProps()} key={index}>
-                {headerGroup.headers.map((column, index) => (
-                  <th
-                    {...column.getHeaderProps(column.getSortByToggleProps())}
-                    className="border-b border-gray-200 pb-[10px] pr-32 text-start dark:!border-navy-700 "
-                    key={index}
-                  >
-                    <div className={TYPE.th}>
-                      {column.render("Header")}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            ))}
+            {headerGroups.map((headerGroup) => {
+              // react-table incluye una key estable en sus prop getters
+              const { key: headerGroupKey, ...headerGroupProps } =
+                headerGroup.getHeaderGroupProps();
+              return (
+                <tr {...headerGroupProps} key={headerGroupKey}>
+                  {headerGroup.headers.map((column) => {
+                    const { key: headerKey, ...headerProps } =
+                      column.getHeaderProps(column.getSortByToggleProps());
+                    return (
+                      <th
+                        {...headerProps}
+                        className="border-b border-gray-200 pb-[10px] pr-32 text-start dark:!border-navy-700 "
+                        key={headerKey}
+                      >
+                        <div className={TYPE.th}>
+                          {column.render("Header")}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {page.map((row, index) => {
+            {page.map((row) => {
               prepareRow(row);
+              const { key: rowKey, ...rowProps } = row.getRowProps();
               return (
                 <tr
                   className="border-b border-gray-200"
-                  {...row.getRowProps()}
-                  key={index} 
+                  {...rowProps}
+                  key={rowKey}
                 >
-                  {row.cells.map((cell, index) => {
+                  {row.cells.map((cell) => {
+                    const { key: cellKey, ...cellProps } = cell.getCellProps();
                     let data = "";
-                    if (cell.column.Header === "Email") {
-                      data = (
-                        <p className={TYPE.td}>
-                          {cell.value}
-                        </p>
-                      );
-                    } else if (cell.column.Header === "Creacion") {
+                    if (
+                      cell.column.Header === "Email" ||
+                      cell.column.Header === "Creacion"
+                    ) {
                       data = (
                         <p className={TYPE.td}>
                           {cell.value}
@@ -131,8 +132,8 @@ const DevelopmentTable = (props) => {
                     }
                     return (
                       <td
-                        {...cell.getCellProps()}
-                        key={index}
+                        {...cellProps}
+                        key={cellKey}
                         className="py-2.5 text-base"
                       >
                         {data}
@@ -150,6 +151,7 @@ const DevelopmentTable = (props) => {
       <div className="mt-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => gotoPage(0)}
             disabled={!canPreviousPage}
             className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
@@ -157,6 +159,7 @@ const DevelopmentTable = (props) => {
             {'<<'}
           </button>
           <button
+            type="button"
             onClick={() => previousPage()}
             disabled={!canPreviousPage}
             className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
@@ -164,6 +167,7 @@ const DevelopmentTable = (props) => {
             {'<'}
           </button>
           <button
+            type="button"
             onClick={() => nextPage()}
             disabled={!canNextPage}
             className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"
@@ -171,6 +175,7 @@ const DevelopmentTable = (props) => {
             {'>'}
           </button>
           <button
+            type="button"
             onClick={() => gotoPage(pageCount - 1)}
             disabled={!canNextPage}
             className="rounded bg-gray-200 px-3 py-1 text-sm disabled:opacity-50"

@@ -221,6 +221,33 @@ describe("AnalysisPdfDoc", () => {
     // El footer fijo sí está siempre
     expect(screen.getByText("Generado con EventFlow")).toBeInTheDocument();
   });
+
+  test("bullets, temas y citas duplicados se renderizan completos (claves estables)", () => {
+    render(
+      <AnalysisPdfDoc
+        eventTitle="Demo Summit"
+        insights={{
+          themes: [
+            {
+              title: "Comida",
+              sentiment: "positivo",
+              sampleQuotes: ["igual", "igual"],
+            },
+            { title: "Comida", sentiment: "negativo" },
+            { summary: "Tema sin título ni sentimiento" },
+          ],
+          strengths: ["Networking", "Networking"],
+        }}
+      />
+    );
+
+    // Claves derivadas del contenido numerando duplicados: nada se pierde
+    expect(screen.getAllByText("Networking")).toHaveLength(2);
+    expect(screen.getAllByText("Comida")).toHaveLength(2);
+    expect(screen.getAllByText("“igual”")).toHaveLength(2);
+    // El tema sin título/sentimiento cae a "—" y tag ámbar vacío
+    expect(screen.getByText("Tema sin título ni sentimiento")).toBeInTheDocument();
+  });
 });
 
 describe("downloadAnalysisPdf", () => {

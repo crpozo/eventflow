@@ -9,6 +9,21 @@ import {
 import { MdCheckCircle, MdCancel, MdOutlineError } from "react-icons/md";
 import { useMemo } from "react";
 import Progress from "components/progress";
+
+// Ícono según el estado de la fila; evita ternarios anidados en el JSX.
+const obtenerIconoEstado = (estado) => {
+  switch (estado) {
+    case "Approved":
+      return <MdCheckCircle className="text-green-500" />;
+    case "Disable":
+      return <MdCancel className="text-red-500" />;
+    case "Error":
+      return <MdOutlineError className="text-orange-500" />;
+    default:
+      return null;
+  }
+};
+
 const ComplexTable = (props) => {
   const { columnsData, tableData } = props;
 
@@ -47,12 +62,15 @@ const ComplexTable = (props) => {
       <div className="mt-8 overflow-x-scroll xl:overflow-hidden">
         <table {...getTableProps()} className="w-full">
           <thead>
-            {headerGroups.map((headerGroup, index) => (
-              <tr {...headerGroup.getHeaderGroupProps()} key={index}>
-                {headerGroup.headers.map((column, index) => (
+            {headerGroups.map((headerGroup) => (
+              <tr
+                {...headerGroup.getHeaderGroupProps()}
+                key={headerGroup.headers.map((column) => column.id).join("-")}
+              >
+                {headerGroup.headers.map((column) => (
                   <th
                     {...column.getHeaderProps(column.getSortByToggleProps())}
-                    key={index}
+                    key={column.id}
                     className="border-b border-gray-200 pr-28 pb-[10px] text-start dark:!border-navy-700"
                   >
                     <p className="text-xs tracking-wide text-gray-600">
@@ -64,13 +82,16 @@ const ComplexTable = (props) => {
             ))}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {page.map((row, index) => {
+            {page.map((row) => {
               prepareRow(row);
               return (
-                <tr {...row.getRowProps()} key={index}>
-                  {row.cells.map((cell, index) => {
+                <tr {...row.getRowProps()} key={row.id}>
+                  {row.cells.map((cell) => {
                     let data = "";
-                    if (cell.column.Header === "NAME") {
+                    if (
+                      cell.column.Header === "NAME" ||
+                      cell.column.Header === "DATE"
+                    ) {
                       data = (
                         <p className="text-sm font-bold text-navy-700 dark:text-white">
                           {cell.value}
@@ -80,24 +101,12 @@ const ComplexTable = (props) => {
                       data = (
                         <div className="flex items-center gap-2">
                           <div className={`rounded-full text-xl`}>
-                            {cell.value === "Approved" ? (
-                              <MdCheckCircle className="text-green-500" />
-                            ) : cell.value === "Disable" ? (
-                              <MdCancel className="text-red-500" />
-                            ) : cell.value === "Error" ? (
-                              <MdOutlineError className="text-orange-500" />
-                            ) : null}
+                            {obtenerIconoEstado(cell.value)}
                           </div>
                           <p className="text-sm font-bold text-navy-700 dark:text-white">
                             {cell.value}
                           </p>
                         </div>
-                      );
-                    } else if (cell.column.Header === "DATE") {
-                      data = (
-                        <p className="text-sm font-bold text-navy-700 dark:text-white">
-                          {cell.value}
-                        </p>
                       );
                     } else if (cell.column.Header === "PROGRESS") {
                       data = <Progress width="w-[108px]" value={cell.value} />;
@@ -106,7 +115,7 @@ const ComplexTable = (props) => {
                       <td
                         className="pt-[14px] pb-[18px] sm:text-[14px]"
                         {...cell.getCellProps()}
-                        key={index}
+                        key={cell.column.id}
                       >
                         {data}
                       </td>

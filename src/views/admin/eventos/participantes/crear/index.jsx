@@ -10,6 +10,17 @@ import { useCanEditSection } from "components/sectionEdit";
 import { readStoredEvent } from "scripts/utils";
 import { PageHeader, Card } from "components/adminUi";
 
+async function createEventAttendee( eventID, attendeeID){
+  await DataStore.save(
+    new EventAttendee({
+      eventID: eventID,
+      attendeeID: attendeeID,
+      authorized: false,
+      checkIn: false
+    })
+  );
+}
+
 const Dashboard = () => {
 
   const id = useParams().id;
@@ -21,7 +32,6 @@ const Dashboard = () => {
   React.useEffect(() => {
     if(!id || id === "no-id"){
       navigate(`/`);
-      return
     }
 
   }, [id, navigate]);
@@ -44,17 +54,6 @@ const Dashboard = () => {
       })
     );
     return attendee;
-  }
-
-  async function createEventAttendee( eventID, attendeeID){
-    const eventAttendee = await DataStore.save(
-      new EventAttendee({
-        eventID: eventID,
-        attendeeID: attendeeID,
-        authorized: false,
-        checkIn: false
-      })
-    );
   }
 
   return (
@@ -81,7 +80,6 @@ const Dashboard = () => {
           onSubmit={async (fields) => {
             let attendee = await createAttende(fields);
             createEventAttendee(eventID, attendee.id);
-            return;
           }}
 
           onCancel={() => {

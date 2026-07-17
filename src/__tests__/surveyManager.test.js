@@ -350,6 +350,46 @@ describe("buildDigest — respuestas → texto para el prompt", () => {
   });
 });
 
+/* ────────────── limpieza de HTML en labels (regex S8786) ──────────────
+ * Caracterización: fija la conducta del strip de etiquetas ANTES y DESPUÉS
+ * de reescribir el regex a una forma lineal (sin backtracking super-lineal).
+ * Cubre labels reales de formBuilder y entradas sin cerrar/adversarias. */
+
+describe("strip de HTML en labels — misma conducta con el regex lineal", () => {
+  const digestOf = (label) =>
+    buildDigest([
+      { answers: [{ type: "text", name: "qx", label, userData: ["v"] }] },
+    ]);
+
+  it.each([
+    ["<strong>¿Volverías?</strong>", "¿Volverías?"],
+    ['<span style="color:red">Calificación</span>', "Calificación"],
+    ["Línea<br>corte", "Líneacorte"],
+    ["<em>mezcla</em> de <b>varias</b>", "mezcla de varias"],
+    ["sin etiquetas", "sin etiquetas"],
+    ["a < b sin cerrar", "a < b sin cerrar"],
+    ["5 > 3 suelto", "5 > 3 suelto"],
+    ["texto<b atributo=raro>con tag</b>", "textocon tag"],
+  ])("buildDigest limpia %j → %j", (label, expected) => {
+    expect(digestOf(label)).toBe(`Respuesta 1:\n  - ${expected}: v`);
+  });
+
+  it.each([
+    ["<strong>¿Qué mejorarías?</strong>", "¿Qué mejorarías?"],
+    ['<span style="font-size:12px">Nota</span>', "Nota"],
+    ["a < b sin cerrar", "a < b sin cerrar"],
+  ])("questionsDigest limpia %j → %j", (label, expected) => {
+    expect(questionsDigest([{ type: "text", name: "qx", label }])).toBe(
+      `  - name: qx | tipo: text | pregunta: ${expected}`
+    );
+  });
+
+  it("una avalancha de '<' sin cerrar no se toca y termina rápido (sin super-lineal)", () => {
+    const adversarial = "<".repeat(5000);
+    expect(digestOf(adversarial)).toBe(`Respuesta 1:\n  - ${adversarial}: v`);
+  });
+});
+
 /* ─────────────────────────── normalizeQuestions ─────────────────────────── */
 
 describe("normalizeQuestions — defensa contra doble encode y filas legacy", () => {

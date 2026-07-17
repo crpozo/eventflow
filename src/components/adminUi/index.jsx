@@ -44,7 +44,7 @@ export function PageHeader({ crumbs = [], title, subtitle, actions }) {
       {crumbs.length > 1 && (
         <nav className="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
           {crumbs.map((c, i) => (
-            <React.Fragment key={i}>
+            <React.Fragment key={`${c.to || ""}::${c.label}`}>
               {i > 0 && <span className="text-gray-300">/</span>}
               {c.to ? (
                 <Link
@@ -104,7 +104,7 @@ export function Card({ title, subtitle, headerRight, children, className = "", .
 
 /* ── Field: label + optional counter/hint wrapping any control ────────── */
 export function Field({ label, required, counter, hint, children }) {
-  const over = counter && counter.max && counter.value > counter.max;
+  const over = counter?.max && counter.value > counter.max;
   return (
     <div className="mb-4 last:mb-0">
       <div className="mb-1.5 flex items-baseline justify-between">
@@ -200,6 +200,7 @@ export function CopyField({ value }) {
 export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
+      type="button"
       {...props}
       className={`rounded-xl bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
@@ -211,6 +212,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
 export function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
+      type="button"
       {...props}
       className={`flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-semibold text-navy-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-navy-800 dark:text-white dark:hover:bg-navy-700 ${className}`}
     >
@@ -272,6 +274,14 @@ export function FullScreenLoader({ label = "Cargando…" }) {
 }
 
 /* ── "Guardado hace X" relative time ──────────────────────────────────── */
+// Etiqueta relativa "hace cuánto" a partir de los segundos transcurridos.
+const relativeLabel = (secs) => {
+  if (secs < 60) return "hace un momento";
+  if (secs < 3600) return `hace ${Math.floor(secs / 60)} min`;
+  if (secs < 86400) return `hace ${Math.floor(secs / 3600)} h`;
+  return `hace ${Math.floor(secs / 86400)} d`;
+};
+
 export function SavedAgo({ savedAt }) {
   const [, tick] = React.useReducer((n) => n + 1, 0);
   React.useEffect(() => {
@@ -280,14 +290,7 @@ export function SavedAgo({ savedAt }) {
   }, []);
   if (!savedAt) return null;
   const secs = Math.floor((Date.now() - savedAt.getTime()) / 1000);
-  const label =
-    secs < 60
-      ? "hace un momento"
-      : secs < 3600
-      ? `hace ${Math.floor(secs / 60)} min`
-      : secs < 86400
-      ? `hace ${Math.floor(secs / 3600)} h`
-      : `hace ${Math.floor(secs / 86400)} d`;
+  const label = relativeLabel(secs);
   return (
     <span className="flex items-center gap-1 text-sm text-gray-500">
       <MdCheck className="h-4 w-4 text-teal-600" /> Guardado {label}

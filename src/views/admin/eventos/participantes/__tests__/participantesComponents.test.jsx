@@ -5,8 +5,8 @@
  *   - DeleteParticipantButton (confirm + deletes en cascada)
  *
  * Todo lo pesado va mockeado en la frontera: xlsx, qrcode, html2pdf, pdf-lib,
- * jszip, storage, api y DataStore. FileReader se reemplaza por un fake
- * síncrono y los sleeps de 15s/1s se manejan con fake timers.
+ * jszip, storage, api y DataStore. File#arrayBuffer se stubbea con un buffer
+ * fijo (jsdom 16 no lo implementa) y los sleeps de 15s/1s van con fake timers.
  */
 import React from "react";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
@@ -213,13 +213,12 @@ const mkField = (name) => ({ getName: () => name, setText: jest.fn() });
 let anchors = [];
 const realCreateElement = document.createElement.bind(document);
 
-// FileReader fake: dispara onload de forma síncrona con un buffer fijo
-class FakeFileReader {
-  readAsArrayBuffer() {
-    this.onload({ target: { result: new Uint8Array([1, 2, 3]).buffer } });
-  }
-}
-const realFileReader = window.FileReader;
+// jsdom 16 no implementa File#arrayBuffer: se stubbea con un buffer fijo
+const realFileArrayBuffer = File.prototype.arrayBuffer;
+const stubFileArrayBuffer = (impl) => {
+  File.prototype.arrayBuffer =
+    impl || (async () => new Uint8Array([1, 2, 3]).buffer);
+};
 
 const flushWithTimers = async (steps = 40, ms = 500) => {
   await act(async () => {
@@ -286,22 +285,13 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.useRealTimers();
-  window.FileReader = realFileReader;
+  File.prototype.arrayBuffer = realFileArrayBuffer;
 });
 
 /* ── UploadExcelButton ─────────────────────────────────────────────────── */
 
 describe("UploadExcelButton", () => {
-  test("alerta si el evento aún no está cargado", () => {
-    render(<UploadExcelButton event={null} />);
-    fireEvent.click(screen.getByText("Importar Usuarios"));
-    expect(window.alert).toHaveBeenCalledWith(
-      "Error: No se ha cargado la información del evento. Por favor recarga la página."
-    );
-  });
-
-  test("importa el Excel: guarda Attendee/EventAttendee, sube el ticket y envía el email", async () => {
-    window.FileReader = FakeFileReader;
+  const seedForm = () => {
     DataStore.__fixtures.Form = [
       {
         id: "form-1",
@@ -313,6 +303,25 @@ describe("UploadExcelButton", () => {
         ],
       },
     ];
+  };
+
+  const changeExcelFile = (name = "participantes.xlsx") => {
+    fireEvent.change(document.querySelector('input[type="file"]'), {
+      target: { files: [new File(["xlsx"], name)] },
+    });
+  };
+
+  test("alerta si el evento aún no está cargado", () => {
+    render(<UploadExcelButton event={null} />);
+    fireEvent.click(screen.getByText("Importar Usuarios"));
+    expect(window.alert).toHaveBeenCalledWith(
+      "Error: No se ha cargado la información del evento. Por favor recarga la página."
+    );
+  });
+
+  test("importa el Excel: guarda Attendee/EventAttendee, sube el ticket y envía el email", async () => {
+    stubFileArrayBuffer();
+    seedForm();
 
     render(<UploadExcelButton event={eventFixture} />);
     const input = document.querySelector('input[type="file"]');
@@ -390,16 +399,13 @@ describe("UploadExcelButton", () => {
   });
 
   test("si el Excel no se puede procesar alerta y sale del estado pendiente", async () => {
-    window.FileReader = FakeFileReader;
+    stubFileArrayBuffer();
     XLSX.read.mockImplementation(() => {
       throw new Error("archivo corrupto");
     });
 
     render(<UploadExcelButton event={eventFixture} />);
-    const input = document.querySelector('input[type="file"]');
-    fireEvent.change(input, {
-      target: { files: [new File(["x"], "malo.xlsx")] },
-    });
+    changeExcelFile("malo.xlsx");
 
     await waitFor(() =>
       expect(window.alert).toHaveBeenCalledWith(
@@ -408,6 +414,210 @@ describe("UploadExcelButton", () => {
     );
     expect(screen.getByText("Importar Usuarios")).toBeInTheDocument();
     expect(DataStore.save).not.toHaveBeenCalled();
+  });
+
+  test("si la lectura del archivo falla se resetea sin alertar", async () => {
+    stubFileArrayBuffer(async () => {
+      throw new Error("lectura fallida");
+    });
+
+    render(<UploadExcelButton event={eventFixture} />);
+    changeExcelFile("roto.xlsx");
+
+    await waitFor(() =>
+      expect(console.error).toHaveBeenCalledWith(
+        "❌ Error leyendo el archivo:",
+        expect.any(Error)
+      )
+    );
+    expect(screen.getByText("Importar Usuarios")).toBeInTheDocument();
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  test("si un participante falla lo registra y completa la importación", async () => {
+    stubFileArrayBuffer();
+    seedForm();
+    // El primer save (createAttendee) revienta: el loop sigue con el resto
+    DataStore.save.mockRejectedValueOnce(new Error("save roto"));
+
+    render(<UploadExcelButton event={eventFixture} />);
+    changeExcelFile();
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "Importación completada. Los tickets han sido generados y enviados por email."
+      )
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      "❌ Error procesando participante del Excel:",
+      expect.any(Error)
+    );
+    expect(uploadData).not.toHaveBeenCalled();
+  });
+
+  test("si el QR falla no genera ticket pero completa la importación", async () => {
+    stubFileArrayBuffer();
+    seedForm();
+    QRCode.toDataURL.mockRejectedValue(new Error("qr roto"));
+
+    render(<UploadExcelButton event={eventFixture} />);
+    changeExcelFile();
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "Importación completada. Los tickets han sido generados y enviados por email."
+      )
+    );
+    expect(uploadData).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test("alerta si el ticket queda vacío y no envía el email", async () => {
+    stubFileArrayBuffer();
+    seedForm();
+    // getUrl devuelve la raíz: el pathname queda vacío y el ticket también
+    getUrl.mockImplementation(async () => ({
+      url: new URL("https://cdn.test/"),
+    }));
+
+    render(<UploadExcelButton event={eventFixture} />);
+    changeExcelFile();
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "ERROR: No se pudo generar el ticket para ana@x.com. Email no enviado."
+      )
+    );
+    expect(window.alert).toHaveBeenCalledWith(
+      "Importación completada. Los tickets han sido generados y enviados por email."
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test("alerta si el ticket no se sincroniza tras la espera de 15s", async () => {
+    stubFileArrayBuffer();
+    seedForm();
+    // La verificación por id nunca encuentra el registro sincronizado
+    DataStore.query.mockImplementation(async (Model, pred) => {
+      if (typeof pred === "string") return undefined;
+      return DataStore.__impls.queryImpl(Model, pred);
+    });
+
+    render(<UploadExcelButton event={eventFixture} />);
+    jest.useFakeTimers();
+    changeExcelFile();
+
+    await flushWithTimers();
+
+    expect(window.alert).toHaveBeenCalledWith(
+      "ERROR: El ticket no se sincronizó para ana@x.com. Email no enviado."
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test("si el envío del email falla lo registra y completa la importación", async () => {
+    stubFileArrayBuffer();
+    seedForm();
+    global.fetch = jest.fn(async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    }));
+
+    render(<UploadExcelButton event={eventFixture} />);
+    jest.useFakeTimers();
+    changeExcelFile();
+
+    await flushWithTimers();
+
+    expect(console.error).toHaveBeenCalledWith(
+      "❌ Error enviando email a ana@x.com:",
+      expect.any(Error)
+    );
+    expect(window.alert).toHaveBeenCalledWith(
+      "Importación completada. Los tickets han sido generados y enviados por email."
+    );
+  });
+
+  test("el botón abre el selector de archivos cuando el evento está cargado", () => {
+    render(<UploadExcelButton event={eventFixture} />);
+    const input = document.querySelector('input[type="file"]');
+    const clickSpy = jest.spyOn(input, "click").mockImplementation(() => {});
+
+    fireEvent.click(screen.getByText("Importar Usuarios"));
+
+    expect(clickSpy).toHaveBeenCalled();
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  test("alerta si el evento se pierde antes de procesar el archivo", async () => {
+    stubFileArrayBuffer();
+
+    render(<UploadExcelButton event={null} />);
+    changeExcelFile();
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "Error: El evento no se ha cargado correctamente. Por favor recarga la página."
+      )
+    );
+    expect(screen.getByText("Importar Usuarios")).toBeInTheDocument();
+    expect(DataStore.save).not.toHaveBeenCalled();
+  });
+
+  test("alerta si la subida del archivo no se puede manejar", async () => {
+    render(<UploadExcelButton event={eventFixture} />);
+    // files nulo: el handler revienta antes de leer y cae al catch externo
+    fireEvent.change(document.querySelector('input[type="file"]'), {
+      target: { files: null },
+    });
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "Error manejando la subida del archivo."
+      )
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      "❌ Error manejando la subida del archivo:",
+      expect.any(Error)
+    );
+  });
+
+  test("mapea columnas del Excel por coincidencia parcial de nombre", async () => {
+    stubFileArrayBuffer();
+    seedForm();
+    // Sin QR el flujo corta tras guardar el EventAttendee: no hacen falta timers
+    QRCode.toDataURL.mockRejectedValue(new Error("sin qr"));
+    XLSX.utils.sheet_to_json.mockReturnValue([
+      {
+        Email: "ana@x.com",
+        "Nombre completo": "Ana García",
+        "Universidad de origen": "USFQ",
+      },
+    ]);
+
+    render(<UploadExcelButton event={eventFixture} />);
+    changeExcelFile();
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "Importación completada. Los tickets han sido generados y enviados por email."
+      )
+    );
+
+    const ea = DataStore.save.mock.calls
+      .map((c) => c[0])
+      .find((m) => m instanceof models.EventAttendee);
+    const answers = JSON.parse(ea.formAnswers);
+    expect(answers.find((a) => a.name === "nombres").userData).toEqual([
+      "Ana García",
+    ]);
+    expect(answers.find((a) => a.name === "universidad").userData).toEqual([
+      "USFQ",
+    ]);
+    expect(answers.find((a) => a.name === "email").userData).toEqual([
+      "ana@x.com",
+    ]);
   });
 });
 
@@ -501,6 +711,108 @@ describe("DownloadBadgeButton", () => {
       )
     );
   });
+
+  test("llena vía acroField, trunca textos largos y tolera campos sin soporte", async () => {
+    const acroSet = jest.fn();
+    pdfLibState.fields = [
+      { getName: () => "field_one", acroField: { dict: { set: acroSet } } },
+      mkField("field_two"),
+      { getName: () => "field_three" },
+    ];
+    const attendeeLargo = {
+      id: "ea-9",
+      email: "largo@x.com",
+      formAnswers: [
+        {
+          name: "nombres",
+          userData: [
+            "Nombre Extremadamente Largo Que Supera Los Cuarenta Caracteres",
+          ],
+        },
+        { name: "universidad", userData: ["USFQ"] },
+      ],
+    };
+
+    render(
+      <DownloadBadgeButton eventAttendee={attendeeLargo} event={eventFixture} />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Badge"));
+
+    await waitFor(() =>
+      expect(anchors.some((a) => a.download && a.download.endsWith(".pdf"))).toBe(
+        true
+      )
+    );
+
+    // El campo sin setText se llena vía acroField con el texto truncado (27 + …)
+    expect(acroSet).toHaveBeenCalledWith("V", "Nombre Extremadamente Largo...");
+    // El campo con setText se llena normalmente
+    expect(pdfLibState.fields[1].setText).toHaveBeenCalledWith("USFQ");
+    // Con campos llenados (2 de 3) no hay alertas
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  test("avisa cuando los campos del PDF no coinciden con los datos disponibles", async () => {
+    pdfLibState.fields = [mkField("otro_campo")];
+    render(
+      <DownloadBadgeButton eventAttendee={attendeeAna} event={eventFixture} />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Badge"));
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("ADVERTENCIA")
+      )
+    );
+    expect(pdfLibState.fields[0].setText).not.toHaveBeenCalled();
+  });
+
+  test("si falla el diseño posterior lo registra y descarga solo el frente", async () => {
+    pdfLibState.fields = [mkField("field_one")];
+    graphqlMock.mockImplementation(async () => ({
+      data: {
+        getBadge: { id: "badge-1", frontDesign: "front.pdf", backDesign: "back.pdf" },
+      },
+    }));
+    getUrl
+      .mockImplementationOnce(async ({ key }) => ({
+        url: new URL(`https://cdn.test/${key}`),
+      }))
+      .mockImplementationOnce(async () => {
+        throw new Error("S3 caído");
+      });
+
+    render(
+      <DownloadBadgeButton eventAttendee={attendeeAna} event={eventFixture} />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Badge"));
+
+    await waitFor(() =>
+      expect(anchors.some((a) => a.download === "badge-Ana-García.pdf")).toBe(true)
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      "Error al cargar el diseño posterior:",
+      expect.any(Error)
+    );
+  });
+
+  test("alerta si la descarga del badge falla", async () => {
+    graphqlMock.mockImplementation(async () => {
+      throw new Error("sin conexión");
+    });
+    render(
+      <DownloadBadgeButton eventAttendee={attendeeAna} event={eventFixture} />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Badge"));
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "Error al descargar el badge: sin conexión"
+      )
+    );
+    // El botón vuelve a su estado normal
+    expect(screen.getByText("Badge")).toBeInTheDocument();
+  });
 });
 
 /* ── DownloadAllBadgesButton ───────────────────────────────────────────── */
@@ -548,6 +860,125 @@ describe("DownloadAllBadgesButton", () => {
     // El ZIP se descarga con el título del evento
     const link = anchors.find((a) => a.download && a.download.endsWith(".zip"));
     expect(link.download).toBe("badges-Evento Test.zip");
+  });
+
+  test("alerta si el badge no existe en la API", async () => {
+    graphqlMock.mockImplementation(async () => ({ data: { getBadge: null } }));
+    render(
+      <DownloadAllBadgesButton event={eventFixture} tableData={tableData} />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Todos los Badges"));
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "No se encontró el diseño del badge"
+      )
+    );
+  });
+
+  test("agrega la página trasera y llena vía acroField aunque un participante tenga respuestas rotas", async () => {
+    const acroSet = jest.fn();
+    pdfLibState.fields = [
+      { getName: () => "field_one", acroField: { dict: { set: acroSet } } },
+    ];
+    graphqlMock.mockImplementation(async () => ({
+      data: {
+        getBadge: { id: "badge-1", frontDesign: "front.pdf", backDesign: "back.pdf" },
+      },
+    }));
+    const attendeeLargo = {
+      id: "ea-9",
+      email: "largo@x.com",
+      formAnswers: [{ name: "nombres", userData: ["a".repeat(35)] }],
+    };
+    const attendeeRoto = {
+      id: "ea-10",
+      email: "roto@x.com",
+      formAnswers: [
+        {
+          name: "x",
+          get userData() {
+            throw new Error("userData rota");
+          },
+        },
+      ],
+    };
+
+    render(
+      <DownloadAllBadgesButton
+        event={eventFixture}
+        tableData={[
+          { eventAttendee: attendeeLargo },
+          { eventAttendee: attendeeRoto },
+        ]}
+      />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Todos los Badges"));
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("✓ 2 badges generados")
+      )
+    );
+
+    // El texto largo (>30) se trunca a 27 caracteres + … y entra vía acroField
+    expect(acroSet).toHaveBeenCalledWith("V", "a".repeat(27) + "...");
+    // La página trasera se rota 180 grados
+    expect(pdfLibState.setRotation).toHaveBeenCalledWith({ angle: 180 });
+    // El participante con formAnswers rotas cae al nombre por email
+    expect(zipState.files.map((f) => f.name)).toEqual([
+      `badge-${"a".repeat(35)}.pdf`,
+      "badge-roto.pdf",
+    ]);
+    expect(console.error).toHaveBeenCalledWith(
+      "Error parseando formAnswers:",
+      expect.any(Error)
+    );
+  });
+
+  test("reporta en el resumen los participantes cuyo badge falló", async () => {
+    pdfLibState.fields = [mkField("field_one")];
+    getUrl
+      .mockImplementationOnce(async ({ key }) => ({
+        url: new URL(`https://cdn.test/${key}`),
+      }))
+      .mockImplementationOnce(async () => {
+        throw new Error("S3 caído");
+      });
+
+    render(
+      <DownloadAllBadgesButton event={eventFixture} tableData={tableData} />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Todos los Badges"));
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("✗ 1 errores")
+      )
+    );
+    expect(window.alert).toHaveBeenCalledWith(
+      expect.stringContaining("✓ 1 badges generados")
+    );
+    // Solo el badge exitoso queda en el ZIP
+    expect(zipState.files.map((f) => f.name)).toEqual(["badge-Ana-García.pdf"]);
+  });
+
+  test("alerta si la carga del badge falla", async () => {
+    graphqlMock.mockImplementation(async () => {
+      throw new Error("sin conexión");
+    });
+    render(
+      <DownloadAllBadgesButton event={eventFixture} tableData={tableData} />
+    );
+    fireEvent.click(screen.getByTitle("Descargar Todos los Badges"));
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        "Error al descargar los badges: sin conexión"
+      )
+    );
+    // El botón vuelve a su estado normal
+    expect(screen.getByText("Descargar Todos")).toBeInTheDocument();
   });
 });
 

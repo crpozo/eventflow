@@ -12,6 +12,31 @@ import { MdChevronRight, MdExpandMore } from "react-icons/md";
  *
  * `tree` = [{ id, title, areas: [{ id, title, events: [{ id, title }] }] }]
  */
+
+// Alterna un id dentro de la lista (lo agrega o lo quita).
+const toggleIn = (list, id) =>
+  list.includes(id) ? list.filter((x) => x !== id) : [...new Set([...list, id])];
+
+// Fila de un evento (hoja del árbol). Extraída a nivel de módulo para no
+// anidar funciones de más de 4 niveles dentro de PermissionTree.
+function EventRow({ ev, inherited, checked, eventIDs, set }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 px-3 py-1 text-sm">
+      <input
+        type="checkbox"
+        className="h-4 w-4 accent-brand-500"
+        checked={checked}
+        disabled={inherited}
+        onChange={() => set({ eventIDs: toggleIn(eventIDs, ev.id) })}
+      />
+      {ev.title || "Evento"}
+      {inherited && (
+        <span className="text-xs text-gray-400">(heredado)</span>
+      )}
+    </label>
+  );
+}
+
 export default function PermissionTree({ tree, value, onChange }) {
   const campusIDs = value?.campusIDs || [];
   const areaIDs = value?.areaIDs || [];
@@ -20,9 +45,6 @@ export default function PermissionTree({ tree, value, onChange }) {
 
   const toggleExpand = (key) =>
     setExpanded((p) => ({ ...p, [key]: !p[key] }));
-
-  const toggleIn = (list, id) =>
-    list.includes(id) ? list.filter((x) => x !== id) : [...new Set([...list, id])];
 
   const set = (patch) => onChange({ campusIDs, areaIDs, eventIDs, ...patch });
 
@@ -99,28 +121,18 @@ export default function PermissionTree({ tree, value, onChange }) {
                           {area.events.length === 0 && (
                             <p className="px-3 py-1.5 text-xs text-gray-400">Sin eventos</p>
                           )}
-                          {area.events.map((ev) => {
-                            const evInherited = campusOn || areaIDs.includes(area.id);
-                            const evOn = evInherited || eventIDs.includes(ev.id);
-                            return (
-                              <label
-                                key={ev.id}
-                                className="flex cursor-pointer items-center gap-2 px-3 py-1 text-sm"
-                              >
-                                <input
-                                  type="checkbox"
-                                  className="h-4 w-4 accent-brand-500"
-                                  checked={evOn}
-                                  disabled={evInherited}
-                                  onChange={() => set({ eventIDs: toggleIn(eventIDs, ev.id) })}
-                                />
-                                {ev.title || "Evento"}
-                                {evInherited && (
-                                  <span className="text-xs text-gray-400">(heredado)</span>
-                                )}
-                              </label>
-                            );
-                          })}
+                          {/* Un área concedida (directa o heredada) hereda a
+                              todos sus eventos: areaOn == evInherited. */}
+                          {area.events.map((ev) => (
+                            <EventRow
+                              key={ev.id}
+                              ev={ev}
+                              inherited={areaOn}
+                              checked={areaOn || eventIDs.includes(ev.id)}
+                              eventIDs={eventIDs}
+                              set={set}
+                            />
+                          ))}
                         </div>
                       )}
                     </div>

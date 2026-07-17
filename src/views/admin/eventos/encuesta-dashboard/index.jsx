@@ -23,10 +23,30 @@ import { MdAutoAwesome, MdFileDownload, MdRefresh } from "react-icons/md";
 // Survey — so the page doesn't re-analyze on every load.
 const USER_API = "userApi";
 
-const stripHtml = (s) =>
-  String(s || "")
-    .replace(/<[^>]*>/g, "")
-    .trim();
+// Quita tags HTML (cada tramo "<...>") con un escaneo lineal. Equivale al
+// antiguo .replace(/<[^>]*>/g, "") pero sin el backtracking super-lineal del
+// regex ante entradas con muchos "<" sin su ">" de cierre.
+const stripHtml = (s) => {
+  const str = String(s || "");
+  let out = "";
+  let i = 0;
+  while (i < str.length) {
+    const open = str.indexOf("<", i);
+    if (open === -1) {
+      out += str.slice(i);
+      break;
+    }
+    out += str.slice(i, open);
+    const close = str.indexOf(">", open + 1);
+    if (close === -1) {
+      // "<" sin cierre: igual que el regex, el resto queda intacto.
+      out += str.slice(open);
+      break;
+    }
+    i = close + 1;
+  }
+  return out.trim();
+};
 
 const valOf = (f) =>
   Array.isArray(f?.userData) ? f.userData.filter(Boolean).join(", ") : "";
@@ -87,16 +107,70 @@ const parseQuestions = (raw) => {
 const clip = (s, n = 120) =>
   s.length > n ? `${s.slice(0, n).trimEnd()}…` : s;
 
+// Claves estables para listas renderizadas: derivadas del contenido con
+// `toKey`, numerando los duplicados para conservar la unicidad (evita usar el
+// índice del array como key).
+const withStableKeys = (items, toKey = String) => {
+  const seen = new Map();
+  return (items || []).map((item) => {
+    const base = String(toKey(item) ?? "");
+    const count = seen.get(base) || 0;
+    seen.set(base, count + 1);
+    return { key: count === 0 ? base : `${base}-${count}`, item };
+  });
+};
+
+// Score del sentimiento general acotado a [0, 100] (la IA puede devolver
+// valores fuera de rango o no numéricos).
+const clampScore = (raw) => Math.max(0, Math.min(100, Number(raw) || 0));
+
+// Color del termómetro de sentimiento (verde / ámbar / rojo institucional).
+const sentimentBarColor = (score) => {
+  if (score >= 66) return "#16a34a";
+  if (score >= 40) return "#f59e0b";
+  return "#e41b23";
+};
+
+// Etiqueta del botón de análisis según el estado actual.
+const analyzeLabel = (analyzing, hasInsights) => {
+  if (analyzing) return "Analizando…";
+  return hasInsights ? "Re-analizar con IA" : "Analizar con IA";
+};
+
+// userData normalizado (strings recortados, sin vacíos) con que la respuesta
+// `r` contestó la pregunta `name`; [] si no la contestó.
+const answeredData = (r, name) => {
+  const f = (Array.isArray(r.answers) ? r.answers : []).find(
+    (a) => a?.name === name
+  );
+  return Array.isArray(f?.userData)
+    ? f.userData.map((v) => String(v ?? "").trim()).filter(Boolean)
+    : [];
+};
+
+// Mensaje de error de "Analizar con IA": incluye el HTTP status y el detalle
+// { error } que devuelve el Lambda cuando existen.
+const analyzeErrorMessage = (e) => {
+  const status = e?.response?.statusCode;
+  let detail = "";
+  try {
+    detail = JSON.parse(e?.response?.body || "{}").error || "";
+  } catch (_) {}
+  const httpPart = status ? ` (HTTP ${status})` : "";
+  const detailPart = detail ? `: ${detail}` : "";
+  return `No se pudo analizar${httpPart}${detailPart}`;
+};
+
 /* Horizontal div-bars for option questions (and date distributions). Bar width
    scales against the most-voted option; the % reads against total answers. */
 function OptionBars({ rows, total }) {
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
     <div className="mt-3 flex flex-col gap-2">
-      {rows.map((r, i) => {
+      {withStableKeys(rows, (r) => r.label).map(({ key, item: r }) => {
         const pct = total > 0 ? Math.round((r.count / total) * 100) : 0;
         return (
-          <div key={i} className="flex items-center gap-3">
+          <div key={key} className="flex items-center gap-3">
             <span
               title={r.label}
               className="line-clamp-2 w-36 shrink-0 break-words text-sm text-navy-700 dark:text-gray-100 sm:w-52"
@@ -209,8 +283,8 @@ function QuestionBody({ q, perResponse, total }) {
   return (
     <div className="mt-3">
       <ul className="flex flex-col gap-1.5">
-        {texts.slice(0, 3).map((t, i) => (
-          <li key={i} className="truncate text-sm italic text-gray-500">
+        {withStableKeys(texts.slice(0, 3)).map(({ key, item: t }) => (
+          <li key={key} className="truncate text-sm italic text-gray-500">
             “{clip(t)}”
           </li>
         ))}
@@ -353,16 +427,9 @@ const Dashboard = () => {
       questions
         .filter((q) => q.type !== "header" && q.type !== "paragraph" && q.name)
         .map((q) => {
-          const perResponse = [];
-          responses.forEach((r) => {
-            const f = (Array.isArray(r.answers) ? r.answers : []).find(
-              (a) => a?.name === q.name
-            );
-            const ud = Array.isArray(f?.userData)
-              ? f.userData.map((v) => String(v ?? "").trim()).filter(Boolean)
-              : [];
-            if (ud.length > 0) perResponse.push(ud);
-          });
+          const perResponse = responses
+            .map((r) => answeredData(r, q.name))
+            .filter((ud) => ud.length > 0);
           return { q, perResponse, total: perResponse.length };
         }),
     [questions, responses]
@@ -400,6 +467,8 @@ const Dashboard = () => {
       ? Math.min(100, Math.round((responses.length / checkedIn) * 100))
       : null;
 
+  const sentimentScore = clampScore(insights?.overallSentiment?.score);
+
   async function analyze() {
     if (analyzing) return;
     if (responses.length === 0) {
@@ -426,16 +495,7 @@ const Dashboard = () => {
       console.error("analyze:", e);
       // Surface the real backend error (Lambda returns { error }) instead of a
       // generic message — API Gateway/Bedrock failures differ in fix.
-      const status = e?.response?.statusCode;
-      let detail = "";
-      try {
-        detail = JSON.parse(e?.response?.body || "{}").error || "";
-      } catch (_) {}
-      alert(
-        `No se pudo analizar${status ? ` (HTTP ${status})` : ""}${
-          detail ? `: ${detail}` : ""
-        }`
-      );
+      alert(analyzeErrorMessage(e));
     } finally {
       setAnalyzing(false);
     }
@@ -510,11 +570,7 @@ const Dashboard = () => {
               className="flex items-center gap-1.5"
             >
               {insights ? <MdRefresh /> : <MdAutoAwesome />}
-              {analyzing
-                ? "Analizando…"
-                : insights
-                ? "Re-analizar con IA"
-                : "Analizar con IA"}
+              {analyzeLabel(analyzing, Boolean(insights))}
             </PrimaryButton>
             <SecondaryButton onClick={exportExcel}>
               <MdFileDownload /> Exportar Excel
@@ -581,16 +637,8 @@ const Dashboard = () => {
                 <div
                   className="h-3 rounded-full"
                   style={{
-                    width: `${Math.max(
-                      0,
-                      Math.min(100, Number(insights.overallSentiment.score) || 0)
-                    )}%`,
-                    background:
-                      (Number(insights.overallSentiment.score) || 0) >= 66
-                        ? "#16a34a"
-                        : (Number(insights.overallSentiment.score) || 0) >= 40
-                        ? "#f59e0b"
-                        : "#e41b23",
+                    width: `${sentimentScore}%`,
+                    background: sentimentBarColor(sentimentScore),
                   }}
                 />
               </div>
@@ -607,9 +655,9 @@ const Dashboard = () => {
                 Temas principales
               </p>
               <div className="flex flex-col gap-2">
-                {insights.themes.map((t, i) => (
+                {withStableKeys(insights.themes, (t) => t.title).map(({ key, item: t }) => (
                   <div
-                    key={i}
+                    key={key}
                     className="rounded-xl border border-gray-100 p-3 dark:border-navy-700"
                   >
                     <div className="flex items-center justify-between">
@@ -631,9 +679,11 @@ const Dashboard = () => {
                     {Array.isArray(t.sampleQuotes) &&
                       t.sampleQuotes.length > 0 && (
                         <ul className="mt-1 list-disc pl-5 text-xs italic text-gray-500">
-                          {t.sampleQuotes.slice(0, 3).map((q, j) => (
-                            <li key={j}>“{q}”</li>
-                          ))}
+                          {withStableKeys(t.sampleQuotes.slice(0, 3)).map(
+                            ({ key: quoteKey, item: q }) => (
+                              <li key={quoteKey}>“{q}”</li>
+                            )
+                          )}
                         </ul>
                       )}
                   </div>
@@ -650,9 +700,11 @@ const Dashboard = () => {
                     Fortalezas
                   </p>
                   <ul className="list-disc pl-5 text-sm text-navy-700 dark:text-gray-200">
-                    {insights.strengths.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
+                    {withStableKeys(insights.strengths).map(
+                      ({ key, item: s }) => (
+                        <li key={key}>{s}</li>
+                      )
+                    )}
                   </ul>
                 </div>
               )}
@@ -663,9 +715,11 @@ const Dashboard = () => {
                     Preocupaciones
                   </p>
                   <ul className="list-disc pl-5 text-sm text-navy-700 dark:text-gray-200">
-                    {insights.concerns.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
+                    {withStableKeys(insights.concerns).map(
+                      ({ key, item: s }) => (
+                        <li key={key}>{s}</li>
+                      )
+                    )}
                   </ul>
                 </div>
               )}
@@ -678,9 +732,11 @@ const Dashboard = () => {
                   Recomendaciones accionables
                 </p>
                 <ul className="list-disc pl-5 text-sm text-navy-700 dark:text-gray-200">
-                  {insights.recommendations.map((s, i) => (
-                    <li key={i}>{s}</li>
-                  ))}
+                  {withStableKeys(insights.recommendations).map(
+                    ({ key, item: s }) => (
+                      <li key={key}>{s}</li>
+                    )
+                  )}
                 </ul>
               </div>
             )}

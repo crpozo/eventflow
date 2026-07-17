@@ -385,6 +385,33 @@ describe("Participantes — listado", () => {
       screen.getByText(/Mostrando 2 de 2 participantes/)
     ).toBeInTheDocument();
   });
+
+  test("paginación: avanza y retrocede entre páginas con los controles", () => {
+    // 60 participantes → 2 páginas con el tamaño inicial de 50
+    DataStore.__fixtures.EventAttendee = Array.from({ length: 60 }, (_, i) => ({
+      id: `ea-${i}`,
+      eventID: "ev-1",
+      attendeeID: `att-${i}`,
+      email: `p${i}@x.com`,
+      createdAt: "2026-01-10T10:00:00.000Z",
+      formAnswers: [{ name: "nombres", label: "Nombres", userData: [`P ${i}`] }],
+    }));
+    renderListado();
+
+    expect(screen.getByText("1 de 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(">"));
+    expect(screen.getByText("2 de 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("<"));
+    expect(screen.getByText("1 de 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(">>"));
+    expect(screen.getByText("2 de 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("<<"));
+    expect(screen.getByText("1 de 2")).toBeInTheDocument();
+  });
 });
 
 /* ── Crear participante ────────────────────────────────────────────────── */

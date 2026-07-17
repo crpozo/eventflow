@@ -47,21 +47,18 @@ const CheckTable = (props) => {
       </header>
 
       <div className="mt-8 overflow-x-scroll xl:overflow-x-hidden">
-        <table
-          {...getTableProps()}
-          className="w-full"
-          variant="simple"
-          color="gray-500"
-          mb="24px"
-        >
+        <table {...getTableProps()} className="w-full" color="gray-500">
           <thead>
-            {headerGroups.map((headerGroup, index) => (
-              <tr {...headerGroup.getHeaderGroupProps()} key={index}>
-                {headerGroup.headers.map((column, index) => (
+            {headerGroups.map((headerGroup) => (
+              <tr
+                {...headerGroup.getHeaderGroupProps()}
+                key={headerGroup.headers.map((column) => column.id).join("-")}
+              >
+                {headerGroup.headers.map((column) => (
                   <th
                     {...column.getHeaderProps(column.getSortByToggleProps())}
                     className="border-b border-gray-200 pr-16 pb-[10px] text-start dark:!border-navy-700"
-                    key={index}
+                    key={column.id}
                   >
                     <div className="text-xs font-bold tracking-wide text-gray-600 lg:text-xs">
                       {column.render("Header")}
@@ -72,11 +69,11 @@ const CheckTable = (props) => {
             ))}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {page.map((row, index) => {
+            {page.map((row) => {
               prepareRow(row);
               return (
-                <tr {...row.getRowProps()} key={index}>
-                  {row.cells.map((cell, index) => {
+                <tr {...row.getRowProps()} key={row.id}>
+                  {row.cells.map((cell) => {
                     let data = "";
                     if (cell.column.Header === "NAME") {
                       data = (
@@ -112,7 +109,7 @@ const CheckTable = (props) => {
                     return (
                       <td
                         {...cell.getCellProps()}
-                        key={index}
+                        key={cell.column.id}
                         className="pt-[14px] pb-[16px] sm:text-[14px]"
                       >
                         {data}

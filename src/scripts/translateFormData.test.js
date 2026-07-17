@@ -184,9 +184,16 @@ describe("translateFormData", () => {
   });
 
   test("devuelve el original ante JSON inválido o estructuras no-array", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     await expect(translateFormData("esto no es json", "en")).resolves.toBe(
       "esto no es json"
     );
+    // El string no-JSON se loguea como definición corrupta.
+    expect(errorSpy).toHaveBeenCalledWith(
+      "translateFormData: definición de formulario no es JSON válido",
+      expect.any(Error)
+    );
+    errorSpy.mockRestore();
     const objJson = JSON.stringify({ no: "array" });
     await expect(translateFormData(objJson, "en")).resolves.toBe(objJson);
     const obj = { no: "array" };

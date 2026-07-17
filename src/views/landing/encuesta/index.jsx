@@ -66,6 +66,8 @@ const normalizeQuestions = (raw) => {
       .map((q) => (typeof q === "string" ? JSON.parse(q) : q))
       .filter((q) => q && typeof q === "object");
   } catch (e) {
+    // Preguntas ilegibles: se trata igual que "sin encuesta" (estado none).
+    console.error("survey questions parse:", e);
     return null;
   }
 };
@@ -168,6 +170,50 @@ class SurveyRender extends Component {
     return <div id="fb-editor" ref={this.fb} />;
   }
 }
+
+// Toggle ES/EN. Definido FUERA de SurveyPublic para que React conserve el
+// subárbol entre renders (una definición inline crea un tipo nuevo por render y
+// fuerza remount); el estado llega por props.
+const LangToggle = ({ lang, onChangeLang }) => (
+  <div className="flex items-center justify-end gap-1 mb-4">
+    <button
+      type="button"
+      onClick={() => onChangeLang("ES")}
+      aria-label="Español"
+      title="Español"
+      className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
+        lang === "ES" ? "opacity-100" : "opacity-40 hover:opacity-100"
+      }`}
+    >
+      <span className="text-xl leading-none">🇲🇽</span>
+      <span className="text-xs font-semibold">ES</span>
+    </button>
+    <button
+      type="button"
+      onClick={() => onChangeLang("EN")}
+      aria-label="English"
+      title="English"
+      className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
+        lang === "EN" ? "opacity-100" : "opacity-40 hover:opacity-100"
+      }`}
+    >
+      <span className="text-xl leading-none">🇺🇸</span>
+      <span className="text-xs font-semibold">EN</span>
+    </button>
+  </div>
+);
+
+// Marco común de todas las pantallas (logo + tarjeta + toggle de idioma).
+// También fuera del componente padre por la misma razón que LangToggle.
+const Shell = ({ lang, onChangeLang, children }) => (
+  <div className="min-h-screen w-full bg-gray-50 flex flex-col items-center py-10 px-4">
+    <img src={logo} alt="USFQ" className="h-12 mb-6" />
+    <div className="w-full max-w-2xl rounded-3xl bg-white shadow-card p-6 sm:p-8">
+      <LangToggle lang={lang} onChangeLang={onChangeLang} />
+      {children}
+    </div>
+  </div>
+);
 
 const SurveyPublic = () => {
   const { id } = useParams();
@@ -322,48 +368,11 @@ const SurveyPublic = () => {
     }
   }
 
-  const LangToggle = () => (
-    <div className="flex items-center justify-end gap-1 mb-4">
-      <button
-        type="button"
-        onClick={() => changeLang("ES")}
-        aria-label="Español"
-        title="Español"
-        className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
-          lang === "ES" ? "opacity-100" : "opacity-40 hover:opacity-100"
-        }`}
-      >
-        <span className="text-xl leading-none">🇲🇽</span>
-        <span className="text-xs font-semibold">ES</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => changeLang("EN")}
-        aria-label="English"
-        title="English"
-        className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
-          lang === "EN" ? "opacity-100" : "opacity-40 hover:opacity-100"
-        }`}
-      >
-        <span className="text-xl leading-none">🇺🇸</span>
-        <span className="text-xs font-semibold">EN</span>
-      </button>
-    </div>
-  );
-
-  const Shell = ({ children }) => (
-    <div className="min-h-screen w-full bg-gray-50 flex flex-col items-center py-10 px-4">
-      <img src={logo} alt="USFQ" className="h-12 mb-6" />
-      <div className="w-full max-w-2xl rounded-3xl bg-white shadow-card p-6 sm:p-8">
-        <LangToggle />
-        {children}
-      </div>
-    </div>
-  );
+  const shellProps = { lang, onChangeLang: changeLang };
 
   if (state === "loading") {
     return (
-      <Shell>
+      <Shell {...shellProps}>
         <p className="text-center text-gray-500">{ui.loading}</p>
       </Shell>
     );
@@ -371,7 +380,7 @@ const SurveyPublic = () => {
 
   if (state === "none") {
     return (
-      <Shell>
+      <Shell {...shellProps}>
         <h1 className="text-xl font-bold text-navy-700 mb-2">{ui.noneTitle}</h1>
         <p className="text-gray-600">{ui.noneText}</p>
       </Shell>
@@ -380,7 +389,7 @@ const SurveyPublic = () => {
 
   if (state === "error") {
     return (
-      <Shell>
+      <Shell {...shellProps}>
         <h1 className="text-xl font-bold text-navy-700 mb-2">{ui.errorTitle}</h1>
         <p className="text-gray-600">{ui.errorText}</p>
       </Shell>
@@ -389,7 +398,7 @@ const SurveyPublic = () => {
 
   if (state === "already") {
     return (
-      <Shell>
+      <Shell {...shellProps}>
         <h1 className="text-xl font-bold text-navy-700 mb-2">
           {ui.alreadyTitle}
         </h1>
@@ -400,7 +409,7 @@ const SurveyPublic = () => {
 
   if (state === "done") {
     return (
-      <Shell>
+      <Shell {...shellProps}>
         <h1 className="text-xl font-bold text-navy-700 mb-2">{ui.doneTitle}</h1>
         <p className="text-gray-600">{ui.doneText}</p>
       </Shell>
@@ -408,7 +417,7 @@ const SurveyPublic = () => {
   }
 
   return (
-    <Shell>
+    <Shell {...shellProps}>
       <h1 className="text-2xl font-bold text-navy-700 mb-1">
         {eventTitle || ui.fallbackTitle}
       </h1>
@@ -417,6 +426,7 @@ const SurveyPublic = () => {
         {renderData && <SurveyRender formData={renderData} />}
       </div>
       <button
+        type="button"
         onClick={handleSubmit}
         disabled={submitting}
         className="mt-5 w-full rounded-xl bg-brand-500 py-2.5 text-[15px] text-white font-semibold transition hover:bg-black disabled:opacity-50"

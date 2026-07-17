@@ -768,10 +768,12 @@ describe("EventUpdateForm: campos generales", () => {
     fireEvent.change(auto, { target: { value: "gafete-x" } });
 
     // Sin un gafete seleccionado (solo texto libre) Add no agrega nada.
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Add" }));
-    });
-    expect(screen.getByPlaceholderText("Buscar gafete")).toBeInTheDocument();
+    // fireEvent ya envuelve el click en act; el findBy* (act-aware) espera a
+    // que el estado se estabilice sin necesidad de un act() extra.
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(
+      await screen.findByPlaceholderText("Buscar gafete")
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByPlaceholderText("Buscar gafete")).toBeNull();

@@ -9,6 +9,14 @@ import {
 import { MdCheckCircle, MdCancel, MdOutlineError } from "react-icons/md";
 import { useMemo } from "react";
 import Progress from "components/progress";
+
+// Icono por estado para la columna STATUS
+const STATUS_ICONS = {
+  Approved: <MdCheckCircle className="text-green-500" />,
+  Disable: <MdCancel className="text-red-500" />,
+  Error: <MdOutlineError className="text-orange-500" />,
+};
+
 const ComplexTable = (props) => {
   const { columnsData, tableData } = props;
 
@@ -47,30 +55,44 @@ const ComplexTable = (props) => {
       <div className="mt-8 overflow-x-scroll xl:overflow-hidden">
         <table {...getTableProps()} className="w-full">
           <thead>
-            {headerGroups.map((headerGroup, index) => (
-              <tr {...headerGroup.getHeaderGroupProps()} key={index}>
-                {headerGroup.headers.map((column, index) => (
-                  <th
-                    {...column.getHeaderProps(column.getSortByToggleProps())}
-                    key={index}
-                    className="border-b border-gray-200 pr-28 pb-[10px] text-start dark:!border-navy-700"
-                  >
-                    <p className="text-xs tracking-wide text-gray-600">
-                      {column.render("Header")}
-                    </p>
-                  </th>
-                ))}
-              </tr>
-            ))}
+            {headerGroups.map((headerGroup) => {
+              // react-table provee keys estables derivadas de las columnas
+              const { key: headerGroupKey, ...headerGroupProps } =
+                headerGroup.getHeaderGroupProps();
+              return (
+                <tr {...headerGroupProps} key={headerGroupKey}>
+                  {headerGroup.headers.map((column) => {
+                    const { key: columnKey, ...columnProps } =
+                      column.getHeaderProps(column.getSortByToggleProps());
+                    return (
+                      <th
+                        {...columnProps}
+                        key={columnKey}
+                        className="border-b border-gray-200 pr-28 pb-[10px] text-start dark:!border-navy-700"
+                      >
+                        <p className="text-xs tracking-wide text-gray-600">
+                          {column.render("Header")}
+                        </p>
+                      </th>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {page.map((row, index) => {
+            {page.map((row) => {
               prepareRow(row);
+              const { key: rowKey, ...rowProps } = row.getRowProps();
               return (
-                <tr {...row.getRowProps()} key={index}>
-                  {row.cells.map((cell, index) => {
+                <tr {...rowProps} key={rowKey}>
+                  {row.cells.map((cell) => {
+                    const { key: cellKey, ...cellProps } = cell.getCellProps();
                     let data = "";
-                    if (cell.column.Header === "NAME") {
+                    if (
+                      cell.column.Header === "NAME" ||
+                      cell.column.Header === "DATE"
+                    ) {
                       data = (
                         <p className="text-sm font-bold text-navy-700 dark:text-white">
                           {cell.value}
@@ -80,24 +102,12 @@ const ComplexTable = (props) => {
                       data = (
                         <div className="flex items-center gap-2">
                           <div className={`rounded-full text-xl`}>
-                            {cell.value === "Approved" ? (
-                              <MdCheckCircle className="text-green-500" />
-                            ) : cell.value === "Disable" ? (
-                              <MdCancel className="text-red-500" />
-                            ) : cell.value === "Error" ? (
-                              <MdOutlineError className="text-orange-500" />
-                            ) : null}
+                            {STATUS_ICONS[cell.value] ?? null}
                           </div>
                           <p className="text-sm font-bold text-navy-700 dark:text-white">
                             {cell.value}
                           </p>
                         </div>
-                      );
-                    } else if (cell.column.Header === "DATE") {
-                      data = (
-                        <p className="text-sm font-bold text-navy-700 dark:text-white">
-                          {cell.value}
-                        </p>
                       );
                     } else if (cell.column.Header === "PROGRESS") {
                       data = <Progress width="w-[108px]" value={cell.value} />;
@@ -105,8 +115,8 @@ const ComplexTable = (props) => {
                     return (
                       <td
                         className="pt-[14px] pb-[18px] sm:text-[14px]"
-                        {...cell.getCellProps()}
-                        key={index}
+                        {...cellProps}
+                        key={cellKey}
                       >
                         {data}
                       </td>

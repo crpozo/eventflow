@@ -18,7 +18,9 @@
 // the Cognito account if it doesn't exist (stranded users). Bump this string to
 // bust the deploy hash when Amplify wrongly reports "No Change".
 // rev 2026-07-16: genTempPassword usa crypto.randomInt (S2245) en vez de Math.random.
-const crypto = require("crypto");
+// rev 2026-07-17: limpieza Sonar sin cambio de conducta — handler partido en
+// sub-handlers por método (S3776), node:crypto (S7772), endsWith (S6557).
+const crypto = require("node:crypto");
 const {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
@@ -34,7 +36,7 @@ const ses = new SESClient({});
 // Amplify injects the user pool id as AUTH_<resource>_USERPOOLID; find it.
 const USER_POOL_ID =
   process.env.USER_POOL_ID ||
-  Object.entries(process.env).find(([k]) => /USERPOOLID$/.test(k))?.[1];
+  Object.entries(process.env).find(([k]) => k.endsWith("USERPOOLID"))?.[1];
 
 // Verified SES sender + login URL for the invitation email.
 const SES_FROM = process.env.SES_FROM;
@@ -133,6 +135,151 @@ const json = (statusCode, data) => ({
   body: JSON.stringify(data),
 });
 
+/* ── Sub-handlers por método (extraídos del handler por S3776). Todos
+ * devuelven la respuesta json() ya armada; los errores no controlados
+ * suben al catch global del handler. ── */
+
+// Atributos Cognito del alta: email verificado + nombre opcional.
+const buildUserAttrs = (email, name) => {
+  const attrs = [
+    { Name: "email", Value: email },
+    { Name: "email_verified", Value: "true" },
+  ];
+  if (name) attrs.push({ Name: "name", Value: name });
+  return attrs;
+};
+
+// Alta en Cognito con su propio correo suprimido (la invitación en español
+// sale por SES con la contraseña temporal).
+const createCognitoUser = (email, name, tempPassword) =>
+  cognito.send(
+    new AdminCreateUserCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: email,
+      UserAttributes: buildUserAttrs(email, name),
+      TemporaryPassword: tempPassword,
+      MessageAction: "SUPPRESS",
+    })
+  );
+
+// ── POST {resend:true}: reenviar instrucciones de acceso ──
+const handleResend = async (email, body) => {
+  let status;
+  let exists = true;
+  try {
+    const u = await cognito.send(
+      new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email })
+    );
+    status = u.UserStatus;
+  } catch (e) {
+    if (e?.name === "UserNotFoundException") exists = false;
+    else throw e;
+  }
+  if (!SES_FROM) return json(500, { error: "SES_FROM not configured" });
+
+  // No Cognito account yet (e.g. created while the API was down) -> create
+  // it now and send the full invite. If it exists but the user never
+  // finished the first login -> reset the temp password and resend the
+  // invite. If they already set their own password -> reminder only.
+  const needsTemp =
+    !exists ||
+    status === "FORCE_CHANGE_PASSWORD" ||
+    status === "RESET_REQUIRED";
+  let tempPassword;
+  if (!exists) {
+    tempPassword = genTempPassword();
+    await createCognitoUser(email, body.name, tempPassword);
+  } else if (needsTemp) {
+    tempPassword = genTempPassword();
+    await cognito.send(
+      new AdminSetUserPasswordCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: email,
+        Password: tempPassword,
+        Permanent: false,
+      })
+    );
+  }
+  try {
+    await ses.send(
+      needsTemp
+        ? buildInviteEmail(email, body.name, tempPassword)
+        : buildReminderEmail(email, body.name)
+    );
+  } catch (e) {
+    console.error("resend email failed:", e);
+    return json(200, {
+      ok: true,
+      resent: false,
+      emailSent: false,
+      withTempPassword: needsTemp,
+      ...(needsTemp ? { tempPassword } : {}),
+      emailError: e?.message || String(e),
+    });
+  }
+  return json(200, {
+    ok: true,
+    resent: true,
+    created: !exists,
+    emailSent: true,
+    withTempPassword: needsTemp,
+  });
+};
+
+// ── POST: crear el usuario en Cognito e invitarlo por SES ──
+const handleCreate = async (email, body) => {
+  const tempPassword = genTempPassword();
+  const res = await createCognitoUser(email, body.name, tempPassword);
+  const sub = res.User?.Attributes?.find((a) => a.Name === "sub")?.Value;
+
+  // Send the custom Spanish invitation (carrying the temp password) via SES.
+  let emailSent = false;
+  let emailError;
+  if (SES_FROM) {
+    try {
+      await ses.send(buildInviteEmail(email, body.name, tempPassword));
+      emailSent = true;
+    } catch (e) {
+      emailError = e?.message || String(e);
+      console.error("invite email failed:", e);
+    }
+  } else {
+    emailError = "SES_FROM not configured";
+  }
+
+  // If the email didn't go out, return the temp password so the admin can
+  // share it manually (the Cognito user already exists with this password).
+  return json(200, {
+    ok: true,
+    username: email,
+    sub,
+    emailSent,
+    ...(emailSent ? {} : { tempPassword, emailError }),
+  });
+};
+
+// ── DELETE /users/{email}: baja idempotente en Cognito ──
+const handleDelete = async (event) => {
+  const email = decodeURIComponent(
+    event.pathParameters?.email ||
+      (event.path || "").split("/").pop() ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+  if (!email) return json(400, { error: "email is required" });
+
+  try {
+    await cognito.send(
+      new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: email })
+    );
+  } catch (e) {
+    // Idempotent: already gone from Cognito is fine.
+    if (e?.name !== "UserNotFoundException") throw e;
+  }
+  return json(200, { ok: true });
+};
+
 exports.handler = async (event) => {
   try {
     if (!USER_POOL_ID) {
@@ -147,148 +294,11 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body || "{}");
       const email = (body.email || "").trim().toLowerCase();
       if (!email) return json(400, { error: "email is required" });
-
-      // ── Resend login instructions to an EXISTING Cognito user ──
-      if (body.resend) {
-        let status;
-        let exists = true;
-        try {
-          const u = await cognito.send(
-            new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email })
-          );
-          status = u.UserStatus;
-        } catch (e) {
-          if (e?.name === "UserNotFoundException") exists = false;
-          else throw e;
-        }
-        if (!SES_FROM) return json(500, { error: "SES_FROM not configured" });
-
-        // No Cognito account yet (e.g. created while the API was down) -> create
-        // it now and send the full invite. If it exists but the user never
-        // finished the first login -> reset the temp password and resend the
-        // invite. If they already set their own password -> reminder only.
-        const needsTemp =
-          !exists ||
-          status === "FORCE_CHANGE_PASSWORD" ||
-          status === "RESET_REQUIRED";
-        let tempPassword;
-        if (!exists) {
-          tempPassword = genTempPassword();
-          const attrs = [
-            { Name: "email", Value: email },
-            { Name: "email_verified", Value: "true" },
-          ];
-          if (body.name) attrs.push({ Name: "name", Value: body.name });
-          await cognito.send(
-            new AdminCreateUserCommand({
-              UserPoolId: USER_POOL_ID,
-              Username: email,
-              UserAttributes: attrs,
-              TemporaryPassword: tempPassword,
-              MessageAction: "SUPPRESS",
-            })
-          );
-        } else if (needsTemp) {
-          tempPassword = genTempPassword();
-          await cognito.send(
-            new AdminSetUserPasswordCommand({
-              UserPoolId: USER_POOL_ID,
-              Username: email,
-              Password: tempPassword,
-              Permanent: false,
-            })
-          );
-        }
-        try {
-          await ses.send(
-            needsTemp
-              ? buildInviteEmail(email, body.name, tempPassword)
-              : buildReminderEmail(email, body.name)
-          );
-        } catch (e) {
-          console.error("resend email failed:", e);
-          return json(200, {
-            ok: true,
-            resent: false,
-            emailSent: false,
-            withTempPassword: needsTemp,
-            ...(needsTemp ? { tempPassword } : {}),
-            emailError: e?.message || String(e),
-          });
-        }
-        return json(200, {
-          ok: true,
-          resent: true,
-          created: !exists,
-          emailSent: true,
-          withTempPassword: needsTemp,
-        });
-      }
-
-      const attrs = [
-        { Name: "email", Value: email },
-        { Name: "email_verified", Value: "true" },
-      ];
-      if (body.name) attrs.push({ Name: "name", Value: body.name });
-
-      const tempPassword = genTempPassword();
-      const res = await cognito.send(
-        new AdminCreateUserCommand({
-          UserPoolId: USER_POOL_ID,
-          Username: email,
-          UserAttributes: attrs,
-          TemporaryPassword: tempPassword,
-          MessageAction: "SUPPRESS", // we send our own Spanish invite via SES
-        })
-      );
-      const sub = res.User?.Attributes?.find((a) => a.Name === "sub")?.Value;
-
-      // Send the custom Spanish invitation (carrying the temp password) via SES.
-      let emailSent = false;
-      let emailError;
-      if (SES_FROM) {
-        try {
-          await ses.send(buildInviteEmail(email, body.name, tempPassword));
-          emailSent = true;
-        } catch (e) {
-          emailError = e?.message || String(e);
-          console.error("invite email failed:", e);
-        }
-      } else {
-        emailError = "SES_FROM not configured";
-      }
-
-      // If the email didn't go out, return the temp password so the admin can
-      // share it manually (the Cognito user already exists with this password).
-      return json(200, {
-        ok: true,
-        username: email,
-        sub,
-        emailSent,
-        ...(emailSent ? {} : { tempPassword, emailError }),
-      });
+      // await aquí: los rechazos de los sub-handlers deben caer al catch global.
+      return await (body.resend ? handleResend(email, body) : handleCreate(email, body));
     }
 
-    if (method === "DELETE") {
-      const email = decodeURIComponent(
-        event.pathParameters?.email ||
-          (event.path || "").split("/").pop() ||
-          ""
-      )
-        .trim()
-        .toLowerCase();
-      if (!email) return json(400, { error: "email is required" });
-
-      try {
-        await cognito.send(
-          new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: email })
-        );
-      } catch (e) {
-        // Idempotent: already gone from Cognito is fine.
-        if (e?.name !== "UserNotFoundException") throw e;
-      }
-      return json(200, { ok: true });
-    }
+    if (method === "DELETE") return await handleDelete(event);
 
     return json(405, { error: `Method ${method} not allowed` });
   } catch (err) {

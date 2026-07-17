@@ -46,8 +46,12 @@ export const apiMock = (graphqlImpl) => ({
 export const renderWithRouter = (ui, { route = "/" } = {}) =>
   render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
 
+// Evento por defecto: factoría para entregar SIEMPRE un objeto fresco (evita
+// compartir una referencia mutable entre tests).
+const defaultStoredEvent = () => ({ id: "ev-1", title: "Evento Test" });
+
 // localStorage con el evento cacheado que muchas vistas admin leen.
-export const seedStoredEvent = (event = { id: "ev-1", title: "Evento Test" }) => {
+export const seedStoredEvent = (event = defaultStoredEvent()) => {
   localStorage.setItem("EVENTFLOW.event", JSON.stringify(event));
   return event;
 };

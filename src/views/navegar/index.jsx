@@ -12,6 +12,24 @@ import { MdAdd, MdEdit, MdChevronRight, MdArrowForward } from "react-icons/md";
  * subárea stores the selection (EVENTFLOW.*) and goes to the events list — same
  * contract the old multi-page flow used.
  */
+
+// Nivel actual del selector según lo ya elegido.
+const getLevel = (campus, area) => {
+  if (!campus) return "campus";
+  if (!area) return "area";
+  return "subarea";
+};
+
+// Textos y rutas de cada nivel.
+const HEADINGS = {
+  campus: { title: "Selecciona un campus", create: "Crear Campus", createPath: "/page/campus/crear", editPath: "/page/campus/editar" },
+  area: { title: "Selecciona un área", create: "Crear Área", createPath: "/page/campus/area/crear", editPath: "/page/campus/area/editar" },
+  subarea: { title: "Selecciona una subárea", create: "Crear Subárea", createPath: "/page/campus/area/subarea/crear", editPath: "/page/campus/area/subarea/editar" },
+};
+
+// Sustantivo (plural) de cada nivel para el estado vacío.
+const EMPTY_NOUNS = { campus: "campus", area: "áreas", subarea: "subáreas" };
+
 export default function Navegar() {
   const navigate = useNavigate();
   const { loading: permLoading, isAdmin, canSeeCampus, canSeeArea } = usePermissions();
@@ -83,19 +101,22 @@ export default function Navegar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, permLoading, campus, area, campuses, areas]);
 
-  const level = !campus ? "campus" : !area ? "area" : "subarea";
-  const options =
-    level === "campus" ? visibleCampuses : level === "area" ? visibleAreas : visibleCareers;
-
-  const headings = {
-    campus: { title: "Selecciona un campus", create: "Crear Campus", createPath: "/page/campus/crear", editPath: "/page/campus/editar" },
-    area: { title: "Selecciona un área", create: "Crear Área", createPath: "/page/campus/area/crear", editPath: "/page/campus/area/editar" },
-    subarea: { title: "Selecciona una subárea", create: "Crear Subárea", createPath: "/page/campus/area/subarea/crear", editPath: "/page/campus/area/subarea/editar" },
+  const level = getLevel(campus, area);
+  const optionsByLevel = {
+    campus: visibleCampuses,
+    area: visibleAreas,
+    subarea: visibleCareers,
   };
-  const h = headings[level];
+  const options = optionsByLevel[level];
 
-  const onSelect = (item) =>
-    level === "campus" ? selectCampus(item) : level === "area" ? selectArea(item) : selectCareer(item);
+  const h = HEADINGS[level];
+
+  const selectByLevel = {
+    campus: selectCampus,
+    area: selectArea,
+    subarea: selectCareer,
+  };
+  const onSelect = selectByLevel[level];
 
   if (loading || permLoading) {
     return <PageLoader />;
@@ -112,6 +133,7 @@ export default function Navegar() {
       {/* Interactive level breadcrumb (resets the selection, not navigation) */}
       <div className="mb-4 flex flex-wrap items-center gap-1 text-sm">
         <button
+          type="button"
           onClick={() => { setCampus(null); setArea(null); }}
           className={`font-medium ${level === "campus" ? "text-brand-500" : "text-gray-500 hover:text-navy-700 dark:hover:text-white"}`}
         >
@@ -121,6 +143,7 @@ export default function Navegar() {
           <>
             <MdChevronRight className="h-4 w-4 text-gray-300" />
             <button
+              type="button"
               onClick={() => setArea(null)}
               className={`font-medium ${level === "area" ? "text-brand-500" : "text-gray-500 hover:text-navy-700 dark:hover:text-white"}`}
             >
@@ -152,7 +175,7 @@ export default function Navegar() {
       >
         {options.length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-500">
-            No hay {level === "campus" ? "campus" : level === "area" ? "áreas" : "subáreas"} disponibles.
+            No hay {EMPTY_NOUNS[level]} disponibles.
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -175,6 +198,7 @@ export default function Navegar() {
                 <div className="flex shrink-0 items-center gap-1">
                   {isAdmin && (
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(h.editPath, { state: { id: item.id } });

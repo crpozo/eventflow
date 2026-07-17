@@ -51,7 +51,7 @@ export const TRANSLATE_OVERRIDES = {
 export function applyOverride(text, lang) {
   if (typeof text !== "string") return null;
   const o = TRANSLATE_OVERRIDES[text.trim().toLowerCase()];
-  return o && o[lang] ? o[lang] : null;
+  return o?.[lang] || null;
 }
 
 // Word-level swaps applied to the SOURCE before sending it to Amazon Translate

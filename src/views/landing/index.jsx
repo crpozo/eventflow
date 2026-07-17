@@ -20,6 +20,55 @@ import {
 import { generateClient } from 'aws-amplify/api';
 import { getEvent, listLandings, eventAttendeesIdsByEventID, getEventAttendee } from '../../graphql/queries';
 
+// URL base de CloudFront para los assets públicos subidos por el admin.
+const CLOUDFRONT_PUBLIC = "https://dnuc5lxyun5b.cloudfront.net/public/";
+
+// Resuelve el src del banner principal: key subida por el admin (vía
+// CloudFront) o el placeholder local si la landing no tiene banner.
+const resolveBannerSrc = (landing) =>
+  landing.mainBanner
+    ? `${CLOUDFRONT_PUBLIC}${landing.mainBanner}`
+    : bgPlaceholder;
+
+// La landing sigue "cargando" cuando la query aún no responde o cuando el
+// ?EventAttendee= de la URL todavía no se resuelve (ni válido ni inválido).
+const isLandingLoading = (loading, landing, attendeeParam, eventAttendee) =>
+  (loading && landing?.length === 0) ||
+  (attendeeParam && !eventAttendee && eventAttendee !== false);
+
+// Landing desactivada: se oculta solo al público (visitantes sin sesión).
+const isLandingDeactivated = (loading, landing, authStatus) =>
+  !loading && landing.active === false && authStatus === "unauthenticated";
+
+// ?EventAttendee= inválido: la query respondió que no existe, así que hay que
+// limpiarlo de la URL para no volver a consultarlo.
+const hasInvalidAttendeeParam = (attendeeParam, eventAttendee) =>
+  Boolean(attendeeParam) && eventAttendee === false;
+
+// CTA del bloque de tickets: spinner mientras se valida el cupo, aviso de
+// agotado, o el botón de reservar / ver actividades según el tipo de landing.
+function ReserveCta({ isSoldOut, isSubeventLanding, ui, onReserve }) {
+  if (isSoldOut === null) {
+    return (
+      <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
+        <span className="loader-small animate-spin rounded-full border-2 border-gray-300 border-t-red-500 h-7 w-7"></span>
+      </div>
+    );
+  }
+  if (isSoldOut) {
+    return <span className="text-red-600 font-bold py-2">{ui.soldOut}</span>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onReserve}
+      className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
+    >
+      {isSubeventLanding ? ui.seeActivities : ui.bookTicket}
+    </button>
+  );
+}
+
 export default function SignIn() {
   const { authStatus } = useAuthenticator((context) => [context.authStatus]);
   const { id, lang: langParam } = useParams();
@@ -135,7 +184,7 @@ export default function SignIn() {
     // Regular expression to extract the UUID after "/landing/"
     const uuidRegex = /\/landing\/([0-9a-fA-F-]+)(\/|$)/;
     // Extract the UUID from the current URL
-    const currentUuidMatch = currentUrl.match(uuidRegex);
+    const currentUuidMatch = uuidRegex.exec(currentUrl);
     const currentUuid = currentUuidMatch ? currentUuidMatch[1] : null;
     // Check if the user is on the specific UUID
     if (currentUuid === targetUuid) {
@@ -297,13 +346,13 @@ export default function SignIn() {
   };
 
   // Landing doesnt have any results on query + EventAttendee query parameter is not valid
-  if ((loading && landing && landing.length === 0) || (searchParams.get('EventAttendee') && !eventAttendee && eventAttendee !== false)) {
+  if (isLandingLoading(loading, landing, searchParams.get('EventAttendee'), eventAttendee)) {
 
     return <FullScreenLoader label={ui.loading} />;
   }
 
   // Landing is deactivated
-  if (!loading && landing.active === false && authStatus === "unauthenticated") {
+  if (isLandingDeactivated(loading, landing, authStatus)) {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
         <img src={logo} alt="USFQ Logo" className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
@@ -315,7 +364,7 @@ export default function SignIn() {
   }
 
   // If eventAttendee doesnt exist remove the query parameter
-  if (searchParams.get('EventAttendee') && eventAttendee === false) {
+  if (hasInvalidAttendeeParam(searchParams.get('EventAttendee'), eventAttendee)) {
     searchParams.delete('EventAttendee');
     window.history.replaceState({}, '', `${url.origin}${url.pathname}`);
   }
@@ -373,23 +422,13 @@ export default function SignIn() {
 
       {landing && (
         <div className="relative w-full">
-          {landing.mainBanner ? (
-            <img
-              className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[400px]"
-              src={`https://dnuc5lxyun5b.cloudfront.net/public/${landing.mainBanner}`}
-              alt="Banner"
-              fetchpriority="high"
-              decoding="async"
-            />
-          ) : (
-            <img
-              className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[400px]"
-              src={bgPlaceholder}
-              alt="Banner"
-              fetchpriority="high"
-              decoding="async"
-            />
-          )}
+          <img
+            className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[400px]"
+            src={resolveBannerSrc(landing)}
+            alt="Banner"
+            fetchpriority="high"
+            decoding="async"
+          />
 
           <div className="container absolute inset-0 flex items-center justify-center md:justify-start">
             <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-black/50 backdrop-blur-md px-3 py-3 lg:max-w-[43%] xl:max-w-[40%] md:!pb-[25px] md:!pt-[25px]">
@@ -515,7 +554,7 @@ export default function SignIn() {
                               }}
                             >
                               {tickets.map((result, i) => (
-                                <option key={i} value={result.cost}>
+                                <option key={`${result.title}-${result.cost}`} value={result.cost}>
                                   {translated[`ticket_${i}`] || result.title}
                                 </option>
                               ))}
@@ -523,6 +562,7 @@ export default function SignIn() {
 
                             <div className="flex shrink-0 items-center gap-2 sm:justify-between">
                               <button
+                                type="button"
                                 onClick={quantityDecrementHandler}
                                 className="cursor-pointer rounded-lg bg-[#ebebeb] bg-opacity-70 p-[8px] text-[#A6A6A6] focus:outline-none hover:bg-[#D9D9D9]"
                               >
@@ -532,6 +572,7 @@ export default function SignIn() {
                                 {ticketsQuantity}
                               </div>
                               <button
+                                type="button"
                                 onClick={quantityIncrementHandler}
                                 className="cursor-pointer rounded-lg bg-[#ebebeb] bg-opacity-70 p-[8px] text-[#A6A6A6] focus:outline-none hover:bg-[#D9D9D9]"
                               >
@@ -551,29 +592,21 @@ export default function SignIn() {
 
                       {/* Botón */}
                       <div className="flex items-center">
-                        {isSoldOut === null ? (
-                          <div className="flex justify-center items-center gap-2 text-gray-600 text-sm">
-                            <span className="loader-small animate-spin rounded-full border-2 border-gray-300 border-t-red-500 h-7 w-7"></span>
-                          </div>
-                        ) : isSoldOut ? (
-                          <span className="text-red-600 font-bold py-2">{ui.soldOut}</span>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (isSubeventLanding && cardsRef.current) {
-                                cardsRef.current.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "start",
-                                });
-                              } else {
-                                setShowRegister(true);
-                              }
-                            }}
-                            className="flex w-full max-w-full md:max-w-[250px] items-center justify-center gap-1 rounded-xl bg-red-500 py-[10px] px-3 font-medium text-white transition duration-200 hover:bg-black"
-                          >
-                            {isSubeventLanding ? ui.seeActivities : ui.bookTicket}
-                          </button>
-                        )}
+                        <ReserveCta
+                          isSoldOut={isSoldOut}
+                          isSubeventLanding={isSubeventLanding}
+                          ui={ui}
+                          onReserve={() => {
+                            if (isSubeventLanding && cardsRef.current) {
+                              cardsRef.current.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                              });
+                            } else {
+                              setShowRegister(true);
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

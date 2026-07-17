@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { generateClient } from "aws-amplify/api";
-import { post, del } from "aws-amplify/api";
+import { generateClient, post, del } from "aws-amplify/api";
 import { DataStore } from "aws-amplify/datastore";
 import { User } from "models";
 import { fetchUserAttributes } from "aws-amplify/auth";
@@ -14,6 +13,103 @@ const client = generateClient();
 // REST API (Amplify) backed by the userManager Lambda. See the function's
 // README for the deploy runbook. Until deployed, create/delete show a notice.
 const USER_API = "userApi";
+
+// The userApi REST endpoint (userManager Lambda) may not be deployed yet.
+const isApiMissing = (err) =>
+  /API name is invalid|No API named|not configured|does not exist/i.test(
+    String(err?.message || err)
+  );
+
+// Cognito already has a login for this email (AdminCreateUser -> 409
+// UsernameExistsException). Not a failure: reuse the existing login.
+const isUserExists = (err) => {
+  const status =
+    err?.response?.statusCode ??
+    err?.$metadata?.httpStatusCode ??
+    err?.statusCode;
+  return (
+    status === 409 ||
+    /409|UsernameExists|already exists|ya existe/i.test(
+      `${err?.message || ""} ${err?.name || ""}`
+    )
+  );
+};
+
+// Orden alfabético por título (tolerante a títulos vacíos).
+const byTitle = (x, y) => (x.title || "").localeCompare(y.title || "");
+
+// Construye el árbol Campus -> Área -> Evento (aplanando Career).
+const buildTree = (campuses, areas, careers, events) => {
+  const careerToArea = {};
+  careers.forEach((c) => { careerToArea[c.id] = c.areaID; });
+
+  const eventsByArea = {};
+  events.forEach((e) => {
+    const areaId = careerToArea[e.careerID];
+    if (!areaId) return;
+    eventsByArea[areaId] = eventsByArea[areaId] || [];
+    eventsByArea[areaId].push(e);
+  });
+
+  const areasByCampus = {};
+  areas.forEach((a) => {
+    areasByCampus[a.campusID] = areasByCampus[a.campusID] || [];
+    areasByCampus[a.campusID].push(a);
+  });
+
+  return campuses
+    .map((c) => ({
+      id: c.id,
+      title: c.title,
+      areas: (areasByCampus[c.id] || [])
+        .map((a) => ({
+          id: a.id,
+          title: a.title,
+          events: (eventsByArea[a.id] || []).sort(byTitle),
+        }))
+        .sort(byTitle),
+    }))
+    .sort(byTitle);
+};
+
+// Mensaje de éxito según cómo quedó la cuenta de acceso (login) en Cognito.
+const createdUserMessage = ({ loginStatus, tempPassword }, email) => {
+  if (loginStatus === "created") return "Usuario creado e invitado por correo.";
+  if (loginStatus === "created-noemail")
+    return `Usuario creado, pero NO se pudo enviar el correo de invitación.\n\nComparte esta contraseña temporal manualmente con ${email}:\n\n${tempPassword || "(no disponible)"}\n\nDeberá cambiarla en el primer inicio de sesión.`;
+  if (loginStatus === "exists")
+    return "Usuario creado. Ya existía una cuenta de acceso para ese correo; se reutilizó (no se reenvió invitación).";
+  return "Usuario creado con su rol y permisos.\n\nLa cuenta de acceso (login) se generará cuando despliegues la función 'userManager' (Cognito).";
+};
+
+// Mensaje según la respuesta del backend al reenviar la invitación.
+const resendResultMessage = (result, email) => {
+  if (result.emailSent) return `Instrucciones de acceso reenviadas a ${email}.`;
+  if (result.withTempPassword && result.tempPassword)
+    return `No se pudo enviar el correo. Comparte esta contraseña temporal manualmente con ${email}:\n\n${result.tempPassword}\n\nDeberá cambiarla en el primer inicio de sesión.`;
+  return (
+    "No se pudo reenviar el correo." +
+    (result.emailError ? "\n\n" + result.emailError : "")
+  );
+};
+
+// Detalle del error al reenviar: cuerpo del error o diagnóstico de deploy.
+const resendErrorDetail = async (err) => {
+  let msg = "";
+  try {
+    const d = await err?.response?.body?.json?.();
+    msg = d?.error || "";
+  } catch (parseErr) {
+    console.error("No se pudo leer el cuerpo del error:", parseErr);
+  }
+  if (msg) return msg;
+  const status = err?.response?.statusCode;
+  if (status === 404 || /unknown error/i.test(String(err?.message || "")))
+    return "El endpoint /users no está desplegado en el API Gateway. Corre 'amplify push' (despliega userManager + userApi).";
+  if (isApiMissing(err))
+    return "La función de acceso (userManager) aún no está desplegada.";
+  return msg;
+};
 
 const AdminUserManager = () => {
   const [users, setUsers] = useState([]);
@@ -102,40 +198,14 @@ const AdminUserManager = () => {
       setRoles(roleItems);
 
       // Build Campus -> Area -> Event tree (flattening Career).
-      const campuses = campusRes.data.listCampuses.items;
-      const areas = areasRes.data.listAreas.items;
-      const careers = careersRes.data.listCareers.items;
-      const events = eventsRes.data.listEvents.items;
-
-      const careerToArea = {};
-      careers.forEach((c) => { careerToArea[c.id] = c.areaID; });
-      const eventsByArea = {};
-      events.forEach((e) => {
-        const areaId = careerToArea[e.careerID];
-        if (!areaId) return;
-        (eventsByArea[areaId] = eventsByArea[areaId] || []).push(e);
-      });
-      const areasByCampus = {};
-      areas.forEach((a) => {
-        (areasByCampus[a.campusID] = areasByCampus[a.campusID] || []).push(a);
-      });
-
-      const builtTree = campuses
-        .map((c) => ({
-          id: c.id,
-          title: c.title,
-          areas: (areasByCampus[c.id] || [])
-            .map((a) => ({
-              id: a.id,
-              title: a.title,
-              events: (eventsByArea[a.id] || []).sort((x, y) =>
-                (x.title || "").localeCompare(y.title || "")
-              ),
-            }))
-            .sort((x, y) => (x.title || "").localeCompare(y.title || "")),
-        }))
-        .sort((x, y) => (x.title || "").localeCompare(y.title || ""));
-      setTree(builtTree);
+      setTree(
+        buildTree(
+          campusRes.data.listCampuses.items,
+          areasRes.data.listAreas.items,
+          careersRes.data.listCareers.items,
+          eventsRes.data.listEvents.items
+        )
+      );
     } catch (err) {
       console.error("Error fetching data:", err);
       alert("Error cargando datos. ¿Ya hiciste 'amplify push' con los campos nuevos de User?");
@@ -157,27 +227,6 @@ const AdminUserManager = () => {
         u.areaIDs = data.areaIDs;
         u.eventIDs = data.eventIDs;
       })
-    );
-  };
-
-  // The userApi REST endpoint (userManager Lambda) may not be deployed yet.
-  const isApiMissing = (err) =>
-    /API name is invalid|No API named|not configured|does not exist/i.test(
-      String(err?.message || err)
-    );
-
-  // Cognito already has a login for this email (AdminCreateUser -> 409
-  // UsernameExistsException). Not a failure: reuse the existing login.
-  const isUserExists = (err) => {
-    const status =
-      err?.response?.statusCode ??
-      err?.$metadata?.httpStatusCode ??
-      err?.statusCode;
-    return (
-      status === 409 ||
-      /409|UsernameExists|already exists|ya existe/i.test(
-        `${err?.message || ""} ${err?.name || ""}`
-      )
     );
   };
 
@@ -229,18 +278,10 @@ const AdminUserManager = () => {
         await fetchData();
         alert("Usuario actualizado.");
       } else {
-        const { loginStatus, tempPassword } = await createUser(data);
+        const created = await createUser(data);
         setModal(null);
         await fetchData();
-        alert(
-          loginStatus === "created"
-            ? "Usuario creado e invitado por correo."
-            : loginStatus === "created-noemail"
-            ? `Usuario creado, pero NO se pudo enviar el correo de invitación.\n\nComparte esta contraseña temporal manualmente con ${data.email}:\n\n${tempPassword || "(no disponible)"}\n\nDeberá cambiarla en el primer inicio de sesión.`
-            : loginStatus === "exists"
-            ? "Usuario creado. Ya existía una cuenta de acceso para ese correo; se reutilizó (no se reenvió invitación)."
-            : "Usuario creado con su rol y permisos.\n\nLa cuenta de acceso (login) se generará cuando despliegues la función 'userManager' (Cognito)."
-        );
+        alert(createdUserMessage(created, data.email));
       }
     } catch (err) {
       console.error("save user error:", err);
@@ -287,32 +328,9 @@ const AdminUserManager = () => {
       });
       const { body } = await op.response;
       const result = await body.json().catch(() => ({}));
-      if (result.emailSent) {
-        alert(`Instrucciones de acceso reenviadas a ${u.email}.`);
-      } else if (result.withTempPassword && result.tempPassword) {
-        alert(
-          `No se pudo enviar el correo. Comparte esta contraseña temporal manualmente con ${u.email}:\n\n${result.tempPassword}\n\nDeberá cambiarla en el primer inicio de sesión.`
-        );
-      } else {
-        alert(
-          "No se pudo reenviar el correo." +
-            (result.emailError ? "\n\n" + result.emailError : "")
-        );
-      }
+      alert(resendResultMessage(result, u.email));
     } catch (err) {
-      let msg = "";
-      const status = err?.response?.statusCode;
-      try {
-        const d = await err?.response?.body?.json?.();
-        msg = d?.error || "";
-      } catch (e) {
-        /* ignore */
-      }
-      if (!msg && (status === 404 || /unknown error/i.test(String(err?.message || ""))))
-        msg =
-          "El endpoint /users no está desplegado en el API Gateway. Corre 'amplify push' (despliega userManager + userApi).";
-      else if (!msg && isApiMissing(err))
-        msg = "La función de acceso (userManager) aún no está desplegada.";
+      const msg = await resendErrorDetail(err);
       console.error("resend error:", err);
       alert("No se pudo reenviar el correo." + (msg ? "\n\n" + msg : ""));
     }
@@ -424,12 +442,14 @@ const AdminUserManager = () => {
                   <td className="py-2.5">
                     <div className="flex justify-end gap-2">
                       <button
+                        type="button"
                         onClick={() => setModal({ mode: "edit", user: u })}
                         className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-navy-700 transition hover:bg-gray-50 dark:border-navy-700 dark:text-white dark:hover:bg-navy-900"
                       >
                         <MdEdit className="h-4 w-4" /> Editar
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleResend(u)}
                         title="Reenviar instrucciones de acceso por correo"
                         className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-navy-700 transition hover:bg-gray-50 dark:border-navy-700 dark:text-white dark:hover:bg-navy-900"
@@ -437,6 +457,7 @@ const AdminUserManager = () => {
                         <MdOutlineMail className="h-4 w-4" /> Reenviar
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDelete(u)}
                         disabled={u.id === currentUser?.id}
                         className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-40 dark:border-red-900/40"

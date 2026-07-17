@@ -70,6 +70,29 @@ function toDatetimeLocal(iso) {
   )}:${pad(d.getMinutes())}`;
 }
 
+// Etiqueta del botón de envío manual según el estado actual.
+function sendNowLabel(sending, sentAtInfo) {
+  if (sending) return "Enviando…";
+  if (sentAtInfo) return "Reenviar encuesta";
+  return "Enviar encuesta ahora";
+}
+
+// Mensaje de confirmación del envío manual: reenvío si ya hay sentAt; si es el
+// primer envío, la nota depende del estado del envío automático.
+function buildSendNowMessage(sentAtInfo, active, unsaved) {
+  if (sentAtInfo) {
+    return `La encuesta ya se envió el ${new Date(sentAtInfo).toLocaleString(
+      "es-EC"
+    )}. ¿Reenviar a todos los asistentes con check-in?${unsaved}`;
+  }
+  // Manual send stamps sentAt, and the scheduled sender skips any
+  // survey with sentAt — the pending auto-send won't run anymore.
+  const autoNote = active
+    ? "\n\nNota: el envío automático programado ya no se ejecutará después de este envío manual; los asistentes que hagan check-in más tarde no recibirán la encuesta salvo que la reenvíes."
+    : "\n(El envío automático está desactivado; este envío es manual y único.)";
+  return `Se enviará la encuesta por correo a todos los asistentes con check-in. ¿Continuar?${autoNote}${unsaved}`;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const stored = readStoredEvent();
@@ -257,11 +280,9 @@ const Dashboard = () => {
       try {
         detail = JSON.parse(e?.response?.body || "{}").error || "";
       } catch (_) {}
-      alert(
-        `No se pudo enviar la prueba${status ? ` (HTTP ${status})` : ""}${
-          detail ? `: ${detail}` : ""
-        }`
-      );
+      const statusPart = status ? ` (HTTP ${status})` : "";
+      const detailPart = detail ? `: ${detail}` : "";
+      alert(`No se pudo enviar la prueba${statusPart}${detailPart}`);
     } finally {
       setTesting(false);
     }
@@ -277,17 +298,7 @@ const Dashboard = () => {
     const unsaved = dirtyRef.current
       ? "\n\nTienes cambios sin guardar (asunto/mensaje o preguntas): el correo saldrá con la última versión GUARDADA."
       : "";
-    const msg = sentAtInfo
-      ? `La encuesta ya se envió el ${new Date(sentAtInfo).toLocaleString(
-          "es-EC"
-        )}. ¿Reenviar a todos los asistentes con check-in?${unsaved}`
-      : `Se enviará la encuesta por correo a todos los asistentes con check-in. ¿Continuar?${
-          active
-            ? // Manual send stamps sentAt, and the scheduled sender skips any
-              // survey with sentAt — the pending auto-send won't run anymore.
-              "\n\nNota: el envío automático programado ya no se ejecutará después de este envío manual; los asistentes que hagan check-in más tarde no recibirán la encuesta salvo que la reenvíes."
-            : "\n(El envío automático está desactivado; este envío es manual y único.)"
-        }${unsaved}`;
+    const msg = buildSendNowMessage(sentAtInfo, active, unsaved);
     if (!window.confirm(msg)) return;
     setSending(true);
     try {
@@ -307,11 +318,9 @@ const Dashboard = () => {
       try {
         detail = JSON.parse(e?.response?.body || "{}").error || "";
       } catch (_) {}
-      alert(
-        `No se pudo enviar la encuesta${status ? ` (HTTP ${status})` : ""}${
-          detail ? `: ${detail}` : ""
-        }`
-      );
+      const statusPart = status ? ` (HTTP ${status})` : "";
+      const detailPart = detail ? `: ${detail}` : "";
+      alert(`No se pudo enviar la encuesta${statusPart}${detailPart}`);
     } finally {
       setSending(false);
     }
@@ -468,11 +477,7 @@ const Dashboard = () => {
                 className="flex shrink-0 items-center gap-1.5"
               >
                 <MdSend className="h-4 w-4" />
-                {sending
-                  ? "Enviando…"
-                  : sentAtInfo
-                  ? "Reenviar encuesta"
-                  : "Enviar encuesta ahora"}
+                {sendNowLabel(sending, sentAtInfo)}
               </PrimaryButton>
               {sentAtInfo && (
                 <Chip color="green">

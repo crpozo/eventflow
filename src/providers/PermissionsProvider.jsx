@@ -95,6 +95,53 @@ async function resolveHierarchicalAccess(grants) {
   };
 }
 
+// Carga las capacidades por evento del usuario. Ausente hasta que
+// 'amplify push' aprovisione EventPermission — degrada a {} sin romper.
+async function loadEventCaps(userId) {
+  try {
+    const perms = await DataStore.query(EventPermission, (p) =>
+      p.userID.eq(userId)
+    );
+    return {
+      isManaged: perms.length > 0,
+      eventCapsByEvent: perms.reduce((acc, p) => {
+        acc[p.eventID] = (p.capabilities || []).filter(Boolean);
+        return acc;
+      }, {}),
+    };
+  } catch (e) {
+    console.warn("EventPermission not available yet:", e?.message);
+    return { isManaged: false, eventCapsByEvent: {} };
+  }
+}
+
+// Resuelve el acceso jerárquico campus/área/evento del usuario. Si no hay
+// grants por usuario o el esquema aún no está desplegado, cae al legado:
+// áreas del rol, campus y eventos sin restricción.
+async function loadHierarchicalAccess(user) {
+  const legacy = {
+    areaIDsAllowed: (user.role?.areas || []).filter(Boolean),
+    campusIDsAllowed: null,
+    eventIDsAllowed: null,
+  };
+  try {
+    const grantsRes = await client.graphql({
+      query: /* GraphQL */ `
+        query ($id: ID!) {
+          getUser(id: $id) { campusIDs areaIDs eventIDs }
+        }
+      `,
+      variables: { id: user.id },
+    });
+    const g = grantsRes.data?.getUser || {};
+    const resolved = await resolveHierarchicalAccess(g);
+    return resolved || legacy;
+  } catch (e) {
+    console.warn("Hierarchical access not available yet:", e?.message);
+    return legacy;
+  }
+}
+
 export const PermissionsProvider = ({ children }) => {
   const [state, setState] = useState({
     loading: true,
@@ -144,57 +191,19 @@ export const PermissionsProvider = ({ children }) => {
         console.log("Role Areas:", user?.role?.areas);
         console.log("======================");
 
-        // 3) load per-event permissions for this user (if any).
-        // Absent until 'amplify push' provisions EventPermission — degrades to [].
+        // 3) load per-event permissions for this user (if any) and
+        // 4) resolve hierarchical campus/area/event access for non-admins.
+        // Both degrade gracefully when the schema isn't deployed yet
+        // (-> legacy role.areas). null = no restriction.
         let eventCapsByEvent = {};
         let isManaged = false;
-        if (user?.id && !isAdmin) {
-          try {
-            const perms = await DataStore.query(EventPermission, (p) =>
-              p.userID.eq(user.id)
-            );
-            isManaged = perms.length > 0;
-            eventCapsByEvent = perms.reduce((acc, p) => {
-              acc[p.eventID] = (p.capabilities || []).filter(Boolean);
-              return acc;
-            }, {});
-          } catch (e) {
-            console.warn("EventPermission not available yet:", e?.message);
-          }
-        }
-
-        // 4) resolve hierarchical campus/area/event access for non-admins.
-        // The per-user fields and the resolution both degrade gracefully when
-        // the schema isn't deployed yet (-> legacy role.areas).
-        let areaIDsAllowed = null; // null = no restriction
+        let areaIDsAllowed = null;
         let campusIDsAllowed = null;
-        let eventIDsAllowed = null; // null = no restriction
+        let eventIDsAllowed = null;
         if (user?.id && !isAdmin) {
-          try {
-            const grantsRes = await client.graphql({
-              query: /* GraphQL */ `
-                query ($id: ID!) {
-                  getUser(id: $id) { campusIDs areaIDs eventIDs }
-                }
-              `,
-              variables: { id: user.id },
-            });
-            const g = grantsRes.data?.getUser || {};
-            const resolved = await resolveHierarchicalAccess(g);
-            if (resolved) {
-              areaIDsAllowed = resolved.areaIDsAllowed;
-              campusIDsAllowed = resolved.campusIDsAllowed;
-              eventIDsAllowed = resolved.eventIDsAllowed;
-            } else {
-              // No per-user grants: keep legacy role.areas for areas, all campuses.
-              areaIDsAllowed = (user.role?.areas || []).filter(Boolean);
-              campusIDsAllowed = null;
-            }
-          } catch (e) {
-            console.warn("Hierarchical access not available yet:", e?.message);
-            areaIDsAllowed = (user.role?.areas || []).filter(Boolean);
-            campusIDsAllowed = null;
-          }
+          ({ isManaged, eventCapsByEvent } = await loadEventCaps(user.id));
+          ({ areaIDsAllowed, campusIDsAllowed, eventIDsAllowed } =
+            await loadHierarchicalAccess(user));
         }
 
         if (mounted)

@@ -45,14 +45,12 @@ export default function LandingExtras({ landing, ui }) {
             {ui.gallery}
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
+            {/* Botones reales (no <img role="button">): las keys son las URLs,
+                únicas tras el dedupe de toUrls. */}
             {gallery.map((url, i) => (
-              <img
-                key={i}
-                src={url}
-                alt={`${ui.gallery} ${i + 1}`}
-                loading="lazy"
-                role="button"
-                tabIndex={0}
+              <button
+                key={url}
+                type="button"
                 onClick={() => setLightbox(url)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -60,8 +58,15 @@ export default function LandingExtras({ landing, ui }) {
                     setLightbox(url);
                   }
                 }}
-                className="h-40 w-full cursor-zoom-in rounded-xl object-cover transition duration-200 hover:opacity-90 md:h-48"
-              />
+                className="h-40 w-full cursor-zoom-in rounded-xl transition duration-200 hover:opacity-90 md:h-48"
+              >
+                <img
+                  src={url}
+                  alt={`${ui.gallery} ${i + 1}`}
+                  loading="lazy"
+                  className="h-full w-full rounded-xl object-cover"
+                />
+              </button>
             ))}
           </div>
         </div>
@@ -75,25 +80,31 @@ export default function LandingExtras({ landing, ui }) {
           </h2>
           <div className="group relative w-full overflow-hidden">
             <div className="flex w-max animate-[landing-marquee_30s_linear_infinite] items-center gap-12 pr-12 group-hover:[animation-play-state:paused]">
-              {/* Duplicate the list so the loop is seamless */}
-              {[...logos, ...logos].map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt="partner logo"
-                  loading="lazy"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setLightbox(url)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setLightbox(url);
-                    }
-                  }}
-                  className="h-16 w-auto max-w-[160px] cursor-zoom-in object-contain md:h-20"
-                />
-              ))}
+              {/* Duplicate the list so the loop is seamless. La copia ("bis")
+                  discrimina la key porque cada URL aparece dos veces. */}
+              {["original", "bis"].flatMap((copia) =>
+                logos.map((url) => (
+                  <button
+                    key={`${copia}-${url}`}
+                    type="button"
+                    onClick={() => setLightbox(url)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setLightbox(url);
+                      }
+                    }}
+                    className="cursor-zoom-in"
+                  >
+                    <img
+                      src={url}
+                      alt="partner logo"
+                      loading="lazy"
+                      className="h-16 w-auto max-w-[160px] object-contain md:h-20"
+                    />
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -102,18 +113,20 @@ export default function LandingExtras({ landing, ui }) {
       {/* Lightbox overlay: click anywhere or the X to close */}
       {lightbox && (
         <div
-          onClick={() => setLightbox(null)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setLightbox(null);
-            }
-          }}
-          tabIndex={0}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4"
           role="dialog"
           aria-modal="true"
         >
+          {/* Fondo clickeable: cierra al hacer click en cualquier zona oscura.
+              Fuera del orden de tabulación; con teclado se cierra con Escape
+              (listener global) o con el botón X. */}
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setLightbox(null)}
+            aria-label="Cerrar imagen ampliada"
+            className="absolute inset-0 h-full w-full cursor-default"
+          />
           <button
             type="button"
             onClick={() => setLightbox(null)}
@@ -122,19 +135,12 @@ export default function LandingExtras({ landing, ui }) {
           >
             ×
           </button>
+          {/* relative: pinta la imagen SOBRE el fondo clickeable, así el click
+              en la imagen ampliada no cierra (antes lo hacía stopPropagation). */}
           <img
             src={lightbox}
             alt=""
-            role="button"
-            tabIndex={0}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+            className="relative max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
           />
         </div>
       )}

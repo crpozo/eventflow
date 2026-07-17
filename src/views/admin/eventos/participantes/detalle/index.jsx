@@ -8,7 +8,7 @@ import { PageLoader } from "components/adminUi";
 const Profile = () => {
 
   const [attendee, setAttendee] = React.useState(null);
-  const [eventAttende, setEventAttendee] = React.useState(null);
+  const [eventAttendee, setEventAttendee] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const navigate = useNavigate();
   const { id } = useParams();
@@ -30,24 +30,31 @@ const Profile = () => {
       navigate('/');
     }
 
+    // Carga el EventAttendee asociado sin bloquear el fin del loading
+    async function loadEventAttendee(attendeeID) {
+      const results = await DataStore.query(EventAttendee, (e) => e.attendeeID.eq(attendeeID));
+      if(results.length > 0 ){
+        setEventAttendee(results[0])
+      }
+    }
+
+    async function loadAttendee() {
+      const results = await DataStore.query(Attendee, (a) => a.id.eq(id));
+      if(results.length > 0 ){
+        setAttendee(results[0]);
+        loadEventAttendee(results[0].id);
+      }
+      setLoading(false);
+    }
+
     Hub.listen('datastore', async hubData => {
       const  { event } = hubData.payload;
       if (event === "ready") {
-        DataStore.query(Attendee, (a) => a.id.eq(id)).then( results => {
-          if(results.length > 0 ){
-            setAttendee(results[0]);
-            DataStore.query(EventAttendee,  (e) => e.attendeeID.eq(results[0].id)).then(results => {
-              if(results.length > 0 ){
-                setEventAttendee(results[0])
-              }
-            })
-          }
-          setLoading(false);
-        }); 
+        loadAttendee();
       }
     })
 
-    
+
   }, []);
 
   if (loading) {
@@ -56,7 +63,7 @@ const Profile = () => {
     return <PageLoader />;
   }
 
-  if (attendee == null && loading == false) {
+  if (attendee == null && !loading) {
     // Bloque en la columna de contenido (misma geometría que PageLoader):
     // el overlay fixed viejo tapaba sidebar y navbar dentro del admin.
     return (
@@ -74,18 +81,18 @@ const Profile = () => {
   return (
     <div className="profile-page container mt-[-20px]">
 
-      {eventAttende && eventAttende.length !== 0 &&
+      {eventAttendee && eventAttendee.length !== 0 &&
         <div className="!z-5 max-w-[23rem] mx-auto relative flex flex-colbg-clip-border dark:!bg-navy-800 dark:text-white dark:shadow-none !z-5">
 
           <div className="flex flex-col justify-between gap-[50px] mb-4 w-full">
 
           <div className="card w-full pt-[50px] pb-[20px]">
             <h2 className="name mb-4">
-              {eventAttende.formAnswers.find(item => item.name === "nombres").userData[0]}
+              {eventAttendee.formAnswers.find(item => item.name === "nombres").userData[0]}
             </h2>
             <div className="flex flex-col items-center mb-4">
-            {eventAttende.formAnswers.map((formAnswer, i) => (
-              <div key={i}>
+            {eventAttendee.formAnswers.map((formAnswer) => (
+              <div key={formAnswer.name}>
                 {formAnswer.userData 
                   && formAnswer.userData[0] !== "" 
                   && formAnswer.name !== 'nombres' 
@@ -104,7 +111,7 @@ const Profile = () => {
             </div>
             <div className="actions">
               <div className="follow-btn">
-                <a href={`https://www.linkedin.com/search/results/all/?keywords=${eventAttende.formAnswers.find(item => item.name === "nombres").userData[0]}`}>Seguir en LinkedIn</a>
+                <a href={`https://www.linkedin.com/search/results/all/?keywords=${eventAttendee.formAnswers.find(item => item.name === "nombres").userData[0]}`}>Seguir en LinkedIn</a>
               </div>
             </div>
           </div>

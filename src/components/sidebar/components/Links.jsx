@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* eslint-disable array-callback-return, eqeqeq */
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import DashIcon from "components/icons/DashIcon";

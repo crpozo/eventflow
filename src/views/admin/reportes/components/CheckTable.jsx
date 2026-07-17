@@ -47,36 +47,41 @@ const CheckTable = (props) => {
       </header>
 
       <div className="mt-8 overflow-x-scroll xl:overflow-x-hidden">
-        <table
-          {...getTableProps()}
-          className="w-full"
-          variant="simple"
-          color="gray-500"
-          mb="24px"
-        >
+        <table {...getTableProps()} className="w-full">
           <thead>
-            {headerGroups.map((headerGroup, index) => (
-              <tr {...headerGroup.getHeaderGroupProps()} key={index}>
-                {headerGroup.headers.map((column, index) => (
-                  <th
-                    {...column.getHeaderProps(column.getSortByToggleProps())}
-                    className="border-b border-gray-200 pr-16 pb-[10px] text-start dark:!border-navy-700"
-                    key={index}
-                  >
-                    <div className="text-xs font-bold tracking-wide text-gray-600 lg:text-xs">
-                      {column.render("Header")}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            ))}
+            {headerGroups.map((headerGroup) => {
+              // react-table provee keys estables derivadas de las columnas
+              const { key: headerGroupKey, ...headerGroupProps } =
+                headerGroup.getHeaderGroupProps();
+              return (
+                <tr {...headerGroupProps} key={headerGroupKey}>
+                  {headerGroup.headers.map((column) => {
+                    const { key: columnKey, ...columnProps } =
+                      column.getHeaderProps(column.getSortByToggleProps());
+                    return (
+                      <th
+                        {...columnProps}
+                        className="border-b border-gray-200 pr-16 pb-[10px] text-start dark:!border-navy-700"
+                        key={columnKey}
+                      >
+                        <div className="text-xs font-bold tracking-wide text-gray-600 lg:text-xs">
+                          {column.render("Header")}
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {page.map((row, index) => {
+            {page.map((row) => {
               prepareRow(row);
+              const { key: rowKey, ...rowProps } = row.getRowProps();
               return (
-                <tr {...row.getRowProps()} key={index}>
-                  {row.cells.map((cell, index) => {
+                <tr {...rowProps} key={rowKey}>
+                  {row.cells.map((cell) => {
+                    const { key: cellKey, ...cellProps } = cell.getCellProps();
                     let data = "";
                     if (cell.column.Header === "NAME") {
                       data = (
@@ -111,8 +116,8 @@ const CheckTable = (props) => {
                     }
                     return (
                       <td
-                        {...cell.getCellProps()}
-                        key={index}
+                        {...cellProps}
+                        key={cellKey}
                         className="pt-[14px] pb-[16px] sm:text-[14px]"
                       >
                         {data}

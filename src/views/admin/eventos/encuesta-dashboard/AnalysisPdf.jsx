@@ -112,14 +112,41 @@ const styles = StyleSheet.create({
   },
 });
 
-const sentimentColor = (score) =>
-  score >= 66 ? "#16a34a" : score >= 40 ? "#f59e0b" : BRAND_RED;
+const sentimentColor = (score) => {
+  if (score >= 66) return "#16a34a";
+  if (score >= 40) return "#f59e0b";
+  return BRAND_RED;
+};
+
+// Color del tag de sentimiento de un tema (verde / rojo / ámbar).
+const themeTagColor = (sentiment) => {
+  if (sentiment === "positivo") return GREEN;
+  if (sentiment === "negativo") return BRAND_RED;
+  return AMBER;
+};
+
+// Normaliza a array (los insights vienen de la IA y pueden traer campos
+// ausentes o mal formados).
+const asArray = (v) => (Array.isArray(v) ? v : []);
+
+// Claves estables para listas renderizadas: derivadas del contenido con
+// `toKey`, numerando los duplicados para conservar la unicidad (evita usar el
+// índice del array como key).
+const withStableKeys = (items, toKey = String) => {
+  const seen = new Map();
+  return (items || []).map((item) => {
+    const base = String(toKey(item) ?? "");
+    const count = seen.get(base) || 0;
+    seen.set(base, count + 1);
+    return { key: count === 0 ? base : `${base}-${count}`, item };
+  });
+};
 
 const Bullets = ({ items }) =>
-  (items || []).map((s, i) => (
-    <View key={i} style={styles.listItem} wrap={false}>
+  withStableKeys(items).map(({ key, item }) => (
+    <View key={key} style={styles.listItem} wrap={false}>
       <Text style={styles.bullet}>•</Text>
-      <Text style={styles.listText}>{String(s)}</Text>
+      <Text style={styles.listText}>{String(item)}</Text>
     </View>
   ));
 
@@ -133,14 +160,10 @@ export function AnalysisPdfDoc({
     0,
     Math.min(100, Number(insights?.overallSentiment?.score) || 0)
   );
-  const themes = Array.isArray(insights?.themes) ? insights.themes : [];
-  const strengths = Array.isArray(insights?.strengths)
-    ? insights.strengths
-    : [];
-  const concerns = Array.isArray(insights?.concerns) ? insights.concerns : [];
-  const recommendations = Array.isArray(insights?.recommendations)
-    ? insights.recommendations
-    : [];
+  const themes = asArray(insights?.themes);
+  const strengths = asArray(insights?.strengths);
+  const concerns = asArray(insights?.concerns);
+  const recommendations = asArray(insights?.recommendations);
   const generatedAt = insightsAt
     ? new Date(insightsAt).toLocaleString("es-EC")
     : "";
@@ -207,19 +230,12 @@ export function AnalysisPdfDoc({
         {themes.length > 0 ? (
           <View>
             <Text style={styles.sectionTitle}>Temas principales</Text>
-            {themes.map((t, i) => (
-              <View key={i} style={styles.themeBox} wrap={false}>
+            {withStableKeys(themes, (t) => t.title).map(({ key, item: t }) => (
+              <View key={key} style={styles.themeBox} wrap={false}>
                 <View style={styles.themeHeader}>
                   <Text style={styles.themeTitle}>{t.title || "—"}</Text>
                   <Text
-                    style={[
-                      styles.themeTag,
-                      t.sentiment === "positivo"
-                        ? { color: GREEN }
-                        : t.sentiment === "negativo"
-                        ? { color: BRAND_RED }
-                        : { color: AMBER },
-                    ]}
+                    style={[styles.themeTag, { color: themeTagColor(t.sentiment) }]}
                   >
                     {t.sentiment || ""}
                     {typeof t.mentions === "number" ? ` · ${t.mentions}` : ""}
@@ -228,13 +244,13 @@ export function AnalysisPdfDoc({
                 {t.summary ? (
                   <Text style={styles.paragraph}>{t.summary}</Text>
                 ) : null}
-                {(Array.isArray(t.sampleQuotes) ? t.sampleQuotes : [])
-                  .slice(0, 3)
-                  .map((q, j) => (
-                    <Text key={j} style={styles.quote}>
+                {withStableKeys(asArray(t.sampleQuotes).slice(0, 3)).map(
+                  ({ key: quoteKey, item: q }) => (
+                    <Text key={quoteKey} style={styles.quote}>
                       “{String(q)}”
                     </Text>
-                  ))}
+                  )
+                )}
               </View>
             ))}
           </View>

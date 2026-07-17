@@ -1,11 +1,13 @@
 /* Tests del diseño de gafete (src/views/admin/eventos/diseno-gafete/index.jsx).
  *
- * Cubre: redirect con id inválido, formulario vacío, carga de un Badge
- * existente (getBadge + getUrl → "Diseño cargado" y previews), validación de
+ * Cubre: redirect con id inválido, evento inexistente (loader), formulario
+ * vacío, carga de un Badge existente (getBadge + getUrl → "Diseño cargado" y
+ * previews) con sus ramas de error y de badge incompleto, validación de
  * tipo de archivo (input y drag&drop), quitar archivo, submit sin archivos,
  * creación de badge nuevo (uploadData + createBadge + updateEvent), update de
- * badge existente (remove de keys viejas + updateBadge con _version), la rama
- * de error al subir y la rama sin permiso de edición.
+ * badge existente (remove de keys viejas + updateBadge con _version, incluso
+ * si el remove falla), la rama de error al subir y la rama sin permiso de
+ * edición.
  *
  * OJO: CRA corre Jest con resetMocks:true — implementaciones repuestas en
  * beforeEach. El submit exitoso duerme 1s (setTimeout) → fake timers +
@@ -230,6 +232,43 @@ describe("Diseño de gafete — guardas y carga", () => {
       "https://s3.mock/back-key.pdf"
     );
   });
+
+  test("si el evento no existe en el store se queda en el loader de página", async () => {
+    // sin fixtures: DataStore.query resuelve [] → setEvent(undefined)
+    renderGafete();
+    expect(await screen.findByText("Cargando…")).toBeInTheDocument();
+    expect(screen.queryByText("Front Design (PDF)")).not.toBeInTheDocument();
+  });
+
+  test("si getBadge falla al cargar muestra el formulario vacío y loguea el error", async () => {
+    seed({ Event: [{ id: "ev-1", eventBadgeId: "b1", _version: 2 }] });
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    mockGraphql.mockRejectedValue(new Error("api caída"));
+    renderGafete();
+
+    expect(await screen.findAllByText("Sube un archivo")).toHaveLength(2);
+    // El catch corre en una microtarea que puede llegar después del render vacío
+    await waitFor(() =>
+      expect(errSpy).toHaveBeenCalledWith(
+        "Error cargando Badge existente:",
+        expect.any(Error)
+      )
+    );
+    expect(getUrl).not.toHaveBeenCalled();
+  });
+
+  test("un badge incompleto (sin backDesign) no firma URLs ni carga previews", async () => {
+    seed({ Event: [{ id: "ev-1", eventBadgeId: "b1", _version: 2 }] });
+    mockGraphql.mockResolvedValue({
+      data: {
+        getBadge: { id: "b1", frontDesign: "front.pdf", backDesign: null },
+      },
+    });
+    renderGafete();
+
+    expect(await screen.findAllByText("Sube un archivo")).toHaveLength(2);
+    expect(getUrl).not.toHaveBeenCalled();
+  });
 });
 
 describe("Diseño de gafete — selección de archivos", () => {
@@ -400,6 +439,54 @@ describe("Diseño de gafete — guardado", () => {
     expect(llamadas.find((c) => c.query === updateEvent)).toBeUndefined();
 
     expect(await screen.findAllByText("Diseño cargado")).toHaveLength(2);
+  });
+
+  test("si borrar la key vieja falla, la subida continúa y guarda igual", async () => {
+    seed({ Event: [{ id: "ev-1", eventBadgeId: "b1", _version: 2 }] });
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    remove.mockRejectedValue(new Error("sin permisos"));
+    mockGraphql.mockImplementation(async ({ query, variables }) => {
+      if (query === getBadge)
+        return {
+          data: {
+            getBadge: {
+              id: "b1",
+              frontDesign: "old-front.pdf",
+              backDesign: "old-back.pdf",
+              _version: 7,
+            },
+          },
+        };
+      if (query === updateBadge)
+        return { data: { updateBadge: { ...variables.input } } };
+      return { data: {} };
+    });
+    renderGafete();
+    await screen.findAllByText("Diseño cargado");
+
+    screen.getAllByTitle("Cambiar archivo").forEach((btn) => {
+      fireEvent.click(btn);
+    });
+    setFile("front-file-upload", pdf("nuevo-front.pdf"));
+    setFile("back-file-upload", pdf("nuevo-back.pdf"));
+
+    jest.useFakeTimers();
+    submitForm();
+    await flushSubmit();
+    jest.useRealTimers();
+
+    // el borrado fallido solo se loguea: la subida y el update siguen
+    expect(errSpy).toHaveBeenCalledWith(
+      "Error eliminando archivo:",
+      expect.any(Error)
+    );
+    expect(alertSpy).toHaveBeenCalledWith("Gafetes guardados exitosamente");
+    expect(uploadData).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "public/badges/nuevo-front.pdf" })
+    );
+    expect(
+      llamadasGraphql().find((c) => c.query === updateBadge)
+    ).toBeDefined();
   });
 
   test("si la subida a S3 falla muestra la alerta de error", async () => {

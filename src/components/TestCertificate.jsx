@@ -5,6 +5,37 @@ import { post } from "aws-amplify/api";
 // Posts to the userApi /certificate-test endpoint (certificateSender Lambda in
 // test mode), which renders one certificate from the event's template/position
 // and emails it. It does not touch attendees or mark the event as sent.
+
+// Intenta extraer el `error` de una cadena JSON; si no lo es (o no trae
+// `error`) devuelve la cadena tal cual.
+const parseErrorString = (raw) => {
+  try {
+    return JSON.parse(raw)?.error || raw;
+  } catch (e) {
+    return raw;
+  }
+};
+
+// Amplify rejects on non-2xx. Dig the server's JSON `error` out of the
+// response body, whatever shape it arrives in (json(), text() o string plano);
+// devuelve "" si no se pudo extraer nada.
+const extractErrorMsg = async (bodyVal) => {
+  let msg = "";
+  try {
+    if (bodyVal && typeof bodyVal.json === "function") {
+      const d = await bodyVal.json();
+      msg = d?.error || d?.message || "";
+    } else if (bodyVal && typeof bodyVal.text === "function") {
+      msg = parseErrorString(await bodyVal.text());
+    } else if (typeof bodyVal === "string") {
+      msg = parseErrorString(bodyVal);
+    }
+  } catch (e) {
+    /* ignore body parse errors */
+  }
+  return msg;
+};
+
 export default function TestCertificate({
   eventId,
   certificate,
@@ -45,34 +76,11 @@ export default function TestCertificate({
         setResult({ ok: false, msg: data?.error || "No se pudo enviar." });
       }
     } catch (err) {
-      // Amplify rejects on non-2xx. Dig the server's JSON `error` out of the
-      // response body, whatever shape it arrives in, before falling back to the
-      // generic ("Unknown error") message.
-      let msg = "";
+      // Saca el error del body de la respuesta antes de caer al mensaje
+      // genérico ("Error al enviar.").
       const resp = err?.response;
-      const bodyVal = resp?.body;
-      try {
-        if (bodyVal && typeof bodyVal.json === "function") {
-          const d = await bodyVal.json();
-          msg = d?.error || d?.message || "";
-        } else if (bodyVal && typeof bodyVal.text === "function") {
-          const t = await bodyVal.text();
-          try {
-            msg = JSON.parse(t)?.error || t;
-          } catch (e) {
-            msg = t;
-          }
-        } else if (typeof bodyVal === "string") {
-          try {
-            msg = JSON.parse(bodyVal)?.error || bodyVal;
-          } catch (e) {
-            msg = bodyVal;
-          }
-        }
-      } catch (e) {
-        /* ignore body parse errors */
-      }
-      if (!msg) msg = err?.message || "Error al enviar.";
+      const msg =
+        (await extractErrorMsg(resp?.body)) || err?.message || "Error al enviar.";
       const status = resp?.statusCode;
       setResult({ ok: false, msg: status ? `(${status}) ${msg}` : msg });
     } finally {

@@ -7,7 +7,6 @@ import {
   Area,
   Career,
   Event,
-  Attendee,
   EventAttendee,
   Form,
   Landing,
@@ -96,10 +95,10 @@ function OptionBars({ rows, total }) {
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
     <div className="mt-3 flex flex-col gap-2">
-      {rows.map((r, i) => {
+      {rows.map((r) => {
         const pct = total > 0 ? Math.round((r.count / total) * 100) : 0;
         return (
-          <div key={i} className="flex items-center gap-3">
+          <div key={r.key || r.label} className="flex items-center gap-3">
             <span
               title={r.label}
               className="line-clamp-2 w-36 shrink-0 break-words text-sm text-navy-700 dark:text-gray-100 sm:w-52"
@@ -134,13 +133,407 @@ const FIELD_TYPE_LABELS = {
   number: "Número",
 };
 
-const Reportes = () => {
+/* ── Helpers puros (a nivel de módulo para evitar anidamiento profundo y
+   re-creación en cada render) ─────────────────────────────────────────── */
 
-  // Strip HTML tags from strings (form labels sometimes contain markup)
-  const stripHtml = (html) => {
-    if (!html || typeof html !== 'string') return html;
-    return html.replace(/<[^>]*>/g, '').trim();
-  };
+// Strip HTML tags from strings (form labels sometimes contain markup).
+// `[^<>]*` (en vez de `[^>]*`) evita el backtracking super-lineal ante
+// cadenas con muchos `<` sin cerrar; para etiquetas bien formadas el
+// resultado es idéntico.
+const stripHtml = (html) => {
+  if (!html || typeof html !== 'string') return html;
+  return html.replace(/<[^<>]*>/g, '').trim();
+};
+
+// Updater para selects dependientes: conserva la selección previa solo si
+// sigue presente en la lista; si no, la limpia (nunca auto-selecciona).
+const keepSelectionIfValid = (list) => (prev) =>
+  list.some((item) => item.id === prev) ? prev : "";
+
+// Cruza el check-in por email: busca el asistente cuyo email coincide con el
+// campo "Email" del formulario. Si no encuentra al asistente, asigna false
+// por defecto.
+const checkInForUser = (eventAttendees, user) => {
+  const email = user.find((field) => field.Campo === "Email").Valor;
+  const attendee = eventAttendees.find((att) => att.email === email);
+  return attendee ? attendee.checkIn : false;
+};
+
+// ¿Pasa el evento los filtros de campus/área/subárea activos?
+const passesTaxonomyFilters = (
+  ev,
+  { campusSelectID, areaSelectID, careerSelectID, careerById, areaById }
+) => {
+  // Campus filter (always active: default = first visible campus).
+  if (campusSelectID) {
+    const career = careerById.get(ev.careerID);
+    const area = career ? areaById.get(career.areaID) : undefined;
+    if (area?.campusID !== campusSelectID) return false;
+  }
+  // Área filter (only when a real area is selected).
+  if (areaSelectID && areaSelectID !== "empty-area") {
+    const career = careerById.get(ev.careerID);
+    if (career?.areaID !== areaSelectID) return false;
+  }
+  // Subárea filter (only when a real career is selected).
+  if (
+    careerSelectID &&
+    careerSelectID !== "empty-career" &&
+    ev.careerID !== careerSelectID
+  ) {
+    return false;
+  }
+  return true;
+};
+
+// Opciones base de echarts para una pregunta mapeada a pie-chart en el Form.
+const buildPieChartOptions = (label) => ({
+  title: {
+    text: `${stripHtml(label)}`,
+    subtext: "Real Time Data",
+    left: "center",
+    textStyle: {
+      fontSize: 23,
+    },
+    subtextStyle: {
+      fontSize: 14,
+    },
+  },
+  color: ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F"],
+  tooltip: {
+    trigger: "item",
+  },
+  series: [
+    {
+      name: stripHtml(label),
+      type: "pie",
+      radius: "50%",
+      data: [], // This will be populated with userData and count
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: "rgba(0, 0, 0, 0.5)",
+        },
+      },
+    },
+  ],
+});
+
+// Opciones base de echarts para una pregunta mapeada a bar-chart en el Form.
+const buildBarChartOptions = (label) => ({
+  xAxis: {
+    type: "category",
+    data: [], // Initialize with an empty array
+  },
+  yAxis: {
+    type: "value",
+  },
+  title: {
+    text: `${stripHtml(label)}`,
+    subtext: "Real Time Data",
+    left: "center",
+    textStyle: {
+      fontSize: 23,
+    },
+    subtextStyle: {
+      fontSize: 14,
+    },
+  },
+  color: new graphic.LinearGradient(0, 0, 0, 1, [
+    { offset: 0, color: "#F28E2B" },  // Rojo oscuro
+    { offset: 1, color: "#59A14F" } // Rojo más claro
+  ]),
+  tooltip: {
+    trigger: "item",
+  },
+  legend: {
+    orient: "horizontal",
+    top: "bottom",
+    textStyle: {
+      fontSize: 14,
+    },
+  },
+  series: [
+    {
+      type: "bar",
+      showBackground: true,
+      data: [], // This will be populated with userData and count
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: "rgba(0, 0, 0, 0.5)",
+        },
+      },
+    },
+  ],
+});
+
+// Solo estos tipos de chart del Form se grafican; cualquier otro className
+// ("no-chart", "default-chart"…) se ignora.
+const CHART_OPTION_BUILDERS = {
+  "pie-chart": buildPieChartOptions,
+  "bar-chart": buildBarChartOptions,
+};
+
+// Copia la pregunta agregando el className definido en el Form cuando hay
+// match por nombre; si no hay match, la devuelve sin cambios.
+const applyFormClassName = (question, formData) => {
+  const matchingFormQuestion = formData.find((formQuestion) =>
+    formQuestion.name.includes(question.name)
+  );
+  return matchingFormQuestion
+    ? { ...question, className: matchingFormQuestion.className }
+    : question;
+};
+
+// Acumula la respuesta de UNA pregunta graficable dentro de groupedData. Solo
+// grafica tipos con builder resuelto (pie/bar): cubre "no-chart" y también
+// selects sin mapeo de chart — p. ej. el cert_enviar inyectado (className
+// form-control → "default-chart"), que antes llegaba aquí con options
+// undefined y reventaba en options.series[0] tumbando TODOS los gráficos
+// del evento.
+const accumulateQuestionAnswer = (groupedData, question, isLastEventItem) => {
+  if (question.type !== "number" && question.type !== "select") return;
+  const label = question.label;
+  if (!question.userData) return;
+  const userData = question.userData[0]; // Assuming there's only one value in userData
+  // Anclado con ^ para evitar backtracking super-lineal; con `.*` greedy el
+  // resultado es idéntico al patrón sin anclar.
+  const match = question.className.match(/^(.*)-chart/);
+  const type = (match ? match[1] : "default") + "-chart";
+  const buildOptions = CHART_OPTION_BUILDERS[type];
+  if (!buildOptions) return;
+
+  // Check if an entry with the same label already exists in groupedData
+  if (!groupedData[label]) {
+    // If it doesn't exist, create a new entry with options and userData
+    groupedData[label] = {
+      title: stripHtml(label),
+      type: type,
+      options: buildOptions(label),
+      userDataCounts: {}, // Object to store userData counts
+    };
+  }
+
+  // Populate the chart data for the specific question
+  const entry = groupedData[label];
+  const chartData = entry.options.series[0].data;
+  const userDataCounts = entry.userDataCounts;
+  let barChartXaxisData;
+  if (type === "bar-chart") {
+    barChartXaxisData = entry.options?.xAxis?.data;
+  }
+  if (userDataCounts[userData]) {
+    userDataCounts[userData]++;
+    if (isLastEventItem) {
+      const keys = Object.keys(userDataCounts);
+      entry.options.series[0].data = keys.map((key) => ({
+        name: key,
+        value: userDataCounts[key],
+      }));
+    }
+  } else {
+    if (barChartXaxisData) {
+      barChartXaxisData.push(userData);
+    }
+    userDataCounts[userData] = 1;
+    chartData.push({
+      name: userData,
+      value: 1,
+    });
+  }
+};
+
+// Chart data handler: agrupa las respuestas por pregunta y produce las
+// opciones de echarts listas para renderizar.
+function groupEventData(eventData, formData) {
+  const groupedData = {};
+
+  const updatedArray = eventData.map((questions) =>
+    questions.map((question) => applyFormClassName(question, formData))
+  );
+
+  if (updatedArray && updatedArray.length > 0) {
+    // Iterate through each event item
+    updatedArray.forEach((eventItem, index) => {
+      eventItem.forEach((question) => {
+        accumulateQuestionAnswer(
+          groupedData,
+          question,
+          index === eventData.length - 1
+        );
+      });
+    });
+  }
+
+  // Convert the groupedData object to an array
+  return Object.values(groupedData);
+}
+
+// Preguntas del Form reducidas a {className, name} para el match de charts,
+// descartando campos informativos o incompletos.
+const extractFormQuestionMeta = (questions) =>
+  questions
+    .map((obj) => ({
+      className: obj.className,
+      name: obj.name,
+    }))
+    .filter((item) => {
+      let type = item.type;
+      return (
+        type !== "header" &&
+        type !== "paragraph" &&
+        Object.values(item).every((value) => value !== undefined)
+      );
+    });
+
+// Respuestas de asistentes sin campos informativos (header/paragraph).
+const removeInformativeFields = (attendeesAnswers) => {
+  const cleaned = [];
+  attendeesAnswers.forEach((arrayInterno) => {
+    cleaned.push(
+      arrayInterno.filter(
+        (elemento) =>
+          elemento.type !== "header" && elemento.type !== "paragraph"
+      )
+    );
+  });
+  return cleaned;
+};
+
+// Tipos de pregunta graficables en las distribuciones derivadas.
+const GRAPHABLE_FIELD_TYPES = new Set([
+  "radio-group",
+  "select",
+  "checkbox-group",
+  "number",
+]);
+
+// Deriva distribuciones por pregunta a partir de `attendees` (cada elemento es
+// el formAnswers de UN asistente: campos {name,type,label,userData,values?}).
+// A diferencia de chartsData (que solo existe cuando el Form definió
+// classNames pie-/bar-chart), esto SIEMPRE produce barras para las preguntas
+// de opción presentes en los datos.
+//
+// Shape: [{ name, label, type, rows:[{key,label,count}], total, nums? }]
+//  - tipos de opción (radio-group/select/checkbox-group): rows + total
+//  - number: nums (valores finitos) para Promedio/Mín/Máx
+const buildQuestionStats = (attendees, chartedLabels) => {
+  if (!Array.isArray(attendees) || attendees.length === 0) return [];
+
+  // 1) Canonical question list = union of graphable fields across attendees,
+  //    keyed by name (fallback label). First field seen wins its meta
+  //    (type/label/values), matching how the Form defined the question.
+  const order = [];
+  const byKey = new Map();
+  attendees.forEach((ans) => {
+    (Array.isArray(ans) ? ans : []).forEach((f) => {
+      if (!f || f.type === "header" || f.type === "paragraph") return;
+      if (!GRAPHABLE_FIELD_TYPES.has(f.type)) return;
+      const key = f.name || f.label;
+      if (!key) return;
+      if (!byKey.has(key)) {
+        byKey.set(key, {
+          name: f.name || key,
+          label: f.label,
+          type: f.type,
+          values: Array.isArray(f.values) ? f.values : null,
+          perResponse: [],
+        });
+        order.push(key);
+      }
+    });
+  });
+
+  if (order.length === 0) return [];
+
+  // 2) Collect userData per attendee for each question (blank answers skip).
+  attendees.forEach((ans) => {
+    (Array.isArray(ans) ? ans : []).forEach((f) => {
+      if (!f) return;
+      const key = f.name || f.label;
+      const entry = byKey.get(key);
+      if (!entry) return;
+      const ud = Array.isArray(f.userData)
+        ? f.userData.map((v) => String(v ?? "").trim()).filter(Boolean)
+        : [];
+      if (ud.length > 0) entry.perResponse.push(ud);
+    });
+  });
+
+  // 3) Build the render-ready stats, skipping questions already shown as
+  //    echarts (dedupe by stripped label) to avoid duplicate graphs.
+  return order
+    .map((key) => byKey.get(key))
+    .filter((e) => !chartedLabels.has(stripHtml(e.label)))
+    .map((e) => {
+      const total = e.perResponse.length;
+      if (e.type === "number") {
+        const nums = e.perResponse
+          .flat()
+          .map(Number)
+          .filter((n) => Number.isFinite(n));
+        return { ...e, total: nums.length, nums };
+      }
+      // Option types: count each option once per response (checkbox-group
+      // userData can carry several values; duplicates still count once).
+      const counts = new Map();
+      e.perResponse.forEach((ud) => {
+        new Set(ud).forEach((v) => counts.set(v, (counts.get(v) || 0) + 1));
+      });
+      // Map stored VALUE → its label via the field's `values`; unknown values
+      // render raw and are appended after the defined options.
+      const defined = Array.isArray(e.values) ? e.values : [];
+      const rows = defined.map((o) => ({
+        key: `opt-${String(o.value)}`,
+        label: stripHtml(o.label) || String(o.value),
+        count: counts.get(String(o.value)) || 0,
+      }));
+      const known = new Set(defined.map((o) => String(o.value)));
+      [...counts.keys()]
+        .filter((v) => !known.has(v))
+        .forEach((v) =>
+          rows.push({ key: `extra-${v}`, label: v, count: counts.get(v) })
+        );
+      return { ...e, rows, total };
+    })
+    .filter((e) => (e.type === "number" ? true : e.rows.length > 0));
+};
+
+/* ── QuestionDistribution: cuerpo de una card de "Resultados del evento" ──
+   Para preguntas numéricas muestra Promedio/Mín/Máx (o el aviso vacío);
+   para preguntas de opción, las barras de OptionBars. */
+function QuestionDistribution({ stat }) {
+  if (stat.type !== "number") {
+    return <OptionBars rows={stat.rows} total={stat.total} />;
+  }
+  if (stat.nums.length === 0) {
+    return (
+      <p className="mt-3 text-sm text-gray-500">Sin valores numéricos.</p>
+    );
+  }
+  const summary = [
+    ["Promedio", stat.nums.reduce((a, b) => a + b, 0) / stat.nums.length],
+    ["Mín", Math.min(...stat.nums)],
+    ["Máx", Math.max(...stat.nums)],
+  ];
+  return (
+    <div className="mt-3 flex gap-8">
+      {summary.map(([label, value]) => (
+        <div key={label}>
+          <p className="text-xs text-gray-400">{label}</p>
+          <p className="text-2xl font-bold text-navy-700 dark:text-white">
+            {Number.isInteger(value) ? String(value) : value.toFixed(1)}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const Reportes = () => {
 
   /*******************************************/
   /************** INIT VARIABLES *************/
@@ -208,7 +601,7 @@ const Reportes = () => {
         return raw;
       }
       const d = new Date(raw);
-      return isNaN(d.getTime()) ? null : d.toISOString();
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
     } catch {
       return null;
     }
@@ -217,145 +610,10 @@ const Reportes = () => {
   const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
 
   const navigate = useNavigate();
-  // Legacy per-event totals: el rediseño muestra métricas agregadas (aggregate),
-  // pero conservamos los setters porque los efectos de carga aún los escriben.
-  const [, setTotalCheckIn] = React.useState(0);
-  const [, setTotalRegistros] = React.useState(0);
-
-  const [, setOptionTipo] = React.useState({
-    xAxis: {
-      type: "category",
-      data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    },
-    yAxis: {
-      type: "value",
-    },
-    title: {
-      text: "Tipo de participantes",
-      subtext: "Real Time Data",
-      left: "center",
-      textStyle: {
-        fontSize: 23,
-      },
-      subtextStyle: {
-        fontSize: 14,
-      },
-    },
-    color: new graphic.LinearGradient(0, 0, 0, 1, [
-      { offset: 0, color: "#83bff6" },
-      { offset: 0.5, color: "#188df0" },
-      { offset: 1, color: "#188df0" },
-    ]),
-    tooltip: {
-      trigger: "item",
-    },
-    legend: {
-      orient: "horizontal",
-      top: "bottom",
-      textStyle: {
-        fontSize: 14,
-      },
-    },
-    series: [
-      {
-        name: "N° participantes",
-        type: "bar",
-        showBackground: true,
-        data: [
-          { value: 1048, name: "Search Engine" },
-          { value: 735, name: "Direct" },
-          { value: 580, name: "Email" },
-          { value: 484, name: "Union Ads" },
-          { value: 300, name: "Video Ads" },
-        ],
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: "rgba(0, 0, 0, 0.5)",
-          },
-        },
-      },
-    ],
-  });
-
-  const [, setOptionCargos] = React.useState({
-    title: {
-      text: "Cargos de participantes",
-      subtext: "Real Time Data",
-      left: "center",
-      textStyle: {
-        fontSize: 23,
-      },
-      subtextStyle: {
-        fontSize: 14,
-      },
-    },
-    color: ["#3C83F5", "#FCF054", "#C6BFFA", "#000000", "#C5CBD2"],
-    tooltip: {
-      trigger: "item",
-    },
-    series: [
-      {
-        name: "Access From",
-        type: "pie",
-        radius: "50%",
-        data: [
-          { value: 1048, name: "Search Engine" },
-          { value: 735, name: "Direct" },
-          { value: 580, name: "Email" },
-          { value: 484, name: "Union Ads" },
-          { value: 300, name: "Video Ads" },
-        ],
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: "rgba(0, 0, 0, 0.5)",
-          },
-        },
-      },
-    ],
-  });
-
-  const [, setOptionEdad] = React.useState({
-    title: {
-      text: "Edad de participantes",
-      subtext: "Real Time Data",
-      left: "center",
-      textStyle: {
-        fontSize: 23,
-      },
-      subtextStyle: {
-        fontSize: 14,
-      },
-    },
-    color: ["#3C83F5", "#FCF054", "#C6BFFA", "#000000", "#C5CBD2"],
-    tooltip: {
-      trigger: "item",
-    },
-    series: [
-      {
-        name: "Access From",
-        type: "pie",
-        radius: "50%",
-        data: [
-          { value: 1048, name: "Search Engine" },
-          { value: 735, name: "Direct" },
-          { value: 580, name: "Email" },
-          { value: 484, name: "Union Ads" },
-          { value: 300, name: "Video Ads" },
-        ],
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: "rgba(0, 0, 0, 0.5)",
-          },
-        },
-      },
-    ],
-  });
+  // Nota: los totales por evento y las opciones legacy de echarts
+  // (totalCheckIn/totalRegistros/optionTipo/optionCargos/optionEdad) se
+  // eliminaron: el rediseño muestra métricas agregadas (aggregate) y nadie
+  // leía esos estados.
 
   /*******************************************/
   /************ FILTERS * GET DATA ***********/
@@ -445,9 +703,7 @@ const Reportes = () => {
         setAreaList(filteredAreas);
         // Keep the user's area selection only if it's still valid; never
         // auto-select one (default = no Área filter → all campus events).
-        setAreaSelectID((prev) =>
-          filteredAreas.some((a) => a.id === prev) ? prev : ""
-        );
+        setAreaSelectID(keepSelectionIfValid(filteredAreas));
       } else {
         setAreaList([{ id: "empty-area", title: "Vacío" }]); setAreaSelectID("");
         setCareerList([{ id: "empty-career", title: "Vacío" }]); setCareerSelectID("");
@@ -480,7 +736,7 @@ const Reportes = () => {
         // Do NOT auto-select a subárea: picking an Área narrows the grid to that
         // area's events, and the Subárea filter only applies when the user picks
         // one explicitly. Keep a still-valid prior selection, else clear it.
-        setCareerSelectID((prev) => (careers.some((c) => c.id === prev) ? prev : ""));
+        setCareerSelectID(keepSelectionIfValid(careers));
         return;
       }
 
@@ -506,9 +762,7 @@ const Reportes = () => {
       if (filteredCareers.length) {
         setCareerList(filteredCareers);
         // Keep a still-valid prior subárea selection; never auto-select one.
-        setCareerSelectID((prev) =>
-          filteredCareers.some((c) => c.id === prev) ? prev : ""
-        );
+        setCareerSelectID(keepSelectionIfValid(filteredCareers));
       } else {
         setCareerList([{ id: "empty-career", title: "Vacío" }]); setCareerSelectID("");
         setEventList([{ id: "empty-event", title: "Vacío" }]); setEventSelectID("");
@@ -552,17 +806,10 @@ const Reportes = () => {
         // careerSelectID). Keep a still-valid prior selection, else stay in
         // resumen (''). Detail is entered only by clicking a card or the
         // Eventos <select>.
-        setEventSelectID((prev) =>
-          filtered.some((ev) => ev.id === prev) ? prev : ""
-        );
+        setEventSelectID(keepSelectionIfValid(filtered));
       } else {
         setEventSelectID("");
         setEventList([{ id: "empty-event", title: "Vacío" }]);
-        setOptionTipo((prev) => ({ ...prev, series: [{ ...prev.series[0], data: null }] }));
-        setOptionCargos((prev) => ({ ...prev, series: [{ ...prev.series[0], data: null }] }));
-        setOptionEdad((prev) => ({ ...prev, series: [{ ...prev.series[0], data: null }] }));
-        setTotalCheckIn(null);
-        setTotalRegistros(null);
       }
     });
   }, [careerSelectID, startDate, endDate]);
@@ -673,21 +920,16 @@ const Reportes = () => {
       return;
     }
     if (eventSelectID === 0) {
-      const eventListID = eventList.map((event) => event.id);
-
+      const eventListID = new Set(eventList.map((event) => event.id));
 
       DataStore.query(EventAttendee).then((results) => {
         const filtered = results.filter((item) =>
-          eventListID.includes(item.eventID)
+          eventListID.has(item.eventID)
         );
         if (filtered.length > 0) {
-          setTotalRegistros(filtered.length);
-          setTotalCheckIn(filtered.filter(item => item.checkIn).length);
           setAttendees(filtered.map(item => item.formAnswers));
           setEventAttendes(filtered);
         } else {
-          setTotalRegistros(0);
-          setTotalCheckIn(0);
           setAttendees([]);
           setEventAttendes([]);
         }
@@ -695,29 +937,15 @@ const Reportes = () => {
 
     } else {
 
-      DataStore.query(Attendee, (a) =>
-        a.EventAttendees.eventID.eq(eventSelectID)
-      ).then((results) => {
-        processChart(results, setOptionCargos, "position");
-        processChart(results, setOptionEdad, "age");
-        processChart(results, setOptionTipo, "type");
-      });
-
       DataStore.query(EventAttendee, (e) => e.eventID.eq(eventSelectID)).then(
         (results) => {
           setChartsData([]);
           if(results.length > 0){
-            setTotalRegistros(results.length);
-            setTotalCheckIn(
-              results.filter((item) => item.checkIn === true).length
-            );
             setAttendees(
               results.length > 0 ? results.map((item) => item.formAnswers) : null
             );
             setEventAttendes(results.length > 0 ? results : null);
           } else {
-            setTotalCheckIn(0);
-            setTotalRegistros(0);
             setAttendees([]);
             setEventAttendes([]);
           }
@@ -727,68 +955,6 @@ const Reportes = () => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventSelectID]);
-
-  // Set charts with new data
-  function processChart(results, setOptionFunction, type) {
-    const countMap = {};
-    let value;
-
-    results.forEach((item) => {
-      if (type === "position") value = item.position;
-      if (type === "age") value = item.age;
-      if (type === "type") value = item.type;
-      if (countMap[value]) {
-        countMap[value] += 1;
-      } else {
-        countMap[value] = 1;
-      }
-    });
-
-    if (type === "type") {
-      const processedData = Object.keys(countMap).map((value) => ({
-        value: countMap[value],
-        name: value,
-        label: {
-          fontSize: 15,
-        },
-      }));
-
-      setOptionFunction((prevOption) => ({
-        ...prevOption,
-        xAxis: {
-          type: "category",
-          data: Object.keys(countMap),
-        },
-        yAxis: {
-          type: "value",
-        },
-        series: [
-          {
-            ...prevOption.series[0],
-            data: processedData,
-          },
-        ],
-      }));
-    } else {
-      const processedData = Object.keys(countMap).map((value) => ({
-        value: countMap[value],
-        name: value,
-        label: {
-          fontSize: 15,
-        },
-      }));
-
-      setOptionFunction((prevOption) => ({
-        ...prevOption,
-        series: [
-          {
-            ...prevOption.series[0],
-            data: processedData,
-          },
-        ],
-      }));
-    }
-  }
 
   /*******************************************/
   /*************** EXCEL EXPORT **************/
@@ -832,8 +998,7 @@ const Reportes = () => {
     const flattenedData = flattenData(data);
 
     const formattedData = flattenedData.map((user) => {
-        const attendee = eventAttendees.find(att => att.email === user.find(field => field.Campo === "Email").Valor);
-        const checkInValue = attendee ? attendee.checkIn : false; // Si no encuentra al asistente, asigna false por defecto
+        const checkInValue = checkInForUser(eventAttendees, user);
 
         const userData = user.reduce((acc, item) => {
             acc[item.Campo] = item.Valor;
@@ -855,8 +1020,7 @@ const Reportes = () => {
     // never dereference an undefined match.
     const eventName =
       allEvents.find((e) => e.id === eventSelectID)?.title ||
-      (eventList &&
-        eventList.find((item) => item.id === eventSelectID)?.title) ||
+      eventList?.find((item) => item.id === eventSelectID)?.title ||
       "evento";
     XLSX.writeFile(workbook, `${eventName}.xlsx`);
   }
@@ -917,184 +1081,6 @@ const Reportes = () => {
 
 
 
-  // Chart data handler
-  function groupEventData(eventData, formData) {
-    const groupedData = {};
-
-    const updatedArray = eventData.map(questions => {
-      return questions.map(question => {
-        const matchingFormQuestion = formData.find(formQuestion => formQuestion.name.includes(question.name));
-        if (matchingFormQuestion) {
-          // Create a shallow copy of the object
-          const modifiedQuestion = { ...question };
-          // Modify the property in the copy
-          modifiedQuestion.className = matchingFormQuestion.className;
-          // Return the modified question
-          return modifiedQuestion;
-        } else {
-          // If there is no match, return the question unchanged.
-          return question;
-        }
-      });
-    });
-
-    if (updatedArray && updatedArray.length > 0) {
-      // Iterate through each event item
-      updatedArray.forEach( (eventItem, index) => {
-        eventItem.forEach( question => {
-          // Check if the question is required
-          if (question.type === "number" || question.type === "select") {
-            const label = question.label;
-            if(!question.userData) return;
-            const userData = question.userData[0]; // Assuming there's only one value in userData
-            const match = question.className.match(/(.*)-chart/);
-            const type = (match ? match[1] : "default") + '-chart';
-            let options;
-
-            // Determine the chart options based on the chart type
-            if (type === "pie-chart") {
-              options = {
-                title: {
-                  text: `${stripHtml(label)}`,
-                  subtext: "Real Time Data",
-                  left: "center",
-                  textStyle: {
-                    fontSize: 23,
-                  },
-                  subtextStyle: {
-                    fontSize: 14,
-                  },
-                },
-                color: ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F"],
-                tooltip: {
-                  trigger: "item",
-                },
-                series: [
-                  {
-                    name: stripHtml(label),
-                    type: "pie",
-                    radius: "50%",
-                    data: [], // This will be populated with userData and count
-                    emphasis: {
-                      itemStyle: {
-                        shadowBlur: 10,
-                        shadowOffsetX: 0,
-                        shadowColor: "rgba(0, 0, 0, 0.5)",
-                      },
-                    },
-                  },
-                ],
-              };
-            } else if (type === "bar-chart") {
-              options = {
-                xAxis: {
-                  type: "category",
-                  data: [], // Initialize with an empty array
-                },
-                yAxis: {
-                  type: "value",
-                },
-                title: {
-                  text: `${stripHtml(label)}`,
-                  subtext: "Real Time Data",
-                  left: "center",
-                  textStyle: {
-                    fontSize: 23,
-                  },
-                  subtextStyle: {
-                    fontSize: 14,
-                  },
-                },
-                color: new graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: "#F28E2B" },  // Rojo oscuro
-                  { offset: 1, color: "#59A14F" } // Rojo más claro
-                ]),
-                tooltip: {
-                  trigger: "item",
-                },
-                legend: {
-                  orient: "horizontal",
-                  top: "bottom",
-                  textStyle: {
-                    fontSize: 14,
-                  },
-                },
-                series: [
-                  {
-                    type: "bar",
-                    showBackground: true,
-                    data: [], // This will be populated with userData and count
-                    emphasis: {
-                      itemStyle: {
-                        shadowBlur: 10,
-                        shadowOffsetX: 0,
-                        shadowColor: "rgba(0, 0, 0, 0.5)",
-                      },
-                    },
-                  },
-                ],
-              };
-            }
-
-            // Solo graficar tipos con options resuelto (pie/bar). Cubre
-            // "no-chart" y también selects sin mapeo de chart — p. ej. el
-            // cert_enviar inyectado (className form-control → "default-chart"),
-            // que antes llegaba aquí con options undefined y reventaba en
-            // options.series[0] tumbando TODOS los gráficos del evento.
-            if(options){
-
-              // Check if an entry with the same label already exists in groupedData
-              if (!groupedData[label]) {
-                // If it doesn't exist, create a new entry with options and userData
-                groupedData[label] = {
-                  title: stripHtml(label),
-                  type: type,
-                  options: options,
-                  userDataCounts: {}, // Object to store userData counts
-                };
-              }
-
-              // Populate the chart data for the specific question
-              const chartData = groupedData[label].options.series[0].data;
-              const userDataCounts = groupedData[label].userDataCounts;
-              let barChartXaxisData;
-              if (type === "bar-chart") {
-                barChartXaxisData = groupedData[label].options?.xAxis?.data;
-              }
-              if (userDataCounts[userData]) {
-                userDataCounts[userData]++;
-                if (index === eventData.length - 1 && groupedData[label]) {
-                  const keys = Object.keys(userDataCounts);
-                  const data = keys.map((key) => ({
-                    name: key,
-                    value: userDataCounts[key],
-                  }));
-                  groupedData[label].options.series[0].data = data;
-                }
-              } else {
-                if (barChartXaxisData) {
-                  barChartXaxisData.push(userData);
-                }
-                userDataCounts[userData] = 1;
-                chartData.push({
-                  name: userData,
-                  value: 1,
-                });
-              }
-
-            }
-
-          }
-        });
-      });
-    }
-
-    // Convert the groupedData object to an array
-    let groupedDataArray = Object.values(groupedData);
-
-    return groupedDataArray;
-  }
-
   // Use Effect  to execute events data
   useEffect(() => {
     if (attendees) {
@@ -1102,22 +1088,12 @@ const Reportes = () => {
         if(results.length > 0){
 
           // Obtain questions from Form only to match className and remove any informative field
-          const filteredArray = results[0].questions.map(obj => ({
-            className: obj.className,
-            name: obj.name
-          })).filter(item => {
-            let type = item.type;
-            return type !== "header" && type !== "paragraph" && Object.values(item).every(value => value !== undefined);
-          });
+          const filteredArray = extractFormQuestionMeta(results[0].questions);
 
           // Obtain questions from EventAttendees and remove any informative field
-          let eventAttendes =  [];
-          attendees.forEach(arrayInterno => {
-            let nuevoArrayInterno = arrayInterno.filter(elemento => elemento.type !== "header" && elemento.type !== "paragraph");
-            eventAttendes.push(nuevoArrayInterno);
-          });
+          const cleanedAttendees = removeInformativeFields(attendees);
 
-          const groupedData = groupEventData(eventAttendes, filteredArray);
+          const groupedData = groupEventData(cleanedAttendees, filteredArray);
           setChartsData(groupedData);
         }
       });
@@ -1135,7 +1111,7 @@ const Reportes = () => {
     const iso = getEventDateISO(ev);
     if (!iso) return "Sin fecha";
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return "Sin fecha";
+    if (Number.isNaN(d.getTime())) return "Sin fecha";
     return d.toLocaleDateString("es-EC", {
       day: "2-digit",
       month: "short",
@@ -1191,23 +1167,17 @@ const Reportes = () => {
   // (campus/area/subárea/date-range) and the search term.
   const shownEvents = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
+    const taxonomy = {
+      campusSelectID,
+      areaSelectID,
+      careerSelectID,
+      careerById,
+      areaById,
+    };
     return allEvents
       .filter((ev) => {
-        // Campus filter (always active: default = first visible campus).
-        if (campusSelectID) {
-          const career = careerById.get(ev.careerID);
-          const area = career ? areaById.get(career.areaID) : undefined;
-          if (!area || area.campusID !== campusSelectID) return false;
-        }
-        // Área filter (only when a real area is selected).
-        if (areaSelectID && areaSelectID !== "empty-area") {
-          const career = careerById.get(ev.careerID);
-          if (!career || career.areaID !== areaSelectID) return false;
-        }
-        // Subárea filter (only when a real career is selected).
-        if (careerSelectID && careerSelectID !== "empty-career") {
-          if (ev.careerID !== careerSelectID) return false;
-        }
+        // Campus/Área/Subárea (helper a nivel de módulo).
+        if (!passesTaxonomyFilters(ev, taxonomy)) return false;
         // Date range.
         if (!inDateRange(ev)) return false;
         // Search by title.
@@ -1283,103 +1253,14 @@ const Reportes = () => {
       if (t) s.add(t);
     });
     return s;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartsData]);
 
-  // Derive per-question distributions from `attendees` (each element is ONE
-  // attendee's formAnswers array of fields {name,type,label,userData,values?}).
-  // Unlike chartsData (which only exists when the Form set pie-/bar-chart
-  // classNames), this ALWAYS produces bars for option questions in the data.
-  //
-  // Shape: [{ name, label, type, rows:[{label,count}], total, nums? }]
-  //  - option types (radio-group/select/checkbox-group): rows + total
-  //  - number: nums (finite values) for Promedio/Mín/Máx
-  const questionStats = React.useMemo(() => {
-    if (!Array.isArray(attendees) || attendees.length === 0) return [];
-
-    const CHART_TYPES = new Set([
-      "radio-group",
-      "select",
-      "checkbox-group",
-      "number",
-    ]);
-
-    // 1) Canonical question list = union of graphable fields across attendees,
-    //    keyed by name (fallback label). First field seen wins its meta
-    //    (type/label/values), matching how the Form defined the question.
-    const order = [];
-    const byKey = new Map();
-    attendees.forEach((ans) => {
-      (Array.isArray(ans) ? ans : []).forEach((f) => {
-        if (!f || f.type === "header" || f.type === "paragraph") return;
-        if (!CHART_TYPES.has(f.type)) return;
-        const key = f.name || f.label;
-        if (!key) return;
-        if (!byKey.has(key)) {
-          byKey.set(key, {
-            name: f.name || key,
-            label: f.label,
-            type: f.type,
-            values: Array.isArray(f.values) ? f.values : null,
-            perResponse: [],
-          });
-          order.push(key);
-        }
-      });
-    });
-
-    if (order.length === 0) return [];
-
-    // 2) Collect userData per attendee for each question (blank answers skip).
-    attendees.forEach((ans) => {
-      (Array.isArray(ans) ? ans : []).forEach((f) => {
-        if (!f) return;
-        const key = f.name || f.label;
-        const entry = byKey.get(key);
-        if (!entry) return;
-        const ud = Array.isArray(f.userData)
-          ? f.userData.map((v) => String(v ?? "").trim()).filter(Boolean)
-          : [];
-        if (ud.length > 0) entry.perResponse.push(ud);
-      });
-    });
-
-    // 3) Build the render-ready stats, skipping questions already shown as
-    //    echarts (dedupe by stripped label) to avoid duplicate graphs.
-    return order
-      .map((key) => byKey.get(key))
-      .filter((e) => !chartedLabels.has(stripHtml(e.label)))
-      .map((e) => {
-        const total = e.perResponse.length;
-        if (e.type === "number") {
-          const nums = e.perResponse
-            .flat()
-            .map(Number)
-            .filter((n) => Number.isFinite(n));
-          return { ...e, total: nums.length, nums };
-        }
-        // Option types: count each option once per response (checkbox-group
-        // userData can carry several values; duplicates still count once).
-        const counts = new Map();
-        e.perResponse.forEach((ud) => {
-          new Set(ud).forEach((v) => counts.set(v, (counts.get(v) || 0) + 1));
-        });
-        // Map stored VALUE → its label via the field's `values`; unknown values
-        // render raw and are appended after the defined options.
-        const defined = Array.isArray(e.values) ? e.values : [];
-        const rows = defined.map((o) => ({
-          label: stripHtml(o.label) || String(o.value),
-          count: counts.get(String(o.value)) || 0,
-        }));
-        const known = new Set(defined.map((o) => String(o.value)));
-        [...counts.keys()]
-          .filter((v) => !known.has(v))
-          .forEach((v) => rows.push({ label: v, count: counts.get(v) }));
-        return { ...e, rows, total };
-      })
-      .filter((e) => (e.type === "number" ? true : e.rows.length > 0));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attendees, chartedLabels]);
+  // Distribuciones por pregunta derivadas de `attendees` (la lógica vive en
+  // buildQuestionStats, a nivel de módulo).
+  const questionStats = React.useMemo(
+    () => buildQuestionStats(attendees, chartedLabels),
+    [attendees, chartedLabels]
+  );
 
   // Whether the detail view has anything graphable (echarts or derived bars).
   const hasCharts =
@@ -1404,6 +1285,72 @@ const Reportes = () => {
     careerSelectID && careerSelectID !== "empty-career"
       ? careerById.get(careerSelectID)?.title
       : undefined;
+
+  // Contenido de "Resultados del evento" (cargando / gráficos / vacío):
+  // early returns en lugar de ternarios anidados dentro del JSX.
+  const renderDetailResults = () => {
+    if (detailLoading) {
+      return (
+        <Card>
+          <p className="text-base text-gray-500">
+            Cargando datos del evento…
+          </p>
+        </Card>
+      );
+    }
+    if (hasCharts) {
+      return (
+        <div className="flex flex-col gap-4">
+          {/* echarts configured via Form className (pie-/bar-chart) */}
+          {chartsData && chartsData.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {chartsData.map((chart) => (
+                <PieChartApache
+                  key={chart.title}
+                  option={chart.options}
+                  height="450px"
+                />
+              ))}
+            </div>
+          )}
+
+          {/* distribuciones derivadas de attendees (opción múltiple /
+              número) que NO estén ya cubiertas por los echarts */}
+          {questionStats.map((s) => (
+            <Card key={s.name} className="!p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="min-w-0 text-base font-semibold text-navy-700 dark:text-white">
+                  {stripHtml(s.label) || s.name}
+                </p>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Chip color="gray" dot={false}>
+                    {FIELD_TYPE_LABELS[s.type] || s.type}
+                  </Chip>
+                  <span className="text-xs text-gray-400">
+                    {s.total} respuesta{s.total === 1 ? "" : "s"}
+                  </span>
+                </div>
+              </div>
+
+              <QuestionDistribution stat={s} />
+            </Card>
+          ))}
+        </div>
+      );
+    }
+    return (
+      <Card>
+        <div className="flex items-center gap-3 text-gray-500">
+          <MdInsertChartOutlined className="h-6 w-6 shrink-0" />
+          <span className="text-base">
+            Este evento no tiene preguntas de opción múltiple para
+            graficar. Usa “Exportar este evento” para ver todas las
+            respuestas.
+          </span>
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div className="report-page mt-3 px-2 sm:px-0">
@@ -1551,10 +1498,14 @@ const Reportes = () => {
         >
           <div className="relative mb-3 flex flex-col gap-2 sm:flex-row sm:gap-4">
             <div className="flex min-w-0 flex-col sm:flex-initial">
-              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
+              <label
+                htmlFor="reportes-fecha-inicio"
+                className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white"
+              >
                 Fecha inicio
               </label>
               <TextInput
+                id="reportes-fecha-inicio"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -1562,10 +1513,14 @@ const Reportes = () => {
             </div>
 
             <div className="flex min-w-0 flex-col sm:flex-initial">
-              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">
+              <label
+                htmlFor="reportes-fecha-fin"
+                className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white"
+              >
                 Fecha fin
               </label>
               <TextInput
+                id="reportes-fecha-fin"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -1589,58 +1544,77 @@ const Reportes = () => {
           <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
 
             <div className="flex w-full flex-col min-w-0">
-              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Campus</label>
+              <label
+                htmlFor="reportes-filtro-campus"
+                className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white"
+              >
+                Campus
+              </label>
               <select
+                id="reportes-filtro-campus"
                 className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
                 onChange={(e) => setCampusSelectID(e.target.value)}
                 value={campusSelectID}
               >
-                {campusList &&
-                  campusList.map((result) => (
-                    <option key={result.id} value={result.id}>
-                      {result.title}
-                    </option>
-                  ))}
+                {campusList?.map((result) => (
+                  <option key={result.id} value={result.id}>
+                    {result.title}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="flex w-full flex-col min-w-0">
-              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Área</label>
+              <label
+                htmlFor="reportes-filtro-area"
+                className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white"
+              >
+                Área
+              </label>
               <select
+                id="reportes-filtro-area"
                 className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
                 onChange={(e) => setAreaSelectID(e.target.value)}
                 value={areaSelectID || ""}
               >
-                {areaList &&
-                  areaList.map((result) => {
-                    return (
-                      <option key={result.id} value={result.id}>
-                        {result.title}
-                      </option>
-                    );
-                })}
+                {areaList?.map((result) => (
+                  <option key={result.id} value={result.id}>
+                    {result.title}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="flex w-full flex-col min-w-0">
-              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Subárea</label>
+              <label
+                htmlFor="reportes-filtro-subarea"
+                className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white"
+              >
+                Subárea
+              </label>
               <select
+                id="reportes-filtro-subarea"
                 className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
                 onChange={(e) => setCareerSelectID(e.target.value)}
                 value={careerSelectID || ""}
               >
-                {careerList &&
-                  careerList.map((result) => (
-                    <option key={result.id} value={result.id}>
-                      {result.title}
-                    </option>
-                  ))}
+                {careerList?.map((result) => (
+                  <option key={result.id} value={result.id}>
+                    {result.title}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="flex w-full flex-col min-w-0">
-              <label className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white">Eventos</label>
+              <label
+                htmlFor="reportes-filtro-eventos"
+                className="mb-1.5 text-sm font-semibold text-navy-700 dark:text-white"
+              >
+                Eventos
+              </label>
               <select
+                id="reportes-filtro-eventos"
                 className="select-arrow w-full appearance-none truncate rounded-xl border border-gray-200 bg-white py-2.5 pl-3.5 pr-8 text-sm text-navy-700 outline-none transition focus:border-brand-500 dark:border-white/10 dark:bg-navy-900 dark:text-white"
                 onChange={(e) => setEventSelectID(e.target.value)}
                 value={eventSelectID || ""}
@@ -1648,12 +1622,11 @@ const Reportes = () => {
                 {/* <option value="0">
                     Todos los eventos
                   </option> */}
-                {eventList &&
-                  eventList.map((result) => (
-                    <option key={result.id} value={result.id}>
-                      {result.title}
-                    </option>
-                  ))}
+                {eventList?.map((result) => (
+                  <option key={result.id} value={result.id}>
+                    {result.title}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -1897,92 +1870,7 @@ const Reportes = () => {
               Resultados del evento
             </h2>
 
-            {detailLoading ? (
-              <Card>
-                <p className="text-base text-gray-500">
-                  Cargando datos del evento…
-                </p>
-              </Card>
-            ) : hasCharts ? (
-              <div className="flex flex-col gap-4">
-                {/* echarts configured via Form className (pie-/bar-chart) */}
-                {chartsData && chartsData.length > 0 && (
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {chartsData.map((chart, index) => (
-                      <PieChartApache
-                        key={index}
-                        option={chart.options}
-                        height="450px"
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* distribuciones derivadas de attendees (opción múltiple /
-                    número) que NO estén ya cubiertas por los echarts */}
-                {questionStats.map((s, i) => (
-                  <Card key={s.name || i} className="!p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="min-w-0 text-base font-semibold text-navy-700 dark:text-white">
-                        {stripHtml(s.label) || s.name}
-                      </p>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Chip color="gray" dot={false}>
-                          {FIELD_TYPE_LABELS[s.type] || s.type}
-                        </Chip>
-                        <span className="text-xs text-gray-400">
-                          {s.total} respuesta{s.total === 1 ? "" : "s"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {s.type === "number" ? (
-                      s.nums.length === 0 ? (
-                        <p className="mt-3 text-sm text-gray-500">
-                          Sin valores numéricos.
-                        </p>
-                      ) : (
-                        <div className="mt-3 flex gap-8">
-                          {[
-                            [
-                              "Promedio",
-                              (
-                                s.nums.reduce((a, b) => a + b, 0) /
-                                s.nums.length
-                              ),
-                            ],
-                            ["Mín", Math.min(...s.nums)],
-                            ["Máx", Math.max(...s.nums)],
-                          ].map(([label, value]) => (
-                            <div key={label}>
-                              <p className="text-xs text-gray-400">{label}</p>
-                              <p className="text-2xl font-bold text-navy-700 dark:text-white">
-                                {Number.isInteger(value)
-                                  ? String(value)
-                                  : value.toFixed(1)}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )
-                    ) : (
-                      <OptionBars rows={s.rows} total={s.total} />
-                    )}
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <div className="flex items-center gap-3 text-gray-500">
-                  <MdInsertChartOutlined className="h-6 w-6 shrink-0" />
-                  <span className="text-base">
-                    Este evento no tiene preguntas de opción múltiple para
-                    graficar. Usa “Exportar este evento” para ver todas las
-                    respuestas.
-                  </span>
-                </div>
-              </Card>
-            )}
+            {renderDetailResults()}
           </div>
         </div>
       )}

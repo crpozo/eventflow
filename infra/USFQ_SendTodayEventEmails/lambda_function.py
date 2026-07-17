@@ -18,8 +18,8 @@ import json
 #      no por prefijo del string UTC — un evento de 19:00+ local caía en el
 #      día siguiente UTC y nunca recibía recordatorio.
 
-# AWS
-REGION = "sa-east-1"
+# AWS — región configurable por env var (default: la del stack de EventFlow)
+REGION = os.environ.get("AWS_REGION_OVERRIDE", "sa-east-1")
 # Timeouts explícitos: una invoke colgada agotaría el timeout de la función
 lambda_client = boto3.client(
     "lambda",

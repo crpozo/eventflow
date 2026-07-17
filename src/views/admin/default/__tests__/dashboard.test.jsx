@@ -277,6 +277,93 @@ describe("Dashboard admin (views/admin/default)", () => {
     clickSpy.mockRestore();
   });
 
+  // Prueba de equivalencia del regex de slugify (sin backtracking): acentos,
+  // símbolos y guiones en los extremos se limpian igual que antes.
+  test("exportar CSV: el nombre del archivo limpia acentos, símbolos y guiones extremos", () => {
+    global.URL.createObjectURL = jest.fn(() => "blob:fake");
+    global.URL.revokeObjectURL = jest.fn();
+    const descargas = [];
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(function () {
+        descargas.push(this.download);
+      });
+
+    ds.__fixtures.Event = [
+      { id: "ev-slug", title: "  ¡Música! & Fiesta 2026  ", startDate: iso(DAY) },
+    ];
+    ds.__fixtures.EventAttendee = [
+      { id: "s1", eventID: "ev-slug", createdAt: iso(-1 * DAY), email: "s@x.com" },
+      // Sin email ni fecha: csvCell debe emitir celdas vacías sin romper.
+      { id: "s2", eventID: "ev-slug" },
+    ];
+    renderDashboard();
+
+    fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
+    expect(descargas).toEqual(["reporte-musica-fiesta-2026.csv"]);
+
+    clickSpy.mockRestore();
+  });
+
+  test("exportar CSV: título sin caracteres válidos cae al slug 'evento'", () => {
+    global.URL.createObjectURL = jest.fn(() => "blob:fake");
+    global.URL.revokeObjectURL = jest.fn();
+    const descargas = [];
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(function () {
+        descargas.push(this.download);
+      });
+
+    ds.__fixtures.Event = [
+      { id: "ev-junk", title: "★★★", startDate: iso(DAY) },
+    ];
+    ds.__fixtures.EventAttendee = [
+      { id: "j1", eventID: "ev-junk", createdAt: iso(-1 * DAY), email: "j@x.com" },
+    ];
+    renderDashboard();
+
+    fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
+    expect(descargas).toEqual(["reporte-evento.csv"]);
+
+    clickSpy.mockRestore();
+  });
+
+  test("timezone inválida: registra el error y deja fecha relativa y celda vacías", () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    ds.__fixtures.Event = [
+      { id: "ev-tz", title: "Charla Marciana", startDate: iso(DAY), timezone: "Marte/Base" },
+    ];
+    renderDashboard();
+
+    // La vista no se rompe: el evento sigue listado en la tabla
+    expect(
+      within(screen.getByRole("table")).getByText("Charla Marciana")
+    ).toBeInTheDocument();
+    const etiquetas = errorSpy.mock.calls.map((c) => c[0]);
+    expect(etiquetas).toContain("relativeWhen: ");
+    expect(etiquetas).toContain("compactDate: ");
+    errorSpy.mockRestore();
+  });
+
+  test("ignora registros con fecha de creación inválida en métricas y gráficos", () => {
+    seedAll();
+    ds.__fixtures.EventAttendee.push(
+      { id: "bad", eventID: "ev-hoy", createdAt: "no-es-fecha", email: "bad@usfq.edu.ec" },
+      // Fecha futura: tampoco debe contarse en ninguna ventana.
+      { id: "fut", eventID: "ev-hoy", createdAt: iso(5 * DAY), email: "fut@usfq.edu.ec" }
+    );
+    renderDashboard();
+
+    // Registros 30d y gráfico semanal: siguen en 3 (el inválido no cuenta)
+    expect(metricValue("3")).toBeInTheDocument();
+    expect(screen.getByText(/3 en total/)).toBeInTheDocument();
+
+    // Gráfico mensual: 4 válidos en 6 meses, el inválido queda fuera
+    fireEvent.click(screen.getByRole("button", { name: "6 meses" }));
+    expect(screen.getByText(/4 en total/)).toBeInTheDocument();
+  });
+
   test("sin próximos: mensaje de calendario vacío y sin tarjeta de reporte", () => {
     ds.__fixtures.Event = [
       { id: "ev-past", title: "Hackathon 2025", startDate: iso(-2 * DAY) },

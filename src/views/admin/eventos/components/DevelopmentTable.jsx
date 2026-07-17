@@ -30,7 +30,7 @@ const DevelopmentTable = (props) => {
   // Obtener el estado de paginación guardado
   const savedPageIndex = useMemo(() => {
     const saved = sessionStorage.getItem(PAGINATION_STORAGE_KEY);
-    return saved ? parseInt(saved, 10) : 0;
+    return saved ? Number.parseInt(saved, 10) : 0;
   }, []);
 
   const tableInstance = useTable(
@@ -63,13 +63,11 @@ const DevelopmentTable = (props) => {
     canPreviousPage,
     canNextPage,
     pageOptions,
-    pageCount,
     gotoPage,
     nextPage,
     previousPage,
-    setPageSize,
     setGlobalFilter,
-    state: { pageIndex, pageSize, globalFilter },
+    state: { pageIndex, globalFilter },
   } = tableInstance;
 
   // Guardar el estado de paginación cada vez que cambie
@@ -119,7 +117,7 @@ const DevelopmentTable = (props) => {
             />
           </div>
           <Link className="hover:no-underline" to="crear" onClick={handleCreateEvent}>
-            <button className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
+            <button type="button" className="linear flex items-center gap-1 pr-3 pl-3 rounded-xl bg-brand-500 py-[12px] text-sm font-medium text-white transition duration-200 hover:bg-black dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200">
               Crear Evento <MdAdd className="h-5 w-5" />
             </button>
           </Link>
@@ -130,18 +128,19 @@ const DevelopmentTable = (props) => {
         <table
           {...getTableProps()}
           className="mt-8 h-max w-full"
-          variant="simple"
           color="gray-500"
-          mb="24px"
         >
           <thead>
-            {headerGroups.map((headerGroup, index) => (
-              <tr {...headerGroup.getHeaderGroupProps()} key={index}>
-                {headerGroup.headers.map((column, index) => (
+            {headerGroups.map((headerGroup) => (
+              <tr
+                {...headerGroup.getHeaderGroupProps()}
+                key={headerGroup.headers.map((h) => h.id).join("-")}
+              >
+                {headerGroup.headers.map((column) => (
                   <th
                     {...column.getHeaderProps(column.getSortByToggleProps())}
                     className="border-b border-gray-200 pr-32 pb-[10px] text-start dark:!border-navy-700 "
-                    key={index}
+                    key={column.id}
                   >
                     <div className="text-xs font-bold uppercase tracking-wide text-gray-500">
                       {column.render("Header")}
@@ -152,27 +151,24 @@ const DevelopmentTable = (props) => {
             ))}
           </thead>
           <tbody {...getTableBodyProps()}>
-            {page.map((row, index) => {
+            {page.map((row) => {
               prepareRow(row);
               return (
                 <tr
                   className="border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition"
                   {...row.getRowProps()}
-                  key={index}
+                  key={row.original.action}
                   onClick={() => {
                     navigate(`${row.original.action}/detalle/`);
                     localStorage.setItem(`EVENTFLOW.event`, JSON.stringify(row.original.model));
                   }}
                 >
-                  {row.cells.map((cell, index) => {
+                  {row.cells.map((cell) => {
                     let data = "";
-                    if (cell.column.Header === "TITULO") {
-                      data = (
-                        <p className="text-[15px] text-navy-700 dark:text-white">
-                          {cell.value}
-                        </p>
-                      );
-                    } else if (cell.column.Header === "FECHA DEL EVENTO") {
+                    if (
+                      cell.column.Header === "TITULO" ||
+                      cell.column.Header === "FECHA DEL EVENTO"
+                    ) {
                       data = (
                         <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
@@ -187,8 +183,8 @@ const DevelopmentTable = (props) => {
                         );
                       };
                       data = (
-                        <span
-                          role="button"
+                        <button
+                          type="button"
                           tabIndex={0}
                           onClick={irADetalle}
                           onKeyDown={(e) => {
@@ -200,12 +196,13 @@ const DevelopmentTable = (props) => {
                           className="flex items-center gap-2 text-[15px] cursor-pointer hover:text-brand-500"
                         >
                           Ingresar <IoEnterOutline className="text-brand-500 hover:text-black transition" />
-                        </span>
+                        </button>
                       );
                     } else if (cell.column.Header === "ACCIONES") {
                       const isDuplicating = duplicating === cell.value;
                       data = (
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (onDuplicate && !isDuplicating) {
@@ -232,7 +229,7 @@ const DevelopmentTable = (props) => {
                     return (
                       <td
                         {...cell.getCellProps()}
-                        key={index}
+                        key={cell.column.id}
                         className="px-2 py-2 text-[15px]"
                       >
                         {data}
@@ -249,6 +246,7 @@ const DevelopmentTable = (props) => {
       {/* Controles de paginación */}
       <div className="mt-4 flex items-center justify-between">
         <button
+          type="button"
           onClick={() => previousPage()}
           disabled={!canPreviousPage}
           className="px-4 py-2 text-sm font-medium bg-gray-200 rounded disabled:opacity-50"
@@ -262,6 +260,7 @@ const DevelopmentTable = (props) => {
           </strong>
         </span>
         <button
+          type="button"
           onClick={() => nextPage()}
           disabled={!canNextPage}
           className="px-4 py-2 text-sm font-medium bg-gray-200 rounded disabled:opacity-50"

@@ -47,6 +47,7 @@ const DeleteParticipantButton = ({ eventAttendee, onDeleted }) => {
 
   return (
     <button
+      type="button"
       onClick={handleDelete}
       disabled={isDeleting}
       className={`p-2 rounded-md transition-colors ${

@@ -1,6 +1,4 @@
 
-import { useEffect, useState } from "react";
-
 // Event times are stored as a fixed instant (UTC ISO). Display is pinned to the
 // EVENT's own timezone (passed in as `tz`, an IANA zone) so EVERY viewer sees
 // the same wall-clock as the venue — not their own browser time. A label like
@@ -23,6 +21,8 @@ export const readStoredEvent = () => {
     if (!raw || raw === "undefined") return null;
     return JSON.parse(raw);
   } catch (e) {
+    // JSON corrupto en localStorage: se loguea y se trata como "sin evento".
+    console.error("readStoredEvent: evento almacenado inválido", e);
     return null;
   }
 };
@@ -51,7 +51,7 @@ export const formatDateHour = (inputDate, lang, tz = ECUADOR_DEFAULT_TZ) => {
   if (!inputDate) return "";
   try {
     const date = new Date(inputDate);
-    if (isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) return "";
     // Page language for format; event timezone for the wall clock.
     return new Intl.DateTimeFormat(localeFor(lang), {
       weekday: "long",
@@ -75,7 +75,7 @@ export const formatHour = (inputDate, lang, tz = ECUADOR_DEFAULT_TZ) => {
   if (!inputDate) return "";
   try {
     const date = new Date(inputDate);
-    if (isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) return "";
     return new Intl.DateTimeFormat(localeFor(lang), {
       hour: "2-digit",
       minute: "2-digit",
@@ -91,7 +91,7 @@ export const formatDate = (inputDate) => {
   try {
     const date = inputDate ? new Date(inputDate) : new Date();
     
-    if (isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
       console.error("formatDate: Invalid date input");
       return null;
     }
@@ -113,7 +113,7 @@ export const formatSpanishDate = (dateString, lang, tz = ECUADOR_DEFAULT_TZ) => 
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) return "";
     return new Intl.DateTimeFormat(localeFor(lang), {
       weekday: "long",
       day: "2-digit",
@@ -154,7 +154,7 @@ export const validateForm = (lang = "ES") => {
         const error = document.createElement("div");
         error.className = "error-message text-red-500";
         error.textContent = messages.required;
-        element.insertAdjacentElement("afterend", error);
+        element.after(error);
       }
       // Check type of user identification 
       if(element.id == "tipo_identificacion"){
@@ -178,7 +178,7 @@ export const validateForm = (lang = "ES") => {
               const error = document.createElement("div");
               error.className = "error-message text-red-500";
               error.textContent = messages.digits13;
-              element.insertAdjacentElement("afterend", error);
+              element.after(error);
             }
             break;   
         } 
@@ -186,21 +186,21 @@ export const validateForm = (lang = "ES") => {
     });
     
 
-    if(isValid == false){
+    if(!isValid){
       debounce(form.scrollIntoView({ behavior: 'smooth' }), 400)
     }
 
     return isValid;
 }
 
-function debounce(func, wait) {
+// Exportada para poder testearla directamente (no cambia su uso interno).
+export function debounce(func, wait) {
   let timeout;
-  return function() {
-      const contexto = this;
-      const args = arguments;
+  return function (...args) {
       clearTimeout(timeout);
-      timeout = setTimeout(function() {
-          func.apply(contexto, args);
+      // La arrow function conserva el `this` de la llamada sin aliasarlo.
+      timeout = setTimeout(() => {
+          func.apply(this, args);
       }, wait);
   };
 }

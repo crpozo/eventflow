@@ -8,6 +8,7 @@ import {
   formatDate,
   formatSpanishDate,
   validateForm,
+  debounce,
 } from './utils';
 
 // Fecha fija para todas las pruebas de formato: 2026-04-29 15:00 UTC
@@ -33,9 +34,15 @@ describe('readStoredEvent', () => {
     expect(readStoredEvent()).toBeNull();
   });
 
-  it('devuelve null (sin lanzar) cuando el JSON guardado está corrupto', () => {
+  it('devuelve null (sin lanzar) y loguea cuando el JSON guardado está corrupto', () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     localStorage.setItem('EVENTFLOW.event', '{esto no es json');
     expect(readStoredEvent()).toBeNull();
+    expect(errorSpy).toHaveBeenCalledWith(
+      'readStoredEvent: evento almacenado inválido',
+      expect.any(Error)
+    );
+    errorSpy.mockRestore();
   });
 
   it('parsea y devuelve el evento cuando el JSON es válido', () => {
@@ -355,5 +362,56 @@ describe('validateForm', () => {
   it('lanza si el formulario #fb-editor .rendered-form no está en el DOM', () => {
     document.body.innerHTML = '<div id="otro"></div>';
     expect(() => validateForm('ES')).toThrow();
+  });
+});
+
+describe('debounce', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('agrupa llamadas rápidas y ejecuta una sola vez con los últimos argumentos', () => {
+    const fn = jest.fn();
+    const debounced = debounce(fn, 400);
+
+    debounced('primera');
+    debounced('segunda');
+    expect(fn).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(400);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith('segunda');
+  });
+
+  it('conserva el this del objeto desde el que se invoca', () => {
+    const registro = jest.fn();
+    const obj = {
+      valor: 'contexto-obj',
+      metodo: debounce(function () {
+        registro(this.valor);
+      }, 100),
+    };
+
+    obj.metodo();
+    jest.advanceTimersByTime(100);
+    expect(registro).toHaveBeenCalledWith('contexto-obj');
+  });
+
+  it('reinicia la espera si se vuelve a llamar antes de cumplirse el plazo', () => {
+    const fn = jest.fn();
+    const debounced = debounce(fn, 300);
+
+    debounced();
+    jest.advanceTimersByTime(200);
+    debounced();
+    jest.advanceTimersByTime(200);
+    expect(fn).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(100);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 });
