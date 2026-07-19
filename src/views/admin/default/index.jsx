@@ -5,7 +5,7 @@ import { Event, EventAttendee, Landing } from "models";
 import {
   MdAdd,
   MdChevronRight,
-  MdCalendarToday,
+  MdArrowForward,
   MdOutlineSchedule,
   MdShowChart,
   MdCheckCircleOutline,
@@ -404,14 +404,6 @@ const Dashboard = () => {
                 </button>
               ))}
             </div>
-            <SecondaryButton
-              onClick={() => navigate("/admin/eventos")}
-              className="whitespace-nowrap"
-            >
-              <MdCalendarToday className="h-4 w-4" />
-              <span className="hidden sm:inline">Ver todos los eventos</span>
-              <span className="sm:hidden">Eventos</span>
-            </SecondaryButton>
             <PrimaryButton
               onClick={() => navigate("/admin/eventos/crear")}
               className="flex items-center gap-1"
@@ -427,9 +419,11 @@ const Dashboard = () => {
 
           {/* Metrics — simple: value + one light supporting line (no bars). */}
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {/* 1 — Total eventos */}
+            {/* 1 — Total eventos: tarjeta hero negra, clickeable a /admin/eventos.
+                La flecha y el enlace de abajo son VISUALES (no <button>): la
+                tarjeta entera es el role="button", así no se anidan interactivos. */}
             <Card
-              className="!p-5 cursor-pointer transition hover:bg-gray-50 dark:hover:bg-navy-700"
+              className="!bg-black dark:!bg-navy-900 !text-white !p-5 cursor-pointer transition hover:opacity-95"
               role="button"
               tabIndex={0}
               onClick={() => navigate("/admin/eventos")}
@@ -441,13 +435,19 @@ const Dashboard = () => {
               }}
             >
               <div className="flex items-start justify-between">
-                <p className={TYPE.metricLabel}>Total eventos</p>
-                <MdCalendarToday className="h-5 w-5 text-gray-300" />
+                <p className="text-base font-medium text-gray-300">Total eventos</p>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
+                  <MdArrowForward className="h-4 w-4" />
+                </span>
               </div>
-              <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
+              <p className="mt-1 text-4xl font-bold leading-tight text-white">
                 {events.length}
                 <span className="text-sm font-normal text-gray-400"> eventos</span>
               </p>
+              <span className="mt-3 flex items-center gap-1 text-sm font-semibold text-white">
+                Ver todos los eventos
+                <MdChevronRight className="h-4 w-4 text-brand-500" />
+              </span>
             </Card>
 
             {/* 2 — Próximos */}
