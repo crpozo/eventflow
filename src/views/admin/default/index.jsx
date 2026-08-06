@@ -1,15 +1,8 @@
 import React from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event, EventAttendee, Landing } from "models";
-import {
-  MdAdd,
-  MdChevronRight,
-  MdArrowForward,
-  MdOutlineSchedule,
-  MdShowChart,
-  MdCheckCircleOutline,
-} from "react-icons/md";
+import { MdAdd, MdArrowForward } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
 import {
@@ -18,51 +11,53 @@ import {
   Chip,
   PrimaryButton,
   SecondaryButton,
-  TYPE,
   PageLoader,
+  TYPE,
 } from "components/adminUi";
 
 const DAY_MS = 864e5;
 
-// The event forms write `startDate` (legacy rows may only carry `date`), so
-// every date read must fall back — same convention as eventos/reportes/landing.
+// Los formularios de evento escriben `startDate` (las filas antiguas solo
+// traen `date`), así que toda lectura de fecha usa el fallback — misma
+// convención que eventos/reportes/landing.
 const eventStart = (e) => e.startDate || e.date;
 
-// Selected time window: copy + ms used by the "Registros" metric, its delta
-// and the bar chart on the right column.
-const PERIODS = {
-  "30d": {
-    label: "30 días",
-    ms: 30 * DAY_MS,
-    metricLabel: "Registros · 30 días",
-    chartTitle: "Registros por semana",
-    rangeLabel: "últimos 30 días",
-    vsLabel: "vs. mes anterior",
-  },
-  "6m": {
-    label: "6 meses",
-    ms: 183 * DAY_MS,
-    metricLabel: "Registros · 6 meses",
-    chartTitle: "Registros por mes",
-    rangeLabel: "últimos 6 meses",
-    vsLabel: "vs. semestre anterior",
-  },
-  "1y": {
-    label: "Año",
-    ms: 365 * DAY_MS,
-    metricLabel: "Registros · año",
-    chartTitle: "Registros por mes",
-    rangeLabel: "último año",
-    vsLabel: "vs. año anterior",
-  },
+// Fin real del evento: `endDate` cuando existe y es válido, si no el inicio.
+// Sin esto, un evento multi-día que ya empezó se contaría como "finalizado" y
+// el "próximo" saltaría al siguiente justo el día que más importa.
+const eventEndMs = (e) => {
+  const end = Date.parse(e.endDate || "");
+  return Number.isNaN(end) ? Date.parse(eventStart(e) || "") : end;
 };
 
-// Light → dark teal ramp; the last bucket is always teal-600.
-const TEAL_RAMP = ["bg-teal-100", "bg-teal-200", "bg-teal-400", "bg-teal-600"];
-const barColor = (i, n) =>
-  i === n - 1 ? "bg-teal-600" : TEAL_RAMP[Math.floor((i / (n - 1)) * (TEAL_RAMP.length - 1))];
+// Ventana seleccionada: copia del selector y etiqueta de comparación. El
+// grano define además cómo se agrupan los puntos del gráfico.
+const PERIODS = {
+  "30d": { label: "30 días", vsLabel: "vs. mes anterior", grain: "por día" },
+  "6m": { label: "6 meses", vsLabel: "vs. semestre anterior", grain: "por mes" },
+  "1y": { label: "Año", vsLabel: "vs. año anterior", grain: "por mes" },
+};
 
-// Compact "lun 06/07/26 · 09:00" in the event's timezone.
+// gray-600 (#4c4c4c) + dark:text-gray-300 es el ÚNICO par legible del tema
+// para texto secundario: este config remapea gray-500 a #adb5bd (~2,1:1 sobre
+// blanco) y gray-400 a #a0aec0 (~2,3:1), muy por debajo del 4,5:1 de WCAG AA.
+// gray-400/500 se reservan para bordes e iconos decorativos, nunca para texto.
+const MUTED = "text-gray-600 dark:text-gray-300";
+
+// Anillo de foco visible para las tarjetas con role="button" (brand-500 es el
+// rojo del tema; brand-600 es AZUL y está vetado).
+const FOCUS_RING =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-navy-900";
+
+// Activa un control no nativo con Enter/Espacio sin anidar interactivos.
+const activateOnKey = (fn) => (ev) => {
+  if (ev.key === "Enter" || ev.key === " ") {
+    ev.preventDefault();
+    fn();
+  }
+};
+
+// "lun 06/07/26 · 09:00" compacto, en la zona horaria del evento.
 const compactDate = (iso, tz) => {
   if (!iso) return "";
   try {
@@ -83,15 +78,16 @@ const compactDate = (iso, tz) => {
   }
 };
 
-// Calendar day "YYYY-MM-DD" in the event's timezone (en-CA emits ISO order),
-// so day-level helpers agree with compactDate instead of the browser's tz.
+// Día natural "YYYY-MM-DD" en la zona del evento (en-CA emite el orden ISO),
+// para que los helpers de día coincidan con compactDate y no con la zona del
+// navegador.
 const dayKey = (d, tz) =>
   new Intl.DateTimeFormat("en-CA", {
     year: "numeric", month: "2-digit", day: "2-digit",
     timeZone: tz || "America/Guayaquil",
   }).format(d);
 
-// "Hoy" / "Mañana" / "En N días" / "En N meses" (calendar days, event tz).
+// "Hoy" / "Mañana" / "En N días" / "En N meses" (días naturales, zona del evento).
 const relativeWhen = (iso, tz) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -113,17 +109,18 @@ const relativeWhen = (iso, tz) => {
 const monthShort = (d) =>
   new Intl.DateTimeFormat("es-EC", { month: "short" }).format(d).replaceAll(".", "");
 
-// Split the shared "lun 06/07/26 · 09:00" into { date, time } so the table
-// can stack them on two lines without changing the displayed values.
-const dateParts = (iso, tz) => {
-  const s = compactDate(iso, tz);
-  if (!s) return { date: "", time: "" };
-  const [date, time = ""] = s.split(" · ");
-  return { date, time };
-};
+// "8 jul" — etiqueta corta para el eje y el texto del pico.
+const shortDay = (d) =>
+  new Intl.DateTimeFormat("es-EC", { day: "numeric", month: "short" })
+    .format(d)
+    .replaceAll(".", "");
 
-// Two significant initials of an event title: skip numeric tokens and the
-// common Spanish stopwords, uppercase. One word → its first two letters.
+// Clave de día en la zona del navegador: el eje del gráfico es "mis últimos
+// 30 días", no los de la zona de cada evento.
+const localDayKey = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+// Dos iniciales significativas del título: se saltan los tokens numéricos y
+// las palabras vacías, en mayúsculas. Una sola palabra → sus dos primeras letras.
 const STOPWORDS = new Set(["de", "y", "la", "el", "en", "del"]);
 const initialsOf = (title) => {
   const words = (title || "")
@@ -135,14 +132,15 @@ const initialsOf = (title) => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
-// Soft, stable avatar palette keyed by a cheap hash of the event id. All
-// classes verified present in tailwind.config (teal/gray/red/amber/blue).
+// Paleta suave y estable del avatar, elegida con un hash barato del id. Cada
+// entrada lleva su par oscuro (mismo patrón que CHIP_COLORS de adminUi) y un
+// texto con contraste suficiente: gray-500 sobre gray-100 daba ~1,85:1. Sin
+// azules: blue-600 es casi idéntico al brand-600 vetado y es ajeno al admin.
 const AVATAR_COLORS = [
-  "bg-teal-50 text-teal-600",
-  "bg-gray-100 text-gray-500",
-  "bg-red-50 text-brand-500",
-  "bg-amber-50 text-amber-600",
-  "bg-blue-50 text-blue-600",
+  "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
+  "bg-gray-100 text-gray-600 dark:bg-navy-700 dark:text-gray-300",
+  "bg-red-100 text-brand-500 dark:bg-red-900/30 dark:text-red-300",
+  "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300",
 ];
 const avatarColor = (id) => {
   const s = String(id || "");
@@ -161,23 +159,485 @@ const slugify = (s) =>
     // guion, así que basta quitar un guion por extremo (lineal, sin backtracking).
     .replaceAll(/^-|-$/g, "") || "evento";
 
-const csvCell = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+// Escapa la celda y además neutraliza el prefijo de fórmula: email y ticket
+// vienen de formularios públicos, y un valor que empiece por = + - @ se
+// ejecutaría al abrir el CSV en Excel/Sheets (inyección de fórmulas).
+const csvCell = (v) => {
+  const s = String(v ?? "");
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return `"${safe.replaceAll('"', '""')}"`;
+};
 
-// "↗ +22%" / "↘ -8%" — teal when growing, brand red when shrinking. Dark
-// surfaces lighten to *-300 like CHIP_COLORS (brand 50–400 is legacy purple,
-// so the dark red comes from the red ramp).
-const Delta = ({ pct, suffix = "" }) => (
-  <span
-    className={`text-sm font-semibold ${
-      pct >= 0
-        ? "text-teal-600 dark:text-teal-300"
-        : "text-brand-500 dark:text-red-300"
-    }`}
-  >
-    {pct >= 0 ? "↗ +" : "↘ "}
-    {pct}%{suffix ? ` ${suffix}` : ""}
-  </span>
-);
+const buildAttendeesCsv = (list) =>
+  [
+    ["Email", "Autorizado", "Check-in", "Ticket", "Cantidad", "Fecha de registro"]
+      .map(csvCell)
+      .join(","),
+    ...list.map((a) =>
+      [
+        a.email,
+        a.authorized ? "Sí" : "No",
+        a.checkIn ? "Sí" : "No",
+        a.ticket || "",
+        a.quantity ?? "",
+        a.createdAt ? new Date(a.createdAt).toLocaleString("es-EC") : "",
+      ]
+        .map(csvCell)
+        .join(",")
+    ),
+  ].join("\n");
+
+const downloadCsv = (filename, text) => {
+  const blob = new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Revocar en el mismo tick cancela la descarga en Safari y Firefox: el
+  // navegador aún no ha leído el blob. Se difiere fuera de esta vuelta.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+// Lectura defensiva del subárea guardada: un valor corrupto o de un formato
+// antiguo hace que JSON.parse lance y tumbe el árbol de React (pantalla en
+// blanco). El `?.` solo cubría el caso null.
+const readSubArea = () => {
+  try {
+    return JSON.parse(localStorage.getItem("EVENTFLOW.subarea") || "null");
+  } catch (e) {
+    console.error("subarea inválida en localStorage: ", e);
+    return null;
+  }
+};
+
+/* ── Geometría del gráfico ────────────────────────────────────────────────
+   Compartida entre el SVG y las etiquetas del eje: solo así cada etiqueta cae
+   sobre su punto. PADX evita que el trazo (strokeWidth 3) y el círculo del
+   pico se recorten a la mitad contra los bordes del viewBox. */
+const CHART_W = 1000;
+const CHART_H = 170;
+const CHART_PADX = 10;
+const CHART_PADY = 12;
+const chartX = (i, n) =>
+  n <= 1
+    ? CHART_W / 2
+    : CHART_PADX + (i / (n - 1)) * (CHART_W - 2 * CHART_PADX);
+
+/* ── Serie de registros ───────────────────────────────────────────────────
+   Cada builder devuelve los puntos del periodo y `prev`, el total de la
+   ventana anterior de igual longitud, para que el delta y el gráfico cuenten
+   la misma historia. */
+
+// 30 puntos diarios en la zona del navegador.
+function buildDailySeries(attendees, now) {
+  const nowMs = now.getTime();
+  const startMs = new Date(
+    now.getFullYear(), now.getMonth(), now.getDate() - 29
+  ).getTime();
+  const byDay = new Map();
+  const points = [];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29 + i);
+    const p = { date: d, label: shortDay(d), value: 0 };
+    byDay.set(localDayKey(d), p);
+    points.push(p);
+  }
+  let prev = 0;
+  attendees.forEach((a) => {
+    const t = Date.parse(a.createdAt);
+    if (Number.isNaN(t) || t > nowMs) return;
+    if (t >= startMs) {
+      const p = byDay.get(localDayKey(new Date(t)));
+      if (p) p.value += 1;
+    } else if (t >= startMs - 30 * DAY_MS) {
+      prev += 1;
+    }
+  });
+  return { points, prev };
+}
+
+// n meses calendario terminando en el actual.
+function buildMonthlySeries(attendees, now, n) {
+  const nowMs = now.getTime();
+  const byMonth = new Map();
+  const points = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const p = { date: d, label: monthShort(d), value: 0 };
+    byMonth.set(`${d.getFullYear()}-${d.getMonth()}`, p);
+    points.push(p);
+  }
+  const rangeStart = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1).getTime();
+  const prevStart = new Date(now.getFullYear(), now.getMonth() - (2 * n - 1), 1).getTime();
+  let prev = 0;
+  attendees.forEach((a) => {
+    const t = Date.parse(a.createdAt);
+    if (Number.isNaN(t) || t > nowMs) return;
+    if (t >= rangeStart) {
+      const d = new Date(t);
+      const p = byMonth.get(`${d.getFullYear()}-${d.getMonth()}`);
+      if (p) p.value += 1;
+    } else if (t >= prevStart) {
+      prev += 1;
+    }
+  });
+  return { points, prev };
+}
+
+// Eje: exactamente 5 marcas repartidas por posición fraccionaria (no por un
+// paso entero redondeado, que duplicaba la penúltima). Se guarda el índice del
+// punto para poder alinear cada etiqueta con su x real y usarlo como key.
+const AXIS_TICKS = 5;
+function buildAxis(points) {
+  const last = points.length - 1;
+  const ticks = [];
+  for (let k = 0; k < AXIS_TICKS; k++) {
+    const i = Math.round((k * last) / (AXIS_TICKS - 1));
+    if (ticks[ticks.length - 1]?.i !== i) ticks.push({ i, label: points[i].label });
+  }
+  return ticks;
+}
+
+// Rango del periodo. Se antepone el año del primer punto cuando el rango cruza
+// el año: en "Año" el primer mes casi siempre es del año anterior.
+function buildRangeLabel(points, period) {
+  const first = points[0];
+  const last = points[points.length - 1];
+  const l0 = period === "30d" ? shortDay(first.date) : first.label;
+  const l1 = period === "30d" ? shortDay(last.date) : last.label;
+  const y0 = first.date.getFullYear();
+  const y1 = last.date.getFullYear();
+  return y0 === y1 ? `${l0} – ${l1} ${y1}` : `${l0} ${y0} – ${l1} ${y1}`;
+}
+
+// Días finales consecutivos sin ningún registro.
+function trailingQuiet(points) {
+  let quiet = 0;
+  for (let i = points.length - 1; i >= 0 && points[i].value === 0; i--) quiet += 1;
+  return quiet;
+}
+
+function useRegistrationSeries(attendees, period) {
+  return React.useMemo(() => {
+    const now = new Date();
+    const { points, prev } =
+      period === "30d"
+        ? buildDailySeries(attendees, now)
+        : buildMonthlySeries(attendees, now, period === "6m" ? 6 : 12);
+
+    const total = points.reduce((s, p) => s + p.value, 0);
+    const peakIdx = points.reduce(
+      (best, p, i) => (p.value > points[best].value ? i : best),
+      0
+    );
+
+    return {
+      points,
+      total,
+      // null = no hay base comparable (la ventana anterior fue 0).
+      delta: prev > 0 ? Math.round(((total - prev) / prev) * 100) : null,
+      axis: buildAxis(points),
+      peak: points[peakIdx],
+      // El aviso de inactividad solo tiene sentido con grano diario.
+      quiet: period === "30d" ? trailingQuiet(points) : 0,
+      rangeLabel: buildRangeLabel(points, period),
+    };
+  }, [attendees, period]);
+}
+
+// Mensaje bajo el gráfico: el pico y, si aplica, cuánto lleva sin registros.
+// La preposición depende del grano ("el 9 jul" vs "en jul 2026"), y en los
+// periodos mensuales se añade el año porque dos julios son indistinguibles.
+function buildInsight(series, period) {
+  if (series.total === 0) return "Sin registros en este periodo.";
+  const unidad = series.peak.value === 1 ? "registro" : "registros";
+  const cuando =
+    period === "30d"
+      ? `el ${series.peak.label}`
+      : `en ${series.peak.label} ${series.peak.date.getFullYear()}`;
+  const base = `Pico: ${series.peak.value} ${unidad} ${cuando}`;
+  if (series.quiet >= 2) return `${base} · ${series.quiet} días sin registros nuevos`;
+  return base;
+}
+
+const chipFor = (landing) => {
+  if (landing?.active) return <Chip color="green">Publicado</Chip>;
+  if (landing) return <Chip color="gray">Oculto</Chip>;
+  return <Chip color="amber">Borrador</Chip>;
+};
+
+/* ── Tarjeta de métrica: número grande a la izquierda, etiqueta en dos
+   líneas a la derecha. Con `onClick` la tarjeta entera es el control
+   (role=button + teclado), así no se anidan interactivos. ───────────── */
+function Metric({ value, suffix, label1, label2, arrow, onClick }) {
+  const body = (
+    <div className="flex items-center justify-between gap-3">
+      {/* items-center (no baseline): con baseline la segunda línea de la
+          etiqueta cae por debajo del número y el par se ve desplazado. */}
+      <div className="flex items-center gap-3">
+        <span className={`${TYPE.metricValue} leading-none`}>
+          {value}
+          {suffix && (
+            <span className={`text-lg font-semibold ${MUTED}`}>{suffix}</span>
+          )}
+        </span>
+        {/* text-sm a propósito: son dos líneas junto a un número text-4xl en
+            una rejilla de 4 columnas; a text-base la etiqueta desborda. */}
+        <span className={`text-sm leading-snug ${MUTED}`}>
+          {label1}
+          <br />
+          {label2}
+        </span>
+      </div>
+      {arrow && <MdArrowForward className="h-5 w-5 shrink-0 text-brand-500" />}
+    </div>
+  );
+  if (!onClick) return <Card className="!p-5">{body}</Card>;
+  return (
+    <Card
+      // dark:hover:!bg-navy-700 con important: Card aplica dark:!bg-navy-800,
+      // y sin important la declaración base gana siempre (no habría hover).
+      className={`!p-5 cursor-pointer transition hover:bg-gray-50 dark:hover:!bg-navy-700 ${FOCUS_RING}`}
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={activateOnKey(onClick)}
+    >
+      {body}
+    </Card>
+  );
+}
+
+/* ── Área + línea en SVG puro (sin librerías de gráficos, como el resto del
+   admin). El color va por currentColor sobre teal-700 / teal-300, así el
+   trazo mantiene contraste en oscuro y comparte tono con las píldoras. ── */
+function Sparkline({ points, label }) {
+  const n = points.length;
+  const max = Math.max(...points.map((p) => p.value), 1);
+  // Id único por instancia: un id fijo colisionaría si se montan dos gráficos
+  // y el degradado se resolvería contra el primero del documento.
+  const gradientId = `efChartArea-${React.useId().replaceAll(":", "")}`;
+  const yAt = (v) => CHART_PADY + (1 - v / max) * (CHART_H - CHART_PADY * 2);
+  const line = points
+    .map((p, i) => `${chartX(i, n).toFixed(1)},${yAt(p.value).toFixed(1)}`)
+    .join(" ");
+  const peak = points.reduce(
+    (best, p, i) => (p.value > points[best].value ? i : best),
+    0
+  );
+  return (
+    <svg
+      viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+      className="mt-6 w-full text-teal-700 dark:text-teal-300"
+      role="img"
+      aria-label={label}
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.20" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={`${CHART_PADX},${CHART_H} ${line} ${CHART_W - CHART_PADX},${CHART_H}`}
+        fill={`url(#${gradientId})`}
+      />
+      <polyline
+        points={line}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      {points[peak].value > 0 && (
+        <circle
+          cx={chartX(peak, n)}
+          cy={yAt(points[peak].value)}
+          r="7"
+          fill="currentColor"
+        />
+      )}
+    </svg>
+  );
+}
+
+// Las etiquetas se posicionan en absoluto sobre la x real de su punto: con
+// `justify-between` se repartían por ancho de texto y no coincidían con la
+// curva. Los extremos se anclan hacia dentro para no salirse de la tarjeta.
+const anchorFor = (i, n) => {
+  if (i === 0) return "translate-x-0";
+  if (i === n - 1) return "-translate-x-full";
+  return "-translate-x-1/2";
+};
+
+function AxisLabels({ axis, count }) {
+  return (
+    <div className={`relative mt-2 h-4 text-xs ${MUTED}`}>
+      {axis.map(({ i, label }) => (
+        <span
+          key={i}
+          className={`absolute top-0 whitespace-nowrap ${anchorFor(i, count)}`}
+          style={{ left: `${(chartX(i, count) / CHART_W) * 100}%` }}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/* ── Selector de periodo: el activo es una píldora negra en claro y BLANCA en
+   oscuro (navy-700 sobre navy-900 daba ~1,13:1, invisible, y además los
+   inactivos se leían más claros que el activo). ───────────────────────── */
+function PeriodSelector({ period, onChange }) {
+  return (
+    <div
+      role="group"
+      aria-label="Periodo del gráfico"
+      className="flex items-center gap-1 rounded-2xl bg-gray-100 p-1 dark:bg-navy-900"
+    >
+      {Object.entries(PERIODS).map(([key, p]) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={period === key}
+          onClick={() => onChange(key)}
+          className={
+            period === key
+              ? `rounded-xl bg-black px-3.5 py-1.5 text-sm font-semibold text-white dark:bg-white dark:text-navy-700 ${FOCUS_RING}`
+              : `rounded-xl px-3.5 py-1.5 text-sm transition hover:text-navy-700 dark:hover:text-white ${MUTED} ${FOCUS_RING}`
+          }
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Píldora del delta. Se renderiza SIEMPRE: cuando la ventana anterior fue 0
+// (primer mes de uso) antes desaparecía y la cabecera quedaba incompleta.
+function DeltaChip({ delta, vsLabel }) {
+  if (delta === null) {
+    return <Chip color="gray" dot={false}>Sin base previa</Chip>;
+  }
+  return (
+    <Chip color={delta >= 0 ? "green" : "amber"} dot={false}>
+      {delta >= 0 ? "+" : "−"}
+      {Math.abs(delta)}% {vsLabel}
+    </Chip>
+  );
+}
+
+/* ── Tarjeta grande de registros ──────────────────────────────────────── */
+function RegistrationsCard({ series, period, onPeriodChange }) {
+  const P = PERIODS[period];
+  const insight = buildInsight(series, period);
+  return (
+    <Card className="!p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className={`text-base font-medium ${MUTED}`}>Registros</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <span className={`${TYPE.metricValue} leading-none`}>
+              {series.total}
+            </span>
+            <DeltaChip delta={series.delta} vsLabel={P.vsLabel} />
+          </div>
+          <p className={`mt-1.5 text-base ${MUTED}`}>
+            {series.rangeLabel} · {P.grain}
+          </p>
+        </div>
+
+        <PeriodSelector period={period} onChange={onPeriodChange} />
+      </div>
+
+      <Sparkline
+        points={series.points}
+        label={`Registros, ${P.label.toLowerCase()}: ${series.total} en total. ${insight}`}
+      />
+
+      <AxisLabels axis={series.axis} count={series.points.length} />
+
+      {/* Verde solo cuando hay pico: un periodo vacío en verde se leería como
+          estado positivo. Se usa Chip en vez de rehacer la píldora a mano. */}
+      <div className="mt-5">
+        <Chip color={series.total === 0 ? "gray" : "green"}>{insight}</Chip>
+      </div>
+    </Card>
+  );
+}
+
+/* ── Próximo evento, en una sola fila horizontal ──────────────────────── */
+function NextEventCard({ event, landing, count, onReport, onExport }) {
+  return (
+    <Card className="lg:col-span-2 !p-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <div
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${avatarColor(
+            event.id
+          )}`}
+        >
+          {initialsOf(event.title)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* min-w-0 también en el propio elemento truncado: un flex item
+                tiene min-width:auto y con nowrap nunca llegaría a truncar. */}
+            <p className="min-w-0 truncate text-lg font-bold text-navy-700 dark:text-white">
+              {event.title}
+            </p>
+            {chipFor(landing)}
+          </div>
+          <p className={`mt-0.5 text-base ${MUTED}`}>
+            {compactDate(eventStart(event), event.timezone)} · {count} inscritos
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <PrimaryButton onClick={onReport}>Ver reporte</PrimaryButton>
+          <SecondaryButton onClick={onExport}>Exportar CSV</SecondaryButton>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ── Siguiente paso: estado vacío cuando no hay más eventos próximos ──── */
+function NextStepCard({ moreCount, onGo }) {
+  const hasMore = moreCount > 0;
+  // El icono acompaña al destino: "+" solo cuando la acción es crear.
+  const Icon = hasMore ? MdArrowForward : MdAdd;
+  return (
+    <Card
+      className={`!p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:!bg-navy-700 ${FOCUS_RING}`}
+      role="button"
+      tabIndex={0}
+      onClick={onGo}
+      onKeyDown={activateOnKey(onGo)}
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-600 dark:bg-navy-700 dark:text-gray-300">
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-base font-bold text-navy-700 dark:text-white">
+            {hasMore ? `${moreCount} eventos próximos más` : "Sin más eventos próximos"}
+          </p>
+          <p className={`mt-0.5 text-base ${MUTED}`}>
+            {hasMore
+              ? "Revisa el calendario completo."
+              : "Programa el siguiente para mantener el ritmo."}
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 const Dashboard = () => {
 
@@ -185,17 +645,17 @@ const Dashboard = () => {
   const [attendees, setAttendees] = React.useState([]);
   const [landings, setLandings] = React.useState([]);
   const [period, setPeriod] = React.useState("30d");
-  // Keep the loader up until DataStore's first synced snapshot: an empty local
-  // cache emits [] before the cloud sync lands, which showed a false "no hay
-  // eventos" for a few seconds on load.
+  // El loader se mantiene hasta el primer snapshot sincronizado de DataStore:
+  // una caché local vacía emite [] antes de que llegue la nube, y eso mostraba
+  // un falso "no hay eventos" durante unos segundos al cargar.
   const [synced, setSynced] = React.useState(false);
   const navigate = useNavigate();
   const { loading, isAdmin } = usePermissions();
 
   React.useEffect(() => {
     if (loading) return;
-    // Show events as soon as any arrive (local cache); only keep waiting on the
-    // spinner while we have zero AND DataStore hasn't confirmed the sync yet.
+    // Se muestran los eventos en cuanto llega alguno (caché local); solo se
+    // sigue esperando mientras haya cero Y DataStore no confirme la sync.
     const onResults = ({ items, isSynced }) => {
       setEvents(items);
       if (isSynced || items.length) setSynced(true);
@@ -204,7 +664,7 @@ const Dashboard = () => {
     if (isAdmin) {
       sub = DataStore.observeQuery(Event).subscribe(onResults);
     } else {
-      const subAreaId = JSON.parse(localStorage.getItem("EVENTFLOW.subarea"))?.id;
+      const subAreaId = readSubArea()?.id;
       if (!subAreaId) {
         navigate(`/page/campus`, { state: { error: "Escoge un campus, area y subarea para acceder a tus eventos" } });
         return;
@@ -228,13 +688,13 @@ const Dashboard = () => {
     return () => sub.unsubscribe();
   }, []);
 
-  // Attendees scoped to the visible events (non-admins only see their own).
+  // Inscritos acotados a los eventos visibles (los no-admin solo ven los suyos).
   const scopedAttendees = React.useMemo(() => {
     const ids = new Set(events.map((e) => e.id));
     return attendees.filter((a) => ids.has(a.eventID));
   }, [events, attendees]);
 
-  // Event.Landing resolves null in this project — reverse lookup instead.
+  // Event.Landing resuelve null en este proyecto — se hace la búsqueda inversa.
   const landingByEvent = React.useMemo(() => {
     const m = new Map();
     landings.forEach((l) => {
@@ -249,504 +709,139 @@ const Dashboard = () => {
     return m;
   }, [scopedAttendees]);
 
-  const { upcoming, finished } = React.useMemo(() => {
+  // El corte usa el FIN del evento: uno en curso sigue siendo "próximo".
+  // `dated` son los eventos con fecha parseable — los demás no entran en
+  // ninguno de los dos grupos y falsearían el denominador de "finalizados".
+  const { upcoming, finished, dated } = React.useMemo(() => {
     const nowMs = Date.now();
-    const up = events
-      .filter((e) => eventStart(e) && new Date(eventStart(e)).getTime() > nowMs)
-      .sort((a, b) => new Date(eventStart(a)) - new Date(eventStart(b)));
-    const fin = events.filter(
-      (e) => eventStart(e) && new Date(eventStart(e)).getTime() <= nowMs
+    const withDate = events.filter(
+      (e) => eventStart(e) && !Number.isNaN(Date.parse(eventStart(e)))
     );
-    return { upcoming: up, finished: fin };
+    const up = withDate
+      .filter((e) => eventEndMs(e) > nowMs)
+      .sort((a, b) => Date.parse(eventStart(a)) - Date.parse(eventStart(b)));
+    const fin = withDate.filter((e) => eventEndMs(e) <= nowMs);
+    return { upcoming: up, finished: fin, dated: withDate.length };
   }, [events]);
 
-  // Registrations inside the selected window vs. the previous one.
-  const regStats = React.useMemo(() => {
-    const nowMs = Date.now();
-    const w = PERIODS[period].ms;
-    let cur = 0;
-    let prev = 0;
-    scopedAttendees.forEach((a) => {
-      const t = Date.parse(a.createdAt);
-      if (Number.isNaN(t) || t > nowMs) return;
-      if (t >= nowMs - w) cur += 1;
-      else if (t >= nowMs - 2 * w) prev += 1;
-    });
-    return { cur, prev, delta: prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null };
-  }, [scopedAttendees, period]);
+  const series = useRegistrationSeries(scopedAttendees, period);
 
-  // Chart buckets: 4 weeks (S1..S4) for 30d, calendar months for 6m/1y.
-  // The delta shown next to "{total} en total" is computed from the SAME
-  // window as the buckets (vs. the preceding window of equal length) — the
-  // rolling-window regStats.delta belongs to the metric card only.
-  const chart = React.useMemo(() => {
-    const nowMs = Date.now();
-    const pctDelta = (cur, prev) =>
-      prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null;
-    if (period === "30d") {
-      const start = nowMs - 30 * DAY_MS;
-      const step = 7.5 * DAY_MS;
-      const buckets = [1, 2, 3, 4].map((n) => ({ label: `S${n}`, value: 0 }));
-      let prev = 0;
-      scopedAttendees.forEach((a) => {
-        const t = Date.parse(a.createdAt);
-        if (Number.isNaN(t) || t > nowMs) return;
-        if (t >= start) buckets[Math.min(3, Math.floor((t - start) / step))].value += 1;
-        else if (t >= start - 30 * DAY_MS) prev += 1;
-      });
-      const total = buckets.reduce((s, b) => s + b.value, 0);
-      return { buckets, total, delta: pctDelta(total, prev) };
-    }
-    const now = new Date();
-    const n = period === "6m" ? 6 : 12;
-    const buckets = [];
-    const byMonth = new Map();
-    for (let i = n - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const b = { label: monthShort(d), value: 0 };
-      byMonth.set(`${d.getFullYear()}-${d.getMonth()}`, b);
-      buckets.push(b);
-    }
-    // Previous window = the n calendar months right before the displayed range.
-    const rangeStart = new Date(now.getFullYear(), now.getMonth() - (n - 1), 1).getTime();
-    const prevStart = new Date(now.getFullYear(), now.getMonth() - (2 * n - 1), 1).getTime();
-    let prev = 0;
-    scopedAttendees.forEach((a) => {
-      const t = Date.parse(a.createdAt);
-      if (Number.isNaN(t) || t > nowMs) return;
-      if (t >= rangeStart) {
-        const d = new Date(t);
-        const b = byMonth.get(`${d.getFullYear()}-${d.getMonth()}`);
-        if (b) b.value += 1;
-      } else if (t >= prevStart) {
-        prev += 1;
+  // Evento de referencia: el más próximo. Alimenta las métricas 2 y 3 y la
+  // tarjeta inferior, así el dashboard cuenta una sola historia.
+  const next = upcoming[0] || null;
+
+  const header = (
+    <PageHeader
+      title="Dashboard"
+      subtitle="Resumen general de tus eventos."
+      actions={
+        <PrimaryButton
+          onClick={() => navigate("/admin/eventos/crear")}
+          className="flex items-center gap-1"
+        >
+          <MdAdd className="h-4 w-4" /> Crear evento
+        </PrimaryButton>
       }
-    });
-    const total = buckets.reduce((s, b) => s + b.value, 0);
-    return { buckets, total, delta: pctDelta(total, prev) };
-  }, [scopedAttendees, period]);
-
-  // Featured event for the dark report card: first upcoming with registrations,
-  // otherwise the nearest upcoming one; hidden when there is none.
-  const featured = React.useMemo(
-    () => upcoming.find((e) => (countByEvent.get(e.id) || 0) > 0) || upcoming[0] || null,
-    [upcoming, countByEvent]
+    />
   );
 
   if (loading || !synced) {
     return <PageLoader />;
   }
 
-  const P = PERIODS[period];
-  const rows = upcoming.slice(0, 4);
-  const chartMax = Math.max(...chart.buckets.map((b) => b.value), 0);
-
-  const exportCsv = () => {
-    if (!featured) return;
-    const list = scopedAttendees.filter((a) => a.eventID === featured.id);
-    const lines = [
-      ["Email", "Autorizado", "Check-in", "Ticket", "Cantidad", "Fecha de registro"]
-        .map(csvCell)
-        .join(","),
-      ...list.map((a) =>
-        [
-          a.email,
-          a.authorized ? "Sí" : "No",
-          a.checkIn ? "Sí" : "No",
-          a.ticket || "",
-          a.quantity ?? "",
-          a.createdAt ? new Date(a.createdAt).toLocaleString("es-EC") : "",
-        ]
-          .map(csvCell)
-          .join(",")
-      ),
-    ];
-    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `reporte-${slugify(featured.title)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const chipFor = (eventId) => {
-    const landing = landingByEvent.get(eventId);
-    if (landing?.active) return <Chip color="green">Publicado</Chip>;
-    if (landing) return <Chip color="gray">Oculto</Chip>;
-    return <Chip color="amber">Borrador</Chip>;
-  };
-
-  return (
-    <div>
-      <PageHeader
-        crumbs={[{ label: "Dashboard" }]}
-        title="Dashboard"
-        subtitle="Resumen general de tus eventos."
-        actions={
-          <>
-            {/* Segmented period control */}
-            <div className="flex items-center gap-1 rounded-2xl bg-gray-100 p-1 dark:bg-navy-800">
-              {Object.entries(PERIODS).map(([key, p]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setPeriod(key)}
-                  className={
-                    period === key
-                      ? "rounded-xl bg-white px-3.5 py-1.5 text-sm font-semibold text-navy-700 shadow dark:bg-navy-700 dark:text-white"
-                      : "rounded-xl px-3.5 py-1.5 text-sm text-gray-500 transition hover:text-navy-700 dark:hover:text-white"
-                  }
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-            <PrimaryButton
-              onClick={() => navigate("/admin/eventos/crear")}
-              className="flex items-center gap-1"
-            >
-              <MdAdd className="h-4 w-4" /> Crear evento
-            </PrimaryButton>
-          </>
-        }
-      />
-
-      {events.length !== 0 ? (
-        <div className="flex flex-col gap-6">
-
-          {/* Metrics — simple: value + one light supporting line (no bars). */}
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {/* 1 — Total eventos: tarjeta hero negra, clickeable a /admin/eventos.
-                La flecha y el enlace de abajo son VISUALES (no <button>): la
-                tarjeta entera es el role="button", así no se anidan interactivos. */}
-            <Card
-              className="!bg-black dark:!bg-navy-900 !text-white !p-5 cursor-pointer transition hover:opacity-95"
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate("/admin/eventos")}
-              onKeyDown={(ev) => {
-                if (ev.key === "Enter" || ev.key === " ") {
-                  ev.preventDefault();
-                  navigate("/admin/eventos");
-                }
-              }}
-            >
-              <div className="flex items-start justify-between">
-                <p className="text-base font-medium text-gray-300">Total eventos</p>
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white">
-                  <MdArrowForward className="h-4 w-4" />
-                </span>
-              </div>
-              <p className="mt-1 text-4xl font-bold leading-tight text-white">
-                {events.length}
-                <span className="text-sm font-normal text-gray-400"> eventos</span>
-              </p>
-              <span className="mt-3 flex items-center gap-1 text-sm font-semibold text-white">
-                Ver todos los eventos
-                <MdChevronRight className="h-4 w-4 text-brand-500" />
-              </span>
-            </Card>
-
-            {/* 2 — Próximos */}
-            <Card className="!p-5">
-              <div className="flex items-start justify-between">
-                <p className={TYPE.metricLabel}>Próximos</p>
-                <MdOutlineSchedule className="h-5 w-5 text-gray-300" />
-              </div>
-              <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
-                {upcoming.length}
-                <span className="text-sm font-normal text-gray-400"> eventos</span>
-              </p>
-            </Card>
-
-            {/* 3 — Registros · ventana */}
-            <Card className="!p-5">
-              <div className="flex items-start justify-between">
-                <p className={TYPE.metricLabel}>{P.metricLabel}</p>
-                <MdShowChart className="h-5 w-5 text-gray-300" />
-              </div>
-              <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                <p className={`${TYPE.metricValue} leading-tight`}>{regStats.cur}</p>
-                {regStats.delta !== null && <Delta pct={regStats.delta} />}
-              </div>
-            </Card>
-
-            {/* 4 — Finalizados */}
-            <Card className="!p-5">
-              <div className="flex items-start justify-between">
-                <p className={TYPE.metricLabel}>Finalizados</p>
-                <MdCheckCircleOutline className="h-5 w-5 text-gray-300" />
-              </div>
-              <p className={`${TYPE.metricValue} mt-1 leading-tight`}>
-                {finished.length}
-                <span className="text-sm font-normal text-gray-400">
-                  {" "}
-                  de {events.length}
-                </span>
-              </p>
-            </Card>
-          </div>
-
-          <div className="grid gap-5 xl:grid-cols-3">
-            {/* Upcoming events table */}
-            <Card
-              title="Próximos eventos"
-              className="xl:col-span-2 !p-4"
-              headerRight={
-                <Link
-                  to="/admin/eventos"
-                  className="flex items-center text-sm font-bold text-brand-500 transition hover:text-black hover:no-underline dark:hover:text-white"
-                >
-                  Ver todos ({events.length})
-                  <MdChevronRight className="h-4 w-4" />
-                </Link>
-              }
-            >
-              {upcoming.length === 0 ? (
-                <p className="text-base text-gray-400">
-                  No hay eventos próximos en el calendario.
-                </p>
-              ) : (
-                <>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-100 dark:border-white/10">
-                        <th className={`${TYPE.th} pb-2 pl-3 pr-4 text-left`}>Evento</th>
-                        <th className={`${TYPE.th} pb-2 pr-4 text-left`}>Fecha</th>
-                        <th className={`${TYPE.th} pb-2 pr-4 text-left`}>Estado</th>
-                        <th className={`${TYPE.th} pb-2 pr-3 text-right`}>Inscritos</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((e, i) => {
-                        const count = countByEvent.get(e.id) || 0;
-                        const when = relativeWhen(eventStart(e), e.timezone);
-                        // ONLY today's event gets the tinted row + red "Hoy"
-                        // pill — highlighting every other row read as selection.
-                        const isToday = when === "Hoy";
-                        return (
-                          <tr
-                            key={e.id}
-                            onClick={() => {
-                              // Keep the sidebar in sync: it reads the event
-                              // from this key (same as the eventos table).
-                              localStorage.setItem(
-                                "EVENTFLOW.event",
-                                JSON.stringify(e)
-                              );
-                              navigate(`/admin/eventos/${e.id}/detalle/`);
-                            }}
-                            className={`cursor-pointer transition ${
-                              isToday
-                                ? "bg-gray-50 hover:bg-gray-100 dark:bg-navy-700/60 dark:hover:bg-navy-700"
-                                : "hover:bg-gray-50 dark:hover:bg-navy-700"
-                            } ${
-                              !isToday && i < rows.length - 1
-                                ? "border-b border-gray-100 dark:border-white/10"
-                                : ""
-                            }`}
-                          >
-                            <td
-                              className={`w-full max-w-0 py-3 pr-4 ${
-                                isToday ? "rounded-l-xl pl-3" : "pl-3"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${avatarColor(
-                                    e.id
-                                  )}`}
-                                >
-                                  {initialsOf(e.title)}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="truncate text-base font-bold text-navy-700 dark:text-white">
-                                    {e.title}
-                                  </p>
-                                  {isToday ? (
-                                    <span className="mt-1 inline-block rounded-lg bg-red-50 px-2 py-0.5 text-xs font-semibold text-brand-500">
-                                      Hoy
-                                    </span>
-                                  ) : (
-                                    <p className="mt-0.5 text-sm text-gray-500">
-                                      {when}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className={`${TYPE.td} whitespace-nowrap py-3 pr-4`}>
-                              {(() => {
-                                const { date, time } = dateParts(
-                                  eventStart(e),
-                                  e.timezone
-                                );
-                                return (
-                                  <>
-                                    <span className="block">{date}</span>
-                                    {time && (
-                                      <span className="block text-sm text-gray-500">
-                                        {time}
-                                      </span>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </td>
-                            <td className="py-3 pr-4">{chipFor(e.id)}</td>
-                            <td
-                              className={`whitespace-nowrap py-3 pr-3 text-right ${
-                                isToday ? "rounded-r-xl" : ""
-                              }`}
-                            >
-                              <span className="inline-flex items-center gap-1">
-                                {count > 0 ? (
-                                  <span className="text-base font-bold text-navy-700 dark:text-white">
-                                    {count}
-                                  </span>
-                                ) : (
-                                  <span className="text-base text-gray-400">—</span>
-                                )}
-                                <MdChevronRight className="h-4 w-4 text-gray-300" />
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <p className="mt-3 text-sm text-gray-500">
-                    Mostrando {rows.length} de {upcoming.length} próximos · los
-                    finalizados están en{" "}
-                    <Link
-                      to="/admin/eventos"
-                      className="font-bold text-brand-500 hover:text-black hover:no-underline dark:hover:text-white"
-                    >
-                      Todos mis eventos
-                    </Link>
-                  </p>
-                </>
-              )}
-            </Card>
-
-            {/* Right column */}
-            <div className="flex flex-col gap-4">
-              {/* Registrations bar chart — divs only, no chart libs */}
-              <Card
-                title={P.chartTitle}
-                className="!p-4"
-                headerRight={
-                  <span className="text-xs text-gray-400">{P.rangeLabel}</span>
-                }
-              >
-                <p className="-mt-1 mb-3 text-sm text-gray-500">
-                  {chart.total} en total
-                  {chart.delta !== null && (
-                    <>
-                      {" · "}
-                      <span
-                        className={`font-semibold ${
-                          chart.delta >= 0
-                            ? "text-teal-600 dark:text-teal-300"
-                            : "text-brand-500 dark:text-red-300"
-                        }`}
-                      >
-                        {chart.delta >= 0
-                          ? `+${chart.delta}%`
-                          : `↘ ${chart.delta}%`}{" "}
-                        {P.vsLabel}
-                      </span>
-                    </>
-                  )}
-                </p>
-                <div className="flex h-28 items-end justify-between gap-2">
-                  {chart.buckets.map((b, i) => {
-                    const isLast = i === chart.buckets.length - 1;
-                    return (
-                      <div
-                        // Las etiquetas son únicas por periodo (S1..S4 o meses
-                        // consecutivos), así que sirven de key estable.
-                        key={b.label}
-                        className="flex h-full flex-1 flex-col items-center justify-end gap-1"
-                      >
-                        <span
-                          className={`text-xs ${
-                            isLast
-                              ? "font-bold text-navy-700 dark:text-white"
-                              : "text-gray-400"
-                          }`}
-                        >
-                          {b.value}
-                        </span>
-                        <div
-                          className={`w-full rounded-md ${barColor(i, chart.buckets.length)}`}
-                          style={{
-                            height: `${chartMax > 0 ? Math.max(6, Math.round((b.value / chartMax) * 60)) : 6}px`,
-                          }}
-                        />
-                        {/* Always text-xs (no ad-hoc sizes per the adminUi
-                            standard); the 12 labels of "1y" alternate instead
-                            of shrinking — odd indexes keep the last visible. */}
-                        <span
-                          className={`text-xs ${
-                            isLast
-                              ? "font-semibold text-navy-700 dark:text-white"
-                              : "text-gray-400"
-                          }`}
-                        >
-                          {period === "1y" && i % 2 === 0 ? "\u00A0" : b.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-
-              {/* Report card for the featured upcoming event — white like the
-                  rest (the navy version stole too much attention). */}
-              {featured && (
-                // flex-1: stretches so its bottom edge lines up with the
-                // bottom of the events card (the grid stretches the column).
-                <Card className="flex flex-1 flex-col !p-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                    Reporte ·{" "}
-                    {relativeWhen(eventStart(featured), featured.timezone) ===
-                    "Hoy"
-                      ? "Evento de hoy"
-                      : "Próximo evento"}
-                  </p>
-                  <h3 className="mt-1.5 line-clamp-1 text-lg font-bold text-navy-700 dark:text-white">
-                    {featured.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {countByEvent.get(featured.id) || 0} inscritos hasta hoy. Exporta
-                    la lista para logística y check-in.
-                  </p>
-                  <div className="mt-auto flex gap-2 pt-3">
-                    <PrimaryButton onClick={() => navigate("/admin/reportes")}>
-                      Ver reporte
-                    </PrimaryButton>
-                    <SecondaryButton onClick={exportCsv}>
-                      Exportar CSV
-                    </SecondaryButton>
-                  </div>
-                </Card>
-              )}
-            </div>
-          </div>
-
-        </div>
-      ) : (
+  if (events.length === 0) {
+    return (
+      <div>
+        {header}
         <Card>
           <p className="flex items-center gap-2 text-base text-navy-700 dark:text-white">
             <AiOutlineWarning /> No existen eventos en la base de datos...
           </p>
         </Card>
-      )}
+      </div>
+    );
+  }
 
+  const nextCount = next ? countByEvent.get(next.id) || 0 : 0;
+
+  const exportCsv = () => {
+    if (!next) return;
+    const list = scopedAttendees.filter((a) => a.eventID === next.id);
+    downloadCsv(`reporte-${slugify(next.title)}.csv`, buildAttendeesCsv(list));
+  };
+
+  // Se pasa el evento en el state para que reportes pueda preseleccionarlo.
+  const openReport = () =>
+    navigate("/admin/reportes", { state: { eventId: next.id } });
+
+  const goNextStep = () =>
+    navigate(upcoming.length > 1 ? "/admin/eventos" : "/admin/eventos/crear");
+
+  return (
+    <div>
+      {header}
+
+      <div className="flex flex-col gap-5">
+
+        {/* Métricas: valor grande + etiqueta en dos líneas */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Metric
+            value={events.length}
+            label1="Total"
+            label2="eventos"
+            arrow
+            onClick={() => navigate("/admin/eventos")}
+          />
+          <Metric
+            value={upcoming.length}
+            label1={upcoming.length === 1 ? "Próximo" : "Próximos"}
+            label2={
+              next
+                ? `${upcoming.length > 1 ? "el más cercano " : ""}${relativeWhen(
+                    eventStart(next),
+                    next.timezone
+                  ).toLocaleLowerCase("es-EC")}`
+                : "sin agendar"
+            }
+          />
+          <Metric value={nextCount} label1="Inscritos" label2="al próximo" />
+          <Metric
+            value={finished.length}
+            suffix={`/${dated}`}
+            label1="Eventos"
+            label2="finalizados"
+          />
+        </div>
+
+        {/* Registros a lo largo del tiempo */}
+        <RegistrationsCard
+          series={series}
+          period={period}
+          onPeriodChange={setPeriod}
+        />
+
+        {/* Próximo evento + siguiente paso */}
+        <div className="grid gap-5 lg:grid-cols-3">
+          {next ? (
+            <NextEventCard
+              event={next}
+              landing={landingByEvent.get(next.id)}
+              count={nextCount}
+              onReport={openReport}
+              onExport={exportCsv}
+            />
+          ) : (
+            <Card className="lg:col-span-2 !p-4">
+              <p className={`text-base ${MUTED}`}>
+                No hay eventos próximos en el calendario.
+              </p>
+            </Card>
+          )}
+
+          <NextStepCard moreCount={upcoming.length - 1} onGo={goNextStep} />
+        </div>
+
+      </div>
     </div>
   );
 };
