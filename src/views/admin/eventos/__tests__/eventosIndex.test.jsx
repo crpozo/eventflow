@@ -210,6 +210,98 @@ describe("Lista de eventos — carga y estados", () => {
   });
 });
 
+describe("Lista de eventos — última modificación y orden", () => {
+  // Textos de una columna del cuerpo, en el orden en que se pintan.
+  const columna = (i) =>
+    screen
+      .getAllByRole("row")
+      .slice(1) // la primera fila es la cabecera
+      .map((fila) => fila.cells[i].textContent.trim());
+
+  const EVA = {
+    id: "ev-a", title: "Alfa", date: "2026-01-15T12:00:00.000Z",
+    careerID: "c1", updatedAt: "2026-05-02T18:30:00.000Z",
+  };
+  const EVB = {
+    id: "ev-b", title: "Beta", date: "2026-03-20T12:00:00.000Z",
+    careerID: "c1", updatedAt: "2026-07-19T22:40:00.000Z",
+  };
+  // Sin updatedAt: debe mostrar guion y ordenar como el más antiguo.
+  const EVC = {
+    id: "ev-c", title: "Gamma", date: "2026-02-10T12:00:00.000Z", careerID: "c1",
+  };
+
+  const sembrarYRenderizar = async () => {
+    seed({ Event: [EVA, EVB, EVC], Area: AREAS, Career: CAREERS });
+    renderEventos();
+    expect(await screen.findByText("Alfa")).toBeInTheDocument();
+  };
+
+  test("muestra fecha y hora de la última modificación, y guion cuando falta", async () => {
+    await sembrarYRenderizar();
+
+    expect(
+      screen.getByRole("columnheader", { name: /ÚLTIMA MODIFICACIÓN/i })
+    ).toBeInTheDocument();
+    // Se muestra en hora de Ecuador (UTC-5), no en la del navegador.
+    expect(screen.getByText("02/05/2026 · 13:30")).toBeInTheDocument();
+    expect(screen.getByText("19/07/2026 · 17:40")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  test("al hacer clic en la cabecera ordena, y el segundo clic invierte", async () => {
+    await sembrarYRenderizar();
+
+    const th = screen.getByRole("columnheader", { name: /ÚLTIMA MODIFICACIÓN/i });
+    expect(th).not.toHaveAttribute("aria-sort");
+
+    fireEvent.click(th);
+    const dir1 = th.getAttribute("aria-sort");
+    const orden1 = columna(0);
+
+    fireEvent.click(th);
+    const dir2 = th.getAttribute("aria-sort");
+    const orden2 = columna(0);
+
+    // Un clic ordena y el siguiente invierte, en cualquiera de los dos sentidos.
+    expect([dir1, dir2].sort()).toEqual(["ascending", "descending"]);
+    expect(orden2).toEqual([...orden1].reverse());
+
+    // Ordena por la fecha real, no por el texto: Gamma (sin dato) va primero
+    // en ascendente, y mayo antes que julio.
+    const asc = dir1 === "ascending" ? orden1 : orden2;
+    expect(asc).toEqual(["Gamma", "Alfa", "Beta"]);
+  });
+
+  test("la fecha del evento ordena por su valor real", async () => {
+    await sembrarYRenderizar();
+
+    const th = screen.getByRole("columnheader", { name: /FECHA DEL EVENTO/i });
+    // Arranca descendente por defecto: el evento más lejano primero.
+    expect(th).toHaveAttribute("aria-sort", "descending");
+    expect(columna(0)).toEqual(["Beta", "Gamma", "Alfa"]);
+
+    fireEvent.click(th);
+    expect(th).toHaveAttribute("aria-sort", "ascending");
+    expect(columna(0)).toEqual(["Alfa", "Gamma", "Beta"]);
+  });
+
+  test("las columnas de acción no son ordenables", async () => {
+    await sembrarYRenderizar();
+
+    const editar = screen.getByRole("columnheader", { name: /^EDITAR$/ });
+    const acciones = screen.getByRole("columnheader", { name: /^ACCIONES$/ });
+    const antes = columna(0);
+
+    fireEvent.click(editar);
+    fireEvent.click(acciones);
+
+    expect(editar).not.toHaveAttribute("aria-sort");
+    expect(acciones).not.toHaveAttribute("aria-sort");
+    expect(columna(0)).toEqual(antes);
+  });
+});
+
 describe("Lista de eventos — span EDITAR accesible", () => {
   test("con click navega al detalle y cachea el evento", async () => {
     seed({ Event: [EV1, EV2], Area: AREAS, Career: CAREERS });

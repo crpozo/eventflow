@@ -11,6 +11,25 @@ import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
 import { PageHeader, Card, PrimaryButton, PageLoader } from "components/adminUi";
 
+// "02/10/2027 · 14:30" en hora de Ecuador. AppSync escribe `updatedAt` en UTC;
+// sin timeZone se mostraría en la zona del visitante y confundiría al comparar
+// con la fecha del evento, que sí se muestra en hora local del país.
+const formatUpdatedAt = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("es-EC", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Guayaquil",
+  })
+    .format(d)
+    .replace(",", " ·");
+};
 
 const Marketplace = () => {
 
@@ -132,26 +151,32 @@ const Marketplace = () => {
   };
 
   const buildTable = (results) => {
+   // Se ordena por el timestamp crudo de la fila, no por el texto mostrado:
+   // parsear "dd/mm/yyyy" fallaba con fechas vacías o inválidas.
+   const porFecha = (campo) => (a, b) => (a.original[campo] || 0) - (b.original[campo] || 0);
    const columns = [
      { Header: "TITULO", accessor: "title" },
      {
        Header: "FECHA DEL EVENTO",
        accessor: "update_date",
-       sortType: (rowA, rowB, columnId) => {
-         const parseDate = (str) => {
-           const [day, month, year] = str.split("/").map(Number);
-           return new Date(year, month - 1, day);
-         };
-         return parseDate(rowA.values[columnId]) - parseDate(rowB.values[columnId]);
-       },
+       sortType: porFecha("startMs"),
      },
-     { Header: "EDITAR", accessor: "action" },
-     { Header: "ACCIONES", accessor: "duplicate" },
+     {
+       Header: "ÚLTIMA MODIFICACIÓN",
+       accessor: "updated_at",
+       sortType: porFecha("updatedMs"),
+     },
+     // Columnas de acción: su valor es un id, ordenarlas no significa nada.
+     { Header: "EDITAR", accessor: "action", disableSortBy: true },
+     { Header: "ACCIONES", accessor: "duplicate", disableSortBy: true },
    ];
    setColumns(columns);
    const rows = results.map((event) => ({
      title: event.title,
      update_date: formatDate(event.startDate || event.date),
+     updated_at: formatUpdatedAt(event.updatedAt),
+     startMs: Date.parse(event.startDate || event.date || "") || 0,
+     updatedMs: Date.parse(event.updatedAt || "") || 0,
      action: event.id,
      duplicate: event.id,
      model: event,

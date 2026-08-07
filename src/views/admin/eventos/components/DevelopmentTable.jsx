@@ -7,10 +7,35 @@ import {
   useTable,
 } from "react-table";
 import { IoEnterOutline } from "react-icons/io5";
-import { MdAdd, MdContentCopy, MdSearch } from "react-icons/md";
+import {
+  MdAdd,
+  MdArrowDownward,
+  MdArrowUpward,
+  MdContentCopy,
+  MdSearch,
+  MdUnfoldMore,
+} from "react-icons/md";
 import Card from "components/card";
 
 const PAGINATION_STORAGE_KEY = "EVENTFLOW.events.pagination";
+
+// Columnas que solo muestran texto; el resto renderiza controles.
+const TEXT_COLUMNS = new Set([
+  "TITULO",
+  "FECHA DEL EVENTO",
+  "ÚLTIMA MODIFICACIÓN",
+]);
+
+// Flecha de orden: llena cuando la columna ordena, tenue cuando solo se puede
+// ordenar. Da la pista de que la cabecera es clickeable.
+function SortIcon({ column }) {
+  if (!column.canSort) return null;
+  if (!column.isSorted) {
+    return <MdUnfoldMore className="h-3.5 w-3.5 shrink-0 opacity-40" aria-hidden />;
+  }
+  const Icon = column.isSortedDesc ? MdArrowDownward : MdArrowUpward;
+  return <Icon className="h-3.5 w-3.5 shrink-0 text-brand-500" aria-hidden />;
+}
 
 const DevelopmentTable = (props) => {
   const {
@@ -139,11 +164,25 @@ const DevelopmentTable = (props) => {
                 {headerGroup.headers.map((column) => (
                   <th
                     {...column.getHeaderProps(column.getSortByToggleProps())}
-                    className="border-b border-gray-200 pr-32 pb-[10px] text-start dark:!border-navy-700 "
+                    className="border-b border-gray-200 pr-10 pb-[10px] text-start dark:!border-navy-700 "
                     key={column.id}
+                    // aria-sort anuncia la dirección a los lectores de pantalla.
+                    aria-sort={
+                      column.isSorted
+                        ? (column.isSortedDesc ? "descending" : "ascending")
+                        : undefined
+                    }
+                    title={column.canSort ? "Ordenar por esta columna" : undefined}
                   >
-                    <div className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                    <div
+                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-gray-500 ${
+                        column.canSort
+                          ? "cursor-pointer select-none transition hover:text-navy-700 dark:hover:text-white"
+                          : ""
+                      }`}
+                    >
                       {column.render("Header")}
+                      <SortIcon column={column} />
                     </div>
                   </th>
                 ))}
@@ -165,10 +204,7 @@ const DevelopmentTable = (props) => {
                 >
                   {row.cells.map((cell) => {
                     let data = "";
-                    if (
-                      cell.column.Header === "TITULO" ||
-                      cell.column.Header === "FECHA DEL EVENTO"
-                    ) {
+                    if (TEXT_COLUMNS.has(cell.column.Header)) {
                       data = (
                         <p className="text-[15px] text-navy-700 dark:text-white">
                           {cell.value}
