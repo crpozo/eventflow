@@ -153,36 +153,6 @@ const etiquetasEje = () =>
       .children
   ).map((n) => n.textContent);
 
-// Espías de descarga: nombre de archivo y contenido del blob generado.
-const espiarDescargas = () => {
-  const descargas = [];
-  const contenidos = [];
-  const RealBlob = global.Blob;
-  const createObjectURL = jest.fn(() => "blob:fake");
-  const revokeObjectURL = jest.fn();
-  global.URL.createObjectURL = createObjectURL;
-  global.URL.revokeObjectURL = revokeObjectURL;
-  global.Blob = function EspiaBlob(parts, opts) {
-    contenidos.push(parts.join(""));
-    return new RealBlob(parts, opts);
-  };
-  const clickSpy = jest
-    .spyOn(HTMLAnchorElement.prototype, "click")
-    .mockImplementation(function registrarDescarga() {
-      descargas.push(this.download);
-    });
-  return {
-    descargas,
-    contenidos,
-    createObjectURL,
-    revokeObjectURL,
-    restaurar: () => {
-      clickSpy.mockRestore();
-      global.Blob = RealBlob;
-    },
-  };
-};
-
 beforeEach(() => {
   ds.__fixtures.Event = [];
   ds.__fixtures.EventAttendee = [];
@@ -515,10 +485,7 @@ describe("Dashboard admin (views/admin/default)", () => {
       expect(within(fila).getByText("Publicado")).toBeInTheDocument();
       expect(within(fila).getByText(/· 3 inscritos$/)).toBeInTheDocument();
       expect(
-        within(fila).getByRole("button", { name: "Ver reporte" })
-      ).toBeInTheDocument();
-      expect(
-        within(fila).getByRole("button", { name: "Exportar CSV" })
+        within(fila).getByRole("button", { name: "Ver evento" })
       ).toBeInTheDocument();
 
       // Solo se muestra el más próximo: los demás no aparecen en la fila.
@@ -551,12 +518,14 @@ describe("Dashboard admin (views/admin/default)", () => {
       expect(screen.getAllByText("Borrador").length).toBeGreaterThan(0);
     });
 
-    test("Ver reporte navega a reportes con el evento preseleccionado", () => {
+    test("Ver evento abre el detalle y deja el evento para el sidebar", () => {
       seedAll();
       renderDashboard();
-      fireEvent.click(screen.getByRole("button", { name: "Ver reporte" }));
-      expect(mockNavigate).toHaveBeenCalledWith("/admin/reportes", {
-        state: { eventId: "ev-hoy" },
+      fireEvent.click(screen.getByRole("button", { name: "Ver evento" }));
+      expect(mockNavigate).toHaveBeenCalledWith("/admin/eventos/ev-hoy/detalle/");
+      expect(JSON.parse(localStorage.getItem("EVENTFLOW.event"))).toMatchObject({
+        id: "ev-hoy",
+        title: "Feria de Bienvenida",
       });
     });
 
@@ -599,92 +568,8 @@ describe("Dashboard admin (views/admin/default)", () => {
       expect(
         screen.getByText("No hay eventos próximos en el calendario.")
       ).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Exportar CSV" })).toBeNull();
-      expect(screen.queryByRole("button", { name: "Ver reporte" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Ver evento" })).toBeNull();
       expect(screen.getByText("Sin más eventos próximos")).toBeInTheDocument();
-    });
-  });
-
-  describe("exportación CSV", () => {
-    test("descarga el CSV del próximo evento con cabecera y filas escapadas", async () => {
-      seedAll();
-      const spy = espiarDescargas();
-      renderDashboard();
-
-      fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
-
-      expect(spy.createObjectURL).toHaveBeenCalledTimes(1);
-      expect(spy.descargas).toEqual(["reporte-feria-de-bienvenida.csv"]);
-
-      // El blob se escribe con BOM para que Excel respete los acentos.
-      expect(spy.contenidos[0].startsWith("\uFEFF")).toBe(true);
-      const csv = spy.contenidos[0].slice(1);
-      const lineas = csv.split("\n");
-      expect(lineas[0]).toBe(
-        '"Email","Autorizado","Check-in","Ticket","Cantidad","Fecha de registro"'
-      );
-      // Solo los inscritos de ev-hoy (a1, a2, a3); a4 y el fantasma quedan fuera.
-      expect(lineas).toHaveLength(4);
-      expect(lineas[1]).toMatch(/^"a1@usfq\.edu\.ec","Sí","No","General","2","/);
-      expect(lineas[2]).toMatch(/^"a2@usfq\.edu\.ec","No","No","","","/);
-      expect(csv).not.toContain("a4@usfq.edu.ec");
-
-      // El blob se libera fuera del tick para no cancelar la descarga.
-      await waitFor(
-        () => expect(spy.revokeObjectURL).toHaveBeenCalledWith("blob:fake"),
-        { timeout: 3000 }
-      );
-      spy.restaurar();
-    });
-
-    test("neutraliza el prefijo de fórmula y las comillas en las celdas", () => {
-      ds.__fixtures.Event = [
-        { id: "ev-inj", title: "Charla Segura", startDate: iso(DAY) },
-      ];
-      ds.__fixtures.EventAttendee = [
-        {
-          id: "i1", eventID: "ev-inj", createdAt: isoDia(1),
-          email: "=SUM(1+1)", ticket: 'VIP "oro"',
-        },
-      ];
-      const spy = espiarDescargas();
-      renderDashboard();
-
-      fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
-      expect(spy.contenidos[0]).toContain('"\'=SUM(1+1)"');
-      expect(spy.contenidos[0]).toContain('"VIP ""oro"""');
-      spy.restaurar();
-    });
-
-    test("el nombre del archivo limpia acentos, símbolos y guiones extremos", () => {
-      ds.__fixtures.Event = [
-        { id: "ev-slug", title: "  ¡Música! & Fiesta 2026  ", startDate: iso(DAY) },
-      ];
-      ds.__fixtures.EventAttendee = [
-        { id: "s1", eventID: "ev-slug", createdAt: isoDia(1), email: "s@x.com" },
-        // Sin email ni fecha: csvCell debe emitir celdas vacías sin romper.
-        { id: "s2", eventID: "ev-slug" },
-      ];
-      const spy = espiarDescargas();
-      renderDashboard();
-
-      fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
-      expect(spy.descargas).toEqual(["reporte-musica-fiesta-2026.csv"]);
-      expect(spy.contenidos[0]).toContain('"","No","No","","",""');
-      spy.restaurar();
-    });
-
-    test("un título sin caracteres válidos cae al slug 'evento'", () => {
-      ds.__fixtures.Event = [{ id: "ev-junk", title: "★★★", startDate: iso(DAY) }];
-      ds.__fixtures.EventAttendee = [
-        { id: "j1", eventID: "ev-junk", createdAt: isoDia(1), email: "j@x.com" },
-      ];
-      const spy = espiarDescargas();
-      renderDashboard();
-
-      fireEvent.click(screen.getByRole("button", { name: "Exportar CSV" }));
-      expect(spy.descargas).toEqual(["reporte-evento.csv"]);
-      spy.restaurar();
     });
   });
 

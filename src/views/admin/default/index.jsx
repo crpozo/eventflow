@@ -10,7 +10,6 @@ import {
   Card,
   Chip,
   PrimaryButton,
-  SecondaryButton,
   PageLoader,
   TYPE,
 } from "components/adminUi";
@@ -149,57 +148,6 @@ const avatarColor = (id) => {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 };
 
-const slugify = (s) =>
-  (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replaceAll(/[\u0300-\u036f]/g, "")
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    // El replaceAll anterior colapsa cada racha no alfanumérica en UN solo
-    // guion, así que basta quitar un guion por extremo (lineal, sin backtracking).
-    .replaceAll(/^-|-$/g, "") || "evento";
-
-// Escapa la celda y además neutraliza el prefijo de fórmula: email y ticket
-// vienen de formularios públicos, y un valor que empiece por = + - @ se
-// ejecutaría al abrir el CSV en Excel/Sheets (inyección de fórmulas).
-const csvCell = (v) => {
-  const s = String(v ?? "");
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return `"${safe.replaceAll('"', '""')}"`;
-};
-
-const buildAttendeesCsv = (list) =>
-  [
-    ["Email", "Autorizado", "Check-in", "Ticket", "Cantidad", "Fecha de registro"]
-      .map(csvCell)
-      .join(","),
-    ...list.map((a) =>
-      [
-        a.email,
-        a.authorized ? "Sí" : "No",
-        a.checkIn ? "Sí" : "No",
-        a.ticket || "",
-        a.quantity ?? "",
-        a.createdAt ? new Date(a.createdAt).toLocaleString("es-EC") : "",
-      ]
-        .map(csvCell)
-        .join(",")
-    ),
-  ].join("\n");
-
-const downloadCsv = (filename, text) => {
-  const blob = new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  // Revocar en el mismo tick cancela la descarga en Safari y Firefox: el
-  // navegador aún no ha leído el blob. Se difiere fuera de esta vuelta.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-};
 
 // Lectura defensiva del subárea guardada: un valor corrupto o de un formato
 // antiguo hace que JSON.parse lance y tumbe el árbol de React (pantalla en
@@ -392,15 +340,21 @@ function Metric({ value, suffix, label1, label2, arrow, onClick }) {
           {label2}
         </span>
       </div>
-      {arrow && <MdArrowForward className="h-5 w-5 shrink-0 text-brand-500" />}
+      {/* La flecha pasa a negro al pasar el cursor por la tarjeta (group), igual
+          que el hover del botón primario. En oscuro va a blanco: el negro
+          desaparecería sobre navy. */}
+      {arrow && (
+        <MdArrowForward className="h-5 w-5 shrink-0 text-brand-500 transition-colors group-hover:text-black dark:group-hover:text-white" />
+      )}
     </div>
   );
   if (!onClick) return <Card className="!p-4">{body}</Card>;
   return (
     <Card
+      // `group` habilita el group-hover: de la flecha.
       // dark:hover:!bg-navy-700 con important: Card aplica dark:!bg-navy-800,
       // y sin important la declaración base gana siempre (no habría hover).
-      className={`!p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:!bg-navy-700 ${FOCUS_RING}`}
+      className={`group !p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:!bg-navy-700 ${FOCUS_RING}`}
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -584,7 +538,7 @@ function RegistrationsCard({ series, period, onPeriodChange }) {
 }
 
 /* ── Próximo evento, en una sola fila horizontal ──────────────────────── */
-function NextEventCard({ event, landing, count, onReport, onExport }) {
+function NextEventCard({ event, landing, count, onOpen }) {
   return (
     <Card className="lg:col-span-2 !p-4">
       <div className="flex flex-wrap items-center gap-4">
@@ -599,7 +553,7 @@ function NextEventCard({ event, landing, count, onReport, onExport }) {
           <div className="flex flex-wrap items-center gap-2">
             {/* min-w-0 también en el propio elemento truncado: un flex item
                 tiene min-width:auto y con nowrap nunca llegaría a truncar. */}
-            <p className="min-w-0 truncate text-lg font-bold text-navy-700 dark:text-white">
+            <p className="min-w-0 truncate text-base font-bold text-navy-700 dark:text-white">
               {event.title}
             </p>
             {chipFor(landing)}
@@ -608,10 +562,10 @@ function NextEventCard({ event, landing, count, onReport, onExport }) {
             {compactDate(eventStart(event), event.timezone)} · {count} inscritos
           </p>
         </div>
-        <div className="flex gap-2">
-          <PrimaryButton onClick={onReport}>Ver reporte</PrimaryButton>
-          <SecondaryButton onClick={onExport}>Exportar CSV</SecondaryButton>
-        </div>
+        {/* Esta tarjeta muestra SIEMPRE el evento más próximo, es decir uno que
+            todavía no ocurre: un reporte de asistencia o un CSV de check-in no
+            tendrían datos que mostrar. La acción útil es abrir el evento. */}
+        <PrimaryButton onClick={onOpen}>Ver evento</PrimaryButton>
       </div>
     </Card>
   );
@@ -774,15 +728,14 @@ const Dashboard = () => {
 
   const nextCount = next ? countByEvent.get(next.id) || 0 : 0;
 
-  const exportCsv = () => {
+  // Abre el detalle del evento. Se deja el evento en EVENTFLOW.event porque el
+  // sidebar lee de ahí el panel de secciones (mismo contrato que la tabla de
+  // /admin/eventos); sin esto el panel mostraría el evento anterior.
+  const openEvent = () => {
     if (!next) return;
-    const list = scopedAttendees.filter((a) => a.eventID === next.id);
-    downloadCsv(`reporte-${slugify(next.title)}.csv`, buildAttendeesCsv(list));
+    localStorage.setItem("EVENTFLOW.event", JSON.stringify(next));
+    navigate(`/admin/eventos/${next.id}/detalle/`);
   };
-
-  // Se pasa el evento en el state para que reportes pueda preseleccionarlo.
-  const openReport = () =>
-    navigate("/admin/reportes", { state: { eventId: next.id } });
 
   const goNextStep = () =>
     navigate(upcoming.length > 1 ? "/admin/eventos" : "/admin/eventos/crear");
@@ -837,8 +790,7 @@ const Dashboard = () => {
               event={next}
               landing={landingByEvent.get(next.id)}
               count={nextCount}
-              onReport={openReport}
-              onExport={exportCsv}
+              onOpen={openEvent}
             />
           ) : (
             <Card className="lg:col-span-2 !p-4">
