@@ -395,12 +395,12 @@ function Metric({ value, suffix, label1, label2, arrow, onClick }) {
       {arrow && <MdArrowForward className="h-5 w-5 shrink-0 text-brand-500" />}
     </div>
   );
-  if (!onClick) return <Card className="!p-5">{body}</Card>;
+  if (!onClick) return <Card className="!p-4">{body}</Card>;
   return (
     <Card
       // dark:hover:!bg-navy-700 con important: Card aplica dark:!bg-navy-800,
       // y sin important la declaración base gana siempre (no habría hover).
-      className={`!p-5 cursor-pointer transition hover:bg-gray-50 dark:hover:!bg-navy-700 ${FOCUS_RING}`}
+      className={`!p-4 cursor-pointer transition hover:bg-gray-50 dark:hover:!bg-navy-700 ${FOCUS_RING}`}
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -428,41 +428,51 @@ function Sparkline({ points, label }) {
     (best, p, i) => (p.value > points[best].value ? i : best),
     0
   );
+  // Altura FIJA: con preserveAspectRatio por defecto el alto salía del ancho
+  // (viewBox 1000x170 ≈ 330 px en pantalla ancha) y el dashboard no cabía en
+  // un viewport. Con "none" el SVG se estira al alto del contenedor; el trazo
+  // se salva con non-scaling-stroke y el punto del pico se dibuja como overlay
+  // HTML para que no salga ovalado.
   return (
-    <svg
-      viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-      className="mt-6 w-full text-teal-700 dark:text-teal-300"
-      role="img"
-      aria-label={label}
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="currentColor" stopOpacity="0.20" />
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon
-        points={`${CHART_PADX},${CHART_H} ${line} ${CHART_W - CHART_PADX},${CHART_H}`}
-        fill={`url(#${gradientId})`}
-      />
-      <polyline
-        points={line}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-      />
+    <div className="relative mt-3 h-28 w-full text-teal-700 dark:text-teal-300 sm:h-32">
+      <svg
+        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+        preserveAspectRatio="none"
+        className="h-full w-full"
+        role="img"
+        aria-label={label}
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.20" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon
+          points={`${CHART_PADX},${CHART_H} ${line} ${CHART_W - CHART_PADX},${CHART_H}`}
+          fill={`url(#${gradientId})`}
+        />
+        <polyline
+          points={line}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
       {points[peak].value > 0 && (
-        <circle
-          cx={chartX(peak, n)}
-          cy={yAt(points[peak].value)}
-          r="7"
-          fill="currentColor"
+        <span
+          data-testid="chart-peak"
+          className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[currentColor]"
+          style={{
+            left: `${(chartX(peak, n) / CHART_W) * 100}%`,
+            top: `${(yAt(points[peak].value) / CHART_H) * 100}%`,
+          }}
         />
       )}
-    </svg>
+    </div>
   );
 }
 
@@ -539,7 +549,7 @@ function RegistrationsCard({ series, period, onPeriodChange }) {
   const P = PERIODS[period];
   const insight = buildInsight(series, period);
   return (
-    <Card className="!p-5">
+    <Card className="!p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className={`text-base font-medium ${MUTED}`}>Registros</p>
@@ -566,7 +576,7 @@ function RegistrationsCard({ series, period, onPeriodChange }) {
 
       {/* Verde solo cuando hay pico: un periodo vacío en verde se leería como
           estado positivo. Se usa Chip en vez de rehacer la píldora a mano. */}
-      <div className="mt-5">
+      <div className="mt-3">
         <Chip color={series.total === 0 ? "gray" : "green"}>{insight}</Chip>
       </div>
     </Card>
@@ -781,10 +791,10 @@ const Dashboard = () => {
     <div>
       {header}
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
 
         {/* Métricas: valor grande + etiqueta en dos líneas */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric
             value={events.length}
             label1="Total"
@@ -821,7 +831,7 @@ const Dashboard = () => {
         />
 
         {/* Próximo evento + siguiente paso */}
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid gap-3 lg:grid-cols-3">
           {next ? (
             <NextEventCard
               event={next}

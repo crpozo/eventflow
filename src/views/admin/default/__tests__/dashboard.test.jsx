@@ -145,11 +145,13 @@ const puntosGrafico = () =>
     .trim()
     .split(/\s+/);
 
-// Etiquetas del eje X: el div que sigue al SVG dentro de la tarjeta.
+// Etiquetas del eje X: el div que sigue al CONTENEDOR del gráfico (el SVG va
+// envuelto para poder fijarle alto y superponer el punto del pico).
 const etiquetasEje = () =>
-  Array.from(tarjetaRegistros().querySelector("svg").nextElementSibling.children).map(
-    (n) => n.textContent
-  );
+  Array.from(
+    tarjetaRegistros().querySelector("svg").closest("div").nextElementSibling
+      .children
+  ).map((n) => n.textContent);
 
 // Espías de descarga: nombre de archivo y contenido del blob generado.
 const espiarDescargas = () => {
@@ -368,7 +370,7 @@ describe("Dashboard admin (views/admin/default)", () => {
       expect(eje[4]).toBe(diaCorto(diaLocal(0)));
 
       // Punto en el pico + texto de contexto con el día del pico.
-      expect(tarjetaRegistros().querySelector("circle")).not.toBeNull();
+      expect(screen.getByTestId("chart-peak")).toBeInTheDocument();
       expect(
         screen.getByText(`Pico: 3 registros el ${diaCorto(diaLocal(5))} · 5 días sin registros nuevos`)
       ).toBeInTheDocument();
