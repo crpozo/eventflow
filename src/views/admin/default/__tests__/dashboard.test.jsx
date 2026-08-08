@@ -201,7 +201,7 @@ describe("Dashboard admin (views/admin/default)", () => {
   });
 
   describe("cabecera", () => {
-    test("solo lleva título, subtítulo y el botón de crear evento", () => {
+    test("lleva título, subtítulo y los dos botones de acción", () => {
       seedAll();
       renderDashboard();
 
@@ -212,11 +212,11 @@ describe("Dashboard admin (views/admin/default)", () => {
       expect(
         screen.getByRole("button", { name: /Crear evento/ })
       ).toBeInTheDocument();
-
-      // Controles del diseño anterior: ya no existen en ninguna parte.
       expect(
-        screen.queryByRole("button", { name: /Ver todos los eventos/ })
-      ).toBeNull();
+        screen.getByRole("button", { name: /Ver todos los eventos/ })
+      ).toBeInTheDocument();
+
+      // Restos del diseño anterior: la tabla y su pie ya no existen.
       expect(screen.queryByRole("table")).toBeNull();
       expect(screen.queryByText(/Mostrando/)).toBeNull();
       expect(screen.queryByText(/Ver todos \(/)).toBeNull();
@@ -227,6 +227,15 @@ describe("Dashboard admin (views/admin/default)", () => {
       renderDashboard();
       fireEvent.click(screen.getByRole("button", { name: /Crear evento/ }));
       expect(mockNavigate).toHaveBeenCalledWith("/admin/eventos/crear");
+    });
+
+    test("navega a la lista desde 'Ver todos los eventos'", () => {
+      seedAll();
+      renderDashboard();
+      fireEvent.click(
+        screen.getByRole("button", { name: /Ver todos los eventos/ })
+      );
+      expect(mockNavigate).toHaveBeenCalledWith("/admin/eventos");
     });
   });
 

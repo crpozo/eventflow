@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { DataStore } from 'aws-amplify/datastore';
 import { Event, EventAttendee, Landing } from "models";
-import { MdAdd, MdArrowForward } from "react-icons/md";
+import { MdAdd, MdArrowForward, MdCalendarToday } from "react-icons/md";
 import { AiOutlineWarning } from "react-icons/ai";
 import { usePermissions } from "../../../providers/PermissionsProvider";
 import {
@@ -10,6 +10,7 @@ import {
   Card,
   Chip,
   PrimaryButton,
+  SecondaryButton,
   PageLoader,
   TYPE,
 } from "components/adminUi";
@@ -699,12 +700,22 @@ const Dashboard = () => {
       title="Dashboard"
       subtitle="Resumen general de tus eventos."
       actions={
-        <PrimaryButton
-          onClick={() => navigate("/admin/eventos/crear")}
-          className="flex items-center gap-1"
-        >
-          <MdAdd className="h-4 w-4" /> Crear evento
-        </PrimaryButton>
+        <>
+          <SecondaryButton
+            onClick={() => navigate("/admin/eventos")}
+            className="whitespace-nowrap"
+          >
+            <MdCalendarToday className="h-4 w-4" />
+            <span className="hidden sm:inline">Ver todos los eventos</span>
+            <span className="sm:hidden">Eventos</span>
+          </SecondaryButton>
+          <PrimaryButton
+            onClick={() => navigate("/admin/eventos/crear")}
+            className="flex items-center gap-1"
+          >
+            <MdAdd className="h-4 w-4" /> Crear evento
+          </PrimaryButton>
+        </>
       }
     />
   );
