@@ -26,8 +26,22 @@ export default function Landing() {
                 {getRoutes(routes)}
               </Routes>
             </div>
-            <footer className="bg-black flex justify-center p-4">
-              <p className="text-white text-center text-xs md:text-[15px]">Copyright © 2025 Universidad San Francisco de Quito</p>
+            {/* Pie oscuro del rediseño 2026-10: institución a la izquierda, web oficial a la derecha. */}
+            <footer className="bg-[#111111] text-white">
+              <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-6 py-8 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-base font-bold">Universidad San Francisco de Quito</p>
+                  <p className="mt-0.5 text-sm text-white/60">Copyright © {new Date().getFullYear()} · Eventos USFQ</p>
+                </div>
+                <a
+                  href="https://www.usfq.edu.ec"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold text-white hover:text-white/70 hover:no-underline"
+                >
+                  usfq.edu.ec ↗
+                </a>
+              </div>
             </footer>
         </main>
       </div>

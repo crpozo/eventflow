@@ -11,7 +11,6 @@ import { FullScreenLoader } from "components/adminUi";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { FiExternalLink } from "react-icons/fi";
 import { LuCalendarClock, LuMapPin } from "react-icons/lu";
-import { IoTicketOutline } from "react-icons/io5";
 import { BsPlusLg as PlusIcon } from "react-icons/bs";
 import {
   AiOutlineMinus as MinusIcon,
@@ -29,6 +28,54 @@ const resolveBannerSrc = (landing) =>
   landing.mainBanner
     ? `${CLOUDFRONT_PUBLIC}${landing.mainBanner}`
     : bgPlaceholder;
+
+// "Hall Principal - USFQ (Campus Santiago Gangotena – Cumbayá)" →
+// { venue: "Hall Principal - USFQ", venueDetail: "Campus Santiago Gangotena – Cumbayá" }.
+export const splitLocation = (loc) => {
+  const s = String(loc || "").trim();
+  const m = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(s);
+  return m ? { venue: m[1].trim(), venueDetail: m[2].trim() } : { venue: s, venueDetail: "" };
+};
+
+// "jueves 5 de noviembre, 2026" / "Thursday, November 5, 2026", en la zona del evento.
+export const longDate = (iso, lang, tz) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const txt = new Intl.DateTimeFormat(lang === "EN" ? "en-US" : "es-EC", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: tz,
+  }).format(d);
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+};
+
+// Rango horario "09:00 – 13:00" (24h) del mismo día; solo la hora de inicio si no hay fin.
+export const timeRange = (startIso, endIso, lang, tz) => {
+  const fmt = (iso) => {
+    const d = new Date(iso);
+    if (!iso || Number.isNaN(d.getTime())) return "";
+    return new Intl.DateTimeFormat(lang === "EN" ? "en-US" : "es-EC", {
+      hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz,
+    }).format(d);
+  };
+  const start = fmt(startIso);
+  const end = fmt(endIso);
+  const sameDay = startIso && endIso &&
+    new Date(startIso).toDateString() === new Date(endIso).toDateString();
+  const label = start && end && sameDay && end !== start ? `${start} – ${end}` : start;
+  return { start, end, label };
+};
+
+// Primera oración de un texto largo (máx. 180 caracteres) para el subtítulo del hero.
+export const firstSentence = (text) => {
+  const s = String(text || "").replaceAll(/\s+/g, " ").trim();
+  if (!s) return "";
+  const m = /^(.+?[.!?])(\s|$)/.exec(s);
+  const out = m ? m[1] : s;
+  return out.length > 180 ? `${out.slice(0, 177).trimEnd()}…` : out;
+};
+
+// Párrafos de la descripción larga: separa por saltos de línea.
+export const paragraphs = (text) =>
+  String(text || "").split(/\n+/).map((p) => p.trim()).filter(Boolean);
 
 // La landing sigue "cargando" cuando la query aún no responde o cuando el
 // ?EventAttendee= de la URL todavía no se resuelve (ni válido ni inválido).
@@ -369,15 +416,41 @@ export default function SignIn() {
     window.history.replaceState({}, '', `${url.origin}${url.pathname}`);
   }
 
+  // ── Rediseño 2026-10 ──────────────────────────────────────────────────
+  // Hero con el banner COMPLETO (object-contain sobre un fondo desenfocado
+  // del mismo banner, para no recortar la imagen) y el texto sobre un
+  // degradado oscuro a la izquierda para que se lea. Debajo, una tarjeta
+  // blanca con fecha/ubicación/CTA que se superpone al hero, y el cuerpo
+  // "Sobre el evento" con una columna de detalles sin viñetas.
+  const bannerSrc = resolveBannerSrc(landing);
+  const { venue, venueDetail } = splitLocation(translated.location);
+  const startIso = event?.startDate || event?.date;
+  const heroDate = startIso ? longDate(startIso, lang, eventTz) : "";
+  const heroTime = timeRange(startIso, event?.endDate, lang, eventTz);
+  const tagline = firstSentence(translated.extraInfo);
+  const isFree = landing.cost === "Gratuito";
+  const seatsNote = isFree
+    ? [ui.freeEntry, typeof event?.maxRegs === "number" ? ui.limitedSeats : null].filter(Boolean).join(" · ")
+    : null;
+
+  const onReserve = () => {
+    if (isSubeventLanding && cardsRef.current) {
+      cardsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      setShowRegister(true);
+    }
+  };
+
   return (
     <>
-      <div className="flex h-[70px] md:h-[90px] w-full bg-usfqPrimary relative">
-        <div className="container flex items-center justify-between px-4">
+      {/* Cabecera blanca: logo · web oficial · ES/EN */}
+      <div className="flex h-[70px] md:h-[84px] w-full bg-white border-b border-gray-100 relative">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-5">
           <img src={logo} alt="USFQ Logo" className="w-[120px] sm:w-[150px] md:w-[180px] lg:w-[200px]" />
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-5">
             <Link
               to="https://www.usfq.edu.ec/es"
-              className="flex items-center gap-2 whitespace-nowrap md:min-w-[185px] hover:text-red-500 hover:no-underline text-sm"
+              className="flex items-center gap-1.5 whitespace-nowrap text-sm font-medium text-navy-700 hover:text-brand-500 hover:no-underline"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -385,75 +458,105 @@ export default function SignIn() {
               <FiExternalLink className="h-4 w-4" />
             </Link>
 
-            {/* Separator */}
-            <span className="h-5 w-px bg-black/20" aria-hidden="true" />
-
-            {/* Language switcher (ES / EN) */}
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => changeLang("ES")}
-                aria-label="Español"
-                title="Español"
-                className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
-                  lang === "ES" ? "opacity-100" : "opacity-40 hover:opacity-100"
-                }`}
-              >
-                <span className="text-xl leading-none">🇲🇽</span>
-                <span className="text-xs font-semibold">ES</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => changeLang("EN")}
-                aria-label="English"
-                title="English"
-                className={`flex items-center gap-1 px-1 py-1 rounded select-none outline-none focus:outline-none focus-visible:outline-none transition-opacity duration-200 ${
-                  lang === "EN" ? "opacity-100" : "opacity-40 hover:opacity-100"
-                }`}
-              >
-                <span className="text-xl leading-none">🇺🇸</span>
-                <span className="text-xs font-semibold">EN</span>
-              </button>
+            {/* Selector de idioma: píldora con el activo en negro */}
+            <div className="flex items-center rounded-full border border-gray-200 bg-white p-1" role="group" aria-label="Idioma">
+              {["ES", "EN"].map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => changeLang(code)}
+                  aria-label={code === "ES" ? "Español" : "English"}
+                  aria-pressed={lang === code}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                    lang === code
+                      ? "bg-black text-white"
+                      : "text-gray-600 hover:text-navy-700"
+                  }`}
+                >
+                  {code}
+                </button>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-
       {landing && (
-        <div className="relative w-full">
+        <section className="relative w-full overflow-hidden bg-black">
+          {/* Fondo: el mismo banner desenfocado llena el ancho sin recortar la imagen real */}
           <img
-            className="min-h-[320px] md:min-h-[400px] w-full object-cover md:max-h-[400px]"
-            src={resolveBannerSrc(landing)}
+            src={bannerSrc}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
+            decoding="async"
+          />
+          <img
+            className="relative mx-auto block h-auto max-h-[70vh] w-full max-w-[1400px] object-contain"
+            src={bannerSrc}
             alt="Banner"
             fetchpriority="high"
             decoding="async"
           />
+          {/* Overlay: degradado oscuro en el lado del texto para garantizar contraste */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" aria-hidden="true" />
 
-          <div className="container absolute inset-0 flex items-center justify-center md:justify-start">
-            <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-black/50 backdrop-blur-md px-3 py-3 lg:max-w-[43%] xl:max-w-[40%] md:!pb-[25px] md:!pt-[25px]">
-              <h1 className="font-bold text-center text-white text-[28px] md:text-[40px] w-full">
-                {translated.title}
-              </h1>
+          <div className="absolute inset-0 hidden md:flex items-center">
+            <div className="mx-auto w-full max-w-[1200px] px-6">
+              <div className="max-w-[560px] text-white">
+                {translated.description && (
+                  <p className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-white/90">
+                    <span className="h-[3px] w-8 rounded-full bg-brand-500" aria-hidden="true" />
+                    <span dangerouslySetInnerHTML={{ __html: translated.description }} />
+                  </p>
+                )}
+                <h1 className="text-[40px] font-bold leading-[1.05] md:text-[56px] lg:text-[64px] [text-shadow:0_2px_16px_rgba(0,0,0,.45)]">
+                  {translated.title}
+                </h1>
+                {tagline && <p className="mt-5 max-w-[520px] text-lg text-white/85">{tagline}</p>}
+                <div className="mt-7 flex flex-wrap items-center gap-4">
+                  {isSoldOut === false && (
+                    <button
+                      type="button"
+                      onClick={onReserve}
+                      className="rounded-xl bg-brand-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-black"
+                    >
+                      {isSubeventLanding ? ui.seeActivities : ui.bookTicket}
+                    </button>
+                  )}
+                  {heroDate && (
+                    <span className="text-base font-semibold text-white/90">
+                      {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
+        </section>
+      )}
 
+      {/* En móvil el hero no lleva texto encima (taparía la imagen): va debajo */}
+      {landing && (
+        <div className="mx-auto w-full max-w-[1200px] px-5 pt-6 md:hidden">
+          {translated.description && (
+            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-brand-500">
+              <span className="h-[3px] w-6 rounded-full bg-brand-500" aria-hidden="true" />
+              <span dangerouslySetInnerHTML={{ __html: translated.description }} />
+            </p>
+          )}
+          <h1 className="text-[34px] font-bold leading-tight text-navy-700">{translated.title}</h1>
+          {tagline && <p className="mt-3 text-base text-gray-600">{tagline}</p>}
         </div>
       )}
-      {/* Conditionals ==> Register for event +  Checkout and event details*/}
-      {landing && 
-        <div
-          className={`sm:px-2! container mt-[35px] mx-auto mb-12 md:mb-15 h-full w-full items-center justify-center px-4 md:px-0 lg:mb-11 lg:items-center lg:justify-start`}
-        >
-          <div
-            className={` ${
-              showRegister ? "block" : "hidden"
-            } transition-all duration-300`}
-          >
+
+      {landing && (
+        <div className="mx-auto w-full max-w-[1200px] px-5 pb-12">
+          <div className={`${showRegister ? "block" : "hidden"} pt-8 transition-all duration-300`}>
             <Registro
               landing={landing}
               event={event}
-              showRegister = { showRegister }
+              showRegister={showRegister}
               setShowRegister={setShowRegister}
               userData={userData}
               setUserData={setUserData}
@@ -463,170 +566,127 @@ export default function SignIn() {
               eventAttendeeProp={eventAttendee}
               lang={lang}
             />
-
           </div>
+
           <div className={`${showRegister ? "hidden" : "block"}`}>
-            <div
-              className={` mb-[40px] border-b border-gray-300 pb-[30px] md:pb-[40px] transition-all duration-300`}
+            {/* Tarjeta de datos clave: se superpone al borde inferior del hero */}
+            <section
+              aria-label={ui.eventDetails}
+              className="relative z-10 mt-6 grid grid-cols-1 overflow-hidden rounded-2xl bg-white shadow-[0_12px_40px_rgba(0,0,0,.10)] md:-mt-16 md:grid-cols-3"
             >
-              <h2 className="pt-2 md:pt-0 mb-3 lg:!mb-6 text-[28px] md:text-4xl font-bold">{ui.eventDetails}</h2>
+              <h2 className="sr-only">{ui.eventDetails}</h2>
 
-              <div className="grid grid-cols-1 items-start gap-7 sm:gap-5 lg:grid-cols-3">
-                <div className="flex items-center gap-5 lg:col-span-1">
-                  <div className="min-w-0">
-                    {event && (
-                      // Admin-authored description may contain HTML (<br>, links).
-                      // Render it; break-words keeps long URLs from overflowing.
-                      <div
-                        className="text-md break-words [overflow-wrap:anywhere] [&_a]:font-medium [&_a]:text-red-500 [&_a]:underline"
-                        dangerouslySetInnerHTML={{
-                          __html: translated.description || "",
-                        }}
-                      />
-                    )}
-                    {/* Admin "Bloque HTML personalizado" (e.g. a PDF/agenda link),
-                        rendered right under the description so it's visible. Uses
-                        the translated value so it follows the ES/EN toggle. */}
-                    {translated.customHtml &&
-                      String(translated.customHtml).trim().length > 0 && (
-                        <div
-                          className="landing-custom-html mt-3 text-md break-words [overflow-wrap:anywhere] [&_a]:font-medium [&_a]:text-red-500 [&_a]:underline"
-                          dangerouslySetInnerHTML={{
-                            __html: translated.customHtml,
-                          }}
-                        />
-                      )}
-                  </div>
-                </div>
-                <div className="flex flex-col lg:items-start gap-5 lg:ml-[40px] mt-auto mb-auto lg:col-span-1">
-                  <div className="flex gap-3">
-                    <LuCalendarClock className="h-8 w-8 min-w-[31px]" />
-                    <div>
-                      <h3 className="text-lg font-bold">{ui.dateAndTime}</h3>
-                      {event && (
-                        <>
-                          <p className="text-md">
-                            {eventDateEnd ? (
-                              <>
-                                <span className="font-semibold">{ui.start}:</span>{" "}
-                                {eventDate}
-                                <br />
-                                <span className="font-semibold">{ui.end}:</span>{" "}
-                                {eventDateEnd}
-                              </>
-                            ) : (
-                              eventDate
-                            )}
-                          </p>
-                          <span className="mt-1 inline-flex items-center whitespace-nowrap rounded-full bg-navy-700/10 px-2.5 py-0.5 align-middle text-xs font-semibold text-navy-700">
-                            {eventTzLabel}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <LuMapPin className="h-9 w-9 min-w-[31px]" />
-                    <div>
-                      <h3 className="text-lg font-bold">{ui.location}</h3>
-                      <p className="text-md max-w-[300px]">{translated.location}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-6 lg:ml-[40px]">
-                    <IoTicketOutline className="h-10 w-10 min-w-[31px] hidden lg:block" />
-                  <div className="flex-grow">
-                    <h3 className="text-lg font-bold mb-2 hidden lg:block">
-                      {isSubeventLanding ? ui.selectActivity : ui.confirmAttendance}
-                    </h3>
-
-                    <div className="mx-auto flex w-full min-w-full flex-col justify-center rounded-md">
-
-                      {/* Solo muestra selector de precio y cantidad si no es subevento */}
-                      {!isSubeventLanding && landing.cost !== 'Gratuito' && (
-                        <>
-                          <div className="mb-3 flex w-full justify-between gap-5 sm:flex-row sm:items-center">
-                            <select
-                              className="select-arrow w-full md:max-w-[300px] appearance-none text-ellipsis rounded-md border bg-white py-2.5 pl-3 pr-[40px] text-black shadow-sm outline-none focus:border-indigo-600"
-                              onChange={(e) => {
-                                setSelectedCost(e.target.value);
-                              }}
-                            >
-                              {tickets.map((result, i) => (
-                                <option key={`${result.title}-${result.cost}`} value={result.cost}>
-                                  {translated[`ticket_${i}`] || result.title}
-                                </option>
-                              ))}
-                            </select>
-
-                            <div className="flex shrink-0 items-center gap-2 sm:justify-between">
-                              <button
-                                type="button"
-                                onClick={quantityDecrementHandler}
-                                className="cursor-pointer rounded-lg bg-[#ebebeb] bg-opacity-70 p-[8px] text-[#A6A6A6] focus:outline-none hover:bg-[#D9D9D9]"
-                              >
-                                <MinusIcon className="text-base" />
-                              </button>
-                              <div className="flex min-w-[25px] items-center justify-center text-xl font-semibold">
-                                {ticketsQuantity}
-                              </div>
-                              <button
-                                type="button"
-                                onClick={quantityIncrementHandler}
-                                className="cursor-pointer rounded-lg bg-[#ebebeb] bg-opacity-70 p-[8px] text-[#A6A6A6] focus:outline-none hover:bg-[#D9D9D9]"
-                              >
-                                <PlusIcon className="cursor-pointer" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <p className="mb-3 text-xl font-semibold">
-                            {selectedCost !== null
-                              ? `$${(selectedCost * ticketsQuantity).toFixed(2)}`
-                              : ui.empty}{" "}
-                            <span className="text-[15px] font-normal text-[#717171]">{ui.plusTax}</span>
-                          </p>
-                        </>
-                      )}
-
-                      {/* Botón */}
-                      <div className="flex items-center">
-                        <ReserveCta
-                          isSoldOut={isSoldOut}
-                          isSubeventLanding={isSubeventLanding}
-                          ui={ui}
-                          onReserve={() => {
-                            if (isSubeventLanding && cardsRef.current) {
-                              cardsRef.current.scrollIntoView({
-                                behavior: "smooth",
-                                block: "start",
-                              });
-                            } else {
-                              setShowRegister(true);
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+              <div className="flex gap-4 border-b border-gray-100 p-6 md:border-b-0 md:border-r">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500">
+                  <LuCalendarClock className="h-6 w-6" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.dateAndTime}</p>
+                  {eventDateEnd ? (
+                    <p className="mt-1 text-base text-navy-700">
+                      <span className="font-semibold">{ui.start}:</span> {eventDate}
+                      <br />
+                      <span className="font-semibold">{ui.end}:</span> {eventDateEnd}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="mt-1 text-xl font-bold text-navy-700">{heroDate || eventDate}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-base text-gray-600">
+                        {heroTime.label && <span>{heroTime.label}</span>}
+                        <span className="inline-flex items-center whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-navy-700">
+                          {eventTzLabel}
+                        </span>
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
+
+              <div className="flex gap-4 border-b border-gray-100 p-6 md:border-b-0 md:border-r">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                  <LuMapPin className="h-6 w-6" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.location}</p>
+                  <p className="mt-1 text-xl font-bold text-navy-700">{venue}</p>
+                  {venueDetail && <p className="mt-1 text-base text-gray-600">{venueDetail}</p>}
+                </div>
+              </div>
+
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-navy-700">
+                  {isSubeventLanding ? ui.selectActivity : ui.confirmAttendance}
+                </h3>
+
+                {/* Selector de entrada y cantidad: solo eventos de pago */}
+                {!isSubeventLanding && !isFree && (
+                  <>
+                    <div className="mt-3 flex w-full items-center justify-between gap-3">
+                      <select
+                        className="select-arrow w-full appearance-none text-ellipsis rounded-xl border border-gray-200 bg-white py-2.5 pl-3 pr-[40px] text-navy-700 outline-none focus:border-brand-500"
+                        onChange={(e) => setSelectedCost(e.target.value)}
+                      >
+                        {tickets.map((result, i) => (
+                          <option key={`${result.title}-${result.cost}`} value={result.cost}>
+                            {translated[`ticket_${i}`] || result.title}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={quantityDecrementHandler}
+                          aria-label="Menos"
+                          className="rounded-lg bg-gray-100 p-2 text-gray-600 transition hover:bg-gray-200"
+                        >
+                          <MinusIcon className="text-base" />
+                        </button>
+                        <div className="flex min-w-[25px] items-center justify-center text-xl font-semibold">
+                          {ticketsQuantity}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={quantityIncrementHandler}
+                          aria-label="Más"
+                          className="rounded-lg bg-gray-100 p-2 text-gray-600 transition hover:bg-gray-200"
+                        >
+                          <PlusIcon />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-xl font-semibold text-navy-700">
+                      {selectedCost !== null
+                        ? `$${(selectedCost * ticketsQuantity).toFixed(2)}`
+                        : ui.empty}{" "}
+                      <span className="text-[15px] font-normal text-gray-600">{ui.plusTax}</span>
+                    </p>
+                  </>
+                )}
+
+                <div className="mt-3">
+                  <ReserveCta
+                    isSoldOut={isSoldOut}
+                    isSubeventLanding={isSubeventLanding}
+                    ui={ui}
+                    onReserve={onReserve}
+                  />
+                </div>
+                {seatsNote && <p className="mt-2 text-sm text-gray-600">{seatsNote}</p>}
+              </div>
+            </section>
 
             {isSubeventLanding && (
               <>
-                <h2 ref={cardsRef} className="pt-2 md:pt-0 mb-5 md:!mb-3 text-[28px] md:text-4xl font-bold">{ui.registerInActivity}</h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-10">
+                <h2 ref={cardsRef} className="mt-12 mb-5 text-[28px] font-bold text-navy-700 md:text-4xl">{ui.registerInActivity}</h2>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {subeventos.map((evento) => (
                     <a
                       key={evento.id}
                       href={`/landing/${evento.id}`}
-                      className="group block transform rounded-xl border border-gray-300 bg-white p-5 shadow-md transition duration-300 hover:scale-105 hover:shadow-xl hover:no-underline"
+                      className="group block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md hover:no-underline"
                     >
                       <div className="flex h-full flex-col justify-between">
-                        <h3 className="text-xl font-semibold text-gray-800 group-hover:text-red-500 transition-colors duration-200">
+                        <h3 className="text-xl font-semibold text-navy-700 transition-colors group-hover:text-brand-500">
                           {evento.title}
                         </h3>
                         <p className="mt-2 text-sm text-gray-600">{ui.clickForMore}</p>
@@ -637,46 +697,83 @@ export default function SignIn() {
               </>
             )}
 
-            {landing.extraInfo && landing.extraInfo.trim().length > 0 && (
-              <div className="mb-[40px] md:mb-[45px]">
-                <h2 className="mb-[35px] text-[28px] md:text-4xl font-bold">{ui.additionalNotes}</h2>
-                <p className="text-[16px] md:text-lg">{translated.extraInfo}</p>
+            {/* Cuerpo: descripción larga + columna de detalles */}
+            <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-5">
+              <div className="lg:col-span-3">
+                <h2 className="text-[28px] font-bold text-navy-700 md:text-4xl">{ui.about}</h2>
+                {landing.extraInfo && landing.extraInfo.trim().length > 0 ? (
+                  <div className="mt-5 space-y-4 text-[17px] leading-relaxed text-gray-600">
+                    {paragraphs(translated.extraInfo).map((para) => (
+                      <p key={para.slice(0, 40)}>{para}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    className="mt-5 text-[17px] leading-relaxed text-gray-600 [&_a]:font-medium [&_a]:text-brand-500 [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: translated.description || "" }}
+                  />
+                )}
+                {translated.customHtml && String(translated.customHtml).trim().length > 0 && (
+                  <div
+                    className="landing-custom-html mt-5 text-[17px] break-words [overflow-wrap:anywhere] [&_a]:font-medium [&_a]:text-brand-500 [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: translated.customHtml }}
+                  />
+                )}
               </div>
-            )}
 
-            {/* Gallery + custom HTML + partner logos carousel (below event details) */}
+              <aside className="lg:col-span-2">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-600">{ui.details}</p>
+                <div className="mt-3 flex flex-col gap-3">
+                  {/* Sin viñetas: cada dato es una tarjeta limpia */}
+                  <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4">
+                    <p className="text-lg font-bold text-navy-700">{ui.dateAndTime}</p>
+                    <p className="mt-0.5 text-base text-gray-600">
+                      {eventDateEnd ? `${eventDate} — ${eventDateEnd}` : eventDate}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4">
+                    <p className="text-lg font-bold text-navy-700">{ui.location}</p>
+                    <p className="mt-0.5 text-base text-gray-600">{translated.location}</p>
+                  </div>
+                  {!isFree && tickets.length > 0 && (
+                    <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4">
+                      <p className="text-lg font-bold text-navy-700">{ui.tickets}</p>
+                      {tickets.map((t, i) => (
+                        <p key={`${t.title}-${t.cost}`} className="mt-0.5 text-base text-gray-600">
+                          {translated[`ticket_${i}`] || t.title} · ${t.cost}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {event?.contactTemplate && (
+                    <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4">
+                      <p className="text-lg font-bold text-navy-700">{ui.contact}</p>
+                      <p className="mt-0.5 text-base text-gray-600">{event.contactTemplate}</p>
+                    </div>
+                  )}
+                </div>
+              </aside>
+            </div>
+
+            {/* Galería + logos de aliados */}
             <LandingExtras landing={landing} ui={ui} />
-
-            {/* <Link to="mailto:sd@usfq.edu.ec" className="mb-2 flex justify-center text-center text-lg hover:text-red-500">
-              ¿Requiere soporte?
-            </Link> */}
           </div>
         </div>
-      }
+      )}
 
       {showExpiredPopup && (
         <div className="px-4 fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-sm bg-black/60 transition-all duration-300">
           <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center animate-fade-in">
             <div className="flex justify-center mb-4">
-              <svg
-                className="w-12 h-12 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-12 h-12 text-brand-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <h2 className="text-2xl font-extrabold text-gray-800 mb-2">{ui.eventFinished}</h2>
-            <p className="text-md text-gray-600 mb-4 px-2">
-              {ui.dateUnavailable}
-            </p>
+            <p className="text-md text-gray-600 mb-4 px-2">{ui.dateUnavailable}</p>
           </div>
         </div>
-      
       )}
-
     </>
   );
 }

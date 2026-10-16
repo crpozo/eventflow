@@ -10,6 +10,10 @@
  *  - views/landing/registro: stub que expone props clave como data-attributes.
  *  - react-router-dom: useNavigate espiado; MemoryRouter real para useParams.
  *
+ * Rediseño 2026-10: el título y el CTA se renderizan DOS veces (versión de
+ * escritorio sobre el banner y versión móvil debajo), por eso las consultas
+ * usan getAll…[0].
+ *
  * OJO: el componente lee window.location.href/search directamente (detección
  * de subevento y ?EventAttendee=), así que cada test sincroniza la URL real
  * del jsdom con history.pushState.
@@ -154,10 +158,11 @@ describe("Landing pública: carga y estados", () => {
     expect(await screen.findByText("Detalles del evento")).toBeInTheDocument();
     // Título traducible (identidad en el mock) en el hero.
     expect(
-      screen.getByRole("heading", { name: "Congreso EventFlow" })
+      screen.getAllByRole("heading", { name: "Congreso EventFlow" })[0]
     ).toBeInTheDocument();
-    expect(screen.getByText("Teatro Calderón")).toBeInTheDocument();
-    expect(screen.getByText("El mejor evento del año")).toBeInTheDocument();
+    // Ubicación aparece en la tarjeta de datos y en la columna de detalles.
+    expect(screen.getAllByText("Teatro Calderón")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("El mejor evento del año")[0]).toBeInTheDocument();
     // Pill de zona horaria del EVENTO.
     expect(screen.getByText("Quito · GMT-5")).toBeInTheDocument();
 
@@ -178,7 +183,7 @@ describe("Landing pública: carga y estados", () => {
     ).toBeInTheDocument();
 
     // Sin maxRegs el botón de reserva aparece (no sold-out).
-    expect(await screen.findByText("Reservar ticket")).toBeInTheDocument();
+    expect((await screen.findAllByText("Reservar ticket"))[0]).toBeInTheDocument();
   });
 
   test("los botones +/- ajustan la cantidad (mínimo 1) y multiplican el precio", async () => {
@@ -210,7 +215,7 @@ describe("Landing pública: carga y estados", () => {
     primeGraphql();
     renderLanding();
 
-    const reservar = await screen.findByText("Reservar ticket");
+    const reservar = (await screen.findAllByText("Reservar ticket"))[0];
     const registro = screen.getByTestId("registro-mock");
     // Oculto hasta reservar.
     expect(registro.parentElement.className).toContain("hidden");
@@ -327,7 +332,7 @@ describe("Landing pública: sold-out con paginación", () => {
       attendeePages: [{ items: [{ id: "a1" }], nextToken: null }],
     });
     renderLanding();
-    expect(await screen.findByText("Reservar ticket")).toBeInTheDocument();
+    expect((await screen.findAllByText("Reservar ticket"))[0]).toBeInTheDocument();
     expect(screen.queryByText("Entradas Agotadas")).not.toBeInTheDocument();
   });
 
@@ -336,7 +341,7 @@ describe("Landing pública: sold-out con paginación", () => {
     primeGraphql({ event: eventFixture({ maxRegs: 5 }), attendeesError: true });
     renderLanding();
 
-    expect(await screen.findByText("Reservar ticket")).toBeInTheDocument();
+    expect((await screen.findAllByText("Reservar ticket"))[0]).toBeInTheDocument();
     expect(errSpy).toHaveBeenCalledWith(
       "Error validating maxRegs:",
       expect.any(Error)
@@ -382,7 +387,7 @@ describe("Landing pública: idioma ES/EN", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/landing/ev-1/en", {
       replace: true,
     });
-    expect(screen.getByText("Book ticket")).toBeInTheDocument();
+    expect(screen.getAllByText("Book ticket")[0]).toBeInTheDocument();
 
     // De regreso a ES: URL sin segmento de idioma y labels en español.
     fireEvent.click(screen.getByRole("button", { name: "Español" }));
@@ -397,7 +402,7 @@ describe("Landing pública: idioma ES/EN", () => {
     primeGraphql();
     renderLanding("/landing/ev-1/en");
     expect(await screen.findByText("Event details")).toBeInTheDocument();
-    expect(screen.getByText("Book ticket")).toBeInTheDocument();
+    expect(screen.getAllByText("Book ticket")[0]).toBeInTheDocument();
   });
 
   test("sin idioma en la URL respeta la preferencia guardada en localStorage", async () => {
@@ -431,7 +436,7 @@ describe("Landing pública: subeventos", () => {
     expect(screen.getAllByText("Haz clic para más detalles")).toHaveLength(4);
 
     // El CTA hace scroll a las cards en lugar de abrir el registro.
-    const cta = await screen.findByText("Ver actividades");
+    const cta = (await screen.findAllByText("Ver actividades"))[0];
     fireEvent.click(cta);
     expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith({
       behavior: "smooth",

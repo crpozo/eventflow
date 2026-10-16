@@ -171,9 +171,15 @@ describe("Layout landing (público)", () => {
     renderLayout(<LandingLayout />, "landing/*", "/landing/ev-123");
 
     expect(screen.getByText("Vista Landing Publica")).toBeInTheDocument();
+    // Pie oscuro del rediseño 2026-10: institución + año + enlace a la web.
+    expect(screen.getByText("Universidad San Francisco de Quito")).toBeInTheDocument();
     expect(
-      screen.getByText("Copyright © 2025 Universidad San Francisco de Quito")
+      screen.getByText(`Copyright © ${new Date().getFullYear()} · Eventos USFQ`)
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /usfq\.edu\.ec/ })).toHaveAttribute(
+      "href",
+      "https://www.usfq.edu.ec"
+    );
     // layout público: sin sidebar ni navbar del admin
     expect(screen.queryByTestId("sidebar")).not.toBeInTheDocument();
     expect(screen.queryByTestId("navbar")).not.toBeInTheDocument();
