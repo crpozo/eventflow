@@ -280,6 +280,31 @@ describe("Landing pública: carga y estados", () => {
   });
 });
 
+describe("Landing pública: búsqueda paginada de la landing", () => {
+  test("encuentra la landing aunque no esté en la primera página del scan", async () => {
+    // listLandings con filtro es un Scan: con más registros que el limit, la
+    // primera página puede volver vacía con nextToken. Antes la landing se
+    // quedaba en el loader para siempre.
+    const listCalls = [];
+    mockGraphql.mockImplementation(async ({ query, variables }) => {
+      if (query.includes("listLandings")) {
+        listCalls.push(variables);
+        return variables.nextToken
+          ? { data: { listLandings: { items: [landingFixture()], nextToken: null } } }
+          : { data: { listLandings: { items: [], nextToken: "page-2" } } };
+      }
+      if (query.includes("getEvent")) return { data: { getEvent: eventFixture() } };
+      return { data: {} };
+    });
+    renderLanding();
+
+    expect(await screen.findByText("Detalles del evento")).toBeInTheDocument();
+    expect(listCalls).toHaveLength(2);
+    expect(listCalls[0]).toMatchObject({ limit: 1000, nextToken: null });
+    expect(listCalls[1]).toMatchObject({ nextToken: "page-2" });
+  });
+});
+
 describe("Landing pública: sold-out con paginación", () => {
   test("pagina eventAttendeesByEventID hasta el cupo y muestra 'Entradas Agotadas'", async () => {
     primeGraphql({

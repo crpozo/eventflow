@@ -4,9 +4,9 @@
  *  - Autenticado: ReportesRouteHandler en sus dos ramas (rol Reportes con
  *    redirección forzada a /admin/reportes vs. usuario normal con todas
  *    las rutas) y el gate de permisos cargando.
- *  - Efectos: Hub signedOut (limpia localStorage y redirige), init de
- *    Hotjar (requestIdleCallback vs setTimeout) y script de Cookiebot.
- * Amplify, Hotjar, PermissionsProvider y los 6 layouts se mockean en la
+ *  - Efectos: Hub signedOut (limpia localStorage y redirige) y script de
+ *    Cookiebot. (Hotjar se quitó: tenía el siteId de ejemplo 123 → 404.)
+ * Amplify, PermissionsProvider y los 6 layouts se mockean en la
  * frontera; los layouts exponen data-testid para asertar el montaje.
  */
 import React from 'react';
@@ -39,11 +39,6 @@ jest.mock('@aws-amplify/ui-react', () => {
     translations: {},
   };
 });
-
-jest.mock('@hotjar/browser', () => ({
-  __esModule: true,
-  default: { init: jest.fn() },
-}));
 
 jest.mock('./providers/PermissionsProvider', () => {
   const React = require('react');
@@ -91,7 +86,6 @@ jest.mock('layouts/usuario', () => {
 import { Hub } from 'aws-amplify/utils';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import { usePermissions } from './providers/PermissionsProvider';
-import Hotjar from '@hotjar/browser';
 import App from './App';
 
 let hubCallback;
@@ -284,32 +278,6 @@ describe('App — Hub de auth (signedOut)', () => {
 });
 
 describe('App — efectos de arranque', () => {
-  test('con requestIdleCallback disponible inicializa Hotjar en idle', () => {
-    window.requestIdleCallback = jest.fn((cb) => cb());
-    try {
-      renderApp('/');
-      expect(window.requestIdleCallback).toHaveBeenCalled();
-      expect(Hotjar.init).toHaveBeenCalledWith(123, 6);
-    } finally {
-      delete window.requestIdleCallback;
-    }
-  });
-
-  test('sin requestIdleCallback difiere Hotjar 3s con setTimeout', () => {
-    jest.useFakeTimers();
-    try {
-      renderApp('/');
-      expect(Hotjar.init).not.toHaveBeenCalled();
-
-      act(() => {
-        jest.advanceTimersByTime(3000);
-      });
-      expect(Hotjar.init).toHaveBeenCalledWith(123, 6);
-    } finally {
-      jest.useRealTimers();
-    }
-  });
-
   test('inyecta el script de Cookiebot al montar y lo retira al desmontar', () => {
     const { unmount } = renderApp('/');
 

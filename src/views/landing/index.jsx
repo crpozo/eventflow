@@ -77,6 +77,26 @@ export const firstSentence = (text) => {
 export const paragraphs = (text) =>
   String(text || "").split(/\n+/).map((p) => p.trim()).filter(Boolean);
 
+// Busca la landing de un evento. listLandings con filtro es un Scan: el
+// `limit` (100 por defecto) cuenta registros LEÍDOS, no encontrados, así que con
+// más de 100 landings la buscada puede no estar en la primera página y la
+// landing se quedaba cargando para siempre. Se pagina (1000 por página) hasta
+// encontrarla o agotar la tabla.
+export const findLandingByEvent = async (client, eventId) => {
+  let nextToken = null;
+  do {
+    const res = await client.graphql({
+      query: listLandings,
+      variables: { filter: { landingEventId: { eq: eventId } }, limit: 1000, nextToken },
+    });
+    const page = res?.data?.listLandings;
+    const hit = (page?.items || []).find(Boolean);
+    if (hit) return hit;
+    nextToken = page?.nextToken ?? null;
+  } while (nextToken);
+  return null;
+};
+
 // La landing sigue "cargando" cuando la query aún no responde o cuando el
 // ?EventAttendee= de la URL todavía no se resuelve (ni válido ni inválido).
 const isLandingLoading = (loading, landing, attendeeParam, eventAttendee) =>
@@ -293,13 +313,11 @@ export default function SignIn() {
             /getEvent\(id: \$id\) \{/,
             "getEvent(id: $id) {\n      sendCertificates"
           );
-      const [resultEvent, resultLanding] = await Promise.all([
+      const [resultEvent, landingFound] = await Promise.all([
         client.graphql({ query: getEventWithCertFlag, variables: { id: id } }),
-        client.graphql({
-          query: listLandings,
-          variables: { filter: { landingEventId: { eq: id } } },
-        }),
+        findLandingByEvent(client, id),
       ]);
+      const resultLanding = { data: { listLandings: { items: landingFound ? [landingFound] : [] } } };
 
       if (resultEvent.data.getEvent) {
         const ev = {

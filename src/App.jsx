@@ -2,7 +2,6 @@ import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import logo from "assets/img/usfq/logo_usfq.svg";
 import campus from "assets/img/usfq/USFQ_campus.webp";
-import Hotjar from '@hotjar/browser';
 import { PermissionsProvider, usePermissions } from "./providers/PermissionsProvider";
 // Kit ligero (React + react-router + react-icons, sin deps pesadas ni ciclos):
 // FullScreenLoader es el loader canónico centrado en viewport fuera del layout.
@@ -82,18 +81,6 @@ function App() {
   const isLegalRoute = location.pathname.includes('/privacidad');
   const isUserRoute = location.pathname.includes('/usuario');
   const [isReady] = React.useState(true);
-
-  // Hotjar init — inside effect so it runs once, not on every render
-  React.useEffect(() => {
-    const siteId = 123;
-    const hotjarVersion = 6;
-    // Defer Hotjar init so it doesn't block initial render
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => Hotjar.init(siteId, hotjarVersion));
-    } else {
-      setTimeout(() => Hotjar.init(siteId, hotjarVersion), 3000);
-    }
-  }, []);
 
   React.useEffect(() => {
     // Cookie scripts
