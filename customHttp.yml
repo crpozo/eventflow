@@ -1,0 +1,24 @@
+# Cabeceras HTTP de Amplify Hosting (se aplican en cada despliegue).
+# Los archivos con hash en el nombre (CRA /static, fuentes versionadas y los
+# assets de la landing estática) no cambian nunca: el navegador los guarda un
+# año sin revalidar. Antes salían con max-age=0 y cada visita revalidaba ~20
+# archivos (304). El HTML conserva el valor por defecto de Amplify
+# (max-age=0 en el navegador; el CDN se invalida en cada despliegue).
+customHeaders:
+  - pattern: '/static/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=31536000, immutable'
+  - pattern: '/fonts/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=31536000, immutable'
+  - pattern: '/landing-assets/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=31536000, immutable'
+  # Archivo de idioma de formRender (vacío = textos por defecto); fijo, sin hash.
+  - pattern: '/formbuilder/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=86400'

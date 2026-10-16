@@ -56,6 +56,11 @@ class FormBuilder extends Component {
     el.formRender({
       dataType: "json",
       formData: this.props.formData,
+      // formRender busca su archivo de idioma en `assets/lang/` RELATIVO a la
+      // página (/landing/<id>/assets/lang/en-US.lang → 404 en cada visita).
+      // public/formbuilder/en-US.lang (vacío = textos por defecto) lo sirve
+      // desde una URL fija y cacheable.
+      i18n: { location: "/formbuilder/" },
     });
   }
 

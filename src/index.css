@@ -3,17 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: Outfit;
-  src: url("/src/assets/fonts/Outfit.ttf") format("truetype");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: Inter;
-  src: url("/src/assets/fonts/Inter-Variable.ttf") format("truetype");
-  font-display: swap;
-}
+/* @font-face de Inter y Outfit: en public/index.html (WOFF2 + preload). */
 
 body, span {
   font-family: "Inter", sans-serif;

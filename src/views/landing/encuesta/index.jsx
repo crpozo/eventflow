@@ -163,7 +163,8 @@ class SurveyRender extends Component {
     if (myToken !== this.renderToken || !this.fb.current) return;
     const el = jq(this.fb.current);
     el.empty();
-    el.formRender({ dataType: "json", formData: this.props.formData });
+    // i18n.location: ver registro/index.jsx (evita el 404 de assets/lang).
+    el.formRender({ dataType: "json", formData: this.props.formData, i18n: { location: "/formbuilder/" } });
   }
 
   render() {
