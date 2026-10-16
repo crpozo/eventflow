@@ -450,6 +450,8 @@ export default function SignIn() {
   const heroTime = timeRange(startIso, event?.endDate, lang, eventTz);
   const tagline = firstSentence(translated.extraInfo);
   const isFree = landing.cost === "Gratuito";
+  // En móvil fecha y lugar ya van en la tarjeta: la columna de detalles solo aparece si suma algo
+  const hasAsideExtras = (!isFree && tickets.length > 0) || Boolean(event?.contactTemplate);
   const seatsNote = isFree
     ? [ui.freeEntry, typeof event?.maxRegs === "number" ? ui.limitedSeats : null].filter(Boolean).join(" · ")
     : null;
@@ -507,14 +509,36 @@ export default function SignIn() {
           {/* Banner en modo "cover": llena todo el bloque del hero (alto fijo
               relativo al viewport) sin bandas; se recorta lo que sobre. */}
           <img
-            className="relative block h-[62vh] min-h-[460px] max-h-[760px] w-full object-cover object-center"
+            className="relative block h-[52vh] min-h-[360px] max-h-[760px] w-full object-cover object-center md:h-[62vh] md:min-h-[460px]"
             src={bannerSrc}
             alt="Banner"
             fetchpriority="high"
             decoding="async"
           />
           {/* Overlay: degradado oscuro en el lado del texto para garantizar contraste */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/80 via-black/40 to-transparent md:block" aria-hidden="true" />
+          {/* Móvil: degradado de abajo hacia arriba, el texto va anclado al pie del banner */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/5 md:hidden" aria-hidden="true" />
+
+          <div className="absolute inset-x-0 bottom-0 flex px-5 pb-7 pt-10 md:hidden">
+            <div className="w-full text-white">
+              {translated.description && (
+                <p
+                  className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/85"
+                  dangerouslySetInnerHTML={{ __html: translated.description }}
+                />
+              )}
+              <h1 className="text-[32px] font-bold leading-[1.08] [text-shadow:0_2px_12px_rgba(0,0,0,.5)]">
+                {translated.title}
+              </h1>
+              {heroDate && (
+                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
+                  <LuCalendarClock className="h-3.5 w-3.5" />
+                  {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="absolute inset-0 hidden md:flex items-center">
             <div className="mx-auto w-full max-w-[1200px] px-6">
@@ -533,25 +557,6 @@ export default function SignIn() {
             </div>
           </div>
         </section>
-      )}
-
-      {/* En móvil el hero no lleva texto encima (taparía la imagen): va debajo */}
-      {landing && (
-        <div className="mx-auto w-full max-w-[1200px] px-5 pt-6 md:hidden">
-          {translated.description && (
-            <p
-              className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-brand-500"
-              dangerouslySetInnerHTML={{ __html: translated.description }}
-            />
-          )}
-          <h1 className="text-[30px] font-bold leading-tight text-navy-700">{translated.title}</h1>
-          {tagline && <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{tagline}</p>}
-          {heroDate && (
-            <p className="mt-3 text-sm font-semibold text-navy-700">
-              {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
-            </p>
-          )}
-        </div>
       )}
 
       {landing && (
@@ -580,13 +585,13 @@ export default function SignIn() {
             <section
               ref={detailsRef}
               aria-label={ui.eventDetails}
-              className="relative z-10 mt-6 grid grid-cols-1 overflow-hidden rounded-2xl bg-white shadow-[0_12px_40px_rgba(0,0,0,.10)] md:-mt-16 md:grid-cols-3"
+              className="relative z-10 -mt-5 grid grid-cols-1 overflow-hidden rounded-2xl bg-white shadow-[0_12px_40px_rgba(0,0,0,.10)] md:-mt-16 md:grid-cols-3"
             >
               <h2 className="sr-only">{ui.eventDetails}</h2>
 
-              <div className="flex gap-4 border-b border-gray-100 p-5 md:border-b-0 md:border-r md:p-6">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500">
-                  <LuCalendarClock className="h-6 w-6" />
+              <div className="flex items-start gap-3 border-b border-gray-100 px-4 py-4 md:gap-4 md:border-b-0 md:border-r md:p-6">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500 md:h-12 md:w-12">
+                  <LuCalendarClock className="h-5 w-5 md:h-6 md:w-6" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.dateAndTime}</p>
@@ -598,8 +603,8 @@ export default function SignIn() {
                     </p>
                   ) : (
                     <>
-                      <p className="mt-1 text-lg font-bold text-navy-700 md:text-xl">{heroDate || eventDate}</p>
-                      <p className="mt-1 flex flex-wrap items-center gap-2 text-base text-gray-600">
+                      <p className="mt-0.5 text-base font-bold leading-snug text-navy-700 md:mt-1 md:text-xl">{heroDate || eventDate}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 md:text-base">
                         {heroTime.label && <span>{heroTime.label}</span>}
                         <span className="inline-flex items-center whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-navy-700">
                           {eventTzLabel}
@@ -610,19 +615,19 @@ export default function SignIn() {
                 </div>
               </div>
 
-              <div className="flex gap-4 border-b border-gray-100 p-5 md:border-b-0 md:border-r md:p-6">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-                  <LuMapPin className="h-6 w-6" />
+              <div className="flex items-start gap-3 border-b border-gray-100 px-4 py-4 md:gap-4 md:border-b-0 md:border-r md:p-6">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 md:h-12 md:w-12">
+                  <LuMapPin className="h-5 w-5 md:h-6 md:w-6" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.location}</p>
-                  <p className="mt-1 text-lg font-bold text-navy-700 md:text-xl">{venue}</p>
-                  {venueDetail && <p className="mt-1 text-base text-gray-600">{venueDetail}</p>}
+                  <p className="mt-0.5 text-base font-bold leading-snug text-navy-700 md:mt-1 md:text-xl">{venue}</p>
+                  {venueDetail && <p className="mt-0.5 text-sm text-gray-600 md:mt-1 md:text-base">{venueDetail}</p>}
                 </div>
               </div>
 
-              <div className="p-5 md:p-6">
-                <h3 className="text-lg font-bold text-navy-700">
+              <div className="px-4 py-4 md:p-6">
+                <h3 className="text-base font-bold text-navy-700 md:text-lg">
                   {isSubeventLanding ? ui.selectActivity : ui.confirmAttendance}
                 </h3>
 
@@ -706,11 +711,11 @@ export default function SignIn() {
             )}
 
             {/* Cuerpo: descripción larga + columna de detalles */}
-            <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-5">
+            <div className="mt-8 grid grid-cols-1 gap-8 md:mt-12 md:gap-10 lg:grid-cols-5">
               <div className="lg:col-span-3">
-                <h2 className="text-[28px] font-bold text-navy-700 md:text-4xl">{ui.about}</h2>
+                <h2 className="text-2xl font-bold text-navy-700 md:text-4xl">{ui.about}</h2>
                 {landing.extraInfo && landing.extraInfo.trim().length > 0 ? (
-                  <div className="mt-5 space-y-4 text-[17px] leading-relaxed text-gray-600">
+                  <div className="mt-4 space-y-4 text-base leading-relaxed text-gray-600 md:mt-5 md:text-[17px]">
                     {paragraphs(translated.extraInfo).map((para) => (
                       <p key={para.slice(0, 40)}>{para}</p>
                     ))}
@@ -729,17 +734,17 @@ export default function SignIn() {
                 )}
               </div>
 
-              <aside className="lg:col-span-2">
+              <aside className={`${hasAsideExtras ? "" : "hidden lg:block"} lg:col-span-2`}>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-600">{ui.details}</p>
                 <div className="mt-3 flex flex-col gap-3">
                   {/* Sin viñetas: cada dato es una tarjeta limpia */}
-                  <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4">
+                  <div className="hidden rounded-2xl border border-gray-200 bg-white px-5 py-4 lg:block">
                     <p className="text-lg font-bold text-navy-700">{ui.dateAndTime}</p>
                     <p className="mt-0.5 text-base text-gray-600">
                       {eventDateEnd ? `${eventDate} — ${eventDateEnd}` : eventDate}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4">
+                  <div className="hidden rounded-2xl border border-gray-200 bg-white px-5 py-4 lg:block">
                     <p className="text-lg font-bold text-navy-700">{ui.location}</p>
                     <p className="mt-0.5 text-base text-gray-600">{translated.location}</p>
                   </div>
