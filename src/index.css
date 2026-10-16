@@ -1054,7 +1054,11 @@ p.amplify-field__description{
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in { animation: ef-fade-up 0.35s ease-out both; }
+/* Sin fill-mode: si el transform final (translateY(0)) se quedara aplicado,
+   el panel sería el "containing block" de cualquier position:fixed hijo y el
+   FullScreenLoader del registro ("Cargando… No cerrar la página") dejaría de
+   cubrir la pantalla y aparecería recortado dentro del panel. */
+.animate-fade-in { animation: ef-fade-up 0.35s ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in { animation: none; }
 }
