@@ -554,10 +554,10 @@ export default function SignIn() {
       )}
 
       {landing && (
-        <div className="mx-auto w-full max-w-[1200px] px-5 pb-24 md:pb-12">
+        <div className="mx-auto w-full max-w-[1200px] px-3 pb-24 md:px-5 md:pb-12">
           <div
             ref={registerRef}
-            className={`${showRegister ? "block animate-fade-in" : "hidden"} pt-8`}
+            className={`${showRegister ? "block animate-fade-in" : "hidden"} px-2 pt-8 md:px-0`}
           >
             <Registro
               landing={landing}
@@ -584,8 +584,8 @@ export default function SignIn() {
               <h2 className="sr-only">{ui.eventDetails}</h2>
 
               <div className="flex items-start gap-3 border-b border-gray-100 px-4 py-4 md:gap-4 md:border-b-0 md:border-r md:p-6">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500 md:h-12 md:w-12">
-                  <LuCalendarClock className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-brand-500 md:h-12 md:w-12 md:rounded-xl">
+                  <LuCalendarClock className="h-[18px] w-[18px] md:h-6 md:w-6" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.dateAndTime}</p>
@@ -610,8 +610,8 @@ export default function SignIn() {
               </div>
 
               <div className="flex items-start gap-3 border-b border-gray-100 px-4 py-4 md:gap-4 md:border-b-0 md:border-r md:p-6">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 md:h-12 md:w-12">
-                  <LuMapPin className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 md:h-12 md:w-12 md:rounded-xl">
+                  <LuMapPin className="h-[18px] w-[18px] md:h-6 md:w-6" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.location}</p>
@@ -705,7 +705,7 @@ export default function SignIn() {
             )}
 
             {/* Cuerpo: descripción larga + columna de detalles */}
-            <div className="mt-8 grid grid-cols-1 gap-8 md:mt-12 md:gap-10 lg:grid-cols-5">
+            <div className="mt-8 grid grid-cols-1 gap-8 px-2 md:mt-12 md:gap-10 md:px-0 lg:grid-cols-5">
               <div className="lg:col-span-3">
                 <h2 className="text-2xl font-bold text-navy-700 md:text-4xl">{ui.about}</h2>
                 {landing.extraInfo && landing.extraInfo.trim().length > 0 ? (
@@ -763,7 +763,9 @@ export default function SignIn() {
             </div>
 
             {/* Galería + logos de aliados */}
-            <LandingExtras landing={landing} ui={ui} />
+            <div className="px-2 md:px-0">
+              <LandingExtras landing={landing} ui={ui} />
+            </div>
           </div>
         </div>
       )}
