@@ -826,7 +826,7 @@ const Registro = (props) => {
             
             <div 
               ref={formRef}
-              className="d-flex flex-col	mx-auto w-full max-w-[1100px] py-[24px] px-0 md:py-[40px] md:px-[50px] box-shadow-0"
+              className="d-flex flex-col	mx-auto w-full max-w-[1100px] py-2 px-0 md:py-[40px] md:px-[50px] md:box-shadow-0"
             >
               
             {formBuilderSection}
