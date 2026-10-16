@@ -560,7 +560,7 @@ export default function SignIn() {
       )}
 
       {landing && (
-        <div className="mx-auto w-full max-w-[1200px] px-5 pb-28 md:pb-12">
+        <div className="mx-auto w-full max-w-[1200px] px-5 pb-24 md:pb-12">
           <div
             ref={registerRef}
             className={`${showRegister ? "block animate-fade-in" : "hidden"} pt-8`}
