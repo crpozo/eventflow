@@ -8,6 +8,7 @@ import { DataStore } from "aws-amplify/datastore";
 import { Form, Attendee, EventAttendee } from "models";
 import { validateForm, formatSpanishDate, tzCityLabel } from "scripts/utils";
 import { getLandingUI } from "scripts/landingTranslations";
+import { DEFAULT_CONSENT_HTML } from "scripts/consentDefault";
 import { translateFormData, restoreOriginalLabels, translateString } from "scripts/translateFormData";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { validateBannerCode } from "../../../services/nomina/validateBannerCode";
@@ -181,9 +182,9 @@ const Registro = (props) => {
   // it's a consent without the full wall of text.
   const [consentExpanded, setConsentExpanded] = React.useState(false);
   // Consent text actually shown (ES original, or translated copy on lang change).
-  const [consentHtml, setConsentHtml] = React.useState(
-    props.landing?.userConsentCheck
-  );
+  // Siempre hay consentimiento: el de la landing o el estándar de la USFQ.
+  const consentSource = props.landing?.userConsentCheck || DEFAULT_CONSENT_HTML;
+  const [consentHtml, setConsentHtml] = React.useState(consentSource);
 
   const currentUrl = window.location.href;
   const domain = new URL(currentUrl).origin;
@@ -225,7 +226,7 @@ const Registro = (props) => {
   // The consent block is plain HTML (not part of the FormBuilder definition),
   // so it needs its own translation pass when the language changes.
   React.useEffect(() => {
-    const source = props.landing?.userConsentCheck;
+    const source = consentSource;
     setConsentHtml(source);
     const target = (lang || "ES").toLowerCase();
     if (!source || target === "es") return;
@@ -237,7 +238,8 @@ const Registro = (props) => {
     return () => {
       active = false;
     };
-  }, [props.landing, lang]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consentSource, lang]);
 
   const memoizedFormBuilder = React.useMemo(
     () => <FormBuilder formData={renderData} />,
@@ -959,7 +961,7 @@ const Registro = (props) => {
 
               {/* Checkbox user consent  */}
 
-              {props.landing.userConsentCheck && (
+              {consentSource && (
                 <div className="mt-4 mb-1 checkbox-form">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
