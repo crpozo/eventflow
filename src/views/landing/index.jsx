@@ -417,9 +417,9 @@ export default function SignIn() {
   }
 
   // ── Rediseño 2026-10 ──────────────────────────────────────────────────
-  // Hero con el banner COMPLETO (object-contain sobre un fondo desenfocado
-  // del mismo banner, para no recortar la imagen) y el texto sobre un
-  // degradado oscuro a la izquierda para que se lea. Debajo, una tarjeta
+  // Hero con el banner COMPLETO a todo el ancho (el alto sigue su proporción,
+  // sin recorte) y el texto sobre un degradado oscuro a la izquierda para que
+  // se lea. Debajo, una tarjeta
   // blanca con fecha/ubicación/CTA que se superpone al hero, y el cuerpo
   // "Sobre el evento" con una columna de detalles sin viñetas.
   const bannerSrc = resolveBannerSrc(landing);
@@ -483,16 +483,10 @@ export default function SignIn() {
 
       {landing && (
         <section className="relative w-full overflow-hidden bg-black">
-          {/* Fondo: el mismo banner desenfocado llena el ancho sin recortar la imagen real */}
+          {/* Banner a TODO el ancho: el alto sigue la proporción de la imagen, así
+              se ve entera (sin recortar ni bandas laterales). */}
           <img
-            src={bannerSrc}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
-            decoding="async"
-          />
-          <img
-            className="relative mx-auto block h-auto max-h-[70vh] w-full max-w-[1400px] object-contain"
+            className="relative block h-auto w-full"
             src={bannerSrc}
             alt="Banner"
             fetchpriority="high"
