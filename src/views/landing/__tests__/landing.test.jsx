@@ -2,12 +2,15 @@
  * Tests de la landing pública (src/views/landing/index.jsx).
  *
  * Mocks en frontera de módulo:
- *  - aws-amplify/api: generateClient().graphql despacha por texto de query
- *    (getEventAttendee / eventAttendeesByEventID / listLandings / getEvent),
- *    con paginación configurable para el chequeo de sold-out.
- *  - @aws-amplify/ui-react: useAuthenticator con authStatus configurable.
+ *  - aws-amplify/api: generateClient().graphql despacha por nombre de operación
+ *    (LandingBundle = evento + landing + formulario en una petición,
+ *    FindLanding = páginas siguientes del scan, getEventAttendee,
+ *    eventAttendeesByEventID con paginación para el chequeo de sold-out).
+ *  - aws-amplify/auth: fetchAuthSession con sesión configurable (solo se
+ *    consulta para landings desactivadas).
  *  - scripts/useAwsTranslation: identidad (sin Amazon Translate).
- *  - views/landing/registro: stub que expone props clave como data-attributes.
+ *  - views/landing/registro: stub que expone props clave como data-attributes
+ *    (se monta bajo demanda con React.lazy: hay que esperarlo con findBy).
  *  - react-router-dom: useNavigate espiado; MemoryRouter real para useParams.
  *
  * Rediseño 2026-10: el título y el CTA se renderizan DOS veces (versión de
@@ -30,8 +33,9 @@ jest.mock("react-router-dom", () => ({
 }));
 
 const mockAuth = { status: "unauthenticated" };
-jest.mock("@aws-amplify/ui-react", () => ({
-  useAuthenticator: () => ({ authStatus: mockAuth.status }),
+jest.mock("aws-amplify/auth", () => ({
+  fetchAuthSession: async () =>
+    mockAuth.status === "authenticated" ? { tokens: { accessToken: "t" } } : { tokens: undefined },
 }));
 
 const mockGraphql = jest.fn();
@@ -110,24 +114,27 @@ const primeGraphql = ({
       pageIdx += 1;
       return { data: { eventAttendeesByEventID: page } };
     }
-    if (query.includes("listLandings")) {
-      return { data: { listLandings: { items: landing ? [landing] : [] } } };
-    }
-    if (query.includes("getEvent")) {
-      return { data: { getEvent: event } };
+    if (query.includes("query LandingBundle")) {
+      return {
+        data: {
+          getEvent: event,
+          listLandings: { items: landing ? [landing] : [], nextToken: null },
+          listForms: { items: [], nextToken: null },
+        },
+      };
     }
     return { data: {} };
   });
 };
 
-const renderLanding = (path = "/landing/ev-1") => {
-  // El componente detecta el subevento y ?EventAttendee= desde window.location.
+const renderLanding = (path = "/landing/ev-1", props = {}) => {
+  // ?EventAttendee= se lee de la location del router.
   window.history.pushState({}, "", path);
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/landing/:id" element={<Landing />} />
-        <Route path="/landing/:id/:lang" element={<Landing />} />
+        <Route path="/landing/:id" element={<Landing {...props} />} />
+        <Route path="/landing/:id/:lang" element={<Landing {...props} />} />
       </Routes>
     </MemoryRouter>
   );
@@ -216,11 +223,11 @@ describe("Landing pública: carga y estados", () => {
     renderLanding();
 
     const reservar = (await screen.findAllByText("Reservar ticket"))[0];
-    const registro = screen.getByTestId("registro-mock");
-    // Oculto hasta reservar.
-    expect(registro.parentElement.className).toContain("hidden");
+    // El registro no se monta (ni se descarga su chunk) hasta reservar.
+    expect(screen.queryByTestId("registro-mock")).not.toBeInTheDocument();
 
     fireEvent.click(reservar);
+    const registro = await screen.findByTestId("registro-mock");
     expect(registro.parentElement.className).toContain("block");
     expect(registro).toHaveAttribute("data-lang", "ES");
     // Los detalles quedan ocultos.
@@ -264,18 +271,21 @@ describe("Landing pública: carga y estados", () => {
     primeGraphql({ eventAttendee: null });
     const { unmount } = renderLanding("/landing/ev-1?EventAttendee=missing");
     await screen.findByText("Detalles del evento");
-    await waitFor(() => expect(window.location.search).toBe(""));
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith(
+        { pathname: "/landing/ev-1", search: "" },
+        { replace: true }
+      )
+    );
     unmount();
 
     // Válido: el stub de registro recibe el eventAttendee.
     primeGraphql({ eventAttendee: { id: "ea-77", authorized: true } });
     renderLanding("/landing/ev-1?EventAttendee=ea-77");
     await screen.findByText("Detalles del evento");
-    await waitFor(() =>
-      expect(screen.getByTestId("registro-mock")).toHaveAttribute(
-        "data-event-attendee",
-        "ea-77"
-      )
+    expect(await screen.findByTestId("registro-mock")).toHaveAttribute(
+      "data-event-attendee",
+      "ea-77"
     );
   });
 });
@@ -285,23 +295,30 @@ describe("Landing pública: búsqueda paginada de la landing", () => {
     // listLandings con filtro es un Scan: con más registros que el limit, la
     // primera página puede volver vacía con nextToken. Antes la landing se
     // quedaba en el loader para siempre.
-    const listCalls = [];
+    const calls = [];
     mockGraphql.mockImplementation(async ({ query, variables }) => {
-      if (query.includes("listLandings")) {
-        listCalls.push(variables);
-        return variables.nextToken
-          ? { data: { listLandings: { items: [landingFixture()], nextToken: null } } }
-          : { data: { listLandings: { items: [], nextToken: "page-2" } } };
+      if (query.includes("query LandingBundle")) {
+        calls.push(["bundle", variables]);
+        return {
+          data: {
+            getEvent: eventFixture(),
+            listLandings: { items: [], nextToken: "page-2" },
+            listForms: { items: [], nextToken: null },
+          },
+        };
       }
-      if (query.includes("getEvent")) return { data: { getEvent: eventFixture() } };
+      if (query.includes("query FindLanding")) {
+        calls.push(["page", variables]);
+        return { data: { listLandings: { items: [landingFixture()], nextToken: null } } };
+      }
       return { data: {} };
     });
     renderLanding();
 
     expect(await screen.findByText("Detalles del evento")).toBeInTheDocument();
-    expect(listCalls).toHaveLength(2);
-    expect(listCalls[0]).toMatchObject({ limit: 1000, nextToken: null });
-    expect(listCalls[1]).toMatchObject({ nextToken: "page-2" });
+    expect(calls).toHaveLength(2);
+    expect(calls[0][1]).toMatchObject({ limit: 1000 });
+    expect(calls[1][1]).toMatchObject({ limit: 1000, nextToken: "page-2" });
   });
 });
 
@@ -467,9 +484,8 @@ describe("Landing pública: subeventos", () => {
       behavior: "smooth",
       block: "start",
     });
-    expect(screen.getByTestId("registro-mock").parentElement.className).toContain(
-      "hidden"
-    );
+    // Y el registro ni siquiera se monta.
+    expect(screen.queryByTestId("registro-mock")).not.toBeInTheDocument();
   });
 
   test("una landing normal no muestra la sección de actividades", async () => {

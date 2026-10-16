@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from "react";
 import logo from "assets/img/usfq/logo_2025.png";
 import bgPlaceholder from "assets/img/usfq/bg-placeholder.webp";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import Registro from "./registro/index";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { formatDateHour, formatHour, tzCityLabel } from 'scripts/utils';
 import { useAwsTranslation} from 'scripts/useAwsTranslation';
 import { getLandingUI } from 'scripts/landingTranslations';
 import LandingExtras from './components/LandingExtras';
 import { FullScreenLoader } from "components/adminUi";
-import { useAuthenticator } from "@aws-amplify/ui-react";
 import { FiExternalLink } from "react-icons/fi";
 import { LuCalendarClock, LuMapPin } from "react-icons/lu";
 import { BsPlusLg as PlusIcon } from "react-icons/bs";
@@ -17,7 +15,19 @@ import {
 } from "react-icons/ai";
 /* GRAPHQL */
 import { generateClient } from 'aws-amplify/api';
-import { getEvent, listLandings, eventAttendeesIdsByEventID, getEventAttendee } from '../../graphql/queries';
+import { eventAttendeesIdsByEventID, getEventAttendee } from '../../graphql/queries';
+import { fetchLandingBundle, buildTickets } from './landingData';
+
+// El registro (formBuilder + jQuery + QR + PDF) solo se descarga cuando hace
+// falta: al pulsar "Reservar ticket", al volver de un pago (?EventAttendee=) o
+// en segundo plano cuando el navegador queda libre tras la carga (prefetch).
+const loadRegistro = () => import("./registro/index");
+const Registro = React.lazy(loadRegistro);
+
+const isBrowser = typeof window !== "undefined";
+
+// Landing "madre" de subeventos: lista las actividades en vez de reservar.
+const SUBEVENT_PARENT_ID = "bb85f39d-8300-4ada-ab70-c2b70cfc4b0b";
 
 // URL base de CloudFront para los assets públicos subidos por el admin.
 const CLOUDFRONT_PUBLIC = "https://dnuc5lxyun5b.cloudfront.net/public/";
@@ -47,6 +57,16 @@ export const longDate = (iso, lang, tz) => {
   return txt.charAt(0).toUpperCase() + txt.slice(1);
 };
 
+// Día calendario (AAAA-MM-DD) de un instante en la zona del EVENTO. Decide
+// "mismo día" igual en el build (UTC) que en el navegador del visitante.
+export const dayKey = (iso, tz) => {
+  const d = new Date(iso);
+  if (!iso || Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(d);
+};
+
 // Rango horario "09:00 – 13:00" (24h) del mismo día; solo la hora de inicio si no hay fin.
 export const timeRange = (startIso, endIso, lang, tz) => {
   const fmt = (iso) => {
@@ -58,8 +78,7 @@ export const timeRange = (startIso, endIso, lang, tz) => {
   };
   const start = fmt(startIso);
   const end = fmt(endIso);
-  const sameDay = startIso && endIso &&
-    new Date(startIso).toDateString() === new Date(endIso).toDateString();
+  const sameDay = startIso && endIso && dayKey(startIso, tz) === dayKey(endIso, tz);
   const label = start && end && sameDay && end !== start ? `${start} – ${end}` : start;
   return { start, end, label };
 };
@@ -77,26 +96,6 @@ export const firstSentence = (text) => {
 export const paragraphs = (text) =>
   String(text || "").split(/\n+/).map((p) => p.trim()).filter(Boolean);
 
-// Busca la landing de un evento. listLandings con filtro es un Scan: el
-// `limit` (100 por defecto) cuenta registros LEÍDOS, no encontrados, así que con
-// más de 100 landings la buscada puede no estar en la primera página y la
-// landing se quedaba cargando para siempre. Se pagina (1000 por página) hasta
-// encontrarla o agotar la tabla.
-export const findLandingByEvent = async (client, eventId) => {
-  let nextToken = null;
-  do {
-    const res = await client.graphql({
-      query: listLandings,
-      variables: { filter: { landingEventId: { eq: eventId } }, limit: 1000, nextToken },
-    });
-    const page = res?.data?.listLandings;
-    const hit = (page?.items || []).find(Boolean);
-    if (hit) return hit;
-    nextToken = page?.nextToken ?? null;
-  } while (nextToken);
-  return null;
-};
-
 // La landing sigue "cargando" cuando la query aún no responde o cuando el
 // ?EventAttendee= de la URL todavía no se resuelve (ni válido ni inválido).
 const isLandingLoading = (loading, landing, attendeeParam, eventAttendee) =>
@@ -106,6 +105,28 @@ const isLandingLoading = (loading, landing, attendeeParam, eventAttendee) =>
 // Landing desactivada: se oculta solo al público (visitantes sin sesión).
 const isLandingDeactivated = (loading, landing, authStatus) =>
   !loading && landing.active === false && authStatus === "unauthenticated";
+
+// Mientras no se sabe si quien visita una landing desactivada tiene sesión,
+// se muestra el loader (no se le enseña el contenido al público).
+const isCheckingSession = (loading, landing, authStatus) =>
+  !loading && landing.active === false && authStatus === null;
+
+// Sesión del panel: solo se consulta para landings desactivadas, con el SDK
+// de Auth cargado bajo demanda (antes useAuthenticator arrastraba Amplify UI
+// completo + xstate al bundle público).
+async function readAuthStatus() {
+  try {
+    const { fetchAuthSession } = await import("aws-amplify/auth");
+    const session = await fetchAuthSession();
+    return session?.tokens?.accessToken ? "authenticated" : "unauthenticated";
+  } catch (e) {
+    return "unauthenticated";
+  }
+}
+
+// El evento siempre lleva sendCertificates booleano (los campos de
+// certificado del registro dependen de él).
+const withCertFlag = (ev) => ({ ...ev, sendCertificates: ev.sendCertificates ?? false });
 
 // ?EventAttendee= inválido: la query respondió que no existe, así que hay que
 // limpiarlo de la URL para no volver a consultarlo.
@@ -136,16 +157,34 @@ function ReserveCta({ isSoldOut, isSubeventLanding, ui, onReserve }) {
   );
 }
 
-export default function SignIn() {
-  const { authStatus } = useAuthenticator((context) => [context.authStatus]);
+/**
+ * Landing pública de un evento.
+ * @param {object}  [initialData]  datos del build (landing estática): { eventId,
+ *                                 event, landing, form, images }. Con ellos la
+ *                                 página se pinta sin esperar a AppSync y luego
+ *                                 se refresca en segundo plano.
+ * @param {boolean} [hydrated]     true al hidratar el HTML estático: el primer
+ *                                 render debe coincidir con el del build.
+ */
+export default function SignIn({ initialData = null, hydrated = false }) {
   const { id, lang: langParam } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const seed = initialData && initialData.eventId === id ? initialData : null;
   // Language can come from the URL (/landing/:id/en) so links are shareable per
-  // language; otherwise fall back to the last choice or Spanish.
+  // language; otherwise fall back to the last choice or Spanish. Al hidratar,
+  // el primer render es el del build (español) y la preferencia guardada se
+  // aplica en un efecto.
   const [lang, setLang] = useState(() => {
     if (langParam) return langParam.toLowerCase() === "en" ? "EN" : "ES";
+    if (hydrated || !isBrowser) return "ES";
     return localStorage.getItem("landingLang") || "ES";
   });
+  React.useEffect(() => {
+    if (!hydrated || langParam) return;
+    if (localStorage.getItem("landingLang") === "EN") setLang("EN");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const changeLang = (next) => {
     setLang(next);
     localStorage.setItem("landingLang", next);
@@ -162,20 +201,37 @@ export default function SignIn() {
     setLang(langParam.toLowerCase() === "en" ? "EN" : "ES");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [langParam]);
-  const [landing, setLanding] = React.useState([]);
-  const [event, setEvent] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [tickets, setTickets] = React.useState([]);
+  const [landing, setLanding] = React.useState(() => seed?.landing || []);
+  const [event, setEvent] = React.useState(() => (seed?.event ? withCertFlag(seed.event) : []));
+  const [form, setForm] = React.useState(() => seed?.form || null);
+  const [loading, setLoading] = React.useState(!seed);
+  const [notFound, setNotFound] = React.useState(false);
+  const [tickets, setTickets] = React.useState(() => buildTickets(seed?.landing));
   const [userData, setUserData] = useState([]);
   const [ticketsQuantity, setTicketsQuantity] = useState(1);
-  const [selectedCost, setSelectedCost] = React.useState(null);
+  const [selectedCost, setSelectedCost] = React.useState(() => buildTickets(seed?.landing)[0]?.cost ?? null);
   const [showRegister, setShowRegister] = React.useState(false);
   const [eventAttendee, setEventAttendee] = useState(null);
-  const searchParams = new URLSearchParams(document.location.search);
-  const url = new URL(window.location.href);
-  const client = generateClient(); 
+  const attendeeParam = new URLSearchParams(location.search).get('EventAttendee');
+  const clientRef = React.useRef(null);
+  const getClient = () => {
+    if (!clientRef.current) clientRef.current = generateClient();
+    return clientRef.current;
+  };
   const [showExpiredPopup, setShowExpiredPopup] = useState(false);
-  const [isSoldOut, setIsSoldOut] = useState(null);
+  // null = validando cupo (spinner). Con datos del build y sin cupo máximo se
+  // sabe de entrada que no está agotado.
+  const [isSoldOut, setIsSoldOut] = useState(() =>
+    seed && typeof seed.event?.maxRegs !== "number" ? false : null
+  );
+  // Sesión: null = desconocida (solo se consulta para landings desactivadas).
+  const [authStatus, setAuthStatus] = useState(null);
+  // El registro se monta la primera vez que hace falta y ya no se desmonta:
+  // "Regresar" solo lo oculta, así no se pierde lo escrito en el formulario.
+  const [registroMounted, setRegistroMounted] = useState(false);
+  React.useEffect(() => {
+    if (showRegister || eventAttendee) setRegistroMounted(true);
+  }, [showRegister, eventAttendee]);
 
   // Al abrir el registro (o volver a los detalles) la vista se desplaza con
   // suavidad al inicio del panel: sin esto, como el hero es alto, el scroll
@@ -198,7 +254,20 @@ export default function SignIn() {
     }
   }, [showRegister]);
 
-  
+  // Prefetch del registro cuando el navegador queda libre: al pulsar
+  // "Reservar ticket" el formulario ya está descargado (y su motor jQuery +
+  // formBuilder también), sin pesar en la carga inicial.
+  React.useEffect(() => {
+    const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 2000));
+    const cancel = window.cancelIdleCallback || clearTimeout;
+    const handle = idle(() => {
+      loadRegistro()
+        .then((m) => m.preloadFormEngine?.())
+        .catch(() => {});
+    });
+    return () => cancel(handle);
+  }, []);
+
   // Translations
   // Static UI labels (instant, no API quota)
   const ui = getLandingUI(lang);
@@ -217,8 +286,7 @@ export default function SignIn() {
     // below) so it doesn't cram onto the start line. Empty for single-day events.
     let end = "";
     if (startIso && endIso) {
-      const sameDay =
-        new Date(endIso).toDateString() === new Date(startIso).toDateString();
+      const sameDay = dayKey(endIso, eventTz) === dayKey(startIso, eventTz);
       if (sameDay) {
         // Same calendar day: append only the end time, without repeating the
         // weekday/date. Skip it when the end time equals the start time.
@@ -255,7 +323,7 @@ export default function SignIn() {
   const translated = useAwsTranslation(baseTexts, lang);
 
   // Generate landing cards
-  const [isSubeventLanding, setIsSubeventLanding] = React.useState(false);
+  const isSubeventLanding = id === SUBEVENT_PARENT_ID;
   const cardsRef = React.useRef(null);
   const subeventos = [
     { id: "939722b8-9169-47c7-9cfc-64f8a40e0bd4", title: "Cardio en Clave Tropical" },
@@ -264,122 +332,107 @@ export default function SignIn() {
     { id: "219a2ee6-896b-4c46-8119-badd8e25d381", title: "Crêpe Diem" }
   ];
 
-  // Get Landing + Event in GRAPHQL
+  // Evento + landing + formulario en una sola petición. Con datos del build
+  // (landing estática) la página ya está pintada: esto solo la refresca si
+  // algo cambió desde el build.
   React.useEffect(() => {
+    let alive = true;
+    const known = seed ? { landingId: seed.landing?.id, formId: seed.form?.id } : {};
 
-    const currentUrl = window.location.href;
-    // UUID you want to detect
-    const targetUuid = "bb85f39d-8300-4ada-ab70-c2b70cfc4b0b";
-    // Regular expression to extract the UUID after "/landing/"
-    const uuidRegex = /\/landing\/([0-9a-fA-F-]+)(\/|$)/;
-    // Extract the UUID from the current URL
-    const currentUuidMatch = uuidRegex.exec(currentUrl);
-    const currentUuid = currentUuidMatch ? currentUuidMatch[1] : null;
-    // Check if the user is on the specific UUID
-    if (currentUuid === targetUuid) {
-      setIsSubeventLanding(true); 
-    }
+    const applyData = (ev, ld, fm) => {
+      const sameAsSeed =
+        seed &&
+        seed.event?.updatedAt === ev.updatedAt &&
+        seed.landing?.updatedAt === ld.updatedAt &&
+        (seed.form?.updatedAt ?? null) === (fm?.updatedAt ?? null);
+      if (sameAsSeed) return;
+      setEvent(withCertFlag(ev));
+      setLanding(ld);
+      setForm(fm || null);
+      const nextTickets = buildTickets(ld);
+      setTickets(nextTickets);
+      setSelectedCost(nextTickets[0]?.cost ?? null);
+      setLoading(false);
+    };
 
-    getLandingEventGraphql();
+    // Sold-out check: only relevant when a cap (maxRegs) is set. Count by
+    // paging an id-only projection (no PII) and stop as soon as we reach the
+    // cap — avoids pulling the entire attendee table on this public page.
+    const checkSoldOut = async (ev) => {
+      const maxRegs = ev.maxRegs;
+      if (typeof maxRegs !== "number") {
+        setIsSoldOut(false);
+        return;
+      }
+      try {
+        let nextToken = null;
+        let count = 0;
+        do {
+          const resp = await getClient().graphql({
+            query: eventAttendeesIdsByEventID,
+            variables: {
+              eventID: id,
+              filter: { _deleted: { ne: true } },
+              limit: 1000,
+              nextToken,
+            },
+          });
+          const page = resp?.data?.eventAttendeesByEventID;
+          count += page?.items?.length ?? 0;
+          nextToken = page?.nextToken ?? null;
+        } while (nextToken && count < maxRegs);
+        if (alive) setIsSoldOut(count >= maxRegs);
+      } catch (error) {
+        console.error("Error validating maxRegs:", error);
+        if (alive) setIsSoldOut(false);
+      }
+    };
 
     // Reintento acotado: sin él, un error transitorio de AppSync (throttling,
-    // red) rechaza el Promise.all sin handler y la landing pública se queda en
-    // el loader infinito.
-    async function getLandingEventGraphql(attempt = 0) {
+    // red) dejaba la landing pública en el loader infinito.
+    const load = async (attempt = 0) => {
       try {
-        await loadLandingEvent();
+        const { event: ev, landing: ld, form: fm } = await fetchLandingBundle(getClient(), id, known);
+        if (!alive) return;
+        if (!ev || !ld) {
+          // Evento o landing inexistente (p. ej. evento borrado): mensaje en
+          // vez del loader infinito. Con datos del build se conserva lo pintado.
+          if (!seed) {
+            setNotFound(true);
+            setLoading(false);
+          }
+          return;
+        }
+        applyData(ev, ld, fm);
+        await checkSoldOut(ev);
       } catch (e) {
         console.error("landing: fallo cargando evento/landing", e);
         if (attempt < 2) {
-          setTimeout(() => getLandingEventGraphql(attempt + 1), 2500);
+          setTimeout(() => alive && load(attempt + 1), 2500);
         }
       }
-    }
-
-    async function loadLandingEvent() {
-
-      // Fetch the event and its landing concurrently. The landing FK lives on
-      // the Landing side (landingEventId), so Event.Landing does not resolve and
-      // it must be looked up via listLandings. Running both in parallel saves one
-      // cross-region round-trip vs the previous sequential awaits.
-      // El getEvent GENERADO (queries.js) es anterior a los campos de
-      // certificado y no selecciona sendCertificates. En vez de un segundo
-      // round-trip, se inyecta el campo en la MISMA query (tras la llave de
-      // apertura, independiente de la lista de campos); si el texto generado
-      // cambiara de forma, cae al original y el flag queda false.
-      const getEventWithCertFlag = getEvent.includes("sendCertificates")
-        ? getEvent
-        : getEvent.replace(
-            /getEvent\(id: \$id\) \{/,
-            "getEvent(id: $id) {\n      sendCertificates"
-          );
-      const [resultEvent, landingFound] = await Promise.all([
-        client.graphql({ query: getEventWithCertFlag, variables: { id: id } }),
-        findLandingByEvent(client, id),
-      ]);
-      const resultLanding = { data: { listLandings: { items: landingFound ? [landingFound] : [] } } };
-
-      if (resultEvent.data.getEvent) {
-        const ev = {
-          ...resultEvent.data.getEvent,
-          sendCertificates:
-            resultEvent.data.getEvent.sendCertificates ?? false,
-        };
-        setEvent(ev);
-
-        const landingItem = resultLanding?.data?.listLandings?.items?.[0];
-        if (landingItem) {
-          setLanding(landingItem);
-          // Format price ticket
-          const tickets = landingItem.ticketTitle.map((title, index) => {
-            const cost =
-              landingItem.ticketPrice[index] !== undefined
-                ? `${landingItem.ticketPrice[index].toFixed(2)}`
-                : "Vacio";
-            if (index === 0) setSelectedCost(cost);
-            return {
-              title,
-              cost,
-            };
-          });
-          setTickets(tickets);
-          setLoading(false);
-        }
-
-        // Sold-out check: only relevant when a cap (maxRegs) is set. Count by
-        // paging an id-only projection (no PII) and stop as soon as we reach the
-        // cap — avoids pulling the entire attendee table on this public page.
-        const maxRegs = ev.maxRegs;
-        if (typeof maxRegs === "number") {
-          try {
-            let nextToken = null;
-            let count = 0;
-            do {
-              const resp = await client.graphql({
-                query: eventAttendeesIdsByEventID,
-                variables: {
-                  eventID: id,
-                  filter: { _deleted: { ne: true } },
-                  limit: 1000,
-                  nextToken,
-                },
-              });
-              const page = resp?.data?.eventAttendeesByEventID;
-              count += page?.items?.length ?? 0;
-              nextToken = page?.nextToken ?? null;
-            } while (nextToken && count < maxRegs);
-            setIsSoldOut(count >= maxRegs);
-          } catch (error) {
-            console.error("Error validating maxRegs:", error);
-            setIsSoldOut(false);
-          }
-        } else {
-          setIsSoldOut(false);
-        }
-      }
-    }
+    };
+    load();
+    return () => {
+      alive = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Sesión solo para landings desactivadas (ver isLandingDeactivated).
+  React.useEffect(() => {
+    if (landing?.active !== false) return undefined;
+    let alive = true;
+    readAuthStatus().then((status) => alive && setAuthStatus(status));
+    return () => {
+      alive = false;
+    };
+  }, [landing?.active]);
+
+  // Título de la pestaña con el nombre del evento (la estática ya lo trae).
+  React.useEffect(() => {
+    if (landing?.title) document.title = landing.title;
+  }, [landing?.title]);
 
   // Verify if the event is over (uses end date, then start date, then legacy
   // single date) to show the "expired" popup.
@@ -398,26 +451,33 @@ export default function SignIn() {
 
   // Get EventAttendee parameter + Graphql Data
   React.useEffect(() => {
-
-    if(searchParams.get('EventAttendee')){
-      getEventAttendeeGraphql();
-    }
-
-    async function getEventAttendeeGraphql() {
-
-      const resultEventAttendee = await client.graphql({ 
+    if (!attendeeParam) return;
+    let alive = true;
+    (async () => {
+      const resultEventAttendee = await getClient().graphql({
         query: getEventAttendee,
-        variables: { id: searchParams.get('EventAttendee') } 
+        variables: { id: attendeeParam },
       });
-
-      if(resultEventAttendee.data.getEventAttendee){
-        setEventAttendee(resultEventAttendee.data.getEventAttendee)
+      if (!alive) return;
+      if (resultEventAttendee.data.getEventAttendee) {
+        setEventAttendee(resultEventAttendee.data.getEventAttendee);
       } else {
         setEventAttendee(false);
       }
+    })();
+    return () => {
+      alive = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendeeParam]);
+
+  // ?EventAttendee= inválido: se limpia de la URL para no volver a consultarlo.
+  React.useEffect(() => {
+    if (hasInvalidAttendeeParam(attendeeParam, eventAttendee)) {
+      navigate({ pathname: location.pathname, search: "" }, { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.get('EventAttendee')]);
+  }, [attendeeParam, eventAttendee]);
 
   const quantityIncrementHandler = () => {
     setTicketsQuantity((prevState) => prevState + 1);
@@ -433,13 +493,16 @@ export default function SignIn() {
   };
 
   // Landing doesnt have any results on query + EventAttendee query parameter is not valid
-  if (isLandingLoading(loading, landing, searchParams.get('EventAttendee'), eventAttendee)) {
+  if (
+    isLandingLoading(loading, landing, attendeeParam, eventAttendee) ||
+    isCheckingSession(loading, landing, authStatus)
+  ) {
 
     return <FullScreenLoader label={ui.loading} />;
   }
 
-  // Landing is deactivated
-  if (isLandingDeactivated(loading, landing, authStatus)) {
+  // Landing is deactivated (o el evento ya no existe)
+  if (notFound || isLandingDeactivated(loading, landing, authStatus)) {
     return (
       <div className="fixed bottom-0 left-0 right-0 top-0 z-50 flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-lightPrimary p-3">
         <img src={logo} alt="USFQ Logo" className="w-[80px] mb-3 md:w-[90px] lg:w-[150px]" />
@@ -450,18 +513,13 @@ export default function SignIn() {
     );
   }
 
-  // If eventAttendee doesnt exist remove the query parameter
-  if (hasInvalidAttendeeParam(searchParams.get('EventAttendee'), eventAttendee)) {
-    searchParams.delete('EventAttendee');
-    window.history.replaceState({}, '', `${url.origin}${url.pathname}`);
-  }
-
   // ── Rediseño 2026-10 ──────────────────────────────────────────────────
   // Hero con el banner cubriendo TODO el bloque (object-cover, alto fijo) y el
   // texto sobre un degradado oscuro a la izquierda para que se lea. Debajo, una tarjeta
   // blanca con fecha/ubicación/CTA que se superpone al hero, y el cuerpo
   // "Sobre el evento" con una columna de detalles sin viñetas.
   const bannerSrc = resolveBannerSrc(landing);
+  const bannerVariants = landing.mainBanner ? initialData?.images?.[landing.mainBanner] : null;
   const { venue, venueDetail } = splitLocation(translated.location);
   const startIso = event?.startDate || event?.date;
   const heroDate = startIso ? longDate(startIso, lang, eventTz) : "";
@@ -526,13 +584,19 @@ export default function SignIn() {
         <section className="relative w-full overflow-hidden bg-black">
           {/* Banner en modo "cover": llena todo el bloque del hero (alto fijo
               relativo al viewport) sin bandas; se recorta lo que sobre. */}
-          <img
-            className="relative block h-[52vh] min-h-[360px] max-h-[760px] w-full object-cover object-center md:h-[62vh] md:min-h-[460px]"
-            src={bannerSrc}
-            alt="Banner"
-            fetchpriority="high"
-            decoding="async"
-          />
+          {/* Variantes AVIF/WebP del banner generadas en el build (solo landings
+              estáticas y mientras el banner no cambie); si no hay, el original. */}
+          <picture className="contents">
+            {bannerVariants?.avif && <source type="image/avif" srcSet={bannerVariants.avif} sizes="100vw" />}
+            {bannerVariants?.webp && <source type="image/webp" srcSet={bannerVariants.webp} sizes="100vw" />}
+            <img
+              className="relative block h-[52vh] min-h-[360px] max-h-[760px] w-full object-cover object-center md:h-[62vh] md:min-h-[460px]"
+              src={bannerSrc}
+              alt="Banner"
+              fetchpriority="high"
+              decoding="async"
+            />
+          </picture>
           {/* Overlay: degradado oscuro en el lado del texto para garantizar contraste */}
           <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/80 via-black/40 to-transparent md:block" aria-hidden="true" />
           {/* Móvil: degradado de abajo hacia arriba, el texto va anclado al pie del banner */}
@@ -577,19 +641,31 @@ export default function SignIn() {
             ref={registerRef}
             className={`${showRegister ? "block animate-fade-in" : "hidden"} px-2 pt-8 md:px-0`}
           >
-            <Registro
-              landing={landing}
-              event={event}
-              showRegister={showRegister}
-              setShowRegister={setShowRegister}
-              userData={userData}
-              setUserData={setUserData}
-              quantityProp={ticketsQuantity}
-              price={selectedCost}
-              eventID={id}
-              eventAttendeeProp={eventAttendee}
-              lang={lang}
-            />
+            {registroMounted && (
+              <React.Suspense
+                fallback={
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <span className="loader" />
+                    <p className="text-base text-gray-600">{ui.loadingForm}</p>
+                  </div>
+                }
+              >
+                <Registro
+                  landing={landing}
+                  event={event}
+                  initialForm={form}
+                  showRegister={showRegister}
+                  setShowRegister={setShowRegister}
+                  userData={userData}
+                  setUserData={setUserData}
+                  quantityProp={ticketsQuantity}
+                  price={selectedCost}
+                  eventID={id}
+                  eventAttendeeProp={eventAttendee}
+                  lang={lang}
+                />
+              </React.Suspense>
+            )}
           </div>
 
           <div className={`${showRegister ? "hidden" : "block animate-fade-in"}`}>

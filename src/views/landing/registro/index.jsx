@@ -4,8 +4,14 @@ import QRCode from "react-qr-code";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdChevronLeft } from "react-icons/md";
-import { DataStore } from "aws-amplify/datastore";
-import { Form, Attendee, EventAttendee } from "models";
+import { generateClient } from "aws-amplify/api";
+import {
+  findFormByEvent,
+  findRegistrationsByEmail,
+  createAttendeeRecord,
+  createEventAttendeeRecord,
+  saveAttendeeTicket,
+} from "../landingData";
 import { validateForm, formatSpanishDate, tzCityLabel } from "scripts/utils";
 import { getLandingUI } from "scripts/landingTranslations";
 import { DEFAULT_CONSENT_HTML } from "scripts/consentDefault";
@@ -28,6 +34,11 @@ const loadJQueryAndFormBuilder = async () => {
   $ = jq;
   return jq;
 };
+
+// Precarga del motor del formulario (jQuery + formBuilder) en segundo plano:
+// la landing la dispara cuando el navegador queda libre, así "Reservar ticket"
+// abre el formulario sin esperar la descarga.
+export const preloadFormEngine = () => loadJQueryAndFormBuilder();
 
 // FormBuilder render wrapper. Defined at module scope so its identity is stable
 // across re-renders: React updates it in place (componentDidUpdate) instead of
@@ -196,6 +207,11 @@ const Registro = (props) => {
   const id = useParams().id;
   const searchParams = new URLSearchParams(document.location.search);
   const pdfContentRef = useRef();
+  const clientRef = useRef(null);
+  const getClient = () => {
+    if (!clientRef.current) clientRef.current = generateClient();
+    return clientRef.current;
+  };
   const ticketsRef = useRef(null);
   const formRef = useRef(null);
 
@@ -283,41 +299,59 @@ const Registro = (props) => {
     }
   }, [showRegister]);
 
-  // Observer query form data
+  // Preguntas del formulario: llegan con los datos de la landing (una sola
+  // petición, o ya incluidas en la landing estática); si este componente se
+  // usa solo, se buscan aquí. Antes era DataStore.observeQuery, que obligaba a
+  // sincronizar todas las tablas en el navegador del visitante.
   const prevQuestionsRef = useRef(null);
   React.useEffect(() => {
+    let alive = true;
+    const applyQuestions = (questions) => {
+      if (!alive) return;
+      if (questions && questions.length > 0) {
+        // Evita re-traducir y re-renderizar si el contenido no cambió.
+        const key = typeof questions === "string" ? questions : JSON.stringify(questions);
+        if (prevQuestionsRef.current !== key) {
+          prevQuestionsRef.current = key;
+          setFormData(questions);
+        }
+        setFormBuilderError(null);
+      } else {
+        setFormBuilderError("El formulario no contiene preguntas para mostrar.");
+      }
+      setFormBuilderLoading(false);
+    };
+
+    if (props.initialForm) {
+      applyQuestions(props.initialForm.questions);
+      return () => {
+        alive = false;
+      };
+    }
+
     setFormBuilderLoading(true);
     setFormBuilderError(null);
-  
-    const subQuestions = DataStore.observeQuery(Form, (c) =>
-      c.formEventId.eq(id)
-    ).subscribe((results) => {
-  
-      if (results.isSynced && results.items.length === 0) {
+    findFormByEvent(getClient(), id)
+      .then((form) => {
+        if (!alive) return;
+        if (!form) {
+          setFormBuilderError("No se encontró un formulario asociado a este evento.");
+          setFormBuilderLoading(false);
+          return;
+        }
+        applyQuestions(form.questions);
+      })
+      .catch((e) => {
+        console.error("registro: no se pudo cargar el formulario", e);
+        if (!alive) return;
         setFormBuilderError("No se encontró un formulario asociado a este evento.");
         setFormBuilderLoading(false);
-      } else if (results.items.length > 0) {
-        const questions = results.items[0].questions;
-        if (questions && questions.length > 0) {
-          // observeQuery emite varias veces (pre-sync, synced, cada sync de la
-          // tabla) con una identidad de array NUEVA aunque el contenido no
-          // cambie; sin este guard, cada emit re-dispara la traducción (red)
-          // y resetea el form al español con un flash visible.
-          const key = JSON.stringify(questions);
-          if (prevQuestionsRef.current !== key) {
-            prevQuestionsRef.current = key;
-            setFormData(questions);
-          }
-          setFormBuilderLoading(false);
-        } else {
-          setFormBuilderError("El formulario no contiene preguntas para mostrar.");
-          setFormBuilderLoading(false);
-        }
-      }
-    });
-
-    return () => subQuestions.unsubscribe();
-  }, [id]);
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, props.initialForm]);
 
   // Download PDF + handle mobile behavior
   React.useEffect(() => {
@@ -378,9 +412,12 @@ const Registro = (props) => {
     const emailRaw = answers.find((item) => item.name === "email")?.userData[0];
     const email = emailRaw?.toLowerCase();
 
-    const existing = await DataStore.query(EventAttendee, (ea) =>
-      ea.email.eq(email)
-    );
+    // Consulta por el índice byEmail (correo tal cual y en minúsculas: el
+    // registro guarda el correo como se escribió).
+    const emails = [...new Set([emailRaw, email].filter(Boolean))];
+    const existing = (
+      await Promise.all(emails.map((e) => findRegistrationsByEmail(getClient(), e)))
+    ).flat();
 
     if (existing.some((att) => att.eventID === eventID)) {
       alert("Ya existe un registro con este correo para este evento.");
@@ -397,8 +434,7 @@ const Registro = (props) => {
 
   // Create and save the EventAttendee record
   const guardarEventAttendee = (answers, attendee, isFree) =>
-    DataStore.save(
-      new EventAttendee({
+    createEventAttendeeRecord(getClient(), {
         eventID: eventID,
         attendeeID: attendee.id,
         authorized: isFree,
@@ -412,8 +448,7 @@ const Registro = (props) => {
         quantity: quantityProp,
         scanned: 0,
         profileURL: `${domain}/usuario/${attendee.id}`,
-      })
-    );
+    });
 
   // get token from USFQ + registro financiero → TRS para la pasarela de pagos.
   const iniciarPagoUSFQ = async (answers, newEventAttendee) => {
@@ -479,7 +514,7 @@ const Registro = (props) => {
     }
 
     // Make sure to await the creation of the attendee
-    const attendee = await DataStore.save(new Attendee({}));
+    const attendee = await createAttendeeRecord(getClient());
     if (!attendee) return;
 
     try {
@@ -723,17 +758,14 @@ const Registro = (props) => {
         },
       });
 
-      const original = await DataStore.query(EventAttendee, eventAttendee.id);
+      const { previousTicket } = await saveAttendeeTicket(
+        getClient(),
+        eventAttendee.id,
+        decodeURIComponent(getUrlResult.url.pathname.substring(1))
+      );
       // Si el keepalive ya disparó el Lambda y marcó ticket="sent-qr:...",
       // el correo ya se envió. No reenviamos para evitar duplicados.
-      const alreadyEmailedByServer = original?.ticket?.startsWith("sent-qr:");
-      await DataStore.save(
-        EventAttendee.copyOf(original, (updated) => {
-          updated.ticket = decodeURIComponent(
-            getUrlResult.url.pathname.substring(1)
-          );
-        })
-      );
+      const alreadyEmailedByServer = previousTicket?.startsWith("sent-qr:");
 
       if (!alreadyEmailedByServer) {
         sendTicketEmail();

@@ -6,10 +6,10 @@
  *    devuelve { empty, formRender }. formRender(config) registra la definición
  *    renderizada e inyecta `.rendered-form` (para el validateForm real);
  *    formRender("userData") devuelve las respuestas fixture.
- *  - aws-amplify/datastore: observeQuery captura los subscribers para emitir
- *    manualmente; query/save configurables por test.
- *  - models: constructores fake con ids estables (Attendee -> attendee-1,
- *    EventAttendee -> ea-new).
+ *  - views/landing/landingData (GraphQL directo; ya no hay DataStore):
+ *    findFormByEvent queda pendiente hasta que el test llama emitForm();
+ *    las altas y consultas pasan por un `store` falso con save/query
+ *    configurables por test (Attendee -> attendee-1, EventAttendee -> ea-new).
  *  - scripts/translateFormData: espía para verificar el guard de identidad.
  *  - services/nomina/validateBannerCode: ok:true por defecto.
  */
@@ -58,23 +58,13 @@ jest.mock("html2pdf.js", () => ({
   default: jest.fn(() => ({ set: jest.fn(() => undefined) })),
 }));
 
-jest.mock("aws-amplify/datastore", () => {
-  const subs = [];
-  return {
-    __subs: subs,
-    DataStore: {
-      observeQuery: jest.fn(() => ({
-        subscribe: (cb) => {
-          subs.push(cb);
-          return { unsubscribe: jest.fn() };
-        },
-      })),
-      query: jest.fn(async () => []),
-      save: jest.fn(async (m) => m),
-      delete: jest.fn(async (m) => m),
-    },
-  };
-});
+jest.mock("views/landing/landingData", () => ({
+  findFormByEvent: jest.fn(),
+  findRegistrationsByEmail: jest.fn(),
+  createAttendeeRecord: jest.fn(),
+  createEventAttendeeRecord: jest.fn(),
+  saveAttendeeTicket: jest.fn(),
+}));
 
 jest.mock("aws-amplify/storage", () => ({
   uploadData: jest.fn(() => ({ result: Promise.resolve({ key: "k" }) })),
@@ -89,23 +79,6 @@ jest.mock("aws-amplify/api", () => ({
   post: jest.fn(async () => ({ body: { json: async () => ({}) } })),
 }));
 
-jest.mock("models", () => {
-  function Attendee(init = {}) {
-    Object.assign(this, init);
-    this.id = "attendee-1";
-  }
-  function EventAttendee(init = {}) {
-    Object.assign(this, init);
-    this.id = "ea-new";
-  }
-  EventAttendee.copyOf = (orig, mutator) => {
-    const copy = { ...orig };
-    mutator(copy);
-    return copy;
-  };
-  return { __esModule: true, Form: { name: "Form" }, Attendee, EventAttendee };
-});
-
 jest.mock("scripts/translateFormData", () => ({
   translateFormData: jest.fn(async (data) => data),
   restoreOriginalLabels: jest.fn((captured) => captured),
@@ -116,7 +89,13 @@ jest.mock("services/nomina/validateBannerCode", () => ({
   validateBannerCode: jest.fn(async () => ({ ok: true })),
 }));
 
-const { DataStore, __subs } = require("aws-amplify/datastore");
+const landingData = require("views/landing/landingData");
+
+// "Base de datos" falsa detrás de landingData: save registra cada alta
+// (Attendee primero, luego EventAttendee) y query las consultas (inscripciones
+// por correo o el EventAttendee vigente al guardar el ticket).
+const store = { save: jest.fn(), query: jest.fn() };
+let resolveForm = null;
 const { uploadData, getUrl } = require("aws-amplify/storage");
 const jqState = require("jquery").default.__state;
 const {
@@ -187,11 +166,11 @@ const renderRegistro = (overrides) => {
   return { props, ...utils };
 };
 
-// Emula un emit de DataStore.observeQuery(Form, ...)
+// Responde la búsqueda del formulario (findFormByEvent) con el payload
+// { items: [{ questions }] } (vacío = no hay formulario).
 const emitForm = (payload) => {
-  act(() => {
-    __subs.forEach((cb) => cb(payload));
-  });
+  const item = payload?.items?.[0];
+  resolveForm?.(item ? { id: "form-1", questions: item.questions } : null);
 };
 
 // Espera a que el formRender mock haya recibido una definición NO vacía y la devuelve.
@@ -208,27 +187,22 @@ const waitForFormRendered = async () => {
 beforeEach(() => {
   // CRA activa resetMocks: las implementaciones de los jest.fn definidos en
   // las factorías de jest.mock se BORRAN antes de cada test — se re-priman aquí.
-  DataStore.observeQuery.mockImplementation((_model, predicate) => {
-    // Ejercita el predicado como lo haría el DataStore real.
-    if (typeof predicate === "function") {
-      predicate({ formEventId: { eq: jest.fn() } });
-    }
-    return {
-      subscribe: (cb) => {
-        __subs.push(cb);
-        return { unsubscribe: jest.fn() };
-      },
-    };
+  resolveForm = null;
+  landingData.findFormByEvent.mockImplementation(
+    () => new Promise((resolve) => { resolveForm = resolve; })
+  );
+  store.query.mockImplementation(async () => []);
+  store.save.mockImplementation(async (m) =>
+    m && m.__model === "Attendee" ? { id: "attendee-1" } : { ...m, id: "ea-new" }
+  );
+  landingData.findRegistrationsByEmail.mockImplementation((_c, email) => store.query(email));
+  landingData.createAttendeeRecord.mockImplementation(() => store.save({ __model: "Attendee" }));
+  landingData.createEventAttendeeRecord.mockImplementation((_c, input) => store.save(input));
+  landingData.saveAttendeeTicket.mockImplementation(async (_c, id, ticket) => {
+    const original = await store.query(id);
+    const saved = await store.save({ ...original, ticket });
+    return { previousTicket: original?.ticket ?? null, saved };
   });
-  DataStore.query.mockImplementation(async (_model, predicate) => {
-    // Ejercita el predicado como lo haría el DataStore real (cuando lo hay).
-    if (typeof predicate === "function") {
-      predicate({ email: { eq: jest.fn() }, formEventId: { eq: jest.fn() } });
-    }
-    return [];
-  });
-  DataStore.save.mockImplementation(async (m) => m);
-  DataStore.delete.mockImplementation(async (m) => m);
   uploadData.mockImplementation(() => ({
     result: Promise.resolve({ key: "k" }),
   }));
@@ -241,7 +215,6 @@ beforeEach(() => {
   validateBannerCode.mockImplementation(async () => ({ ok: true }));
   html2pdfMock.mockImplementation(() => ({ set: jest.fn(() => undefined) }));
 
-  __subs.length = 0;
   jqState.userData = [];
   jqState.renderedConfigs.length = 0;
   window.HTMLElement.prototype.scrollIntoView = jest.fn();
@@ -298,7 +271,7 @@ describe("Registro (landing): carga del formulario", () => {
     emitForm({ items: [], isSynced: true });
 
     expect(
-      screen.getByText("No se encontró un formulario asociado a este evento.")
+      await screen.findByText("No se encontró un formulario asociado a este evento.")
     ).toBeInTheDocument();
     expect(
       screen.queryByText("Cargando formulario...")
@@ -310,7 +283,7 @@ describe("Registro (landing): carga del formulario", () => {
     emitForm({ items: [{ questions: [] }], isSynced: false });
 
     expect(
-      screen.getByText("El formulario no contiene preguntas para mostrar.")
+      await screen.findByText("El formulario no contiene preguntas para mostrar.")
     ).toBeInTheDocument();
   });
 
@@ -334,15 +307,24 @@ describe("Registro (landing): carga del formulario", () => {
     expect(certAsk.values.map((v) => v.value)).toEqual(["Si", "No"]);
   });
 
-  test("guard de identidad: dos emits con las mismas preguntas disparan UNA sola traducción", async () => {
-    renderRegistro({ lang: "EN" });
-
-    // observeQuery emite dos veces (pre-sync y synced) con arrays de identidad
-    // distinta pero contenido idéntico: el guard debe absorber el segundo emit.
-    emitForm({ items: [{ questions: questionsFixture() }], isSynced: false });
-    emitForm({ items: [{ questions: questionsFixture() }], isSynced: true });
-
+  test("guard de identidad: el mismo formulario con otra identidad dispara UNA sola traducción", async () => {
+    // La landing refresca sus datos en segundo plano y vuelve a pasar el
+    // formulario (objeto nuevo, mismo contenido): el guard evita re-traducir.
+    const props = baseProps({ lang: "EN", initialForm: { id: "form-1", questions: questionsFixture() } });
+    const ui = (p) => (
+      <MemoryRouter initialEntries={["/landing/event-1"]}>
+        <Routes>
+          <Route path="/landing/:id" element={<Registro {...p} />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const { rerender } = render(ui(props));
     await waitForFormRendered();
+    rerender(ui({ ...props, initialForm: { id: "form-1", questions: questionsFixture() } }));
+    await act(async () => {});
+
+    // Con el formulario ya recibido no se consulta por separado.
+    expect(landingData.findFormByEvent).not.toHaveBeenCalled();
 
     expect(translateFormData).toHaveBeenCalledTimes(1);
     expect(translateFormData).toHaveBeenCalledWith(
@@ -363,16 +345,19 @@ describe("Registro (landing): flujo de registro gratuito", () => {
     jest.useFakeTimers();
     fireEvent.click(screen.getByRole("button", { name: "Registrarse" }));
 
-    await waitFor(() => expect(DataStore.save).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(store.save).toHaveBeenCalledTimes(2));
 
     // Respuestas capturadas del formRender suben al estado del padre.
     expect(props.setUserData).toHaveBeenCalledWith(jqState.userData);
     expect(validateBannerCode).toHaveBeenCalledWith(jqState.userData);
 
-    // Se consultó duplicados de EventAttendee antes de guardar.
-    expect(DataStore.query).toHaveBeenCalledTimes(1);
+    // Se consultó duplicados por el índice de correo (tal cual y en minúsculas)
+    // antes de guardar.
+    expect(landingData.findRegistrationsByEmail).toHaveBeenCalledTimes(2);
+    expect(landingData.findRegistrationsByEmail).toHaveBeenCalledWith(expect.anything(), "Juan@Test.com");
+    expect(landingData.findRegistrationsByEmail).toHaveBeenCalledWith(expect.anything(), "juan@test.com");
 
-    const savedEventAttendee = DataStore.save.mock.calls[1][0];
+    const savedEventAttendee = store.save.mock.calls[1][0];
     expect(savedEventAttendee).toEqual(
       expect.objectContaining({
         eventID: "event-1",
@@ -415,7 +400,7 @@ describe("Registro (landing): flujo de registro gratuito", () => {
 
     jqState.userData = userDataFixture();
     // Ya existe un registro con ese correo en ESTE evento.
-    DataStore.query.mockResolvedValueOnce([
+    store.query.mockResolvedValueOnce([
       { eventID: "event-1", email: "juan@test.com" },
     ]);
 
@@ -427,7 +412,7 @@ describe("Registro (landing): flujo de registro gratuito", () => {
       )
     );
     // Solo se guardó el Attendee: el EventAttendee nunca se creó.
-    expect(DataStore.save).toHaveBeenCalledTimes(1);
+    expect(store.save).toHaveBeenCalledTimes(1);
     expect(global.fetch).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
@@ -450,7 +435,7 @@ describe("Registro (landing): flujo de registro gratuito", () => {
         "El código banner o identificación CI no es válido"
       )
     );
-    expect(DataStore.save).not.toHaveBeenCalled();
+    expect(store.save).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
@@ -480,8 +465,8 @@ describe("Registro (landing): flujo de registro pagado", () => {
     expect(acceptButton.disabled).toBe(false);
     fireEvent.click(acceptButton);
 
-    await waitFor(() => expect(DataStore.save).toHaveBeenCalledTimes(2));
-    const savedEventAttendee = DataStore.save.mock.calls[1][0];
+    await waitFor(() => expect(store.save).toHaveBeenCalledTimes(2));
+    const savedEventAttendee = store.save.mock.calls[1][0];
     expect(savedEventAttendee).toEqual(
       expect.objectContaining({
         eventID: "event-1",
@@ -650,7 +635,7 @@ describe("Registro (landing): validaciones del submit", () => {
     expect(
       await screen.findByText("El campo no se ha rellenado correctamente")
     ).toBeInTheDocument();
-    expect(DataStore.save).not.toHaveBeenCalled();
+    expect(store.save).not.toHaveBeenCalled();
 
     // Un segundo intento limpia el mensaje anterior antes de re-validar:
     // nunca se acumulan mensajes duplicados.
@@ -670,7 +655,7 @@ describe("Registro (landing): validaciones del submit", () => {
     jest.useFakeTimers();
     fireEvent.click(screen.getByRole("button", { name: "Register" }));
 
-    await waitFor(() => expect(DataStore.save).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(store.save).toHaveBeenCalledTimes(2));
     expect(restoreOriginalLabels).toHaveBeenCalledWith(
       jqState.userData,
       expect.arrayContaining([expect.objectContaining({ name: "email" })])
@@ -684,7 +669,7 @@ describe("Registro (landing): validaciones del submit", () => {
 
     jqState.userData = userDataFixture();
     // Ya inscrito con ese correo en OTRO subevento del grupo.
-    DataStore.query.mockResolvedValueOnce([
+    store.query.mockResolvedValueOnce([
       { eventID: "5eef9fae-24f6-49a5-871c-b84f381ce975", email: "juan@test.com" },
     ]);
 
@@ -696,7 +681,7 @@ describe("Registro (landing): validaciones del submit", () => {
       )
     );
     // Solo se guardó el Attendee: el EventAttendee nunca se creó.
-    expect(DataStore.save).toHaveBeenCalledTimes(1);
+    expect(store.save).toHaveBeenCalledTimes(1);
     expect(global.fetch).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
@@ -707,14 +692,14 @@ describe("Registro (landing): validaciones del submit", () => {
     await waitForFormRendered();
 
     jqState.userData = userDataFixture();
-    DataStore.save.mockResolvedValueOnce(null);
+    store.save.mockResolvedValueOnce(null);
 
     fireEvent.click(screen.getByRole("button", { name: "Registrarse" }));
 
-    await waitFor(() => expect(DataStore.save).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(store.save).toHaveBeenCalledTimes(1));
     await act(async () => {});
     // Sin Attendee no se consulta duplicados ni se registra nada más.
-    expect(DataStore.query).not.toHaveBeenCalled();
+    expect(store.query).not.toHaveBeenCalled();
     expect(window.alert).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
@@ -752,7 +737,7 @@ describe("Registro (landing): validaciones del submit", () => {
     fireEvent.click(document.getElementById("confirmationCheckbox"));
     fireEvent.click(document.getElementById("redirectButton"));
 
-    await waitFor(() => expect(DataStore.save).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(store.save).toHaveBeenCalledTimes(2));
 
     // Las cinco respuestas de facturación se reemplazan; el resto queda igual.
     expect(validateBannerCode).toHaveBeenCalledWith(
@@ -778,7 +763,7 @@ describe("Registro (landing): validaciones del submit", () => {
       ])
     );
     // El EventAttendee usa el email de facturación.
-    expect(DataStore.save.mock.calls[1][0].email).toBe("factura@test.com");
+    expect(store.save.mock.calls[1][0].email).toBe("factura@test.com");
   });
 });
 
@@ -806,7 +791,7 @@ describe("Registro (landing): errores del flujo pagado", () => {
     fireEvent.click(document.querySelector(".popup-privacy-overlay"));
     expect(document.querySelector(".popup-privacy")).toBeNull();
     // La promesa del popup queda pendiente: no se guarda nada.
-    expect(DataStore.save).not.toHaveBeenCalled();
+    expect(store.save).not.toHaveBeenCalled();
   });
 
   test("agota los reintentos del registro financiero y desactiva el loader", async () => {
@@ -868,7 +853,7 @@ describe("Registro (landing): email temprano resiliente", () => {
     jest.useFakeTimers();
     fireEvent.click(screen.getByRole("button", { name: "Registrarse" }));
 
-    await waitFor(() => expect(DataStore.save).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(store.save).toHaveBeenCalledTimes(2));
     await waitFor(() =>
       expect(warnSpy).toHaveBeenCalledWith(
         "early trigger-email failed:",
@@ -897,7 +882,7 @@ describe("Registro (landing): email temprano resiliente", () => {
     jest.useFakeTimers();
     fireEvent.click(screen.getByRole("button", { name: "Registrarse" }));
 
-    await waitFor(() => expect(DataStore.save).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(store.save).toHaveBeenCalledTimes(2));
     expect(warnSpy).toHaveBeenCalledWith(
       "early trigger-email exception:",
       expect.any(Error)
@@ -940,12 +925,12 @@ describe("Registro (landing): subida del ticket PDF", () => {
   test("genera el PDF, sube el ticket con Storage y dispara el email", async () => {
     primePdfChain();
     // savePDFStorage relee el EventAttendee para detectar el envío server-side.
-    DataStore.query.mockResolvedValueOnce({ id: "ea-77", ticket: "" });
+    store.query.mockResolvedValueOnce({ id: "ea-77", ticket: "" });
 
     renderRegistro(propsTicketVacio());
 
     await waitFor(() =>
-      expect(DataStore.save).toHaveBeenCalledWith(
+      expect(store.save).toHaveBeenCalledWith(
         expect.objectContaining({ id: "ea-77", ticket: "public/ticket.txt" })
       )
     );
@@ -969,7 +954,7 @@ describe("Registro (landing): subida del ticket PDF", () => {
 
   test("no reenvía el email cuando el servidor ya lo mandó (sent-qr)", async () => {
     primePdfChain();
-    DataStore.query.mockResolvedValueOnce({
+    store.query.mockResolvedValueOnce({
       id: "ea-77",
       ticket: "sent-qr:abc123",
     });
@@ -977,7 +962,7 @@ describe("Registro (landing): subida del ticket PDF", () => {
     renderRegistro(propsTicketVacio());
 
     await waitFor(() =>
-      expect(DataStore.save).toHaveBeenCalledWith(
+      expect(store.save).toHaveBeenCalledWith(
         expect.objectContaining({ id: "ea-77", ticket: "public/ticket.txt" })
       )
     );
@@ -1002,7 +987,7 @@ describe("Registro (landing): subida del ticket PDF", () => {
       )
     );
     // Nada que guardar ni email que disparar si la subida falló.
-    expect(DataStore.save).not.toHaveBeenCalled();
+    expect(store.save).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 });

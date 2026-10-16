@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { applyOverride, preprocessForTranslation } from "./translateOverrides";
 
-// Module-level cache shared across components/renders so toggling languages
-// back and forth never re-calls Amazon Translate for the same string.
-const cache = {}; // { "en::texto original": "translated text" }
+// Module-level cache shared with translateFormData/useAwsTranslation (and
+// seeded with build-time translations on static landings), so toggling
+// languages never re-calls Amazon Translate for the same string.
+import { translationCache as cache } from "./translationCache";
 
 // App language codes ("ES"/"EN") -> Amazon Translate language codes.
 const toTranslateCode = (lang) => (lang || "es").toLowerCase();

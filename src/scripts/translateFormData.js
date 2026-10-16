@@ -1,7 +1,9 @@
 import { applyOverride, preprocessForTranslation } from "./translateOverrides";
 
-// Module-level cache shared across renders: `${lang}::${text}` -> translation.
-const cache = {};
+// Module-level cache shared with translateFormData/useAwsTranslation (and
+// seeded with build-time translations on static landings), so toggling
+// languages never re-calls Amazon Translate for the same string.
+import { translationCache as cache } from "./translationCache";
 
 // Translates a single string from Spanish to the target language via Amazon
 // Translate, caching the result. Returns the original text on error or when
