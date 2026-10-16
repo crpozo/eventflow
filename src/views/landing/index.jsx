@@ -529,22 +529,6 @@ export default function SignIn() {
                   {translated.title}
                 </h1>
                 {tagline && <p className="mt-5 max-w-[520px] text-lg text-white/85">{tagline}</p>}
-                <div className="mt-7 flex flex-wrap items-center gap-4">
-                  {isSoldOut === false && (
-                    <button
-                      type="button"
-                      onClick={onReserve}
-                      className="rounded-xl bg-brand-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:bg-black"
-                    >
-                      {isSubeventLanding ? ui.seeActivities : ui.bookTicket}
-                    </button>
-                  )}
-                  {heroDate && (
-                    <span className="text-base font-semibold text-white/90">
-                      {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
           </div>
