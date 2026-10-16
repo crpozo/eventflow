@@ -10,7 +10,7 @@ import LandingShell from "./LandingShell";
 export { preprocessForTranslation, applyOverride } from "scripts/translateOverrides";
 export { DEFAULT_CONSENT_HTML } from "scripts/consentDefault";
 export { withCertFields } from "scripts/certFields";
-export { EVENT_FIELDS, LANDING_FIELDS, FORM_FIELDS } from "views/landing/landingData";
+export { EVENT_FIELDS, LANDING_FIELDS, FORM_FIELDS, LANDING_BUNDLE } from "views/landing/landingData";
 
 /**
  * @param {string} url   ruta pública (/landing/<id> o /landing/<id>/en)

@@ -117,6 +117,50 @@ describe("fetchLandingBundle", () => {
   });
 });
 
+describe("fetchLandingBundle con prefetch del HTML (landing.html)", () => {
+  afterEach(() => {
+    delete window.__LANDING_PREFETCH__;
+  });
+
+  test("reutiliza una sola vez la respuesta que lanzó el HTML para ese evento", async () => {
+    window.__LANDING_PREFETCH__ = {
+      eventId: "ev-1",
+      promise: Promise.resolve({
+        data: {
+          getEvent: EVENT,
+          listLandings: { items: [LANDING], nextToken: null },
+          listForms: { items: [FORM], nextToken: null },
+        },
+      }),
+    };
+    const client = fakeClient({});
+    const out = await fetchLandingBundle(client, "ev-1");
+    expect(out).toEqual({ event: EVENT, landing: LANDING, form: FORM });
+    expect(client.calls).toHaveLength(0);
+    expect(window.__LANDING_PREFETCH__).toBeNull();
+  });
+
+  test("ignora el prefetch de otro evento y consulta normalmente", async () => {
+    window.__LANDING_PREFETCH__ = { eventId: "otro", promise: Promise.resolve({}) };
+    const client = fakeClient({
+      LandingBundle: () => ({
+        getEvent: EVENT,
+        listLandings: { items: [LANDING], nextToken: null },
+        listForms: { items: [], nextToken: null },
+      }),
+    });
+    const out = await fetchLandingBundle(client, "ev-1");
+    expect(out.landing).toEqual(LANDING);
+    expect(client.calls).toHaveLength(1);
+  });
+
+  test("si el prefetch trae errores GraphQL rechaza como el cliente", async () => {
+    const body = { data: null, errors: [{ message: "x" }] };
+    window.__LANDING_PREFETCH__ = { eventId: "ev-1", promise: Promise.resolve(body) };
+    await expect(fetchLandingBundle(fakeClient({}), "ev-1")).rejects.toBe(body);
+  });
+});
+
 describe("búsquedas por evento", () => {
   test("findLandingByEvent y findFormByEvent devuelven null al agotar la tabla", async () => {
     const client = fakeClient({

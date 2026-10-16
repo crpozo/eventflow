@@ -28,7 +28,7 @@ const PAGE = 1000;
 // Evento + landing + formulario en UNA petición (AppSync resuelve los tres
 // campos raíz en paralelo). Si la landing o el formulario no aparecen en la
 // primera página del scan, se siguen buscando con findByEvent.
-const LANDING_BUNDLE = /* GraphQL */ `
+export const LANDING_BUNDLE = /* GraphQL */ `
   query LandingBundle($eventId: ID!, $lf: ModelLandingFilterInput, $ff: ModelFormFilterInput, $limit: Int) {
     getEvent(id: $eventId) { ${EVENT_FIELDS} }
     listLandings(filter: $lf, limit: $limit) { items { ${LANDING_FIELDS} } nextToken }
@@ -81,6 +81,27 @@ export const findLandingByEvent = (client, eventId) =>
 export const findFormByEvent = (client, eventId) =>
   scanFirst(client, LIST_FORMS, "listForms", { formEventId: { eq: eventId } });
 
+// Variables de LANDING_BUNDLE (las usa también el HTML de la landing liviana
+// para lanzar la consulta antes de que llegue el JS).
+export const landingBundleVariables = (eventId) => ({
+  eventId,
+  lf: { landingEventId: { eq: eventId } },
+  ff: { formEventId: { eq: eventId } },
+  limit: PAGE,
+});
+
+// landing.html (modo SPA de la landing liviana) dispara LANDING_BUNDLE desde
+// un <script> en línea mientras se descarga el JS: aquí se reutiliza esa
+// respuesta una sola vez. Con errores GraphQL se rechaza igual que el cliente.
+async function takePrefetch(eventId) {
+  const pre = typeof window !== "undefined" ? window.__LANDING_PREFETCH__ : null;
+  if (!pre || pre.eventId !== eventId) return null;
+  window.__LANDING_PREFETCH__ = null;
+  const json = await pre.promise;
+  if (!json || json.errors?.length) throw json;
+  return json;
+}
+
 /**
  * Evento, landing y formulario de una landing pública.
  * Con `known` (ids de la landing estática) usa búsquedas por id; si no, una
@@ -104,15 +125,10 @@ export async function fetchLandingBundle(client, eventId, known = {}) {
     return { event: live(d.getEvent), landing: live(d.getLanding), form };
   }
 
-  const res = await client.graphql({
+  const res = (await takePrefetch(eventId)) || (await client.graphql({
     query: LANDING_BUNDLE,
-    variables: {
-      eventId,
-      lf: { landingEventId: { eq: eventId } },
-      ff: { formEventId: { eq: eventId } },
-      limit: PAGE,
-    },
-  });
+    variables: landingBundleVariables(eventId),
+  }));
   const d = res?.data || {};
   const firstLive = (page) => (page?.items || []).map(live).find(Boolean) || null;
   let landing = firstLive(d.listLandings);

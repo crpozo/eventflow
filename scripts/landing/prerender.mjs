@@ -66,7 +66,19 @@ function initialLoaderBlock() {
   return { style, markup };
 }
 
-function htmlPage({ manifest, fonts, cfg, lang, head, root, data, loaderStyle = "" }) {
+// Modo SPA (landing.html): lanza la consulta de datos de la landing desde el
+// HTML, en paralelo con la descarga del JS (landingData.takePrefetch la
+// reutiliza). La API key es la misma pública que ya viaja en el bundle.
+function prefetchScript(cfg, query) {
+  const js = `(function(){var m=location.pathname.match(/^\\/landing\\/([0-9a-fA-F-]{36})(?:\\/|$)/);if(!m)return;var id=m[1];` +
+    `window.__LANDING_PREFETCH__={eventId:id,promise:fetch(${JSON.stringify(cfg.aws_appsync_graphqlEndpoint)},{method:"POST",` +
+    `headers:{"content-type":"application/json","x-api-key":${JSON.stringify(cfg.aws_appsync_apiKey)}},` +
+    `body:JSON.stringify({query:${JSON.stringify(query)},variables:{eventId:id,lf:{landingEventId:{eq:id}},ff:{formEventId:{eq:id}},limit:1000}})` +
+    `}).then(function(r){return r.json()}).catch(function(){return null})};})();`;
+  return `<script>${js}</script>`;
+}
+
+function htmlPage({ manifest, fonts, cfg, lang, head, root, data, loaderStyle = "", extraHead = "" }) {
   const appsync = new URL(cfg.aws_appsync_graphqlEndpoint).origin;
   return `<!DOCTYPE html>
 <html lang="${lang}">
@@ -81,6 +93,7 @@ ${head}
 ${fonts}
 <style>${manifest.cssText}</style>
 ${loaderStyle}
+${extraHead}
 <link rel="modulepreload" href="${manifest.clientJs}" fetchpriority="low"/>
 ${manifest.preload.map((p) => `<link rel="modulepreload" href="${p}" fetchpriority="low"/>`).join("\n")}
 </head>
@@ -318,6 +331,7 @@ async function main() {
   fs.writeFileSync(path.join(BUILD, "landing.html"), htmlPage({
     manifest, fonts, cfg, lang: "es", head: "<title>Eventos USFQ</title>",
     root: loader.markup, data: null, loaderStyle: loader.style,
+    extraHead: prefetchScript(cfg, ssr.LANDING_BUNDLE),
   }));
 
   let landings, events, forms;

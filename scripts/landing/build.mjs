@@ -19,6 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import zlib from "node:zlib";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import esbuild from "esbuild";
@@ -32,6 +33,11 @@ const SRC = path.join(ROOT, "src");
 const OUT = path.join(ROOT, "build", "landing-assets");
 const CACHE = path.join(ROOT, "node_modules", ".cache", "landing");
 const PUBLIC_PATH = "/landing-assets/";
+// Presupuesto (gzip) de lo que descarga la landing antes de ser interactiva:
+// si un cambio lo supera, el build falla (CI y Amplify) en vez de que la
+// landing vuelva a engordar sin que nadie lo note.
+const BUDGET = { jsInitialGzip: 90 * 1024, cssGzip: 16 * 1024 };
+const gzipSize = (buf) => zlib.gzipSync(buf, { level: 9 }).length;
 const rel = (p) => path.relative(ROOT, p);
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 
@@ -135,7 +141,11 @@ async function buildCss() {
   });
   const name = `landing.${hash(code)}.css`;
   fs.writeFileSync(path.join(OUT, name), code);
-  console.log(`landing/build: CSS ${kb(code.length)} (Bootstrap subset ${kb(bootstrap.length)})`);
+  const cssGzip = gzipSize(Buffer.from(code));
+  console.log(`landing/build: CSS ${kb(code.length)} (${kb(cssGzip)} gzip; Bootstrap subset ${kb(bootstrap.length)})`);
+  if (cssGzip > BUDGET.cssGzip) {
+    throw new Error(`presupuesto excedido: CSS ${kb(cssGzip)} gzip > ${kb(BUDGET.cssGzip)}`);
+  }
   return { cssFile: PUBLIC_PATH + name, cssText: code };
 }
 
@@ -176,7 +186,11 @@ async function buildClient() {
   const sizeOf = (k) => fs.statSync(path.join(ROOT, k)).size;
   const initial = [entry, ...staticImports];
   const initialBytes = initial.reduce((n, k) => n + sizeOf(k), 0);
-  console.log(`landing/build: JS inicial ${kb(initialBytes)} en ${initial.length} archivo(s); total ${Object.keys(outputs).filter((k) => k.endsWith(".js")).length} chunks`);
+  const initialGzip = initial.reduce((n, k) => n + gzipSize(fs.readFileSync(path.join(ROOT, k))), 0);
+  console.log(`landing/build: JS inicial ${kb(initialBytes)} (${kb(initialGzip)} gzip) en ${initial.length} archivo(s); total ${Object.keys(outputs).filter((k) => k.endsWith(".js")).length} chunks`);
+  if (initialGzip > BUDGET.jsInitialGzip) {
+    throw new Error(`presupuesto excedido: JS inicial ${kb(initialGzip)} gzip > ${kb(BUDGET.jsInitialGzip)}`);
+  }
   fs.writeFileSync(path.join(CACHE, "client-meta.json"), JSON.stringify(result.metafile));
   return { clientJs: toUrl(entry), preload: staticImports.map(toUrl) };
 }
