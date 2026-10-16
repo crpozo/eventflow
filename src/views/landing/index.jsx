@@ -520,7 +520,7 @@ export default function SignIn() {
           {/* Móvil: degradado de abajo hacia arriba, el texto va anclado al pie del banner */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/5 md:hidden" aria-hidden="true" />
 
-          <div className="absolute inset-x-0 bottom-0 flex px-5 pb-7 pt-10 md:hidden">
+          <div className="absolute inset-x-0 bottom-0 flex px-5 pb-12 pt-10 md:hidden">
             <div className="w-full text-white">
               {translated.description && (
                 <p

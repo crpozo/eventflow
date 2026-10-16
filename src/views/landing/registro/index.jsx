@@ -826,7 +826,7 @@ const Registro = (props) => {
             
             <div 
               ref={formRef}
-              className="d-flex flex-col	mx-auto w-full max-w-[1100px] py-[40px] px-[25px] md:px-[50px] box-shadow-0"
+              className="d-flex flex-col	mx-auto w-full max-w-[1100px] py-[24px] px-0 md:py-[40px] md:px-[50px] box-shadow-0"
             >
               
             {formBuilderSection}
@@ -974,7 +974,7 @@ const Registro = (props) => {
                     />
                     <span className="relative block min-w-0 flex-1">
                       <span
-                        className={`block overflow-hidden text-sm text-justify leading-relaxed transition-[max-height] duration-300 ${
+                        className={`block overflow-hidden text-sm text-left leading-relaxed transition-[max-height] duration-300 ${
                           consentExpanded ? "max-h-[1200px]" : "max-h-[4.5rem]"
                         }`}
                         dangerouslySetInnerHTML={{ __html: consentHtml }}
