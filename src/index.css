@@ -1048,3 +1048,13 @@ p.amplify-field__description{
 .survey-form .rendered-form .checkbox {
   margin-bottom: 6px;
 }
+
+/* Entrada suave de los paneles de la landing (detalles ↔ registro). */
+@keyframes ef-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: ef-fade-up 0.35s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in { animation: none; }
+}

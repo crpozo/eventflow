@@ -156,6 +156,28 @@ export default function SignIn() {
   const client = generateClient(); 
   const [showExpiredPopup, setShowExpiredPopup] = useState(false);
   const [isSoldOut, setIsSoldOut] = useState(null);
+
+  // Al abrir el registro (o volver a los detalles) la vista se desplaza con
+  // suavidad al inicio del panel: sin esto, como el hero es alto, el scroll
+  // quedaba donde estaba y el formulario aparecía "muy abajo".
+  const registerRef = React.useRef(null);
+  const detailsRef = React.useRef(null);
+  const firstToggle = React.useRef(true);
+  React.useEffect(() => {
+    if (firstToggle.current) {
+      firstToggle.current = false;
+      return;
+    }
+    const target = showRegister ? registerRef.current : detailsRef.current;
+    if (!target || typeof window.scrollTo !== "function") return;
+    const top = target.getBoundingClientRect().top + window.scrollY - 24;
+    try {
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    } catch (e) {
+      // jsdom no implementa scrollTo con opciones.
+    }
+  }, [showRegister]);
+
   
   // Translations
   // Static UI labels (instant, no API quota)
@@ -467,7 +489,7 @@ export default function SignIn() {
                   onClick={() => changeLang(code)}
                   aria-label={code === "ES" ? "Español" : "English"}
                   aria-pressed={lang === code}
-                  className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
                     lang === code
                       ? "bg-black text-white"
                       : "text-gray-600 hover:text-navy-700"
@@ -499,10 +521,10 @@ export default function SignIn() {
             <div className="mx-auto w-full max-w-[1200px] px-6">
               <div className="max-w-[560px] text-white">
                 {translated.description && (
-                  <p className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-white/90">
-                    <span className="h-[3px] w-8 rounded-full bg-brand-500" aria-hidden="true" />
-                    <span dangerouslySetInnerHTML={{ __html: translated.description }} />
-                  </p>
+                  <p
+                    className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-white/90"
+                    dangerouslySetInnerHTML={{ __html: translated.description }}
+                  />
                 )}
                 <h1 className="text-[40px] font-bold leading-[1.05] md:text-[56px] lg:text-[64px] [text-shadow:0_2px_16px_rgba(0,0,0,.45)]">
                   {translated.title}
@@ -534,19 +556,27 @@ export default function SignIn() {
       {landing && (
         <div className="mx-auto w-full max-w-[1200px] px-5 pt-6 md:hidden">
           {translated.description && (
-            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-brand-500">
-              <span className="h-[3px] w-6 rounded-full bg-brand-500" aria-hidden="true" />
-              <span dangerouslySetInnerHTML={{ __html: translated.description }} />
+            <p
+              className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-brand-500"
+              dangerouslySetInnerHTML={{ __html: translated.description }}
+            />
+          )}
+          <h1 className="text-[30px] font-bold leading-tight text-navy-700">{translated.title}</h1>
+          {tagline && <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{tagline}</p>}
+          {heroDate && (
+            <p className="mt-3 text-sm font-semibold text-navy-700">
+              {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
             </p>
           )}
-          <h1 className="text-[34px] font-bold leading-tight text-navy-700">{translated.title}</h1>
-          {tagline && <p className="mt-3 text-base text-gray-600">{tagline}</p>}
         </div>
       )}
 
       {landing && (
-        <div className="mx-auto w-full max-w-[1200px] px-5 pb-12">
-          <div className={`${showRegister ? "block" : "hidden"} pt-8 transition-all duration-300`}>
+        <div className="mx-auto w-full max-w-[1200px] px-5 pb-28 md:pb-12">
+          <div
+            ref={registerRef}
+            className={`${showRegister ? "block animate-fade-in" : "hidden"} pt-8`}
+          >
             <Registro
               landing={landing}
               event={event}
@@ -562,15 +592,16 @@ export default function SignIn() {
             />
           </div>
 
-          <div className={`${showRegister ? "hidden" : "block"}`}>
+          <div className={`${showRegister ? "hidden" : "block animate-fade-in"}`}>
             {/* Tarjeta de datos clave: se superpone al borde inferior del hero */}
             <section
+              ref={detailsRef}
               aria-label={ui.eventDetails}
               className="relative z-10 mt-6 grid grid-cols-1 overflow-hidden rounded-2xl bg-white shadow-[0_12px_40px_rgba(0,0,0,.10)] md:-mt-16 md:grid-cols-3"
             >
               <h2 className="sr-only">{ui.eventDetails}</h2>
 
-              <div className="flex gap-4 border-b border-gray-100 p-6 md:border-b-0 md:border-r">
+              <div className="flex gap-4 border-b border-gray-100 p-5 md:border-b-0 md:border-r md:p-6">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-brand-500">
                   <LuCalendarClock className="h-6 w-6" />
                 </span>
@@ -584,7 +615,7 @@ export default function SignIn() {
                     </p>
                   ) : (
                     <>
-                      <p className="mt-1 text-xl font-bold text-navy-700">{heroDate || eventDate}</p>
+                      <p className="mt-1 text-lg font-bold text-navy-700 md:text-xl">{heroDate || eventDate}</p>
                       <p className="mt-1 flex flex-wrap items-center gap-2 text-base text-gray-600">
                         {heroTime.label && <span>{heroTime.label}</span>}
                         <span className="inline-flex items-center whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-navy-700">
@@ -596,18 +627,18 @@ export default function SignIn() {
                 </div>
               </div>
 
-              <div className="flex gap-4 border-b border-gray-100 p-6 md:border-b-0 md:border-r">
+              <div className="flex gap-4 border-b border-gray-100 p-5 md:border-b-0 md:border-r md:p-6">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
                   <LuMapPin className="h-6 w-6" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.location}</p>
-                  <p className="mt-1 text-xl font-bold text-navy-700">{venue}</p>
+                  <p className="mt-1 text-lg font-bold text-navy-700 md:text-xl">{venue}</p>
                   {venueDetail && <p className="mt-1 text-base text-gray-600">{venueDetail}</p>}
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-5 md:p-6">
                 <h3 className="text-lg font-bold text-navy-700">
                   {isSubeventLanding ? ui.selectActivity : ui.confirmAttendance}
                 </h3>
@@ -751,6 +782,29 @@ export default function SignIn() {
 
             {/* Galería + logos de aliados */}
             <LandingExtras landing={landing} ui={ui} />
+          </div>
+        </div>
+      )}
+
+      {/* Móvil: CTA fija abajo para reservar sin volver a subir */}
+      {landing && !showRegister && isSoldOut === false && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,.08)] backdrop-blur md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-navy-700">{translated.title}</p>
+              {heroDate && (
+                <p className="truncate text-xs text-gray-600">
+                  {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onReserve}
+              className="shrink-0 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+            >
+              {isSubeventLanding ? ui.seeActivities : ui.bookTicket}
+            </button>
           </div>
         </div>
       )}
