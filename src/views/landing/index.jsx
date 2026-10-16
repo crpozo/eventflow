@@ -531,12 +531,6 @@ export default function SignIn() {
               <h1 className="text-[32px] font-bold leading-[1.08] [text-shadow:0_2px_12px_rgba(0,0,0,.5)]">
                 {translated.title}
               </h1>
-              {heroDate && (
-                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
-                  <LuCalendarClock className="h-3.5 w-3.5" />
-                  {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
-                </p>
-              )}
             </div>
           </div>
 
