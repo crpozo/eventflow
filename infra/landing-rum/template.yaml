@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Eventflow - CloudWatch RUM para las landings públicas: Core Web Vitals (LCP,
+  INP, CLS) y errores JS de visitantes reales, por dispositivo y país. Sin
+  cookies. Identidad de invitado de Cognito dedicada que solo puede enviar
+  eventos a este monitor.
+
+# Despliegue (cuenta 531978016318, sa-east-1):
+#   aws cloudformation deploy --profile usfq --region sa-east-1 \
+#     --stack-name eventflow-landing-rum \
+#     --template-file infra/landing-rum/template.yaml \
+#     --capabilities CAPABILITY_IAM
+# Luego, en la app de Amplify, variable de entorno LANDING_RUM con el JSON de
+# la salida RumConfig (scripts/landing/prerender.mjs inserta el cliente de RUM
+# en las landings solo si existe).
+# Costo: USD 1 por cada 100 000 eventos (≈ 5-8 eventos por visita con
+# telemetría de rendimiento y errores).
+
+Parameters:
+  Domain:
+    Type: String
+    Default: www.eventflow.ec
+  SessionSampleRate:
+    Type: Number
+    Default: 1
+    Description: Fracción de visitas medidas (1 = todas)
+
+Resources:
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: eventflow_landing_rum
+      AllowUnauthenticatedIdentities: true
+      AllowClassicFlow: true
+
+  GuestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: cognito-identity.amazonaws.com }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: unauthenticated
+      Policies:
+        - PolicyName: put-rum-events
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: rum:PutRumEvents
+                Resource: !Sub arn:aws:rum:${AWS::Region}:${AWS::AccountId}:appmonitor/eventflow-landings
+
+  RoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        unauthenticated: !GetAtt GuestRole.Arn
+
+  AppMonitor:
+    Type: AWS::RUM::AppMonitor
+    Properties:
+      Name: eventflow-landings
+      Domain: !Ref Domain
+      CwLogEnabled: false
+      AppMonitorConfiguration:
+        AllowCookies: false
+        EnableXRay: false
+        SessionSampleRate: !Ref SessionSampleRate
+        Telemetries: [performance, errors]
+        IdentityPoolId: !Ref IdentityPool
+        GuestRoleArn: !GetAtt GuestRole.Arn
+        IncludedPages:
+          - !Sub https://${Domain}/landing/.*
+
+Outputs:
+  RumConfig:
+    Description: Valor para la variable LANDING_RUM de Amplify
+    Value: !Sub '{"appMonitorId":"${AppMonitor.Id}","identityPoolId":"${IdentityPool}","guestRoleArn":"${GuestRole.Arn}","region":"${AWS::Region}","sampleRate":${SessionSampleRate}}'

@@ -1,0 +1,6 @@
+[
+  {"source": "https://eventflow.ec", "target": "https://www.eventflow.ec", "status": "301"},
+  {"source": "/landing/<id>", "target": "/landing/<id>/index.html", "status": "200"},
+  {"source": "/landing/<id>/en", "target": "/landing/<id>/en/index.html", "status": "200"},
+  {"source": "/<*>", "target": "/index.html", "status": "404-200"}
+]

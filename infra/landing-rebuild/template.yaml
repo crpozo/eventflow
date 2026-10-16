@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Eventflow - regenera las landings estáticas cuando cambian landings, eventos o
+  formularios. Cada 10 minutos una Lambda compara el último cambio en DynamoDB
+  (updatedAt) con la fecha de los datos del último build
+  (https://www.eventflow.ec/landing-index.json) y, si hay datos más nuevos y
+  ningún build en curso, lanza un build de Amplify (RELEASE de la rama main).
+
+# Despliegue (cuenta 531978016318, sa-east-1):
+#   aws cloudformation deploy --profile usfq --region sa-east-1 \
+#     --stack-name eventflow-landing-rebuild \
+#     --template-file infra/landing-rebuild/template.yaml \
+#     --capabilities CAPABILITY_IAM
+# Costo: ~4.300 invocaciones/mes (capa gratuita) + escaneo de 3 tablas pequeñas
+# + un build (~3,5 min) por cada tanda de cambios.
+
+Parameters:
+  AppId:
+    Type: String
+    Default: dyrr9jh4hr3xk
+  BranchName:
+    Type: String
+    Default: main
+  ApiId:
+    Type: String
+    Default: 52dhaa7aubfxhbegz7ldxdit5q
+  ApiEnv:
+    Type: String
+    Default: staging
+  SiteUrl:
+    Type: String
+    Default: https://www.eventflow.ec
+  ScheduleExpression:
+    Type: String
+    Default: rate(10 minutes)
+
+Resources:
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: landing-rebuild
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:Scan
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Landing-${ApiId}-${ApiEnv}
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Event-${ApiId}-${ApiEnv}
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Form-${ApiId}-${ApiEnv}
+              - Effect: Allow
+                Action:
+                  - amplify:ListJobs
+                  - amplify:StartJob
+                Resource:
+                  - !Sub arn:aws:amplify:${AWS::Region}:${AWS::AccountId}:apps/${AppId}/branches/${BranchName}
+                  - !Sub arn:aws:amplify:${AWS::Region}:${AWS::AccountId}:apps/${AppId}/branches/${BranchName}/jobs/*
+
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lanza un build de Amplify si cambiaron los datos de las landings
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Timeout: 60
+      MemorySize: 256
+      Role: !GetAtt FunctionRole.Arn
+      Environment:
+        Variables:
+          APP_ID: !Ref AppId
+          BRANCH: !Ref BranchName
+          SITE_URL: !Ref SiteUrl
+          TABLES: !Sub Landing-${ApiId}-${ApiEnv},Event-${ApiId}-${ApiEnv},Form-${ApiId}-${ApiEnv}
+      Code:
+        ZipFile: |
+          // Ver infra/landing-rebuild/template.yaml.
+          const { DynamoDBClient, ScanCommand } = require("@aws-sdk/client-dynamodb");
+          const { AmplifyClient, ListJobsCommand, StartJobCommand } = require("@aws-sdk/client-amplify");
+
+          const ddb = new DynamoDBClient({});
+          const amplify = new AmplifyClient({});
+          const { APP_ID, BRANCH, SITE_URL, TABLES } = process.env;
+          const ACTIVE = new Set(["PENDING", "PROVISIONING", "RUNNING"]);
+
+          // Último updatedAt (ISO) de una tabla; solo se lee ese atributo.
+          async function latestChange(table) {
+            let max = "";
+            let key;
+            do {
+              const page = await ddb.send(new ScanCommand({
+                TableName: table,
+                ProjectionExpression: "updatedAt",
+                ExclusiveStartKey: key,
+              }));
+              for (const item of page.Items || []) {
+                const v = item.updatedAt?.S || "";
+                if (v > max) max = v;
+              }
+              key = page.LastEvaluatedKey;
+            } while (key);
+            return max;
+          }
+
+          exports.handler = async () => {
+            const res = await fetch(`${SITE_URL}/landing-index.json`, { cache: "no-store" });
+            const builtAt = res.ok ? (await res.json()).builtAt || "" : "";
+            const latest = (await Promise.all(TABLES.split(",").map(latestChange))).sort().pop() || "";
+            if (!latest || latest <= builtAt) return { action: "al día", builtAt, latest };
+
+            const { jobSummaries = [] } = await amplify.send(
+              new ListJobsCommand({ appId: APP_ID, branchName: BRANCH, maxResults: 5 })
+            );
+            if (jobSummaries.some((j) => ACTIVE.has(j.status))) {
+              return { action: "hay un build en curso", builtAt, latest };
+            }
+            // Si ya hubo un build que empezó después del cambio y no actualizó el
+            // índice (falló), no se reintenta en bucle: requiere revisión.
+            const lastStart = jobSummaries[0]?.startTime ? new Date(jobSummaries[0].startTime).toISOString() : "";
+            if (lastStart > latest) return { action: "último build ya incluía el cambio", builtAt, latest, lastStart };
+
+            await amplify.send(new StartJobCommand({
+              appId: APP_ID,
+              branchName: BRANCH,
+              jobType: "RELEASE",
+              jobReason: `Landings: datos actualizados ${latest}`,
+            }));
+            return { action: "build lanzado", builtAt, latest };
+          };
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: scheduler.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-landing-rebuild
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt Function.Arn
+
+  Schedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: Revisa cada 10 minutos si hay que regenerar las landings estáticas
+      ScheduleExpression: !Ref ScheduleExpression
+      FlexibleTimeWindow: { Mode: "OFF" }
+      State: ENABLED
+      Target:
+        Arn: !GetAtt Function.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        RetryPolicy: { MaximumRetryAttempts: 0 }
+
+Outputs:
+  FunctionName:
+    Value: !Ref Function

@@ -78,6 +78,29 @@ function prefetchScript(cfg, query) {
   return `<script>${js}</script>`;
 }
 
+// CloudWatch RUM (Core Web Vitals de visitantes reales). Solo si la app de
+// Amplify define LANDING_RUM (salida de infra/landing-rum). El cliente se pide
+// cuando la página ya cargó: no compite con el banner ni con la hidratación.
+function rumScript() {
+  let rum = null;
+  try { rum = process.env.LANDING_RUM ? JSON.parse(process.env.LANDING_RUM) : null; } catch { rum = null; }
+  if (!rum?.appMonitorId) return "";
+  const config = {
+    sessionSampleRate: rum.sampleRate ?? 1,
+    identityPoolId: rum.identityPoolId,
+    guestRoleArn: rum.guestRoleArn,
+    endpoint: `https://dataplane.rum.${rum.region}.amazonaws.com`,
+    telemetries: ["performance", "errors"],
+    allowCookies: false,
+    enableXRay: false,
+  };
+  const src = `https://client.rum.us-east-1.amazonaws.com/1.x/cwr.js`;
+  return `<script>(function(n,i,v,r,s){var x=window;x.AwsRumClient={q:[],n:n,i:i,v:v,r:r,c:${JSON.stringify(config)}};` +
+    `x[n]=function(c,p){x.AwsRumClient.q.push({c:c,p:p})};addEventListener("load",function(){setTimeout(function(){` +
+    `var e=document.createElement("script");e.async=true;e.src=s;document.head.appendChild(e)},0)})})` +
+    `("cwr",${JSON.stringify(rum.appMonitorId)},"1.0.0",${JSON.stringify(rum.region)},${JSON.stringify(src)});</script>`;
+}
+
 function htmlPage({ manifest, fonts, cfg, lang, head, root, data, loaderStyle = "", extraHead = "" }) {
   const appsync = new URL(cfg.aws_appsync_graphqlEndpoint).origin;
   return `<!DOCTYPE html>
@@ -94,6 +117,7 @@ ${fonts}
 <style>${manifest.cssText}</style>
 ${loaderStyle}
 ${extraHead}
+${rumScript()}
 <link rel="modulepreload" href="${manifest.clientJs}" fetchpriority="low"/>
 ${manifest.preload.map((p) => `<link rel="modulepreload" href="${p}" fetchpriority="low"/>`).join("\n")}
 </head>
@@ -321,6 +345,7 @@ async function pool(items, n, fn) {
 
 async function main() {
   const started = Date.now();
+  const startedIso = new Date(started).toISOString(); // los datos se leen después de este instante
   const manifest = JSON.parse(fs.readFileSync(path.join(BUILD_CACHE, "manifest.json"), "utf8"));
   const ssr = await import(pathToFileURL(path.join(BUILD_CACHE, "server.mjs")).href);
   const cfg = loadConfig();
@@ -396,7 +421,10 @@ async function main() {
   });
 
   const misses = tr.save();
-  fs.writeFileSync(path.join(BUILD, "landing", "index.json"), JSON.stringify({ builtAt: new Date().toISOString(), landings: built.sort() }));
+  // Índice público (fuera de /landing/ para no chocar con la regla
+  // /landing/<id> de Amplify): lo lee el disparador de rebuilds para saber de
+  // cuándo son los datos de este build.
+  fs.writeFileSync(path.join(BUILD, "landing-index.json"), JSON.stringify({ builtAt: startedIso, landings: built.sort() }));
   log(`${built.length} landings estáticas (ES+EN) · omitidas ${JSON.stringify(skipped)} · ` +
     `${images.generated} imágenes nuevas · ${misses} traducciones nuevas · ${((Date.now() - started) / 1000).toFixed(1)} s`);
 }
