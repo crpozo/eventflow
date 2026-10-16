@@ -21,15 +21,15 @@ import { validateBannerCode } from "../../../services/nomina/validateBannerCode"
 import { FullScreenLoader } from "components/adminUi";
 import { withCertFields } from "scripts/certFields";
 
-// Lazy-load jQuery + FormBuilder (only needed when form is rendered)
+// Lazy-load jQuery + formRender (only needed when form is rendered). Solo el
+// motor de RENDER: el editor (formBuilder + jquery-ui-sortable, ~200 KB) es
+// del panel y la landing no lo usa.
 let $ = null;
 const loadJQueryAndFormBuilder = async () => {
   if ($) return $; // already loaded
   const jq = (await import("jquery")).default;
   window.jQuery = jq;
   window.$ = jq;
-  await import("jquery-ui-sortable");
-  await import("formBuilder");
   await import("formBuilder/dist/form-render.min.js");
   $ = jq;
   return jq;

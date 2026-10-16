@@ -48,3 +48,6 @@ jobs:
         run: npm run build
         env:
           CI: false  # CRA treats warnings as errors when CI=true; use false to just warn
+
+      - name: Build landing bundle (sin prerender: no hay datos en CI)
+        run: node scripts/landing/build.mjs

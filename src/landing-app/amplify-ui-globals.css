@@ -1,0 +1,30 @@
+/* Reglas GLOBALES de @aws-amplify/ui-react/styles.css. El panel carga esa hoja
+   completa (~290 KB) en todas sus páginas, también en /landing, y estas pocas
+   reglas sin prefijo .amplify afectan a la landing. Se replican aquí para que
+   la landing liviana se vea idéntica sin traer Amplify UI. Van DESPUÉS del CSS
+   de la app, igual que en main.css. */
+:root {
+  --amplify-line-heights-medium: 1.5;
+}
+html:focus-within {
+  scroll-behavior: smooth;
+}
+body {
+  min-height: 100vh;
+  text-rendering: optimizeSpeed;
+  line-height: var(--amplify-line-heights-medium);
+}
+* {
+  box-sizing: border-box;
+}
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+}

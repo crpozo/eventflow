@@ -6,20 +6,20 @@
 // Aquí se piden únicamente los campos que la landing pinta, en un solo viaje.
 
 // Campos del evento que usan la landing y el registro.
-const EVENT_FIELDS = `
+export const EVENT_FIELDS = `
   id title description category location date startDate endDate timezone
   sendCertificates contactTemplate maxRegs eventIdUSFQ periodoUSFQ usuarioUSFQ
   updatedAt _version _deleted
 `;
 
 // Campos de la landing (sin metaScripts: solo los edita el admin).
-const LANDING_FIELDS = `
+export const LANDING_FIELDS = `
   id active title description mainBanner location cost ticketTitle ticketPrice
   extraInfo userConsentCheck galleryPhotos partnerLogos customHtml landingEventId
   updatedAt _version _deleted
 `;
 
-const FORM_FIELDS = `id questions formEventId updatedAt _version _deleted`;
+export const FORM_FIELDS = `id questions formEventId updatedAt _version _deleted`;
 
 // listLandings/listForms con filtro son Scans: `limit` cuenta registros LEÍDOS,
 // así que se piden de 1000 en 1000 y se pagina hasta encontrar el registro.

@@ -684,16 +684,19 @@ export default function SignIn({ initialData = null, hydrated = false }) {
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-wide text-gray-600">{ui.dateAndTime}</p>
                   {eventDateEnd ? (
-                    <p className="mt-1 text-base text-navy-700">
+                    // suppressHydrationWarning: las fechas se formatean con Intl y el ICU del
+                    // build (Node) puede diferir mínimamente del navegador; React corrige el
+                    // texto al hidratar sin descartar el HTML estático.
+                    <p suppressHydrationWarning className="mt-1 text-base text-navy-700">
                       <span className="font-semibold">{ui.start}:</span> {eventDate}
                       <br />
                       <span className="font-semibold">{ui.end}:</span> {eventDateEnd}
                     </p>
                   ) : (
                     <>
-                      <p className="mt-0.5 text-base font-bold leading-snug text-navy-700 md:mt-1 md:text-xl">{heroDate || eventDate}</p>
+                      <p suppressHydrationWarning className="mt-0.5 text-base font-bold leading-snug text-navy-700 md:mt-1 md:text-xl">{heroDate || eventDate}</p>
                       <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600 md:text-base">
-                        {heroTime.label && <span>{heroTime.label}</span>}
+                        {heroTime.label && <span suppressHydrationWarning>{heroTime.label}</span>}
                         <span className="inline-flex items-center whitespace-nowrap rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-navy-700">
                           {eventTzLabel}
                         </span>
@@ -828,7 +831,7 @@ export default function SignIn({ initialData = null, hydrated = false }) {
                   {/* Sin viñetas: cada dato es una tarjeta limpia */}
                   <div className="hidden rounded-2xl border border-gray-200 bg-white px-5 py-4 lg:block">
                     <p className="text-lg font-bold text-navy-700">{ui.dateAndTime}</p>
-                    <p className="mt-0.5 text-base text-gray-600">
+                    <p suppressHydrationWarning className="mt-0.5 text-base text-gray-600">
                       {eventDateEnd ? `${eventDate} — ${eventDateEnd}` : eventDate}
                     </p>
                   </div>
@@ -871,7 +874,7 @@ export default function SignIn({ initialData = null, hydrated = false }) {
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-navy-700">{translated.title}</p>
               {heroDate && (
-                <p className="truncate text-xs text-gray-600">
+                <p suppressHydrationWarning className="truncate text-xs text-gray-600">
                   {heroDate}{heroTime.start ? ` · ${heroTime.start}` : ""}
                 </p>
               )}

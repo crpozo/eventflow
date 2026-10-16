@@ -17,6 +17,11 @@ customHeaders:
     headers:
       - key: 'Cache-Control'
         value: 'public, max-age=31536000, immutable'
+  # Variantes de banners de las landings estáticas (nombre = hash de la key).
+  - pattern: '/landing-img/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=31536000, immutable'
   # Archivo de idioma de formRender (vacío = textos por defecto); fijo, sin hash.
   - pattern: '/formbuilder/**'
     headers:

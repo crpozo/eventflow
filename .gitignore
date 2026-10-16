@@ -58,3 +58,6 @@ amplifytools.xcconfig
 .scannerwork/
 __pycache__/
 *.pyc
+
+# Caché del prerender de landings (imágenes y traducciones entre builds)
+.landing-cache/

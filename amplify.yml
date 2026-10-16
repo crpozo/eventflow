@@ -19,7 +19,12 @@ frontend:
         - node scripts/write-amplify-config.js
     build:
       commands:
+        - node -v
         - npm run build
+        # Landing pública liviana + HTML estático de cada landing activa
+        # (scripts/landing). Si falla el prerender, las landings siguen en modo
+        # SPA: el script nunca rompe el despliegue.
+        - npm run build:landing
   artifacts:
     baseDirectory: build
     files:
@@ -27,3 +32,5 @@ frontend:
   cache:
     paths:
       - .npm/**/*
+      # Variantes AVIF/WebP de banners y traducciones EN ya calculadas.
+      - .landing-cache/**/*

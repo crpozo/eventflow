@@ -26,8 +26,24 @@ const toTranslateCode = (lang) => (lang || "es").toLowerCase();
  * @param {string} targetLang            "ES" | "EN" (case-insensitive)
  * @returns {Object<string,string>}      same keys, translated values
  */
+// Traducción síncrona con lo que ya hay en caché (overrides + traducciones
+// sembradas del build): así el primer render de una landing estática en inglés
+// ya sale traducido, igual en el servidor que al hidratar en el navegador.
+function fromCache(texts, lang) {
+  if (lang === "es") return texts;
+  return Object.fromEntries(
+    Object.entries(texts).map(([key, value]) => {
+      if (typeof value !== "string" || value.trim().length === 0) return [key, value];
+      const override = applyOverride(value, lang);
+      if (override) return [key, override];
+      const hit = cache[`${lang}::${value}`];
+      return [key, hit !== undefined ? hit : value];
+    })
+  );
+}
+
 export function useAwsTranslation(texts = {}, targetLang = "ES") {
-  const [translated, setTranslated] = useState(texts);
+  const [translated, setTranslated] = useState(() => fromCache(texts, toTranslateCode(targetLang)));
   const reqIdRef = useRef(0);
 
   useEffect(() => {
