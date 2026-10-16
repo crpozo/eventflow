@@ -101,6 +101,16 @@ function rumScript() {
     `("cwr",${JSON.stringify(rum.appMonitorId)},"1.0.0",${JSON.stringify(rum.region)},${JSON.stringify(src)});</script>`;
 }
 
+// El banner es el LCP: se precarga desde el <head>, ANTES que las fuentes y el
+// JS, para que no compita por el ancho de banda en redes lentas. Solo la
+// variante AVIF (type: los navegadores sin AVIF la ignoran y usan <picture>).
+function bannerPreload(data) {
+  const key = data?.landing?.mainBanner;
+  const set = key ? data?.images?.[key] : null;
+  if (!set?.avif) return "";
+  return `<link rel="preload" as="image" type="image/avif" imagesrcset="${escHtml(set.avif)}" imagesizes="100vw" fetchpriority="high"/>`;
+}
+
 function htmlPage({ manifest, fonts, cfg, lang, head, root, data, loaderStyle = "", extraHead = "" }) {
   const appsync = new URL(cfg.aws_appsync_graphqlEndpoint).origin;
   return `<!DOCTYPE html>
@@ -110,6 +120,7 @@ function htmlPage({ manifest, fonts, cfg, lang, head, root, data, loaderStyle = 
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="theme-color" content="#000000"/>
 ${head}
+${bannerPreload(data)}
 <link rel="icon" href="/favicon.ico"/>
 <link rel="apple-touch-icon" href="/logo192.png"/>
 <link rel="preconnect" href="${appsync}" crossorigin/>
