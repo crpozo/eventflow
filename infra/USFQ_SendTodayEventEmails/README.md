@@ -12,7 +12,12 @@ aws lambda update-function-code --function-name USFQ_SendTodayEventEmails \
 ```
 
 - **Trigger**: regla EventBridge `USFQ_SendTodayEventEmails_8AM`, `cron(0 13 * * ? *)`
-  (13:00 UTC = 8:00 Ecuador, diario).
+  (13:00 UTC = 8:00 Ecuador, diario). **OJO**: existe ADEMÁS un EventBridge
+  Scheduler `usfq_email_event_reminder` (`cron(0 8 * * ? *)` America/Guayaquil,
+  creado 2025-05-29) que dispara la misma Lambda a la misma hora → cada
+  recordatorio sale DOS veces (confirmado 2026-08-01: 2 corridas, 3 asistentes
+  cada una). Desactivarlo (pendiente, 2026-10-28):
+  `aws scheduler update-schedule --name usfq_email_event_reminder --state DISABLED --schedule-expression "cron(0 8 * * ? *)" --schedule-expression-timezone America/Guayaquil --flexible-time-window Mode=OFF --target "Arn=arn:aws:lambda:sa-east-1:531978016318:function:USFQ_SendTodayEventEmails,RoleArn=arn:aws:iam::531978016318:role/service-role/Amazon_EventBridge_Scheduler_LAMBDA_8e0a7528eb" --profile usfq --region sa-east-1`
 - **Qué hace**: lista todos los Events por AppSync (API key), filtra los que son HOY
   en la zona del evento, y por cada inscrito invoca `USFQ_SEND_TICKET_EMAIL`
   (reenvía el ticket como recordatorio).
