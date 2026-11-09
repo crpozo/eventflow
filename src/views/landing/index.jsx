@@ -83,15 +83,6 @@ export const timeRange = (startIso, endIso, lang, tz) => {
   return { start, end, label };
 };
 
-// Primera oración de un texto largo (máx. 180 caracteres) para el subtítulo del hero.
-export const firstSentence = (text) => {
-  const s = String(text || "").replaceAll(/\s+/g, " ").trim();
-  if (!s) return "";
-  const m = /^(.+?[.!?])(\s|$)/.exec(s);
-  const out = m ? m[1] : s;
-  return out.length > 180 ? `${out.slice(0, 177).trimEnd()}…` : out;
-};
-
 // Párrafos de la descripción larga: separa por saltos de línea.
 export const paragraphs = (text) =>
   String(text || "").split(/\n+/).map((p) => p.trim()).filter(Boolean);
@@ -524,7 +515,6 @@ export default function SignIn({ initialData = null, hydrated = false }) {
   const startIso = event?.startDate || event?.date;
   const heroDate = startIso ? longDate(startIso, lang, eventTz) : "";
   const heroTime = timeRange(startIso, event?.endDate, lang, eventTz);
-  const tagline = firstSentence(translated.extraInfo);
   const isFree = landing.cost === "Gratuito";
   // En móvil fecha y lugar ya van en la tarjeta: la columna de detalles solo aparece si suma algo
   const hasAsideExtras = (!isFree && tickets.length > 0) || Boolean(event?.contactTemplate);
@@ -628,7 +618,6 @@ export default function SignIn({ initialData = null, hydrated = false }) {
                 <h1 className="text-[40px] font-bold leading-[1.05] md:text-[56px] lg:text-[64px] [text-shadow:0_2px_16px_rgba(0,0,0,.45)]">
                   {translated.title}
                 </h1>
-                {tagline && <p className="mt-5 max-w-[520px] text-lg text-white/85">{tagline}</p>}
               </div>
             </div>
           </div>
