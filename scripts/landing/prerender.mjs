@@ -145,7 +145,9 @@ function landingHead({ landing, eventId, lang }) {
   const url = `${SITE}/landing/${eventId}${lang === "en" ? "/en" : ""}`;
   const image = landing.mainBanner ? `${CLOUDFRONT_PUBLIC}${encodeURI(landing.mainBanner)}` : `${SITE}/logo512.png`;
   const title = escHtml(landing.title);
-  const desc = escHtml(plainText(landing.description || landing.extraInfo));
+  // Descripción corta opcional (o un relleno tipo "."): se usa la información adicional.
+  const shortDesc = /[\p{L}\p{N}]/u.test(plainText(landing.description)) ? landing.description : "";
+  const desc = escHtml(plainText(shortDesc || landing.extraInfo));
   return [
     `<title>${title}</title>`,
     `<meta name="description" content="${desc}"/>`,

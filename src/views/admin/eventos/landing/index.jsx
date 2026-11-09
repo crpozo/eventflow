@@ -141,8 +141,8 @@ const Dashboard = () => {
 
   async function save() {
     if (!canEdit || saving) return;
-    if (!draft.title.trim() || !draft.description.trim() || !draft.location.trim()) {
-      alert("Título, descripción y ubicación son obligatorios.");
+    if (!draft.title.trim() || !draft.location.trim()) {
+      alert("Título y ubicación son obligatorios.");
       return;
     }
     // Tickets: drop fully-empty rows; a partial row (name without price or
@@ -167,7 +167,8 @@ const Dashboard = () => {
       const fields = {
         active: draft.active,
         title: draft.title.trim(),
-        description: draft.description,
+        // Opcional: el modelo exige String!, así que vacío se guarda como "".
+        description: draft.description.trim(),
         mainBanner: draft.mainBanner || null,
         location: draft.location.trim(),
         cost: draft.cost || null,
@@ -305,9 +306,8 @@ const Dashboard = () => {
               </Field>
               <Field
                 label="Descripción corta"
-                required
                 counter={{ value: draft.description.length, max: 200 }}
-                hint="Se muestra sobre la imagen del banner, debajo del título."
+                hint="Opcional. Se muestra sobre la imagen del banner, encima del título."
               >
                 <TextArea
                   value={draft.description}

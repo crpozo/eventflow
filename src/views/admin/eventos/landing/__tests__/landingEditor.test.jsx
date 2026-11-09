@@ -322,7 +322,7 @@ describe("Landing admin — guardar", () => {
     });
     fireEvent.click(botonGuardar());
     expect(alertSpy).toHaveBeenCalledWith(
-      "Título, descripción y ubicación son obligatorios."
+      "Título y ubicación son obligatorios."
     );
     expect(DataStore.save).not.toHaveBeenCalled();
 

@@ -241,3 +241,13 @@ describe("registro", () => {
     expect(client.calls).toHaveLength(1);
   });
 });
+
+describe("hasText (descripción corta opcional)", () => {
+  const { hasText } = require("views/landing/index");
+  test("vacío, espacios, signos sueltos o HTML sin texto no cuentan como descripción", () => {
+    ["", null, "   ", ".", "-", "<p> . </p>", "<br>"].forEach((v) => expect(hasText(v)).toBe(false));
+  });
+  test("cualquier letra o número sí cuenta", () => {
+    ["Feria anual", "<p>2026</p>", "Ñ"].forEach((v) => expect(hasText(v)).toBe(true));
+  });
+});

@@ -83,6 +83,11 @@ export const timeRange = (startIso, endIso, lang, tz) => {
   return { start, end, label };
 };
 
+// La descripción corta es opcional: se oculta si viene vacía o es solo un
+// relleno sin letras ni números (antes era obligatoria y se ponía ".").
+export const hasText = (html) =>
+  /[\p{L}\p{N}]/u.test(String(html || "").replaceAll(/<[^>]*>/g, ""));
+
 // Párrafos de la descripción larga: separa por saltos de línea.
 export const paragraphs = (text) =>
   String(text || "").split(/\n+/).map((p) => p.trim()).filter(Boolean);
@@ -594,7 +599,7 @@ export default function SignIn({ initialData = null, hydrated = false }) {
 
           <div className="absolute inset-x-0 bottom-0 flex px-5 pb-12 pt-10 md:hidden">
             <div className="w-full text-white">
-              {translated.description && (
+              {hasText(translated.description) && (
                 <p
                   className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/85"
                   dangerouslySetInnerHTML={{ __html: translated.description }}
@@ -609,7 +614,7 @@ export default function SignIn({ initialData = null, hydrated = false }) {
           <div className="absolute inset-0 hidden md:flex items-center">
             <div className="mx-auto w-full max-w-[1200px] px-6">
               <div className="max-w-[560px] text-white">
-                {translated.description && (
+                {hasText(translated.description) && (
                   <p
                     className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-white/90"
                     dangerouslySetInnerHTML={{ __html: translated.description }}
@@ -803,7 +808,7 @@ export default function SignIn({ initialData = null, hydrated = false }) {
                 ) : (
                   <div
                     className="mt-5 text-[17px] leading-relaxed text-gray-600 [&_a]:font-medium [&_a]:text-brand-500 [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: translated.description || "" }}
+                    dangerouslySetInnerHTML={{ __html: hasText(translated.description) ? translated.description : "" }}
                   />
                 )}
                 {translated.customHtml && String(translated.customHtml).trim().length > 0 && (
