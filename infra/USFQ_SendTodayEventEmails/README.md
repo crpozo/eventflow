@@ -31,3 +31,5 @@ aws lambda update-function-code --function-name USFQ_SendTodayEventEmails \
   (2) comparaba el prefijo del string UTC contra la fecha local → ahora convierte
   a la zona del evento (Quito -5 / Galápagos -6), con lo que los eventos
   nocturnos ya no caen en el día siguiente UTC.
+
+> Desactivado el 2026-11-09: el Scheduler `usfq_email_event_reminder` quedó en estado DISABLED. Solo dispara la regla `USFQ_SendTodayEventEmails_8AM` (8:00 Ecuador), un envío por inscrito.
