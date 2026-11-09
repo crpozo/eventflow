@@ -849,7 +849,7 @@ export default function SignIn({ initialData = null, hydrated = false }) {
             </div>
 
             {/* Galería + logos de aliados */}
-            <div className="px-2 md:px-0">
+            <div className="mt-10 px-2 md:mt-16 md:px-0">
               <LandingExtras landing={landing} ui={ui} />
             </div>
           </div>
