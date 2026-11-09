@@ -9,7 +9,7 @@
  * la reutilizan a propósito). */
 
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { useAwsTranslation } from "./useAwsTranslation";
+import { useAwsTranslation, TRANSLATE_RETRY } from "./useAwsTranslation";
 import { Predictions } from "@aws-amplify/predictions";
 
 jest.mock("@aws-amplify/predictions", () => ({
@@ -27,6 +27,8 @@ const flushPromises = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Reintentos sin espera para que los tests de error no tarden segundos.
+  TRANSLATE_RETRY.delaysMs = [0, 0];
   // Traducción determinista: "EN:<texto fuente enviado a Translate>".
   Predictions.convert.mockImplementation(async ({ translateText }) => ({
     text: `EN:${translateText.source.text}`,
@@ -185,6 +187,17 @@ describe("useAwsTranslation — caché a nivel de módulo", () => {
 });
 
 describe("useAwsTranslation — errores y respuestas obsoletas", () => {
+  test("un fallo puntual de Translate se reintenta y el texto termina en inglés", async () => {
+    const texts = { titulo: "Texto que falla una vez" };
+    Predictions.convert
+      .mockRejectedValueOnce(new Error("ThrottlingException"))
+      .mockImplementation(async ({ translateText }) => ({ text: `EN:${translateText.source.text}` }));
+
+    const { result } = renderHook(() => useAwsTranslation(texts, "EN"));
+    await waitFor(() => expect(result.current.titulo).toBe("EN:Texto que falla una vez"));
+    expect(Predictions.convert).toHaveBeenCalledTimes(2);
+  });
+
   test("si Translate falla se registra el error, se muestra el original y NO se cachea el fallo", async () => {
     const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     try {
@@ -216,6 +229,8 @@ describe("useAwsTranslation — errores y respuestas obsoletas", () => {
         )
       );
       expect(Predictions.convert).toHaveBeenCalledTimes(1);
+      // El intento fallido agotó los 3 intentos (1 + 2 reintentos) antes de rendirse.
+      expect(errSpy).toHaveBeenCalledTimes(1);
     } finally {
       errSpy.mockRestore();
     }

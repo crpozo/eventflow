@@ -9,6 +9,30 @@ import { translationCache as cache } from "./translationCache";
 // App language codes ("ES"/"EN") -> Amazon Translate language codes.
 const toTranslateCode = (lang) => (lang || "es").toLowerCase();
 
+// Reintentos ante un fallo puntual de Amazon Translate (red móvil, throttling
+// de la identidad de invitado): sin esto un solo error dejaba ese texto en
+// español mientras el resto de la página sí salía en inglés.
+export const TRANSLATE_RETRY = { delaysMs: [500, 1500] };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function convertWithRetry(Predictions, value, lang) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const { text } = await Predictions.convert({
+        translateText: {
+          source: { text: preprocessForTranslation(value, lang), language: "es" },
+          targetLanguage: lang,
+        },
+      });
+      return text;
+    } catch (e) {
+      const delay = TRANSLATE_RETRY.delaysMs[attempt];
+      if (delay === undefined) throw e;
+      await sleep(delay);
+    }
+  }
+}
+
 /**
  * Translates a dictionary of strings on the fly using Amazon Translate
  * (through Amplify Predictions).
@@ -96,15 +120,7 @@ export function useAwsTranslation(texts = {}, targetLang = "ES") {
         await Promise.all(
           pending.map(async ([, value]) => {
             try {
-              const { text } = await Predictions.convert({
-                translateText: {
-                  source: {
-                    text: preprocessForTranslation(value, lang),
-                    language: "es",
-                  },
-                  targetLanguage: lang,
-                },
-              });
+              const text = await convertWithRetry(Predictions, value, lang);
               if (text) cache[`${lang}::${value}`] = text;
             } catch (e) {
               console.error("Amazon Translate error for:", value, e);

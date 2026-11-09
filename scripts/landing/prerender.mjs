@@ -234,17 +234,25 @@ function translator(cfg, ssr) {
     const key = `en::${text}`;
     if (store[key] !== undefined) return store[key];
     if (disabled) return null;
-    try {
-      const send = await client();
-      const out = await send(ssr.preprocessForTranslation(text, "en"));
-      misses += 1;
-      if (out?.TranslatedText) store[key] = out.TranslatedText;
-      return store[key] ?? null;
-    } catch (e) {
-      disabled = true; // sin permisos/red: el navegador traducirá como antes
-      log(`traducción desactivada para este build (${e.message})`);
-      return null;
+    // Un error puntual (throttling, red) no debe dejar el build sin inglés:
+    // se reintenta antes de desactivar la traducción para el resto del build.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const send = await client();
+        const out = await send(ssr.preprocessForTranslation(text, "en"));
+        misses += 1;
+        if (out?.TranslatedText) store[key] = out.TranslatedText;
+        return store[key] ?? null;
+      } catch (e) {
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          continue;
+        }
+        disabled = true; // sin permisos/red: el navegador traducirá como antes
+        log(`traducción desactivada para este build (${e.message})`);
+      }
     }
+    return null;
   }
 
   return {
